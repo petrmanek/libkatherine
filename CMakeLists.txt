@@ -1,0 +1,5 @@
+file(GLOB_RECURSE KATHERINE_SOURCES FILES_MATCHING PATTERN "src/*")
+file(GLOB_RECURSE KATHERINE_HEADERS FILES_MATCHING PATTERN "include/*")
+
+add_library(katherine ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
+target_include_directories(katherine PUBLIC include)
