@@ -26,9 +26,6 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_no_frames(device, config->no_frames);
     if (res) goto err;
 
-    res = katherine_set_seq_readout_start(device, config->seq_readout_start);
-    if (res) goto err;
-
     res = katherine_set_bias(device, config->bias_id, config->bias);
     if (res) goto err;
 
@@ -36,7 +33,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     if (res) goto err;
 
     int reg_backread = 0x59 & 0xf6;
-    int general_setup = reg_backread | !config->polarity_holes | (config->gray_enable << 3);
+    int general_setup = reg_backread | !config->polarity_holes | ((config->gray_disable ? 1 : 0) << 3);
     res = katherine_set_sensor_register(device, TPX3_REG_GENERAL_CONFIG, general_setup);
     if (res) goto err;
 
@@ -51,9 +48,6 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     if (res) goto err;
 
     res = katherine_set_dacs(device, &config->dacs);
-    if (res) goto err;
-
-    res = katherine_set_acq_mode(device, config->acq_mode, config->fast_vco_enabled);
     if (res) goto err;
 
     return 0;

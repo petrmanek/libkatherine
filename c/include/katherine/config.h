@@ -20,6 +20,14 @@ extern "C" {
 
 typedef struct katherine_device katherine_device_t;
 
+
+typedef enum katherine_acquisition_mode {
+    ACQUISITION_MODE_TOA_TOT        = 0,
+    ACQUISITION_MODE_ONLY_TOA       = 1,
+    ACQUISITION_MODE_EVENT_ITOT     = 2,
+} katherine_acquisition_mode_t;
+
+
 typedef struct katherine_trigger {
     bool enabled;
     char channel;
@@ -69,19 +77,9 @@ typedef enum katherine_freq {
 } katherine_freq_t;
 
 
-typedef enum katherine_acquisition_mode {
-    ACQUISITION_MODE_TOA_TOT        = 0,
-    ACQUISITION_MODE_ONLY_TOA       = 1,
-    ACQUISITION_MODE_EVENT_ITOT     = 2,
-} katherine_acquisition_mode_t;
-
-
 typedef struct katherine_config {
     katherine_bmc_t pixel_config;
 
-    bool seq_readout_start;
-    bool fast_vco_enabled;
-    katherine_acquisition_mode_t acq_mode;
     unsigned char bias_id;
 
     double acq_time; // ns
@@ -92,7 +90,7 @@ typedef struct katherine_config {
     bool delayed_start;
     katherine_trigger_t stop_trigger;
 
-    bool gray_enable;
+    bool gray_disable;
     bool polarity_holes;
 
     katherine_phase_t phase;

@@ -139,7 +139,7 @@ void
 katherine_acquisition_fini(katherine_acquisition_t *);
 
 int
-katherine_acquisition_begin(katherine_acquisition_t *, const katherine_config_t *, char);
+katherine_acquisition_begin(katherine_acquisition_t *, const katherine_config_t *, char, katherine_acquisition_mode_t, bool);
 
 int
 katherine_acquisition_abort(katherine_acquisition_t *);

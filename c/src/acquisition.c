@@ -2,6 +2,7 @@
 // Created by petr on 29.5.18.
 //
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <katherine/acquisition.h>
@@ -248,6 +249,14 @@ handle_aborted_measurement(katherine_acquisition_t *acq, const void *data)
 }
 
 static inline void
+handle_trigger_info(katherine_acquisition_t *acq, const void *data)
+{
+    (void) acq;
+    (void) data;
+    /* The info is discarded. */
+}
+
+static inline void
 handle_unknown_msg(katherine_acquisition_t *acq, const void *data)
 {
     ++acq->dropped_measurement_data;
@@ -266,24 +275,32 @@ handle_unknown_msg(katherine_acquisition_t *acq, const void *data)
 int
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, size_t md_buffer_size, size_t pixel_buffer_size)
 {
+    int res = 0;
+
     acq->device = device;
     acq->state = ACQUISITION_NOT_STARTED;
 
     acq->md_buffer_size = md_buffer_size;
     acq->md_buffer = malloc(acq->md_buffer_size);
-    if (!acq->md_buffer) goto err_datagram_buffer;
+    if (acq->md_buffer == NULL) {
+        res = ENOMEM;
+        goto err_datagram_buffer;
+    }
 
     acq->pixel_buffer_size = pixel_buffer_size;
     acq->pixel_buffer = malloc(acq->pixel_buffer_size);
     acq->pixel_buffer_valid = 0;
-    if (!acq->pixel_buffer) goto err_pixel_buffer;
+    if (acq->pixel_buffer == NULL) {
+        res = ENOMEM;
+        goto err_pixel_buffer;
+    }
 
-    return 0;
+    return res;
 
 err_pixel_buffer:
     free(acq->md_buffer);
 err_datagram_buffer:
-    return 1;
+    return res;
 }
 
 /**
@@ -313,6 +330,8 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             ++acq->pixel_buffer_valid;\
         } else {\
             switch (md->header) {\
+            case 0x2: handle_trigger_info(acq, data); break;\
+            case 0x3: handle_trigger_info(acq, data); break;\
             case 0x5: handle_timestamp_offset_driven_mode(acq, data); break;\
             case 0x7: handle_new_frame(acq, data); break;\
             case 0x8: handle_frame_start_timestamp_lsb(acq, data); break;\
@@ -330,7 +349,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     static int\
     acquisition_read_##SUFFIX(katherine_acquisition_t *acq)\
     {\
-        static const int TRIES = 64;\
+        static const int TRIES = 8;\
         static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t);\
         \
         if (katherine_udp_mutex_lock(&acq->device->data_socket) != 0) return 1;\
@@ -365,7 +384,12 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         }\
         \
         (void) katherine_udp_mutex_unlock(&acq->device->data_socket);\
-        return acq->state == ACQUISITION_SUCCEEDED;\
+        switch (acq->state) {\
+        case ACQUISITION_SUCCEEDED:     return 0;\
+        case ACQUISITION_TIMED_OUT:     return ETIMEDOUT;\
+        case ACQUISITION_ABORTED:       return ECANCELED;\
+        default:                        return EAGAIN;\
+        }\
     }
 
 DEFINE_ACQ_IMPL(f_toa_tot);
@@ -408,7 +432,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
         }
 
     default:
-        return 1;
+        return EINVAL;
     }
 }
 
@@ -417,14 +441,22 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  * @param acq Acquisition
  * @param config Configuration
  * @param readout_mode Readout mode
+ * @param acq_mode Acquisition mode
+ * @param fast_vco_enabled Enable fast voltage-controlled oscillators
  * @return Error code.
  */
 int
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode)
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
 {
-    int res;
+    int res = 0;
 
     res = katherine_configure(acq->device, config);
+    if (res) goto err;
+
+    res = katherine_set_seq_readout_start(acq->device, readout_mode);
+    if (res) goto err;
+
+    res = katherine_set_acq_mode(acq->device, acq_mode, fast_vco_enabled);
     if (res) goto err;
 
     acq->readout_mode = readout_mode;
@@ -433,8 +465,8 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->completed_frames = 0;
     acq->requested_frames = config->no_frames;
     acq->dropped_measurement_data = 0;
-    acq->acq_mode = config->acq_mode;
-    acq->fast_vco_enabled = config->fast_vco_enabled;
+    acq->acq_mode = acq_mode;
+    acq->fast_vco_enabled = fast_vco_enabled;
 
     acq->pixel_buffer_valid = 0;
     acq->pixel_buffer_max_valid = 0;

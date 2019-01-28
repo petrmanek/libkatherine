@@ -20,12 +20,6 @@ typedef struct katherine_bmc {
 } katherine_bmc_t;
 
 int
-katherine_bmc_init(katherine_bmc_t *);
-
-void
-katherine_bmc_fini(katherine_bmc_t *);
-
-int
 katherine_bmc_load(katherine_bmc_t *, const char *);
 
 #ifdef __cplusplus

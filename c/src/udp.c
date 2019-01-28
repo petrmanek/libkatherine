@@ -2,11 +2,38 @@
 // Created by petr on 29.5.18.
 //
 
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <string.h>
 #include <katherine/udp.h>
+
+// Uncomment the following line to enable network trace:
+// #define KATHERINE_DEBUG_UDP 2
+
+#ifdef KATHERINE_DEBUG_UDP
+static inline void
+dump_buffer(const char *msg, const unsigned char *buf, size_t count)
+{
+    printf("%-10s ", msg);
+
+#if KATHERINE_DEBUG_UDP >= 2
+    if (count < 60000) {
+        for (size_t i = 0; i < count; i++) {
+            printf("%02X ", buf[i]);
+            if (count != 8 && i % 6 == 5) {
+                printf("\n");
+            }
+        }
+        printf("\n");
+    }
+#endif
+
+    printf("(%ld bytes)\n", count);
+}
+#endif /* KATHERINE_DEBUG_UDP */
 
 /**
  * Initialize new UDP session.
@@ -20,8 +47,11 @@
 int
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
 {
+    int res = 0;
+
     // Create socket.
     if ((u->sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        res = errno;
         goto err_socket;
     }
 
@@ -31,6 +61,7 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if (bind(u->sock, (struct sockaddr*) &u->addr_local, sizeof(u->addr_local)) == -1) {
+        res = errno;
         goto err_bind;
     }
 
@@ -39,7 +70,8 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
         struct timeval timeout;
         timeout.tv_sec = timeout_ms / 1000;
         timeout.tv_usec = 1000 * (timeout_ms % 1000);
-        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+            res = errno;
             goto err_timeout;
         }
     }
@@ -48,14 +80,15 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     u->addr_remote.sin_family = AF_INET;
     u->addr_remote.sin_port = htons(remote_port);
     if (inet_pton(AF_INET, remote_addr, &u->addr_remote.sin_addr) <= 0) {
+        res = EINVAL;
         goto err_remote;
     }
 
-    if (pthread_mutex_init(&u->mutex, NULL) != 0) {
+    if ((res = pthread_mutex_init(&u->mutex, NULL)) != 0) {
         goto err_mutex;
     }
 
-    return 0;
+    return res;
 
 err_mutex:
 err_remote:
@@ -63,7 +96,7 @@ err_timeout:
 err_bind:
     close(u->sock);
 err_socket:
-    return 1;
+    return res;
 }
 
 /**
@@ -94,11 +127,15 @@ katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count)
     do {
         sent = sendto(u->sock, data + total, count - total, 0, (struct sockaddr*) &u->addr_remote, sizeof(u->addr_remote));
         if (sent == -1) {
-            return 1;
+            return errno;
         }
 
         total += sent;
     } while (total < count);
+
+#ifdef KATHERINE_DEBUG_UDP
+    dump_buffer("Sent:", data, count);
+#endif /* KATHERINE_DEBUG_UDP */
 
     return 0;
 }
@@ -120,11 +157,15 @@ katherine_udp_recv_exact(katherine_udp_t* u, void* data, size_t count)
     while (total < count) {
         received = recvfrom(u->sock, data + total, count - total, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
         if (received == -1) {
-            return 1;
+            return errno;
         }
 
         total += received;
     }
+
+#ifdef KATHERINE_DEBUG_UDP
+    dump_buffer("Received:", data, received);
+#endif /* KATHERINE_DEBUG_UDP */
 
     return 0;
 }
@@ -143,8 +184,12 @@ katherine_udp_recv(katherine_udp_t* u, void* data, size_t* count)
     ssize_t received = recvfrom(u->sock, data, *count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
 
     if (received == -1) {
-        return 1;
+        return errno;
     }
+
+#ifdef KATHERINE_DEBUG_UDP
+    dump_buffer("Received:", data, received);
+#endif /* KATHERINE_DEBUG_UDP */
 
     *count = (size_t) received;
     return 0;

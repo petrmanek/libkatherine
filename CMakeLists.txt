@@ -1,5 +1,5 @@
-file(GLOB_RECURSE KATHERINE_SOURCES FILES_MATCHING PATTERN "src/*")
-file(GLOB_RECURSE KATHERINE_HEADERS FILES_MATCHING PATTERN "include/*")
+cmake_minimum_required(VERSION 3.0)
+project(katherine LANGUAGES C CXX)
 
-add_library(katherine ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
-target_include_directories(katherine PUBLIC include)
+add_subdirectory(c)
+add_subdirectory(cxx)
