@@ -78,17 +78,55 @@ class acquisition {
 public:
     using pixel_type                = typename AcqMode::pixel_type;
 
-    using pixels_received_handler   = void(const pixel_type *, size_t);
-    using frame_started_handler     = void(int);
-    using frame_ended_handler       = void(int, bool, const katherine_frame_info_t *);
+    using pixels_received_handler   = std::function<void(const pixel_type *, size_t)>;
+    using frame_started_handler     = std::function<void(int)>;
+    using frame_ended_handler       = std::function<void(int, bool, const katherine_frame_info_t *)>;
+
+private:
+    pixels_received_handler pixels_received_handler_;
+    frame_started_handler frame_started_handler_;
+    frame_ended_handler frame_ended_handler_;
+
+    static void
+    forward_pixels_received(void *user_ctx, const void *px, size_t count)
+    {
+        auto self       = reinterpret_cast<acquisition*>(user_ctx);
+        auto derived_px = reinterpret_cast<const pixel_type*>(px);
+        self->pixels_received_handler_(derived_px, count);
+    }
+
+    static void
+    forward_frame_started(void *user_ctx, int frame_idx)
+    {
+        auto self = reinterpret_cast<acquisition*>(user_ctx);
+        self->frame_started_handler_(frame_idx);
+    }
+
+    static void
+    forward_frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
+    {
+        auto self = reinterpret_cast<acquisition*>(user_ctx);
+        self->frame_ended_handler_(frame_idx, completed, info);
+    }
 
 public:
     acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size)
+        :acq_{},
+         pixels_received_handler_{},
+         frame_started_handler_{},
+         frame_ended_handler_{}
     {
-        int res = katherine_acquisition_init(&acq_, dev.c_dev(), md_buffer_size, pixel_buffer_size);
+        int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void*>(this), md_buffer_size, pixel_buffer_size);
         if (res != 0) {
             throw katherine::system_error{res};
         }
+
+        /* TODO: uncomment in C++2a */
+        acq_.handlers = {
+            /* .pixels_received = */ nullptr,
+            /* .frame_started = */ acquisition::forward_frame_started,
+            /* .frame_ended = */ acquisition::forward_frame_ended
+        };
     }
 
     virtual ~acquisition()
@@ -97,22 +135,21 @@ public:
     }
 
     void
-    set_pixels_received_handler(pixels_received_handler fn)
+    set_pixels_received_handler(pixels_received_handler&& fn)
     {
-        using c_handler = void(const void *, size_t);
-        acq_.handlers.pixels_received = reinterpret_cast<c_handler*>(fn);
+        pixels_received_handler_ = std::move(fn);
     }
 
     void
-    set_frame_started_handler(frame_started_handler fn)
+    set_frame_started_handler(frame_started_handler&& fn)
     {
-        acq_.handlers.frame_started = fn;
+        frame_started_handler_ = std::move(fn);
     }
 
     void
-    set_frame_ended_handler(frame_ended_handler fn)
+    set_frame_ended_handler(frame_ended_handler&& fn)
     {
-        acq_.handlers.frame_ended = fn;
+        frame_ended_handler_ = std::move(fn);
     }
 
     void

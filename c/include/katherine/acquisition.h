@@ -87,9 +87,9 @@ typedef struct katherine_frame_info {
 } katherine_frame_info_t;
 
 typedef struct katherine_acquisition_handlers {
-    void (*pixels_received)(const void *, size_t);
-    void (*frame_started)(int);
-    void (*frame_ended)(int, bool, const katherine_frame_info_t *);
+    void (*pixels_received)(void *, const void *, size_t);
+    void (*frame_started)(void *, int);
+    void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *);
 } katherine_acquisition_handlers_t;
 
 typedef enum katherine_readout_type {
@@ -107,6 +107,7 @@ typedef enum katherine_acquisition_state {
 
 typedef struct katherine_acquisition {
     katherine_device_t *device;
+    void *user_ctx;
 
     char state;
     char readout_mode;
@@ -133,7 +134,7 @@ typedef struct katherine_acquisition {
 } katherine_acquisition_t;
 
 int
-katherine_acquisition_init(katherine_acquisition_t *, katherine_device_t *, size_t md_buffer_size, size_t pixel_buffer_size);
+katherine_acquisition_init(katherine_acquisition_t *, katherine_device_t *, void *, size_t md_buffer_size, size_t pixel_buffer_size);
 
 void
 katherine_acquisition_fini(katherine_acquisition_t *);

@@ -161,7 +161,7 @@ DEFINE_PMD_MAP(event_itot)
 static inline void
 flush_buffer(katherine_acquisition_t *acq)
 {
-    acq->handlers.pixels_received(acq->pixel_buffer, acq->pixel_buffer_valid);
+    acq->handlers.pixels_received(acq->user_ctx, acq->pixel_buffer, acq->pixel_buffer_valid);
 
     acq->current_frame_info.received_pixels += acq->pixel_buffer_valid;
     acq->pixel_buffer_valid = 0;
@@ -171,7 +171,7 @@ static inline void
 handle_new_frame(katherine_acquisition_t *acq, const void *data)
 {
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
-    acq->handlers.frame_started(acq->completed_frames);
+    acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
 }
 
 static inline void
@@ -190,7 +190,7 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const void *data)
     flush_buffer(acq);
 
     acq->current_frame_info.sent_pixels = md->n_sent;
-    acq->handlers.frame_ended(acq->completed_frames, true, &acq->current_frame_info);
+    acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, true, &acq->current_frame_info);
 
     ++acq->completed_frames;
 
@@ -245,7 +245,7 @@ handle_aborted_measurement(katherine_acquisition_t *acq, const void *data)
     acq->state = ACQUISITION_ABORTED;
 
     flush_buffer(acq);
-    acq->handlers.frame_ended(acq->completed_frames, false, &acq->current_frame_info);
+    acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, false, &acq->current_frame_info);
 }
 
 static inline void
@@ -268,16 +268,18 @@ handle_unknown_msg(katherine_acquisition_t *acq, const void *data)
  * Initialize acquisition.
  * @param acq Acquisition to initialize
  * @param device Katherine device
+ * @param ctx User context (may be used to convey useful info)
  * @param md_buffer_size Size of the measurement data buffer in bytes
  * @param pixel_buffer_size Size of the pixel buffer in bytes
  * @return Error code.
  */
 int
-katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, size_t md_buffer_size, size_t pixel_buffer_size)
+katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size)
 {
     int res = 0;
 
     acq->device = device;
+    acq->user_ctx = ctx;
     acq->state = ACQUISITION_NOT_STARTED;
 
     acq->md_buffer_size = md_buffer_size;
