@@ -11,9 +11,10 @@ namespace katherine {
 using trigger = katherine_trigger_t;
 
 static constexpr trigger no_trigger{
-    .enabled = false, 
-    .channel = 0, 
-    .use_falling_edge = 0
+    /* TODO: uncomment in C++2a */
+    /* .enabled = */ false, 
+    /* .channel = */ 0, 
+    /* .use_falling_edge = */ 0
 };
 
 using dacs = katherine_dacs_t;
