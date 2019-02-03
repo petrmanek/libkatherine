@@ -37,7 +37,7 @@ cdef class Device:
     # TODO int katherine_get_comm_status(katherine_device_t *, katherine_comm_status_t *);
 
     def get_chip_id(self):
-        cdef char[:] chip_id = array.array('b', cstatus.KATHERINE_CHIP_ID_STR_SIZE)
+        cdef char[:] chip_id = array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)
         res = cstatus.katherine_get_chip_id(self._c_device, &chip_id[0])
         check_return_code(res)
         return <bytes> chip_id
