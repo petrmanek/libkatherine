@@ -20,7 +20,7 @@ void
 test_succeeded(const std::string& address, const std::string& chip_id)
 {
     ++n_found;
-    std::cout << "Found device: " << address << ", chip id: " << chip_id << std::endl;
+    std::cout << "Found device: " << address << ",\t chip id: " << chip_id << std::endl;
 }
 
 void
@@ -120,8 +120,8 @@ main(int argc, char *argv[])
         n_hosts *= (max[i] - min[i] + 1);
     }
 
-    std::cout << "Testing " << n_hosts << " hosts. Start: " << min[0] << '.' << min[1] << '.' << min[2] << '.' << min[3]
-              << ", End: " << max[0] << '.' << max[1] << '.' << max[2] << '.' << max[3] << std::endl;
+    std::cout << "Testing " << n_hosts << " hosts.\t Start: " << min[0] << '.' << min[1] << '.' << min[2] << '.' << min[3]
+              << ",\t End: " << max[0] << '.' << max[1] << '.' << max[2] << '.' << max[3] << std::endl;
 
     while (src.have_address()) {
         test_ip_address(src.address());
