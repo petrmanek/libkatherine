@@ -138,13 +138,32 @@ in any script.
 
 ## Copyright
 
-(c) Petr Mánek 2018, All rights reserved.
+&copy; Petr Mánek 2018, All rights reserved.
 
 Contents of this library are provided for use under the conditions of the
 MIT License (see `LICENSE`).
 
 
-### Acknowledgements
+### Citing
+
+If you use this library in your academic work, please make sure you include
+a correct citation of [my thesis][thesis], in which was this library originally
+developed and tested.
+
+If you use BibTeX, you can use the following code:
+
+```bibtex
+  @THESIS{Manek2018_CUNI,
+    author={P. Mánek},
+    title={A system for 3D localization of gamma sources using Timepix3-based Compton cameras},
+    year={2018},
+    institution={Faculty of Mathematics and Physics, Charles University},
+    type={Master's thesis}
+  } 
+```
+
+
+### Contributors
 
 I would like to thank the following people and institutions for their help
 in the development of this library:
@@ -153,3 +172,6 @@ in the development of this library:
  - Jan Broulím, Institute of Experimental and Applied Physics CTU,
  - Lukáš Meduna, Institute of Experimental and Applied Physics CTU,
  - Jakub Begera, Institute of Experimental and Applied Physics CTU.
+
+
+[thesis]: http://hdl.handle.net/20.500.11956/101404
