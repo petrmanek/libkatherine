@@ -78,7 +78,7 @@ class acquisition {
 public:
     using pixel_type                = typename AcqMode::pixel_type;
 
-    using pixels_received_handler   = std::function<void(const pixel_type *, size_t)>;
+    using pixels_received_handler   = std::function<void(const pixel_type *, std::size_t)>;
     using frame_started_handler     = std::function<void(int)>;
     using frame_ended_handler       = std::function<void(int, bool, const katherine_frame_info_t *)>;
 
@@ -123,7 +123,7 @@ public:
 
         /* TODO: uncomment in C++2a */
         acq_.handlers = {
-            /* .pixels_received = */ nullptr,
+            /* .pixels_received = */ acquisition::forward_pixels_received,
             /* .frame_started = */ acquisition::forward_frame_started,
             /* .frame_ended = */ acquisition::forward_frame_ended
         };
