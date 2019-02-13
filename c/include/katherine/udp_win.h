@@ -4,14 +4,19 @@
 
 #ifdef KATHERINE_WIN
 
-// TODO: some windows headers here?
+#include <Windows.h>
+#include <Winsock2.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct katherine_udp {
-    // TODO: implement me
+    SOCKET sock;
+    SOCKADDR_IN addr_local;
+    SOCKADDR_IN addr_remote;
+
+    HANDLE mutex;
 } katherine_udp_t;
 
 #ifdef __cplusplus
