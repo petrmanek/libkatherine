@@ -7,6 +7,28 @@
 #include <sys/types.h>
 #include <katherine/udp.h>
 
+#ifdef KATHERINE_DEBUG_UDP
+static inline void
+dump_buffer(const char *msg, const unsigned char *buf, size_t count)
+{
+    printf("%-10s ", msg);
+
+#if KATHERINE_DEBUG_UDP >= 2
+    if (count < 60000) {
+        for (size_t i = 0; i < count; i++) {
+            printf("%02X ", buf[i]);
+            if (count != 8 && i % 6 == 5) {
+                printf("\n");
+            }
+        }
+        printf("\n");
+    }
+#endif
+
+    printf("(%ld bytes)\n", count);
+}
+#endif /* KATHERINE_DEBUG_UDP */
+
 /**
  * Initialize new UDP session.
  * @param u UDP session to initialize
