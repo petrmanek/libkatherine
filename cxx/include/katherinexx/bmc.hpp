@@ -8,7 +8,7 @@ namespace katherine {
 
 using bmc = katherine_bmc_t;
 
-static katherine::bmc
+inline katherine::bmc
 load_bmc(std::string file_path)
 {
     katherine::bmc data{};
