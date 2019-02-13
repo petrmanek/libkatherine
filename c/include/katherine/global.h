@@ -32,7 +32,7 @@
 #endif
 
 #ifdef _WIN32
-#   error "Windows support not available"
+#   define KATHERINE_WIN
 #elif __APPLE__
     #include "TargetConditionals.h"
     #if TARGET_IPHONE_SIMULATOR
