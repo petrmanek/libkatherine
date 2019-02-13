@@ -5,38 +5,39 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <katherine/global.h>
 #include <katherine/acquisition.h>
 #include <katherine/command_interface.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-typedef struct md {
+PACKED(typedef struct md {
     uint64_t : 44;
     uint8_t header : 4;
-} __attribute__((__packed__)) md_t;
+}) md_t;
 
-typedef struct md_time_offset {
+PACKED(typedef struct md_time_offset {
     uint32_t offset : 32; // 31..0
     uint16_t : 12; // 43..32
-} __attribute__((__packed__)) md_time_offset_t;
+}) md_time_offset_t;
 
-typedef struct md_frame_finished {
+PACKED(typedef struct md_frame_finished {
     uint64_t n_sent : 44; // 0..43
-} __attribute__((__packed__)) md_frame_finished_t;
+}) md_frame_finished_t;
 
-typedef struct md_time_lsb {
+PACKED(typedef struct md_time_lsb {
     uint32_t lsb : 32; // 31..0
     uint16_t : 12; // 43..32
-} __attribute__((__packed__)) md_time_lsb_t;
+}) md_time_lsb_t;
 
-typedef struct md_time_msb {
+PACKED(typedef struct md_time_msb {
     uint16_t msb : 16; // 15..0
     uint32_t : 24; // 43..16
-} __attribute__((__packed__)) md_time_msb_t;
+}) md_time_msb_t;
 
-typedef struct md_lost_px {
+PACKED(typedef struct md_lost_px {
     uint64_t n_lost : 44; // 43..0
-} __attribute__((__packed__)) md_lost_px_t;
+}) md_lost_px_t;
 
 #define DEFINE_PMD_MAP(SUFFIX) \
     static inline void\
@@ -54,14 +55,14 @@ typedef struct md_lost_px {
         dst->coord.y = src->coord_y;\
     }
 
-typedef struct pmd_f_toa_tot {
+PACKED(typedef struct pmd_f_toa_tot {
     uint16_t ftoa : 4; // 0..3
     uint16_t tot : 10; // 13..4
     uint16_t toa : 14; // 27..14
     uint16_t coord_x : 8; // 35..28
     uint16_t coord_y : 8; // 43..36
     uint16_t : 4; // 44..47
-} __attribute__((__packed__)) pmd_f_toa_tot_t;
+}) pmd_f_toa_tot_t;
 
 DEFINE_PMD_MAP(f_toa_tot)
 {
@@ -71,14 +72,14 @@ DEFINE_PMD_MAP(f_toa_tot)
     DEFINE_PMD_PAIR(tot);
 }
 
-typedef struct pmd_toa_tot {
+PACKED(typedef struct pmd_toa_tot {
     uint16_t hit_count : 4; // 0..3
     uint16_t tot : 10; // 13..4
     uint16_t toa : 14; // 27..14
     uint16_t coord_x : 8; // 35..28
     uint16_t coord_y : 8; // 43..36
     uint16_t : 4; // 44..47
-} __attribute__((__packed__)) pmd_toa_tot_t;
+}) pmd_toa_tot_t;
 
 DEFINE_PMD_MAP(toa_tot)
 {
@@ -88,14 +89,14 @@ DEFINE_PMD_MAP(toa_tot)
     DEFINE_PMD_PAIR(tot);
 }
 
-typedef struct pmd_f_toa_only {
+PACKED(typedef struct pmd_f_toa_only {
     uint16_t ftoa : 4; // 0..3
     uint16_t : 10; // 13..4
     uint16_t toa : 14; // 27..14
     uint16_t coord_x : 8; // 35..28
     uint16_t coord_y : 8; // 43..36
     uint16_t : 4; // 44..47
-} __attribute__((__packed__)) pmd_f_toa_only_t;
+}) pmd_f_toa_only_t;
 
 DEFINE_PMD_MAP(f_toa_only)
 {
@@ -104,14 +105,14 @@ DEFINE_PMD_MAP(f_toa_only)
     DEFINE_PMD_PAIR(ftoa);
 }
 
-typedef struct pmd_toa_only {
+PACKED(typedef struct pmd_toa_only {
     uint16_t hit_count : 4; // 0..3
     uint16_t : 10; // 13..4
     uint16_t toa : 14; // 27..14
     uint16_t coord_x : 8; // 35..28
     uint16_t coord_y : 8; // 43..36
     uint16_t : 4; // 44..47
-} __attribute__((__packed__)) pmd_toa_only_t;
+}) pmd_toa_only_t;
 
 DEFINE_PMD_MAP(toa_only)
 {
@@ -120,14 +121,14 @@ DEFINE_PMD_MAP(toa_only)
     DEFINE_PMD_PAIR(hit_count);
 }
 
-typedef struct pmd_f_event_itot {
+PACKED(typedef struct pmd_f_event_itot {
     uint16_t hit_count : 4; // 0..3
     uint16_t event_count : 10; // 13..4
     uint16_t integral_tot : 14; // 27..14
     uint16_t coord_x : 8; // 35..28
     uint16_t coord_y : 8; // 43..36
     uint16_t : 4; // 44..47
-} __attribute__((__packed__)) pmd_f_event_itot_t;
+}) pmd_f_event_itot_t;
 
 DEFINE_PMD_MAP(f_event_itot)
 {
@@ -137,14 +138,14 @@ DEFINE_PMD_MAP(f_event_itot)
     DEFINE_PMD_PAIR(integral_tot);
 }
 
-typedef struct pmd_event_itot {
+PACKED(typedef struct pmd_event_itot {
     uint16_t : 4; // 0..3
     uint16_t event_count : 10; // 13..4
     uint16_t integral_tot : 14; // 27..14
     uint16_t coord_x : 8; // 35..28
     uint16_t coord_y : 8; // 43..36
     uint16_t : 4; // 44..47
-} __attribute__((__packed__)) pmd_event_itot_t;
+}) pmd_event_itot_t;
 
 DEFINE_PMD_MAP(event_itot)
 {

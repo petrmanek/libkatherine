@@ -53,3 +53,9 @@
 #else
 #   error "Unknown platform"
 #endif
+
+#if defined(KATHERINE_NIX)
+#   define PACKED( __Declaration__ ) __Declaration__ __attribute__((__packed__))
+#elif defined(KATHERINE_WIN)
+#   define PACKED( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
+#endif
