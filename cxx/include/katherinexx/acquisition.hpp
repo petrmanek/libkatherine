@@ -65,8 +65,8 @@ public:
         :acq_{},
          mode_{mode},
          fast_vco_enabled_{fast_vco_enabled},
-         frame_started_handler_{},
-         frame_ended_handler_{}
+         frame_started_handler_{[](int frame_idx){ }},
+         frame_ended_handler_{[](int frame_idx, bool completed, const katherine_frame_info_t *info){ }}
     {
         int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void*>(this), md_buffer_size, pixel_buffer_size);
         if (res != 0) {
@@ -198,7 +198,7 @@ private:
 public:
     acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size)
         :base_acquisition{dev, md_buffer_size, pixel_buffer_size, AcqMode::mode, AcqMode::fast_vco_enabled},
-         pixels_received_handler_{}
+         pixels_received_handler_{[](const pixel_type *px, std::size_t count){ }}
     {
         acq_.handlers.pixels_received = acquisition::forward_pixels_received;
     }
