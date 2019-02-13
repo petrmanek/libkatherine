@@ -2,8 +2,7 @@
 // Created by petr on 14.6.18.
 //
 
-#ifndef THESIS_STATUS_H
-#define THESIS_STATUS_H
+#pragma once
 
 /**
  * @file
@@ -12,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <katherine/global.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +26,7 @@ typedef struct katherine_readout_status {
     int fw_version;
 } katherine_readout_status_t;
 
-int
+KATHERINE_EXPORTED int
 katherine_get_readout_status(katherine_device_t *, katherine_readout_status_t *);
 
 typedef struct katherine_comm_status {
@@ -35,28 +35,26 @@ typedef struct katherine_comm_status {
     bool chip_detected;
 } katherine_comm_status_t;
 
-int
+KATHERINE_EXPORTED int
 katherine_get_comm_status(katherine_device_t *, katherine_comm_status_t *);
 
 #define KATHERINE_CHIP_ID_STR_SIZE 16
 
-int
+KATHERINE_EXPORTED int
 katherine_get_chip_id(katherine_device_t *, char *);
 
-int
+KATHERINE_EXPORTED int
 katherine_get_readout_temperature(katherine_device_t *, float *);
 
-int
+KATHERINE_EXPORTED int
 katherine_get_sensor_temperature(katherine_device_t *, float *);
 
-int
+KATHERINE_EXPORTED int
 katherine_perform_digital_test(katherine_device_t *);
 
-int
+KATHERINE_EXPORTED int
 katherine_get_adc_voltage(katherine_device_t *, unsigned char, float *);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif //THESIS_STATUS_H

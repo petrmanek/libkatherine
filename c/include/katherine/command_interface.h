@@ -2,9 +2,9 @@
 // Created by petr on 9.6.18.
 //
 
-#ifndef THESIS_COMMAND_INTERFACE_H
-#define THESIS_COMMAND_INTERFACE_H
+#pragma once 
 
+#include <katherine/global.h>
 #include <katherine/udp.h>
 
 /*
@@ -239,5 +239,3 @@ K_DEFINE_CMD_ARG1(cmd64_long, set_dac_pll_vcntrl,                       long, CM
 #undef K_DEFINE_CMD_ARG1
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
-#endif //THESIS_COMMAND_INTERFACE_H

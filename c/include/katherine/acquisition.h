@@ -2,8 +2,7 @@
 // Created by petr on 29.5.18.
 //
 
-#ifndef THESIS_ACQUISITION_H
-#define THESIS_ACQUISITION_H
+#pragma once
 
 /**
  * @file
@@ -13,6 +12,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <katherine/global.h>
 #include <katherine/device.h>
 #include <katherine/config.h>
 
@@ -133,26 +133,24 @@ typedef struct katherine_acquisition {
 
 } katherine_acquisition_t;
 
-int
+KATHERINE_EXPORTED int
 katherine_acquisition_init(katherine_acquisition_t *, katherine_device_t *, void *, size_t md_buffer_size, size_t pixel_buffer_size);
 
-void
+KATHERINE_EXPORTED void
 katherine_acquisition_fini(katherine_acquisition_t *);
 
-int
+KATHERINE_EXPORTED int
 katherine_acquisition_begin(katherine_acquisition_t *, const katherine_config_t *, char, katherine_acquisition_mode_t, bool);
 
-int
+KATHERINE_EXPORTED int
 katherine_acquisition_abort(katherine_acquisition_t *);
 
-int
+KATHERINE_EXPORTED int
 katherine_acquisition_read(katherine_acquisition_t *);
 
-const char *
+KATHERINE_EXPORTED const char *
 katherine_str_acquisition_status(char);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif //THESIS_ACQUISITION_H

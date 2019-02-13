@@ -2,8 +2,7 @@
 // Created by petr on 10.6.18.
 //
 
-#ifndef THESIS_CONFIG_H
-#define THESIS_CONFIG_H
+#pragma once
 
 /**
  * @file
@@ -12,6 +11,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <katherine/global.h>
 #include <katherine/bmc.h>
 
 #ifdef __cplusplus
@@ -98,28 +98,29 @@ typedef struct katherine_config {
     katherine_dacs_t dacs;
 } katherine_config_t;
 
-int
+
+KATHERINE_EXPORTED int
 katherine_configure(katherine_device_t *, const katherine_config_t *);
 
-int
+KATHERINE_EXPORTED int
 katherine_set_all_pixel_config(katherine_device_t *, const katherine_bmc_t *);
 
-int
+KATHERINE_EXPORTED int
 katherine_set_acq_time(katherine_device_t *, double);
 
-int
+KATHERINE_EXPORTED int
 katherine_set_acq_mode(katherine_device_t *, katherine_acquisition_mode_t, bool);
 
-int
+KATHERINE_EXPORTED int
 katherine_set_no_frames(katherine_device_t *, int);
 
-int
+KATHERINE_EXPORTED int
 katherine_set_bias(katherine_device_t *, unsigned char, float);
 
-int
+KATHERINE_EXPORTED int
 katherine_set_seq_readout_start(katherine_device_t *, int);
 
-int
+KATHERINE_EXPORTED int
 katherine_acquisition_setup(katherine_device_t *, const katherine_trigger_t *, bool, const katherine_trigger_t *);
 
 typedef enum katherine_tpx3_reg {
@@ -137,17 +138,15 @@ typedef enum katherine_tpx3_reg {
     TPX3_REG_EXT_DAC_SELECTOR       = 11,
 } katherine_tpx3_reg_t;
 
-int
+KATHERINE_EXPORTED int
 katherine_set_sensor_register(katherine_device_t *, char, int32_t);
 
-int
+KATHERINE_EXPORTED int
 katherine_update_sensor_registers(katherine_device_t *);
 
-int
+KATHERINE_EXPORTED int
 katherine_set_dacs(katherine_device_t *, const katherine_dacs_t *);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif //THESIS_CONFIG_H

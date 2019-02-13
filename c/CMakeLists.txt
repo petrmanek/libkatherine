@@ -4,7 +4,8 @@ set(KATHERINE_SOURCES
     "src/config.c"
     "src/device.c"
     "src/status.c"
-    "src/udp.c"
+    "src/udp_nix.c"
+    "src/udp_win.c"
 )
 
 set(KATHERINE_HEADERS
@@ -16,6 +17,8 @@ set(KATHERINE_HEADERS
     "include/katherine/katherine.h"
     "include/katherine/status.h"
     "include/katherine/udp.h"
+    "include/katherine/udp_nix.h"
+    "include/katherine/udp_win.h"
 )
 
 add_library(katherine ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})

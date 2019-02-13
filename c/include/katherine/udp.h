@@ -2,8 +2,7 @@
 // Created by petr on 29.5.18.
 //
 
-#ifndef THESIS_UDP_H
-#define THESIS_UDP_H
+#pragma once
 
 /**
  * @file
@@ -11,20 +10,16 @@
  */
 
 #include <stdio.h>
-#include <arpa/inet.h>
-#include <pthread.h>
+#include <katherine/global.h>
+#include <katherine/udp_nix.h>
+#include <katherine/udp_win.h>
+
+// Uncomment the following line to enable network trace:
+// #define KATHERINE_DEBUG_UDP 2
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct katherine_udp {
-    int sock;
-    struct sockaddr_in addr_local;
-    struct sockaddr_in addr_remote;
-
-    pthread_mutex_t mutex;
-} katherine_udp_t;
 
 int
 katherine_udp_init(katherine_udp_t *, uint16_t, const char *, uint16_t, uint32_t);
@@ -50,5 +45,3 @@ katherine_udp_mutex_unlock(katherine_udp_t*);
 #ifdef __cplusplus
 }
 #endif
-
-#endif //THESIS_UDP_H

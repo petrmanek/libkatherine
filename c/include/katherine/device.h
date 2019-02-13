@@ -2,14 +2,14 @@
 // Created by petr on 14.6.18.
 //
 
-#ifndef THESIS_DEVICE_H
-#define THESIS_DEVICE_H
+#pragma once
 
 /**
  * @file
  * @brief Functions related to Katherine.
  */
 
+#include <katherine/global.h>
 #include <katherine/udp.h>
 
 #ifdef __cplusplus
@@ -21,14 +21,12 @@ typedef struct katherine_device {
     katherine_udp_t data_socket;
 } katherine_device_t;
 
-int
+KATHERINE_EXPORTED int
 katherine_device_init(katherine_device_t *, const char *);
 
-void
+KATHERINE_EXPORTED void
 katherine_device_fini(katherine_device_t *);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif //THESIS_DEVICE_H

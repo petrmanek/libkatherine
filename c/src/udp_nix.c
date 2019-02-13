@@ -2,6 +2,10 @@
 // Created by petr on 29.5.18.
 //
 
+#include <katherine/global.h>
+
+#ifdef KATHERINE_NIX
+
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,9 +13,6 @@
 #include <sys/time.h>
 #include <string.h>
 #include <katherine/udp.h>
-
-// Uncomment the following line to enable network trace:
-// #define KATHERINE_DEBUG_UDP 2
 
 #ifdef KATHERINE_DEBUG_UDP
 static inline void
@@ -216,3 +217,5 @@ katherine_udp_mutex_unlock(katherine_udp_t *u)
 {
     return pthread_mutex_unlock(&u->mutex);
 }
+
+#endif /* KATHERINE_NIX */

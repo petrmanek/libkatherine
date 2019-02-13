@@ -2,13 +2,14 @@
 // Created by petr on 9.6.18.
 //
 
-#ifndef THESIS_BMC_H
-#define THESIS_BMC_H
+#pragma once
 
 /**
  * @file
  * @brief Functions related to the BMC matrix configuration format.
  */
+
+#include <katherine/global.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,11 +20,9 @@ typedef struct katherine_bmc {
 
 } katherine_bmc_t;
 
-int
+KATHERINE_EXPORTED int
 katherine_bmc_load(katherine_bmc_t *, const char *);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif //THESIS_BMC_H
