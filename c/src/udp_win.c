@@ -2,6 +2,9 @@
 
 #ifdef KATHERINE_WIN
 
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <sys/types.h>
 #include <katherine/udp.h>
 
 /**
@@ -16,7 +19,62 @@
 int
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
 {
-    // TODO: implement me
+    int res = 0;
+
+    // Create communication buffer.
+    if ((res = WSAStartup(MAKEWORD(2, 2), &u->wsa_data)) != 0) {
+        goto err_wsa_data;
+    }
+
+    // Create socket.
+    if ((u->sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+        res = WSAGetLastError();
+        goto err_socket;
+    }
+
+    // Setup and bind the socket address.
+    u->addr_local.sin_family = AF_INET;
+    u->addr_local.sin_port = htons(local_port);
+    u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(u->sock, (const sockaddr*) &u->addr_local, sizeof(u->addr_local)) == SOCKET_ERROR) {
+        res = WSAGetLastError();
+        goto err_bind;
+    }
+
+    if (timeout_ms > 0) {
+        // Set socket timeout.
+        DWORD timeout = timeout_ms;
+        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, (char*) &timeout, sizeof(timeout)) == SOCKET_ERROR) {
+            res = WSAGetLastError();
+            goto err_timeout;
+        }
+    }
+
+    // Set remote socket address.
+    u->addr_remote.sin_family = AF_INET;
+    u->addr_remote.sin_port = htons(remote_port);
+    if (WSAStringToAddressA(remote_addr, AF_INET, NULL, &u->addr_remote.sin_addr, sizeof(u->addr_remote)) == SOCKET_ERROR) {
+        res = WSAGetLastError();
+        goto err_remote;
+    }
+
+    if ((u->mutex = CreateMutex(NULL, FALSE, NULL)) == NULL) {
+        res = GetLastError();
+        goto err_mutex;
+    }
+
+    return res;
+
+err_mutex:
+err_remote:
+err_timeout:
+err_bind:
+    (void) closesocket(u->sock);
+err_socket:
+    (void) WSACleanup();
+err_wsa_data:
+    return res;
 }
 
 /**
@@ -26,7 +84,10 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
 void
 katherine_udp_fini(katherine_udp_t *u)
 {
-    // TODO: implement me
+    // Ignoring return codes below.
+    (void) closesocket(u->sock);
+    (void) CloseHandle(u->mutex);
+    (void) WSACleanup();
 }
 
 /**
@@ -39,7 +100,24 @@ katherine_udp_fini(katherine_udp_t *u)
 int
 katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count)
 {
-    // TODO: implement me
+    ssize_t sent;
+    size_t total = 0;
+    const char *data = (const char*) data;
+
+    do {
+        sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr*) &u->addr_remote, sizeof(u->addr_remote));
+        if (sent == SOCKET_ERROR) {
+            return WSAGetLastError();
+        }
+
+        total += sent;
+    } while (total < count);
+
+#ifdef KATHERINE_DEBUG_UDP
+    dump_buffer("Sent:", data, count);
+#endif /* KATHERINE_DEBUG_UDP */
+
+    return 0;
 }
 
 /**
@@ -52,7 +130,25 @@ katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count)
 int
 katherine_udp_recv_exact(katherine_udp_t* u, void* data, size_t count)
 {
-    // TODO: implement me
+    ssize_t received;
+    size_t total = 0;
+    socklen_t addr_len = sizeof(u->addr_remote);
+    char *data = (char*) data;
+
+    while (total < count) {
+        received = recvfrom(u->sock, cdata + total, count - total, 0, (SOCKET_ADDR_T *) &u->addr_remote, &addr_len);
+        if (received == SOCKET_ERROR) {
+            return WSAGetLastError();
+        }
+
+        total += received;
+    }
+
+#ifdef KATHERINE_DEBUG_UDP
+    dump_buffer("Received:", data, received);
+#endif /* KATHERINE_DEBUG_UDP */
+
+    return 0;
 }
 
 /**
@@ -65,7 +161,20 @@ katherine_udp_recv_exact(katherine_udp_t* u, void* data, size_t count)
 int
 katherine_udp_recv(katherine_udp_t* u, void* data, size_t* count)
 {
-    // TODO: implement me
+    socklen_t addr_len = sizeof(u->addr_remote);
+    char *data = (char*) data;
+    ssize_t received = recvfrom(u->sock, cdata, *count, 0, (SOCKET_ADDR_T *) &u->addr_remote, &addr_len);
+
+    if (received == SOCKET_ERROR) {
+        return WSAGetLastError();
+    }
+
+#ifdef KATHERINE_DEBUG_UDP
+    dump_buffer("Received:", data, received);
+#endif /* KATHERINE_DEBUG_UDP */
+
+    *count = (size_t) received;
+    return 0;
 }
 
 /**
@@ -76,7 +185,7 @@ katherine_udp_recv(katherine_udp_t* u, void* data, size_t* count)
 int
 katherine_udp_mutex_lock(katherine_udp_t *u)
 {
-    // TODO: implement me
+    return WaitForSingleObject(u->mutex, INFINITE);
 }
 
 /**
@@ -87,7 +196,7 @@ katherine_udp_mutex_lock(katherine_udp_t *u)
 int
 katherine_udp_mutex_unlock(katherine_udp_t *u)
 {
-    // TODO: implement me
+    return ReleaseMutex(u->mutex);
 }
 
 #endif /* KATHERINE_WIN */

@@ -19,6 +19,7 @@ typedef struct katherine_udp {
     SOCKADDR_IN addr_remote;
 
     HANDLE mutex;
+    WSADATA wsa_data;
 } katherine_udp_t;
 
 #ifdef __cplusplus
