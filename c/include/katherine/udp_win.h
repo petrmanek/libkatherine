@@ -6,6 +6,8 @@
 
 #include <Windows.h>
 #include <Winsock2.h>
+#include <stdint.h>
+#pragma comment(lib, "Ws2_32.lib")
 
 #ifdef __cplusplus
 extern "C" {
