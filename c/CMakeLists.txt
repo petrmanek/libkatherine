@@ -14,6 +14,7 @@ set(KATHERINE_HEADERS
     "include/katherine/command_interface.h"
     "include/katherine/config.h"
     "include/katherine/device.h"
+    "include/katherine/global.h"
     "include/katherine/katherine.h"
     "include/katherine/status.h"
     "include/katherine/udp.h"
