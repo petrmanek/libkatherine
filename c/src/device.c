@@ -2,6 +2,7 @@
 // Created by petr on 14.6.18.
 //
 
+#include <stdint.h>
 #include <katherine/device.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
