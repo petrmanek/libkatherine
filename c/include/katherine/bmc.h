@@ -21,7 +21,7 @@ typedef struct katherine_bmc {
 } katherine_bmc_t;
 
 KATHERINE_EXPORTED int
-katherine_bmc_load(katherine_bmc_t *, const char *);
+katherine_bmc_load(katherine_bmc_t *bmc, const char *file_path);
 
 #ifdef __cplusplus
 }

@@ -27,7 +27,7 @@ typedef struct katherine_readout_status {
 } katherine_readout_status_t;
 
 KATHERINE_EXPORTED int
-katherine_get_readout_status(katherine_device_t *, katherine_readout_status_t *);
+katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status);
 
 typedef struct katherine_comm_status {
     uint8_t comm_lines_mask;
@@ -36,24 +36,24 @@ typedef struct katherine_comm_status {
 } katherine_comm_status_t;
 
 KATHERINE_EXPORTED int
-katherine_get_comm_status(katherine_device_t *, katherine_comm_status_t *);
+katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status);
 
 #define KATHERINE_CHIP_ID_STR_SIZE 16
 
 KATHERINE_EXPORTED int
-katherine_get_chip_id(katherine_device_t *, char *);
+katherine_get_chip_id(katherine_device_t *device, char *s_chip_id);
 
 KATHERINE_EXPORTED int
-katherine_get_readout_temperature(katherine_device_t *, float *);
+katherine_get_readout_temperature(katherine_device_t *device, float *temperature);
 
 KATHERINE_EXPORTED int
-katherine_get_sensor_temperature(katherine_device_t *, float *);
+katherine_get_sensor_temperature(katherine_device_t *device, float *temperature);
 
 KATHERINE_EXPORTED int
-katherine_perform_digital_test(katherine_device_t *);
+katherine_perform_digital_test(katherine_device_t *device);
 
 KATHERINE_EXPORTED int
-katherine_get_adc_voltage(katherine_device_t *, unsigned char, float *);
+katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage);
 
 #ifdef __cplusplus
 }
