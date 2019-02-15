@@ -22,7 +22,7 @@ set(KATHERINE_HEADERS
     "include/katherine/udp_win.h"
 )
 
-add_library(katherine ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
+add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 target_include_directories(katherine PUBLIC include)
 
 add_subdirectory(examples)
