@@ -4,7 +4,6 @@
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include <sys/types.h>
 #include <katherine/udp.h>
 
 #ifdef KATHERINE_DEBUG_UDP
@@ -59,7 +58,7 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     u->addr_local.sin_port = htons(local_port);
     u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(u->sock, (const sockaddr*) &u->addr_local, sizeof(u->addr_local)) == SOCKET_ERROR) {
+    if (bind(u->sock, (const struct sockaddr*) &u->addr_local, sizeof(u->addr_local)) == SOCKET_ERROR) {
         res = WSAGetLastError();
         goto err_bind;
     }
@@ -122,9 +121,9 @@ katherine_udp_fini(katherine_udp_t *u)
 int
 katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count)
 {
-    ssize_t sent;
+    size_t sent;
     size_t total = 0;
-    const char *data = (const char*) data;
+    const char *cdata = (const char*) data;
 
     do {
         sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr*) &u->addr_remote, sizeof(u->addr_remote));
@@ -152,13 +151,13 @@ katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count)
 int
 katherine_udp_recv_exact(katherine_udp_t* u, void* data, size_t count)
 {
-    ssize_t received;
+    size_t received;
     size_t total = 0;
     socklen_t addr_len = sizeof(u->addr_remote);
-    char *data = (char*) data;
+    char *cdata = (char*) data;
 
     while (total < count) {
-        received = recvfrom(u->sock, cdata + total, count - total, 0, (SOCKET_ADDR_T *) &u->addr_remote, &addr_len);
+        received = recvfrom(u->sock, cdata + total, count - total, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
         if (received == SOCKET_ERROR) {
             return WSAGetLastError();
         }
@@ -184,8 +183,8 @@ int
 katherine_udp_recv(katherine_udp_t* u, void* data, size_t* count)
 {
     socklen_t addr_len = sizeof(u->addr_remote);
-    char *data = (char*) data;
-    ssize_t received = recvfrom(u->sock, cdata, *count, 0, (SOCKET_ADDR_T *) &u->addr_remote, &addr_len);
+    char *cdata = (char*) data;
+    size_t received = recvfrom(u->sock, cdata, *count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
 
     if (received == SOCKET_ERROR) {
         return WSAGetLastError();
