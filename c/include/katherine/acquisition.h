@@ -114,10 +114,10 @@ typedef struct katherine_acquisition {
     char acq_mode;
     bool fast_vco_enabled;
 
-    void *md_buffer;
+    char *md_buffer;
     size_t md_buffer_size;
 
-    void *pixel_buffer;
+    char *pixel_buffer;
     size_t pixel_buffer_size;
     size_t pixel_buffer_valid;
     size_t pixel_buffer_max_valid;

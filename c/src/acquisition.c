@@ -284,14 +284,14 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->state = ACQUISITION_NOT_STARTED;
 
     acq->md_buffer_size = md_buffer_size;
-    acq->md_buffer = malloc(acq->md_buffer_size);
+    acq->md_buffer = (char *) malloc(acq->md_buffer_size);
     if (acq->md_buffer == NULL) {
         res = ENOMEM;
         goto err_datagram_buffer;
     }
 
     acq->pixel_buffer_size = pixel_buffer_size;
-    acq->pixel_buffer = malloc(acq->pixel_buffer_size);
+    acq->pixel_buffer = (char *) malloc(acq->pixel_buffer_size);
     acq->pixel_buffer_valid = 0;
     if (acq->pixel_buffer == NULL) {
         res = ENOMEM;
@@ -380,7 +380,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             \
             tries = TRIES;\
             \
-            const void *it = acq->md_buffer;\
+            const char *it = acq->md_buffer;\
             for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) {\
                 handle_measurement_data_##SUFFIX(acq, it);\
             }\
