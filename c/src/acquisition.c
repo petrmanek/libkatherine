@@ -11,153 +11,176 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+/* MD stands for Measurement Data, the 6 byte
+ * messages sent during (or after) acquisition.
+ * 
+ * There are various types of MD's, some contain
+ * metadata about the measurement, others can be
+ * directly mapped to active pixels. Below are
+ * defined all MD's recognized by this library.
+ */
+
 PACKED(typedef struct md {
     uint64_t : 44;
     uint8_t header : 4;
 }) md_t;
 
 PACKED(typedef struct md_time_offset {
-    uint32_t offset : 32; // 31..0
-    uint16_t : 12; // 43..32
+    uint32_t offset : 32;   // 31..0
+    uint16_t : 12;          // 43..32
 }) md_time_offset_t;
 
 PACKED(typedef struct md_frame_finished {
-    uint64_t n_sent : 44; // 0..43
+    uint64_t n_sent : 44;   // 0..43
 }) md_frame_finished_t;
 
 PACKED(typedef struct md_time_lsb {
-    uint32_t lsb : 32; // 31..0
-    uint16_t : 12; // 43..32
+    uint32_t lsb : 32;      // 31..0
+    uint16_t : 12;          // 43..32
 }) md_time_lsb_t;
 
 PACKED(typedef struct md_time_msb {
-    uint16_t msb : 16; // 15..0
-    uint32_t : 24; // 43..16
+    uint16_t msb : 16;      // 15..0
+    uint32_t : 24;          // 43..16
 }) md_time_msb_t;
 
 PACKED(typedef struct md_lost_px {
-    uint64_t n_lost : 44; // 43..0
+    uint64_t n_lost : 44;   // 43..0
 }) md_lost_px_t;
+
+
+/* For MD's which correspond to pixels, we
+ * define a direct mapping function named by
+ * the following template:
+ * 
+ *   pmd_{A}_map(dst, src, acq)
+ * 
+ * This function is responsible for mapping MD
+ * `src` of type pmd_{A}_t to a pixel `dst` of
+ * type katherine_px_{A}_t. Below are defined
+ * such functions for all pixel types.
+ */
 
 #define DEFINE_PMD_MAP(SUFFIX) \
     static inline void\
     pmd_##SUFFIX##_map(katherine_px_##SUFFIX##_t *dst, const pmd_##SUFFIX##_t *src, const katherine_acquisition_t *acq)
 
-#define DEFINE_PMD_PAIR(NAME) \
-    dst->NAME = src->NAME
+#define DEFINE_PMD_PAIR(NAME, TYPE) \
+    dst->NAME = (TYPE) src->NAME
 
 #define DEFINE_PMD_PAIR_TOA \
-    dst->toa = src->toa + acq->last_toa_offset
+    dst->toa = (uint64_t) src->toa + acq->last_toa_offset
 
 #define DEFINE_PMD_PAIR_COORD \
     {\
-        dst->coord.x = src->coord_x;\
-        dst->coord.y = src->coord_y;\
+        dst->coord.x = (uint8_t) src->coord_x;\
+        dst->coord.y = (uint8_t) src->coord_y;\
     }
 
 PACKED(typedef struct pmd_f_toa_tot {
-    uint16_t ftoa : 4; // 0..3
-    uint16_t tot : 10; // 13..4
-    uint16_t toa : 14; // 27..14
-    uint16_t coord_x : 8; // 35..28
-    uint16_t coord_y : 8; // 43..36
-    uint16_t : 4; // 44..47
+    uint16_t ftoa : 4;      // 0..3
+    uint16_t tot : 10;      // 13..4
+    uint16_t toa : 14;      // 27..14
+    uint16_t coord_x : 8;   // 35..28
+    uint16_t coord_y : 8;   // 43..36
+    uint16_t : 4;           // 44..47
 }) pmd_f_toa_tot_t;
 
 DEFINE_PMD_MAP(f_toa_tot)
 {
     DEFINE_PMD_PAIR_COORD;
     DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(ftoa);
-    DEFINE_PMD_PAIR(tot);
+    DEFINE_PMD_PAIR(ftoa,   uint8_t);
+    DEFINE_PMD_PAIR(tot,    uint16_t);
 }
 
 PACKED(typedef struct pmd_toa_tot {
-    uint16_t hit_count : 4; // 0..3
-    uint16_t tot : 10; // 13..4
-    uint16_t toa : 14; // 27..14
-    uint16_t coord_x : 8; // 35..28
-    uint16_t coord_y : 8; // 43..36
-    uint16_t : 4; // 44..47
+    uint16_t hit_count : 4;     // 0..3
+    uint16_t tot : 10;          // 13..4
+    uint16_t toa : 14;          // 27..14
+    uint16_t coord_x : 8;       // 35..28
+    uint16_t coord_y : 8;       // 43..36
+    uint16_t : 4;               // 44..47
 }) pmd_toa_tot_t;
 
 DEFINE_PMD_MAP(toa_tot)
 {
     DEFINE_PMD_PAIR_COORD;
     DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(hit_count);
-    DEFINE_PMD_PAIR(tot);
+    DEFINE_PMD_PAIR(hit_count,  uint8_t);
+    DEFINE_PMD_PAIR(tot,        uint16_t);
 }
 
 PACKED(typedef struct pmd_f_toa_only {
-    uint16_t ftoa : 4; // 0..3
-    uint16_t : 10; // 13..4
-    uint16_t toa : 14; // 27..14
-    uint16_t coord_x : 8; // 35..28
-    uint16_t coord_y : 8; // 43..36
-    uint16_t : 4; // 44..47
+    uint16_t ftoa : 4;      // 0..3
+    uint16_t : 10;          // 13..4
+    uint16_t toa : 14;      // 27..14
+    uint16_t coord_x : 8;   // 35..28
+    uint16_t coord_y : 8;   // 43..36
+    uint16_t : 4;           // 44..47
 }) pmd_f_toa_only_t;
 
 DEFINE_PMD_MAP(f_toa_only)
 {
     DEFINE_PMD_PAIR_COORD;
     DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(ftoa);
+    DEFINE_PMD_PAIR(ftoa,   uint8_t);
 }
 
 PACKED(typedef struct pmd_toa_only {
     uint16_t hit_count : 4; // 0..3
-    uint16_t : 10; // 13..4
-    uint16_t toa : 14; // 27..14
-    uint16_t coord_x : 8; // 35..28
-    uint16_t coord_y : 8; // 43..36
-    uint16_t : 4; // 44..47
+    uint16_t : 10;          // 13..4
+    uint16_t toa : 14;      // 27..14
+    uint16_t coord_x : 8;   // 35..28
+    uint16_t coord_y : 8;   // 43..36
+    uint16_t : 4;           // 44..47
 }) pmd_toa_only_t;
 
 DEFINE_PMD_MAP(toa_only)
 {
     DEFINE_PMD_PAIR_COORD;
     DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(hit_count);
+    DEFINE_PMD_PAIR(hit_count,  uint8_t);
 }
 
 PACKED(typedef struct pmd_f_event_itot {
-    uint16_t hit_count : 4; // 0..3
-    uint16_t event_count : 10; // 13..4
+    uint16_t hit_count : 4;     // 0..3
+    uint16_t event_count : 10;  // 13..4
     uint16_t integral_tot : 14; // 27..14
-    uint16_t coord_x : 8; // 35..28
-    uint16_t coord_y : 8; // 43..36
-    uint16_t : 4; // 44..47
+    uint16_t coord_x : 8;       // 35..28
+    uint16_t coord_y : 8;       // 43..36
+    uint16_t : 4;               // 44..47
 }) pmd_f_event_itot_t;
 
 DEFINE_PMD_MAP(f_event_itot)
 {
     DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR(hit_count);
-    DEFINE_PMD_PAIR(event_count);
-    DEFINE_PMD_PAIR(integral_tot);
+    DEFINE_PMD_PAIR(hit_count,      uint8_t);
+    DEFINE_PMD_PAIR(event_count,    uint16_t);
+    DEFINE_PMD_PAIR(integral_tot,   uint16_t);
 }
 
 PACKED(typedef struct pmd_event_itot {
-    uint16_t : 4; // 0..3
-    uint16_t event_count : 10; // 13..4
+    uint16_t : 4;               // 0..3
+    uint16_t event_count : 10;  // 13..4
     uint16_t integral_tot : 14; // 27..14
-    uint16_t coord_x : 8; // 35..28
-    uint16_t coord_y : 8; // 43..36
-    uint16_t : 4; // 44..47
+    uint16_t coord_x : 8;       // 35..28
+    uint16_t coord_y : 8;       // 43..36
+    uint16_t : 4;               // 44..47
 }) pmd_event_itot_t;
 
 DEFINE_PMD_MAP(event_itot)
 {
     DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR(event_count);
-    DEFINE_PMD_PAIR(integral_tot);
+    DEFINE_PMD_PAIR(event_count,    uint16_t);
+    DEFINE_PMD_PAIR(integral_tot,   uint16_t);
 }
 
 #undef DEFINE_PMD_MAP
 #undef DEFINE_PMD_PAIR
 #undef DEFINE_PMD_PAIR_COORD
 #undef DEFINE_PMD_PAIR_TOA
+
 
 static inline void
 flush_buffer(katherine_acquisition_t *acq)

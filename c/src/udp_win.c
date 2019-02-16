@@ -75,7 +75,7 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     // Set remote socket address.
     u->addr_remote.sin_family = AF_INET;
     u->addr_remote.sin_port = htons(remote_port);
-    if (WSAStringToAddressA(remote_addr, AF_INET, NULL, &u->addr_remote.sin_addr, sizeof(u->addr_remote)) == SOCKET_ERROR) {
+    if (inet_pton(AF_INET, remote_addr, &u->addr_remote.sin_addr) <= 0) {
         res = WSAGetLastError();
         goto err_remote;
     }

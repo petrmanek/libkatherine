@@ -33,7 +33,7 @@ test_ip_address(const std::string& address)
         
         std::string chip_id = device.chip_id();
         test_succeeded(address, chip_id);
-    } catch (const katherine::error& e) {
+    } catch (const katherine::error&) {
         test_failed(address);
     }
 }
@@ -100,7 +100,7 @@ parse_args(int argc, char *argv[], int min[4], int max[4])
         ++component_no;
 
         parse_range(min[3], max[3], arg.substr(pos[2] + 1, pos[3] - pos[2] - 1));
-    } catch (const std::invalid_argument& e) {
+    } catch (const std::invalid_argument&) {
         abort_parsing(argv, "invalid range specified (component " + std::to_string(component_no) + ")");
     }
 }
