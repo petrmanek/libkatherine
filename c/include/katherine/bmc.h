@@ -1,6 +1,11 @@
-//
-// Created by petr on 9.6.18.
-//
+/* Katherine Control Library
+ *
+ * This file was created on 9.6.18 by Petr Manek.
+ * 
+ * Contents of this file are copyrighted and subject to license
+ * conditions specified in the LICENSE file located in the top
+ * directory.
+ */
 
 #pragma once
 

@@ -171,7 +171,8 @@ in the development of this library:
  - Petr Burian, University of West Bohemia,
  - Jan Broulím, Institute of Experimental and Applied Physics CTU,
  - Lukáš Meduna, Institute of Experimental and Applied Physics CTU,
- - Jakub Begera, Institute of Experimental and Applied Physics CTU.
+ - Jakub Begera, Institute of Experimental and Applied Physics CTU,
+ - Felix Lehner, Physikalisch-Technische Bundesanstalt.
 
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
