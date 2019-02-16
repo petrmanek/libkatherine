@@ -46,7 +46,7 @@ const std::string ip_addr{"192.168.1.142"};
 
 katherine::device dev{ip_addr};
 const std::string chip_id = dev.chip_id();   // Exception can be thrown here.
-std::cout << "Device " << address << " has hip id: " << chip_id << std::endl;
+std::cout << "Device " << address << " has chip id: " << chip_id << std::endl;
 ```
 
 ```python
