@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
+
+katherine_extension = Extension(
+    name='katherine',
+    sources=['${CMAKE_CURRENT_SOURCE_DIR}/katherine.pyx'],
+    libraries=['katherine'],
+    library_dirs=['${CMAKE_LIBRARY_OUTPUT_DIRECTORY}'],
+    include_dirs=['${CMAKE_CURRENT_SOURCE_DIR}/../c/include']
+)
+setup(
+    name='katherine',
+    version='${PROJECT_VERSION}',
+    cmdclass={'build_ext':build_ext},
+    ext_modules=cythonize([katherine_extension]),
+    package_dir={'katherine':'${CMAKE_CURRENT_SOURCE_DIR}'}
+)
