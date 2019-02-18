@@ -40,10 +40,12 @@ enum class acq_mode: int {
     event_itot  = ACQUISITION_MODE_EVENT_ITOT
 };
 
+using frame_info = katherine_frame_info_t;
+
 class base_acquisition {
 public:
     using frame_started_handler     = std::function<void(int)>;
-    using frame_ended_handler       = std::function<void(int, bool, const katherine_frame_info_t *)>;
+    using frame_ended_handler       = std::function<void(int, bool, const katherine::frame_info&)>;
 
 protected:
     katherine_acquisition_t acq_;
@@ -66,7 +68,7 @@ private:
     forward_frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
     {
         auto self = reinterpret_cast<base_acquisition*>(user_ctx);
-        self->frame_ended_handler_(frame_idx, completed, info);
+        self->frame_ended_handler_(frame_idx, completed, *info);
     }
 
 public:
@@ -75,7 +77,7 @@ public:
          mode_{mode},
          fast_vco_enabled_{fast_vco_enabled},
          frame_started_handler_{[](int frame_idx){ }},
-         frame_ended_handler_{[](int frame_idx, bool completed, const katherine_frame_info_t *info){ }}
+         frame_ended_handler_{[](int frame_idx, bool completed, const katherine::frame_info& info){ }}
     {
         int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void*>(this), md_buffer_size, pixel_buffer_size);
         if (res != 0) {
@@ -210,11 +212,6 @@ public:
          pixels_received_handler_{[](const pixel_type *px, std::size_t count){ }}
     {
         acq_.handlers.pixels_received = acquisition::forward_pixels_received;
-    }
-
-    virtual ~acquisition()
-    {
-        katherine_acquisition_fini(&acq_);
     }
 
     void
