@@ -493,6 +493,11 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 {
     int res = 0;
 
+    if (readout_mode == READOUT_DATA_DRIVEN && config->no_frames > 1) {
+        res = EINVAL;
+        goto err;
+    }
+
     res = katherine_configure(acq->device, config);
     if (res) goto err;
 
@@ -534,7 +539,8 @@ err:
 }
 
 /**
- * Abort acquisition (not recommended).
+ * Abort acquisition. This command does not wait for confirmation from
+ * the readout and will cause the current frame to end upon receiving.
  * @param acq Acquisition
  * @return Error code.
  */
