@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 #include <katherine/global.h>
 #include <katherine/device.h>
 #include <katherine/config.h>
@@ -89,6 +90,9 @@ typedef struct katherine_frame_info {
         } b;
         uint64_t d;
     } end_time;
+
+    time_t start_time_observed;
+    time_t end_time_observed;
 } katherine_frame_info_t;
 
 typedef struct katherine_acquisition_handlers {
@@ -128,8 +132,13 @@ typedef struct katherine_acquisition {
     size_t pixel_buffer_max_valid;
 
     int requested_frames;
+    double requested_frame_duration; // s
     int completed_frames;
     size_t dropped_measurement_data;
+
+    time_t acq_start_time;
+    int report_timeout;
+    int fail_timeout;
 
     katherine_acquisition_handlers_t handlers;
     katherine_frame_info_t current_frame_info;
@@ -139,7 +148,7 @@ typedef struct katherine_acquisition {
 } katherine_acquisition_t;
 
 KATHERINE_EXPORTED int
-katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size);
+katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout);
 
 KATHERINE_EXPORTED void
 katherine_acquisition_fini(katherine_acquisition_t *acq);

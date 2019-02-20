@@ -73,22 +73,22 @@ frame_started(int frame_idx)
 }
 
 void
-frame_ended(int frame_idx, bool completed, const katherine_frame_info_t *info)
+frame_ended(int frame_idx, bool completed, const katherine_frame_info_t& info)
 {
     std::cout << std::endl;
 
-    const double recv_perc = 100. * info->received_pixels / info->sent_pixels;
+    const double recv_perc = 100. * info.received_pixels / info.sent_pixels;
 
     {
         std::lock_guard<std::mutex> lk{cerr_mutex};
         std::cerr << std::endl << std::endl;
         std::cerr << "Ended frame." << std::endl;
-        std::cerr << " - tpx3->katherine lost " << info->lost_pixels << " pixels" << std::endl
-                  << " - katherine->pc sent " << info->sent_pixels << " pixels" << std::endl
-                  << " - katherine->pc received " << info->received_pixels << " pixels (" << recv_perc << " %)" << std::endl
+        std::cerr << " - tpx3->katherine lost " << info.lost_pixels << " pixels" << std::endl
+                  << " - katherine->pc sent " << info.sent_pixels << " pixels" << std::endl
+                  << " - katherine->pc received " << info.received_pixels << " pixels (" << recv_perc << " %)" << std::endl
                   << " - state: " << (completed ? "completed" : "not completed") << std::endl
-                  << " - start time: " << info->start_time.d << std::endl
-                  << " - end time: " << info->end_time.d << std::endl;
+                  << " - start time: " << info.start_time.d << std::endl
+                  << " - end time: " << info.end_time.d << std::endl;
     }
 }
 
@@ -121,7 +121,7 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
 {
     using namespace std::chrono;
 
-    katherine::acquisition<mode> acq{dev, katherine::md_size * 34952533, sizeof(mode::pixel_type) * 4096};
+    katherine::acquisition<mode> acq{dev, katherine::md_size * 34952533, sizeof(mode::pixel_type) * 4096, 500, 10000};
 
     acq.set_frame_started_handler(frame_started);
     acq.set_frame_ended_handler(frame_ended);

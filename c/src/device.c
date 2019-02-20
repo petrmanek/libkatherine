@@ -17,7 +17,7 @@ static const uint16_t DATA_PORT         = 1556;
 static const uint16_t REMOTE_PORT       = 1555;
 
 static const uint32_t CONTROL_TIMEOUT   = 100;  // ms
-static const uint32_t DATA_TIMEOUT      = 2000; // ms
+static const uint32_t DATA_TIMEOUT      = 100;  // ms
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

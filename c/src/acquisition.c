@@ -200,6 +200,7 @@ static inline void
 handle_new_frame(katherine_acquisition_t *acq, const void *data)
 {
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
+    acq->current_frame_info.start_time_observed = time(NULL);
     acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
 }
 
@@ -215,6 +216,8 @@ static inline void
 handle_current_frame_finished(katherine_acquisition_t *acq, const void *data)
 {
     const md_frame_finished_t *md = data;
+
+    acq->current_frame_info.end_time_observed = time(NULL);
 
     flush_buffer(acq);
 
@@ -300,10 +303,12 @@ handle_unknown_msg(katherine_acquisition_t *acq, const void *data)
  * @param ctx User context (may be used to convey useful info)
  * @param md_buffer_size Size of the measurement data buffer in bytes
  * @param pixel_buffer_size Size of the pixel buffer in bytes
+ * @param report_timeout Timeout for reporting incomplete pixel buffers (ms). Set zero to disable.
+ * @param fail_timeout Timeout for any device communication (ms). Set zero to disable.
  * @return Error code.
  */
 int
-katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size)
+katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
 {
     int res = 0;
 
@@ -325,6 +330,9 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
         res = ENOMEM;
         goto err_pixel_buffer;
     }
+
+    acq->report_timeout = report_timeout;
+    acq->fail_timeout = fail_timeout;
 
     return res;
 
@@ -380,12 +388,13 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     static int\
     acquisition_read_##SUFFIX(katherine_acquisition_t *acq)\
     {\
-        static const int TRIES = 8;\
         static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t);\
         \
         if (katherine_udp_mutex_lock(&acq->device->data_socket) != 0) return 1;\
         \
-        int tries = TRIES;\
+        time_t last_data_received = time(NULL);\
+        double duration;\
+        double kill_off_time = acq->fail_timeout <= 0 ? -1 : acq->requested_frames * acq->requested_frame_duration + (double) acq->fail_timeout / 1000.0;\
         int res;\
         \
         size_t i;\
@@ -399,14 +408,20 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             res = katherine_udp_recv(&acq->device->data_socket, acq->md_buffer, &received);\
             \
             if (res) {\
-                if (--tries == 0) {\
+                duration = 1000 * difftime(time(NULL), last_data_received);\
+                if (acq->report_timeout > 0 && duration > acq->report_timeout && acq->pixel_buffer_valid > 0) {\
+                    flush_buffer(acq);\
+                }\
+                \
+                duration = difftime(time(NULL), acq->acq_start_time);\
+                if (kill_off_time > 0 && duration > kill_off_time) {\
                     acq->state = ACQUISITION_TIMED_OUT;\
                 }\
                 \
                 continue;\
             }\
             \
-            tries = TRIES;\
+            last_data_received = time(NULL);\
             \
             const char *it = acq->md_buffer;\
             for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) {\
@@ -495,6 +510,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 
     acq->completed_frames = 0;
     acq->requested_frames = config->no_frames;
+    acq->requested_frame_duration = config->acq_time / 1e9;
     acq->dropped_measurement_data = 0;
     acq->acq_mode = acq_mode;
     acq->fast_vco_enabled = fast_vco_enabled;
@@ -505,6 +521,8 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
     if (res) goto err;
+
+    acq->acq_start_time = time(NULL);
 
     res = katherine_cmd_start_acquisition(&acq->device->control_socket, readout_mode);
     if (res) goto err_cmd;

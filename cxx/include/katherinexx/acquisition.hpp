@@ -72,14 +72,14 @@ private:
     }
 
 public:
-    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, acq_mode mode, bool fast_vco_enabled)
+    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, int report_timeout, int fail_timeout, acq_mode mode, bool fast_vco_enabled)
         :acq_{},
          mode_{mode},
          fast_vco_enabled_{fast_vco_enabled},
          frame_started_handler_{[](int frame_idx){ }},
          frame_ended_handler_{[](int frame_idx, bool completed, const katherine::frame_info& info){ }}
     {
-        int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void*>(this), md_buffer_size, pixel_buffer_size);
+        int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void*>(this), md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout);
         if (res != 0) {
             throw katherine::system_error{res};
         }
@@ -207,8 +207,8 @@ private:
     }
 
 public:
-    acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size)
-        :base_acquisition{dev, md_buffer_size, pixel_buffer_size, AcqMode::mode, AcqMode::fast_vco_enabled},
+    acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, int report_timeout, int fail_timeout)
+        :base_acquisition{dev, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout, AcqMode::mode, AcqMode::fast_vco_enabled},
          pixels_received_handler_{[](const pixel_type *px, std::size_t count){ }}
     {
         acq_.handlers.pixels_received = acquisition::forward_pixels_received;
