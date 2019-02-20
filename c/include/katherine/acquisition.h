@@ -110,8 +110,7 @@ typedef enum katherine_acquisition_state {
     ACQUISITION_NOT_STARTED = 0,
     ACQUISITION_RUNNING = 1,
     ACQUISITION_SUCCEEDED = 2,
-    ACQUISITION_TIMED_OUT = 3,
-    ACQUISITION_ABORTED = 4
+    ACQUISITION_TIMED_OUT = 3
 } katherine_acquisition_state_t;
 
 typedef struct katherine_acquisition {
@@ -119,6 +118,7 @@ typedef struct katherine_acquisition {
     void *user_ctx;
 
     char state;
+    bool aborted;
     char readout_mode;
     char acq_mode;
     bool fast_vco_enabled;

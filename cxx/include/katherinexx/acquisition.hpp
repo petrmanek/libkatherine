@@ -30,8 +30,7 @@ enum class acq_state {
     not_started = ACQUISITION_NOT_STARTED,
     running     = ACQUISITION_RUNNING,
     succeeded   = ACQUISITION_SUCCEEDED,
-    timed_out   = ACQUISITION_TIMED_OUT,
-    aborted     = ACQUISITION_ABORTED
+    timed_out   = ACQUISITION_TIMED_OUT
 };
 
 enum class acq_mode: int {
@@ -141,6 +140,7 @@ public:
     }
 
     acq_state state() const                         { return (acq_state) acq_.state; }
+    bool aborted() const                            { return acq_.aborted; }
     int requested_frames() const                    { return acq_.requested_frames; }
     int completed_frames() const                    { return acq_.completed_frames; }
     std::size_t dropped_measurement_data() const    { return acq_.dropped_measurement_data; }

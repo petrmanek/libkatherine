@@ -274,10 +274,7 @@ handle_lost_pixel_count(katherine_acquisition_t *acq, const void *data)
 static inline void
 handle_aborted_measurement(katherine_acquisition_t *acq, const void *data)
 {
-    acq->state = ACQUISITION_ABORTED;
-
-    flush_buffer(acq);
-    acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, false, &acq->current_frame_info);
+    acq->aborted = true;
 }
 
 static inline void
@@ -315,6 +312,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->device = device;
     acq->user_ctx = ctx;
     acq->state = ACQUISITION_NOT_STARTED;
+    acq->aborted = false;
 
     acq->md_buffer_size = md_buffer_size;
     acq->md_buffer = (char *) malloc(acq->md_buffer_size);
@@ -433,7 +431,6 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         switch (acq->state) {\
         case ACQUISITION_SUCCEEDED:     return 0;\
         case ACQUISITION_TIMED_OUT:     return ETIMEDOUT;\
-        case ACQUISITION_ABORTED:       return ECANCELED;\
         default:                        return EAGAIN;\
         }\
     }
@@ -552,9 +549,6 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&acq->device->control_socket);
-    if (res) goto err;
-
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
     return 0;
 
@@ -574,7 +568,6 @@ katherine_str_acquisition_status(char status)
     switch (status) {
     case ACQUISITION_NOT_STARTED:   return "not started";
     case ACQUISITION_SUCCEEDED:     return "succeeded";
-    case ACQUISITION_ABORTED:       return "aborted";
     case ACQUISITION_RUNNING:       return "running";
     case ACQUISITION_TIMED_OUT:     return "timed out";
     default:                        return "unknown";
