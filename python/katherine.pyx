@@ -444,14 +444,13 @@ cdef class FrameInfo:
     def lost_pixels(self):
        return self._c_info.lost_pixels
 
-    #TODO:
-    #@property
-    #def start_time(self):
-    #   return self._c_info.start_time.d
+    @property
+    def start_time(self):
+       return self._c_info.start_time.d
 
-    #@property
-    #def end_time(self):
-    #   return self._c_info.end_time.d
+    @property
+    def end_time(self):
+       return self._c_info.end_time.d
 
     @property
     def start_time_observed(self):
@@ -687,6 +686,7 @@ cdef class Acquisition:
     @property
     def dropped_measurement_data(self):
        return self._c_acq.dropped_measurement_data
+
 
 cdef void _forward_frame_started(void *user_ctx, int frame_idx):
     (<Acquisition> user_ctx).observer.frame_started(frame_idx)

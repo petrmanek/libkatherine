@@ -72,24 +72,22 @@ typedef struct katherine_px_event_itot {
     uint16_t integral_tot;
 } katherine_px_event_itot_t;
 
+typedef struct katherine_frame_info_time_split {
+    uint32_t msb, lsb;
+} katherine_frame_info_time_split_t;
+
+typedef union katherine_frame_info_time {
+    katherine_frame_info_time_split_t b;
+    uint64_t d;
+} katherine_frame_info_time_t;
+
 typedef struct katherine_frame_info {
     uint64_t received_pixels;
     uint64_t sent_pixels;
     uint64_t lost_pixels;
 
-    union {
-        struct {
-            uint32_t msb, lsb;
-        } b;
-        uint64_t d;
-    } start_time;
-
-    union {
-        struct {
-            uint32_t msb, lsb;
-        } b;
-        uint64_t d;
-    } end_time;
+    katherine_frame_info_time_t start_time;
+    katherine_frame_info_time_t end_time;
 
     time_t start_time_observed;
     time_t end_time_observed;
