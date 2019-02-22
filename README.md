@@ -1,15 +1,24 @@
 Katherine Control Library
 =========================
 
-The Katherine control library contains a working implementation of the
+The Katherine control library contains a working implementation of
 UDP-based communication protocol. It may be used to control and receive
-data from the Katherine readout.
+data from Timepix3 using Katherine readouts.
 
 This git repository contains 3 libraries in total:
 
  1. [libkatherine](./c/), a C library,
  2. [libkatherinexx](./cxx/), a C++ header-only wrapper,
- 3. [katherine](./python/), a Python wrapper package
+ 3. [katherine](./python/), a Python wrapper package.
+
+At the present time, the library is **multi-platform**. The implementation
+supports the following platforms:
+
+Platform | CI Status
+---------|:---------
+Linux    | [![Linux Build Status][travis-badge-linux]][travis]
+macOS    | [![macOS Build Status][travis-badge-osx]][travis]
+Windows  | [![Windows Build Status][travis-badge-windows]][travis]
 
 
 ## Usage
@@ -176,3 +185,9 @@ in the development of this library:
 
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
+
+[travis]:               https://travis-ci.org/petrmanek/libkatherine
+[travis-badge-linux]:   https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=linux&label=build&branch=master
+[travis-badge-osx]:     https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=osx&label=build&branch=master
+[travis-badge-windows]: https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=windows&label=build&branch=master
+
