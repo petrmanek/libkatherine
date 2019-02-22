@@ -49,7 +49,7 @@
     #elif TARGET_OS_IPHONE
     #   error "iOS support not available"
     #elif TARGET_OS_MAC
-    #   error "macOS support not available"
+    #   define KATHERINE_NIX
     #else
     #   error "Unknown Apple platform"
     #endif
@@ -68,3 +68,4 @@
 #elif defined(KATHERINE_WIN)
 #   define PACKED( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
 #endif
+

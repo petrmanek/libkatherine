@@ -9,4 +9,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_subdirectory(c)
 add_subdirectory(cxx)
-add_subdirectory(python)
+# add_subdirectory(python)
+

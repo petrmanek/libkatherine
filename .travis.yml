@@ -1,0 +1,48 @@
+language: cpp
+
+os:
+  - linux
+  - osx
+  - windows
+
+env:
+  - BADGE=linux
+  - BADGE=osx
+  - BADGE=windows
+
+matrix:
+  include:
+    - os: linux
+      script:
+        - CC=gcc-7 && CXX=g++7
+        - mkdir build && cd build && cmake .. && make
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - cmake
+            - g++-7
+            - python3
+            - cython3
+      env: BADGE=linux
+    - os: osx
+      osx_image: xcode8
+      script: mkdir build && cd build && cmake .. && make
+      env: BADGE=osx
+    - os: windows
+      script: mkdir build && cd build && cmake -G "Visual Studio 15 2017" .. && cmake --build .
+  exclude:
+    - os: linux
+      env: BADGE=osx
+    - os: linux
+      env: BADGE=windows
+    - os: osx
+      env: BADGE=linux
+    - os: osx
+      env: BADGE=windows
+    - os: windows
+      env: BADGE=linux
+    - os: windows
+      env: BADGE=osx
+
