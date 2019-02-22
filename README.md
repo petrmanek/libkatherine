@@ -100,7 +100,11 @@ prefix `katherine_`).
 
 ## Build Notes
 
-The project uses CMake 3 build system. It can be built as follows:
+The project uses CMake 3 build system. It can be configured, built and installed
+by standard CMake commands. In case of doubt, check the [Travis][travis-yml]
+configuration file.
+
+For convenience, here's a minimal out-of-source-directory build script example:
 
 ```shell
 mkdir build && cd build
@@ -108,7 +112,7 @@ cmake ..
 make
 ```
 
-_(instead of Makefiles, different build tool can be used, e.g. ninja)_
+_(note that instead of Makefiles, different build tools can be used, e.g. ninja)_
 
 
 ### C library (libkatherine)
@@ -187,6 +191,7 @@ in the development of this library:
 [thesis]: http://hdl.handle.net/20.500.11956/101404
 
 [travis]:               https://travis-ci.org/petrmanek/libkatherine
+[travis-yml]:           ./.travis.yml
 [travis-badge-linux]:   https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=linux&label=build&branch=master
 [travis-badge-osx]:     https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=osx&label=build&branch=master
 [travis-badge-windows]: https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=windows&label=build&branch=master
