@@ -6,7 +6,7 @@
 # conditions specified in the LICENSE file located in the top
 # directory.
 
-cdef extern from '../c/include/katherine/device.h':
+cdef extern from 'katherine/device.h':
     ctypedef struct katherine_device_t:
         pass
 

@@ -8,7 +8,7 @@
 
 from cdevice cimport katherine_device_t
 
-cdef extern from '../c/include/katherine/status.h':
+cdef extern from 'katherine/status.h':
     ctypedef struct katherine_readout_status_t:
         pass
     ctypedef struct katherine_comm_status_t:
