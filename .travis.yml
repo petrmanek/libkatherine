@@ -1,15 +1,5 @@
 language: cpp
 
-os:
-  - linux
-  - osx
-  - windows
-
-env:
-  - BADGE=linux
-  - BADGE=osx
-  - BADGE=windows
-
 matrix:
   include:
     - os: linux
@@ -33,17 +23,4 @@ matrix:
     - os: windows
       env: BADGE=windows
       script: mkdir build && cd build && cmake -G "Visual Studio 15 2017" .. && cmake --build .
-  exclude:
-    - os: linux
-      env: BADGE=osx
-    - os: linux
-      env: BADGE=windows
-    - os: osx
-      env: BADGE=linux
-    - os: osx
-      env: BADGE=windows
-    - os: windows
-      env: BADGE=linux
-    - os: windows
-      env: BADGE=osx
 
