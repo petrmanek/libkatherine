@@ -25,4 +25,6 @@ set(KATHERINE_HEADERS
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 target_include_directories(katherine PUBLIC include)
 
-add_subdirectory(examples)
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif(BUILD_EXAMPLES)

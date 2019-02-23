@@ -4,23 +4,23 @@ matrix:
   include:
     - os: linux
       env: BADGE=linux
+      install:
+        - pip install Cython
       script:
         - CC=gcc-7 && CXX=g++-7
-        - mkdir build && cd build && cmake .. && make
+        - mkdir build && cd build && cmake -DBUILD_PYTHON=ON .. && make
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - cmake
             - g++-7
-            - python3
-            - cython3
     - os: osx
       env: BADGE=osx
-      osx_image: xcode8
-      script: mkdir build && cd build && cmake .. && make
+      install:
+        - pyenv install 3.6.0
+        - pip3 install Cython
+      script: mkdir build && cd build && cmake -DBUILD_PYTHON=ON .. && make
     - os: windows
       env: BADGE=windows
       script: mkdir build && cd build && cmake -G "Visual Studio 15 2017" .. && cmake --build .
-

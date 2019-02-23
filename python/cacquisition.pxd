@@ -7,7 +7,7 @@
 # directory.
 
 from libcpp cimport bool
-from libc.time cimport time_t
+#from libc.time cimport time_t
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from cdevice cimport katherine_device_t
 from cconfig cimport katherine_config_t, katherine_acquisition_mode_t
@@ -64,8 +64,8 @@ cdef extern from 'katherine/acquisition.h':
         uint64_t lost_pixels
         katherine_frame_info_time_t start_time
         katherine_frame_info_time_t end_time
-        time_t start_time_observed
-        time_t end_time_observed
+        #time_t start_time_observed
+        #time_t end_time_observed
 
     ctypedef struct katherine_acquisition_handlers_t:
         void (*pixels_received)(void *, const void *, size_t)
