@@ -20,6 +20,13 @@
 extern "C" {
 #endif
 
+PACKED(typedef struct katherine_bmc_px {
+    unsigned char mask : 1;
+    unsigned char loc_thl : 4;
+    unsigned char test : 1;
+    unsigned char : 2;
+}) katherine_bmc_px_t;
+
 typedef struct katherine_bmc {
     char pconf[65536];
 

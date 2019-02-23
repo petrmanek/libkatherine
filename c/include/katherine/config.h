@@ -40,29 +40,31 @@ typedef struct katherine_trigger {
 } katherine_trigger_t;
 
 
+typedef struct katherine_dacs_named {
+    uint16_t Ibias_Preamp_ON;
+    uint16_t Ibias_Preamp_OFF;
+    uint16_t VPReamp_NCAS;
+    uint16_t Ibias_Ikrum;
+    uint16_t Vfbk;
+    uint16_t Vthreshold_fine;
+    uint16_t Vthreshold_coarse;
+    uint16_t Ibias_DiscS1_ON;
+    uint16_t Ibias_DiscS1_OFF;
+    uint16_t Ibias_DiscS2_ON;
+    uint16_t Ibias_DiscS2_OFF;
+    uint16_t Ibias_PixelDAC;
+    uint16_t Ibias_TPbufferIn;
+    uint16_t Ibias_TPbufferOut;
+    uint16_t VTP_coarse;
+    uint16_t VTP_fine;
+    uint16_t Ibias_CP_PLL;
+    uint16_t PLL_Vcntrl;
+} katherine_dacs_named_t;
+
+
 typedef union katherine_dacs {
     uint16_t array[18];
-
-    struct {
-        uint16_t Ibias_Preamp_ON;
-        uint16_t Ibias_Preamp_OFF;
-        uint16_t VPReamp_NCAS;
-        uint16_t Ibias_Ikrum;
-        uint16_t Vfbk;
-        uint16_t Vthreshold_fine;
-        uint16_t Vthreshold_coarse;
-        uint16_t Ibias_DiscS1_ON;
-        uint16_t Ibias_DiscS1_OFF;
-        uint16_t Ibias_DiscS2_ON;
-        uint16_t Ibias_DiscS2_OFF;
-        uint16_t Ibias_PixelDAC;
-        uint16_t Ibias_TPbufferIn;
-        uint16_t Ibias_TPbufferOut;
-        uint16_t VTP_coarse;
-        uint16_t VTP_fine;
-        uint16_t Ibias_CP_PLL;
-        uint16_t PLL_Vcntrl;
-    } named;
+    katherine_dacs_named_t named;
 } katherine_dacs_t;
 
 
