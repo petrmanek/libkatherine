@@ -161,8 +161,49 @@ The Python wrapper uses the following dependencies:
  - Cython compiler 0.29,
  - libkatherine (the C library)
 
-The wrapper produces a shared library, which can be loaded from PYTHONPATH
-in any script.
+The wrapper generates an extension module which can be loaded and used by any script.
+Its file name is derived from platform and Python version. Upon successful build, the
+file can be located inside the CMake build directory at path:
+`./python/build/lib.{PLATFORM}-{ARCH}-{PYTHON_VERSION}/`. While in Linux systems, the
+file has .so extension (e.g. `katherine.cpython-37m-x86_64-linux-gnu.so`), in Windows
+the file's extension is .pyd (e.g. `katherine.cp37-win_amd64.pyd`).
+
+**Note:** Before using the Python wrapper, make sure that the interpeter has access to all
+the required files. Specifically:
+
+ 1. The extension module is located in one of the `PYTHONPATH` directories.
+ 2. The `libkatherine.so` library file (or `katherine.dll` in Windows) is located in one
+    of the `LD_LIBRARY_PATH` directories (or `PATH` directories in Windows).
+
+If these conditions are not satisfied, you are likely going to encounter to `ModuleNotFoundError`
+in the first case and `ImportError` in the second.
+
+Be also aware that you can change the variables directly from Python without having to
+alter their values on system-wide level. This is especially useful in Windows environments. Here's
+an example script:
+
+```python
+import sys
+import os
+
+ext_path = '<directory containing extension module>'
+lib_path = '<directory containing katherine library file>'
+
+# Alter environment to include the extension module
+sys.path.append(ext_path)
+
+# 2: Alter environment to include the library
+os.environ['LD_LIBRARY_PATH'] += ':%s:' % lib_path  # on *nix systems
+os.environ['PATH'] += ';%s;' % lib_path             # on Windows systems
+
+try:
+  import katherine
+  dev = katherine.Device('192.168.1.145')
+except ModuleNotFoundError:
+  print('Something wrong with ext_path')
+except ImportError:
+  print('Something wrong with lib_path')
+```
 
 
 ## Copyright
