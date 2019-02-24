@@ -2,249 +2,182 @@
 // Created by Petr Mánek on 13.07.18.
 //
 
-/*#include <chrono>
-#include <iostream>
-#include <mutex>
-#include <yaml-cpp/yaml.h>
+#include <stdlib.h>     // exit
+#include <stdio.h>      // printf
+#include <time.h>       // time, difftime
+#include <string.h>      // strerror
+
 #include <katherine/katherine.h>
 
-static std::mutex cerr_mutex;
+static const char *remote_addr = "192.168.1.145";
+typedef katherine_px_f_toa_tot_t px_t;
+
+void
+configure(katherine_config_t *config)
+{
+    // For now, these constants are hard-coded.
+    // This configuration will produce meaningful results only for: M7-W0005
+    config->bias_id                 = 0;
+    config->acq_time                = 10; // s
+    config->no_frames               = 1;
+    config->bias                    = 230; // V
+
+    config->delayed_start           = false;
+
+    config->start_trigger.enabled   = false;
+    config->stop_trigger.enabled    = false;
+
+    config->gray_disable            = false;
+    config->polarity_holes          = false;
+
+    config->phase                   = PHASE_1;
+    config->freq                    = FREQ_40;
+
+    config->dacs.named.Ibias_Preamp_ON       = 128;
+    config->dacs.named.Ibias_Preamp_OFF      = 8;
+    config->dacs.named.VPReamp_NCAS          = 128;
+    config->dacs.named.Ibias_Ikrum           = 15;
+    config->dacs.named.Vfbk                  = 164;
+    config->dacs.named.Vthreshold_fine       = 371;
+    config->dacs.named.Vthreshold_coarse     = 7;
+    config->dacs.named.Ibias_DiscS1_ON       = 100;
+    config->dacs.named.Ibias_DiscS1_OFF      = 8;
+    config->dacs.named.Ibias_DiscS2_ON       = 128;
+    config->dacs.named.Ibias_DiscS2_OFF      = 8;
+    config->dacs.named.Ibias_PixelDAC        = 128;
+    config->dacs.named.Ibias_TPbufferIn      = 128;
+    config->dacs.named.Ibias_TPbufferOut     = 128;
+    config->dacs.named.VTP_coarse            = 128;
+    config->dacs.named.VTP_fine              = 256;
+    config->dacs.named.Ibias_CP_PLL          = 128;
+    config->dacs.named.PLL_Vcntrl            = 128;
+
+    int res = katherine_px_config_load_bmc_file(&config->pixel_config, "chipconfig.bmc");
+    if (res != 0) {
+        printf("Cannot load pixel configuration. Does the file exist?\n");
+        printf("Reason: %s\n", strerror(res));
+        exit(1);
+    }
+}
+
+static uint64_t n_hits;
+
+void
+frame_started(void *user_ctx, int frame_idx)
+{
+    n_hits = 0;
+
+    printf("Started frame %d.\n", frame_idx);
+    printf("X\tY\tToA\tfToA\tToT\n");
+}
+
+void
+frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
+{
+    const double recv_perc = 100. * info->received_pixels / info->sent_pixels;
+
+    printf("\n");
+    printf("Ended frame %d.\n", frame_idx);    
+    printf(" - tpx3->katherine lost %d pixels\n", info->lost_pixels);
+    printf(" - katherine->pc sent %d pixels\n", info->sent_pixels);
+    printf(" - katherine->pc received %d pixels\n", info->received_pixels);
+    printf(" - state: %s\n", (completed ? "completed" : "not completed"));
+    printf(" - start time: %d\n", info->start_time.d);
+    printf(" - end time: %d\n", info->end_time.d);
+}
+
+void
+pixels_received(void *user_ctx, const void *px, size_t count)
+{
+    n_hits += count;
+
+    const px_t *dpx = (const px_t *) px;
+    for (size_t i = 0; i < count; ++i) {
+        printf("%d\t%d\t%d\t%d\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].toa, dpx[i].ftoa, dpx[i].tot);
+    }
+}
 
 void
 print_chip_id(katherine_device_t *device)
 {
-    int res;
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-
-    res = katherine_get_chip_id(device, chip_id);
-    if (res) {
-        std::cerr << "Could not get response in time. Is the device on and connected?" << std::endl;
-        std::abort();
+    int res = katherine_get_chip_id(device, chip_id);
+    if (res != 0) {
+        printf("Cannot get chip ID. Is Timepix3 connected to the readout?\n");
+        printf("Reason: %s\n", strerror(res));
+        exit(2);
     }
 
-    std::cerr << "Chip ID: " << chip_id << std::endl;
-}
-
-static int frame_count;
-static uint64_t n_hits;
-
-void
-frame_started(int frame_idx)
-{
-    n_hits = 0;
-
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "Started frame " << (frame_idx + 1) << " / " << frame_count << "." << std::endl;
-        std::cerr << " - have pixels: " << 0 << std::flush;
-    }
+    printf("Chip ID: %s\n", chip_id);
 }
 
 void
-frame_ended(int frame_idx, bool completed, const katherine_frame_info_t *info)
+run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
 {
-    std::cout << std::endl;
-
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << std::endl << std::endl;
-        std::cerr << "Ended frame " << (frame_idx + 1) << " / " << frame_count << "." << std::endl;
-        std::cerr << " - katherine->pc received " << info->received_pixels << " pixels" << std::endl
-                  << " - katherine->pc sent " << info->sent_pixels << " pixels" << std::endl
-                  << " - tpx3->katherine lost " << info->lost_pixels << " pixels" << std::endl
-                  << " - state: " << (completed ? "completed" : "not completed") << std::endl
-                  << " - start time: " << info->start_time.d << std::endl
-                  << " - end time: " << info->end_time.d << std::endl;
-    }
-}
-
-void
-pixels_received(const void *pixels, size_t count)
-{
-    n_hits += count;
-
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "\r - have pixels: " << n_hits << std::flush;
-    }
-
-    const auto *px = (const katherine_px_f_toa_tot_t *) pixels;
-    for (size_t i = 0; i < count; ++i) {
-        std::cout << (unsigned) px[i].coord.x << ' ' << (unsigned) px[i].coord.y << ' '
-                  << (unsigned) px[i].toa << ' ' << (unsigned) px[i].ftoa << ' '
-                  << (unsigned) px[i].tot << std::endl;
-    }
-}
-
-void
-configure_yaml(katherine_config_t& config, const YAML::Node& yml)
-{
-    // For now, these three constants are hard-coded.
-    config.seq_readout_start = true;
-    config.fast_vco_enabled = true;
-    config.acq_mode = ACQUISITION_MODE_TOA_TOT;
-
-    config.bias_id = yml["bias_id"].as<unsigned char>();
-    config.acq_time = yml["acq_time"].as<double>() * 1e9;
-    config.no_frames = yml["no_frames"].as<int>();
-    config.bias = yml["bias"].as<float>();
-
-    frame_count = config.no_frames;
-
-    config.delayed_start = yml["delayed_start"].as<bool>();
-
-    auto yml_start = yml["start_trigger"].as<YAML::Node>();
-    config.start_trigger.use_falling_edge = yml_start["use_falling_edge"].as<bool>();
-    config.start_trigger.channel = yml_start["channel"].as<char>();
-    config.start_trigger.enabled = yml_start["enabled"].as<bool>();
-
-    auto yml_end = yml["end_trigger"].as<YAML::Node>();
-    config.stop_trigger.use_falling_edge = yml_end["use_falling_edge"].as<bool>();
-    config.stop_trigger.channel = yml_end["channel"].as<char>();
-    config.stop_trigger.enabled = yml_end["enabled"].as<bool>();
-
-    config.gray_enable = yml["gray_enable"].as<bool>();
-    config.polarity_holes = yml["polarity_holes"].as<bool>();
-
-    switch (yml["phase"].as<int>()) {
-    case 1: config.phase = PHASE_1; break;
-    case 2: config.phase = PHASE_2; break;
-    case 4: config.phase = PHASE_4; break;
-    case 8: config.phase = PHASE_8; break;
-    case 16: config.phase = PHASE_16; break;
-    default:
-        std::cerr << "Invalid phase." << std::endl;
-        std::abort();
-    }
-
-    switch (yml["freq"].as<int>()) {
-    case 40: config.freq = FREQ_40; break;
-    case 80: config.freq = FREQ_80; break;
-    case 160: config.freq = FREQ_160; break;
-    default:
-        std::cerr << "Invalid frequency." << std::endl;
-        std::abort();
-    }
-
-    auto yml_dac = yml["dacs"].as<YAML::Node>();
-    config.dacs.named.Ibias_Preamp_ON       = yml_dac["Ibias_Preamp_ON"].as<uint16_t>();
-    config.dacs.named.Ibias_Preamp_OFF      = yml_dac["Ibias_Preamp_OFF"].as<uint16_t>();
-    config.dacs.named.VPReamp_NCAS          = yml_dac["VPReamp_NCAS"].as<uint16_t>();
-    config.dacs.named.Ibias_Ikrum           = yml_dac["Ibias_Ikrum"].as<uint16_t>();
-    config.dacs.named.Vfbk                  = yml_dac["Vfbk"].as<uint16_t>();
-    config.dacs.named.Vthreshold_fine       = yml_dac["Vthreshold_fine"].as<uint16_t>();
-    config.dacs.named.Vthreshold_coarse     = yml_dac["Vthreshold_coarse"].as<uint16_t>();
-    config.dacs.named.Ibias_DiscS1_ON       = yml_dac["Ibias_DiscS1_ON"].as<uint16_t>();
-    config.dacs.named.Ibias_DiscS1_OFF      = yml_dac["Ibias_DiscS1_OFF"].as<uint16_t>();
-    config.dacs.named.Ibias_DiscS2_ON       = yml_dac["Ibias_DiscS2_ON"].as<uint16_t>();
-    config.dacs.named.Ibias_DiscS2_OFF      = yml_dac["Ibias_DiscS2_OFF"].as<uint16_t>();
-    config.dacs.named.Ibias_PixelDAC        = yml_dac["Ibias_PixelDAC"].as<uint16_t>();
-    config.dacs.named.Ibias_TPbufferIn      = yml_dac["Ibias_TPbufferIn"].as<uint16_t>();
-    config.dacs.named.Ibias_TPbufferOut     = yml_dac["Ibias_TPbufferOut"].as<uint16_t>();
-    config.dacs.named.VTP_coarse            = yml_dac["VTP_coarse"].as<uint16_t>();
-    config.dacs.named.VTP_fine              = yml_dac["VTP_fine"].as<uint16_t>();
-    config.dacs.named.Ibias_CP_PLL          = yml_dac["Ibias_CP_PLL"].as<uint16_t>();
-    config.dacs.named.PLL_Vcntrl            = yml_dac["PLL_Vcntrl"].as<uint16_t>();
-
-    {
-        int res;
-        auto bmc_path = yml["pixel_config"].as<std::string>();
-        FILE* f = fopen(bmc_path.c_str(), "r");
-        char* buffer = new char[65536];
-        fread(buffer, 1, 65536, f);
-
-        katherine_bmc_init(&config.pixel_config);
-        res = katherine_bmc_load(&config.pixel_config, buffer);
-
-        if (res) {
-            std::cerr << "Could not load BMC pixel configuration." << std::endl;
-            std::abort();
-        }
-
-        delete[] buffer;
-        fclose(f);
-    }
-}
-
-void
-run_acquisition(katherine_device_t *device, const YAML::Node& yml)
-{
-    using namespace std::chrono;
-
     int res;
-    katherine_config_t config{};
+    katherine_acquisition_t acq;
 
-    katherine_readout_type_t readout = READOUT_DATA_DRIVEN;
-    configure_yaml(config, yml);
-
-    katherine_acquisition_t acq{};
-    res = katherine_acquisition_init(&acq, device, KATHERINE_MD_SIZE * yml["buffer_md_items"].as<std::size_t>(), sizeof(katherine_px_f_toa_tot_t) * yml["buffer_px_items"].as<std::size_t>());
-
-    if (res) {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "Could not prepare acquisition. Is the configuration valid?" << std::endl;
-        std::abort();
+    res = katherine_acquisition_init(&acq, dev, NULL, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 4096, 500, 10000);
+    if (res != 0) {
+        printf("Cannot initialize acquisition. Is the configuration valid?\n");
+        printf("Reason: %s\n", strerror(res));
+        exit(3);
     }
 
     acq.handlers.frame_started = frame_started;
     acq.handlers.frame_ended = frame_ended;
     acq.handlers.pixels_received = pixels_received;
 
-    res = katherine_acquisition_begin(&acq, &config, readout);
-
-    if (res) {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "Could not start acquisition. Is the configuration valid?" << std::endl;
-        std::abort();
+    res = katherine_acquisition_begin(&acq, c, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true);
+    if (res != 0) {
+        printf("Cannot begin acquisition.\n");
+        printf("Reason: %s\n", strerror(res));
+        exit(4);
     }
 
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "Acquisition started." << std::endl;
-        std::cerr << std::endl;
-    }
+    printf("Acquisition started.\n");
 
-    auto tic = steady_clock::now();
-
+    time_t tic = time(NULL);
     res = katherine_acquisition_read(&acq);
-
-    auto toc = steady_clock::now();
-    double duration = duration_cast<milliseconds>(toc - tic).count() / 1000.;
-
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << std::endl;
-        std::cerr << "Acquisition completed:" << std::endl
-                  << " - state: " << katherine_str_acquisition_status(acq.state) << std::endl
-                  << " - received " << acq.completed_frames << " complete frames" << std::endl
-                  << " - dropped " << acq.dropped_measurement_data << " measurement data items" << std::endl
-                  << " - total hits: " << n_hits << std::endl
-                  << " - total duration: " << duration << " s" << std::endl
-                  << " - throughput: " << (n_hits / duration) << " hits/s" << std::endl;
+    if (res != 0) {
+        printf("Cannot read acquisition data.\n");
+        printf("Reason: %s\n", strerror(res));
+        exit(5);
     }
+    time_t toc = time(NULL);
+
+    double duration = difftime(toc, tic);;
+    printf("\n");
+    printf("Acquisition completed:\n");
+    printf(" - state: %s\n", katherine_str_acquisition_status(acq.state));
+    printf(" - received %d complete frames\n", acq.completed_frames);
+    printf(" - dropped %d measurement data\n", acq.dropped_measurement_data);
+    printf(" - total hits: %d\n", n_hits);
+    printf(" - total duration: %f s\n", duration);
+    printf(" - throughput: %f hits/s\n", (n_hits / duration));
+
+    katherine_acquisition_fini(&acq);
 }
 
 int
 main(int argc, char *argv[])
 {
-    if (argc < 2) {
-        std::cerr << "usage: " << argv[0] << " <config file>" << std::endl;
-        std::abort();
+    katherine_config_t c;
+    configure(&c);
+
+    int res;
+    katherine_device_t device;
+
+    res = katherine_device_init(&device, remote_addr);
+    if (res != 0) {
+        printf("Cannot initialize device. Is the address correct?\n");
+        printf("Reason: %s\n", strerror(res));
+        exit(6);
     }
-
-    YAML::Node yml = YAML::LoadFile(argv[1]);
-    auto remote_addr = yml["ip"].as<std::string>();
-
-    katherine_device_t device{};
-    if (katherine_device_init(&device, remote_addr.c_str())) {
-        std::cerr << "Invalid device address." << std::endl;
-        std::abort();
-    }
-
+    
     print_chip_id(&device);
-    run_acquisition(&device, yml);
+    run_acquisition(&device, &c);
 
     katherine_device_fini(&device);
+    return 0;
 }
-*/
-int main() { /* FIXME */ }

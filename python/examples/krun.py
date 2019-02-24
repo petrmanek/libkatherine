@@ -53,10 +53,13 @@ class MyObserver(k.AcquisitionObserver):
         self.n_hits = 0
 
     def frame_started(self, frame_idx):
+        self.n_hits = 0
+        
         print('Started frame %d.' % frame_idx)
         print('X\tY\tToA\tfToA\tToT')
 
     def frame_ended(self, frame_idx, completed, info):
+        print('')
         print('Ended frame %d.' % frame_idx)
         print(' - tpx3->katherine lost %d pixels' % info.lost_pixels)
         print(' - katherine->pc sent %d pixels' % info.sent_pixels)
