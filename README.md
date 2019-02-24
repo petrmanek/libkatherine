@@ -82,7 +82,7 @@ in the `examples/` subdirectory for each library, or in the table below:
 | C                             | C++                                   | Python                                    | Purpose                                              |
 |-------------------------------|---------------------------------------|-------------------------------------------|------------------------------------------------------|
 | [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)    | Locate Katherine readouts in given IP address range. |
-|                               | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)      | Configure & perform data-driven acquisition.         |
+| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)      | Configure & perform data-driven acquisition.         |
 
 
 ### Full Documentation
