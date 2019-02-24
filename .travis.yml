@@ -8,7 +8,7 @@ matrix:
         - pip install Cython
       script:
         - CC=gcc-7 && CXX=g++-7
-        - mkdir build && cd build && cmake -DBUILD_PYTHON=ON .. && make
+        - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=ON .. && make
       addons:
         apt:
           sources:
@@ -20,7 +20,7 @@ matrix:
       install:
         - pyenv install 3.6.0
         - pip3 install Cython
-      script: mkdir build && cd build && cmake -DBUILD_PYTHON=ON .. && make
+      script: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=ON .. && make
     - os: windows
       env: BADGE=windows
-      script: mkdir build && cd build && cmake -G "Visual Studio 15 2017" .. && cmake --build .
+      script: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 15 2017" .. && cmake --build .

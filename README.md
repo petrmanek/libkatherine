@@ -102,7 +102,7 @@ prefix `katherine_`).
 
 The project uses CMake 3 build system. It can be configured, built and installed
 by standard CMake commands. In case of doubt, check the [Travis][travis-yml]
-configuration file.
+configuration file for examples of build commands for individual platforms.
 
 For convenience, here's a minimal out-of-source-directory build script example:
 
@@ -112,7 +112,21 @@ cmake ..
 make
 ```
 
-_(note that instead of Makefiles, different build tools can be used, e.g. ninja)_
+_(note that in CMake projects, different build tools can be used instead of
+GNU Makefiles, e.g. ninja)_
+
+The CMake project also defines several options. They can be defined in the CMake
+cache, by environment variables or using the `-D<option>=<value>` options.
+
+Option            | Default Value | Meaning
+------------------|---------------|-------------------------------------------------------
+`BUILD_CXX`       | `ON`          | Enables building C++ binaries (see requirements)
+`BUILD_PYTHON`    | `OFF`         | Enables building Python extension (see requirements)
+`BUILD_EXAMPLES`  | `ON`          | Enables building example programs
+
+For optimal performance, consider also configuring standard CMake options such as
+`CMAKE_BUILD_TYPE` which configures the compiler optimization policies or
+include additional debug information. See [CMake docs][cbt-doc] for more information.
 
 
 ### C library (libkatherine)
@@ -120,10 +134,12 @@ _(note that instead of Makefiles, different build tools can be used, e.g. ninja)
 The C library uses the following dependencies:
 
  - C11 standard library,
- - POSIX threads,
- - BSD socket interface.
-
-For that reason, it is currently supported *only* on \*nix systems.
+ - Version for \*nix systems:
+   - POSIX threads (pthread),
+   - BSD socket interface,
+ - Version for Win32 systems:
+   - Windows Sockets API (WSA) 2.2 (in ws2_32.dll),
+   - Windows Synchronization Primitives (in kernel32.dll).
 
 
 ### C++ wrapper
@@ -196,3 +212,4 @@ in the development of this library:
 [travis-badge-osx]:     https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=osx&label=build&branch=master
 [travis-badge-windows]: https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=windows&label=build&branch=master
 
+[cbt-doc]: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html
