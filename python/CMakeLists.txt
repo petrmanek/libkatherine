@@ -1,6 +1,4 @@
-if(NOT ${PYTHON})
-    find_program(PYTHON "python")
-endif()
+find_package(PythonInterp 3.6 REQUIRED)
 
 set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.in")
 set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
@@ -13,7 +11,7 @@ configure_file(
 )
 
 add_custom_command(OUTPUT "${PY_OUTPUT}"
-                   COMMAND ${PYTHON} ${SETUP_PY} build_ext
+                   COMMAND ${PYTHON_EXECUTABLE} ${SETUP_PY} build_ext
                    COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
                )
 
