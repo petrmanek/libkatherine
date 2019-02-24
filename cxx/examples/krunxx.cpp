@@ -15,7 +15,8 @@ configure(katherine::config& config)
 {
     using namespace std::literals::chrono_literals;
 
-    // For now, these three constants are hard-coded.
+    // For now, these constants are hard-coded.
+    // This configuration will produce meaningful results only for: M7-W0005
     config.set_bias_id(0);
     config.set_acq_time(10s);
     config.set_no_frames(1);
@@ -53,7 +54,7 @@ configure(katherine::config& config)
     dacs.named.PLL_Vcntrl            = 128;
     config.set_dacs(std::move(dacs));
 
-    katherine::bmc px_config = katherine::load_bmc("chipconfig_M7-W0005.bmc");
+    katherine::bmc px_config = katherine::load_bmc("chipconfig.bmc");
     config.set_pixel_config(std::move(px_config));
 }
 
@@ -67,22 +68,20 @@ frame_started(int frame_idx)
 
     {
         std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "Started frame." << std::endl;
-        std::cerr << " - have pixels: " << 0 << std::flush;
+        std::cerr << "Started frame " << frame_idx << "." << std::endl;
+        std::cerr << "X\tY\tToA\tfToA\tToT" << std::endl;
     }
 }
 
 void
 frame_ended(int frame_idx, bool completed, const katherine_frame_info_t& info)
 {
-    std::cout << std::endl;
-
     const double recv_perc = 100. * info.received_pixels / info.sent_pixels;
 
     {
         std::lock_guard<std::mutex> lk{cerr_mutex};
         std::cerr << std::endl << std::endl;
-        std::cerr << "Ended frame." << std::endl;
+        std::cerr << "Ended frame " << frame_idx << "." << std::endl;
         std::cerr << " - tpx3->katherine lost " << info.lost_pixels << " pixels" << std::endl
                   << " - katherine->pc sent " << info.sent_pixels << " pixels" << std::endl
                   << " - katherine->pc received " << info.received_pixels << " pixels (" << recv_perc << " %)" << std::endl
@@ -96,17 +95,14 @@ void
 pixels_received(const mode::pixel_type *px, size_t count)
 {
     n_hits += count;
-
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "\r - have pixels: " << n_hits << std::flush;
-    }
-
-    /*for (size_t i = 0; i < count; ++i) {
-        std::cout << (unsigned) px[i].coord.x << '\t' << (unsigned) px[i].coord.y << '\t'
-                  << (unsigned) px[i].toa << '\t' << (unsigned) px[i].ftoa << '\t'
+    
+    for (size_t i = 0; i < count; ++i) {
+        std::cerr << (unsigned) px[i].coord.x << '\t'
+                  << (unsigned) px[i].coord.y << '\t'
+                  << (unsigned) px[i].toa << '\t'
+                  << (unsigned) px[i].ftoa << '\t'
                   << (unsigned) px[i].tot << std::endl;
-    }*/
+    }
 }
 
 void
@@ -131,7 +127,6 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
     {
         std::lock_guard<std::mutex> lk{cerr_mutex};
         std::cerr << "Acquisition started." << std::endl;
-        std::cerr << std::endl;
     }
 
     auto tic = steady_clock::now();
