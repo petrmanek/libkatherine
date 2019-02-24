@@ -192,9 +192,13 @@ lib_path = '<directory containing katherine library file>'
 # Alter environment to include the extension module
 sys.path.append(ext_path)
 
-# 2: Alter environment to include the library
-os.environ['LD_LIBRARY_PATH'] += ':%s:' % lib_path  # on *nix systems
-os.environ['PATH'] += ';%s;' % lib_path             # on Windows systems
+# Alter environment to include the library
+if os.name == 'nt':
+  # use semicolon on Windows systems
+  os.environ['PATH'] += ';%s;' % lib_path
+else:
+  # use different variable and colon on *nix systems
+  os.environ['LD_LIBRARY_PATH'] += ':%s:' % lib_path
 
 try:
   import katherine
