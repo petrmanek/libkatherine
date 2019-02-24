@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <katherine/global.h>
-#include <katherine/bmc.h>
+#include <katherine/px_config.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,7 +85,7 @@ typedef enum katherine_freq {
 
 
 typedef struct katherine_config {
-    katherine_bmc_t pixel_config;
+    katherine_px_config_t pixel_config;
 
     unsigned char bias_id;
 
@@ -110,7 +110,7 @@ KATHERINE_EXPORTED int
 katherine_configure(katherine_device_t *device, const katherine_config_t *config);
 
 KATHERINE_EXPORTED int
-katherine_set_all_pixel_config(katherine_device_t *device, const katherine_bmc_t* bmc);
+katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t* px_config);
 
 KATHERINE_EXPORTED int
 katherine_set_acq_time(katherine_device_t *device, double ns);

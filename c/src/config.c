@@ -64,11 +64,11 @@ err:
 /**
  * Configure all pixels of the detector.
  * @param device Katherine device
- * @param bmc Configuration matrix to set
+ * @param px_config Configuration matrix to set
  * @return Error code.
  */
 int
-katherine_set_all_pixel_config(katherine_device_t *device, const katherine_bmc_t* bmc)
+katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t* px_config)
 {
     int res;
 
@@ -80,8 +80,9 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_bmc_t
     if (res) goto err;
 
     // Send pixel configuration data.
+    const char *config = (const char *) px_config->words;
     for (int i = 0; i < 64; ++i) {
-        res = katherine_cmd(&device->control_socket, &bmc->pconf[1024 * i], 1024);
+        res = katherine_cmd(&device->control_socket, px_config + 1024 * i, 1024);
         if (res) goto err;
     }
 

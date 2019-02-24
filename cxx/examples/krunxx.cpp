@@ -54,7 +54,7 @@ configure(katherine::config& config)
     dacs.named.PLL_Vcntrl            = 128;
     config.set_dacs(std::move(dacs));
 
-    katherine::bmc px_config = katherine::load_bmc("chipconfig.bmc");
+    katherine::px_config px_config = katherine::load_bmc_file("chipconfig.bmc");
     config.set_pixel_config(std::move(px_config));
 }
 

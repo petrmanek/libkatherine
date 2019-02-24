@@ -13,7 +13,7 @@
 
 #include <katherine/config.h>
 
-#include <katherinexx/bmc.hpp>
+#include <katherinexx/px_config.hpp>
 
 namespace katherine {
 
@@ -52,10 +52,10 @@ public:
     katherine_config_t *c_config() { return &conf_; }
     const katherine_config_t *c_config() const { return &conf_; }
 
-    const katherine::bmc& pixel_config() const { return conf_.pixel_config; }
-    katherine::bmc& pixel_config() { return conf_.pixel_config; }
-    void set_pixel_config(const katherine::bmc& pixel_config) { conf_.pixel_config = pixel_config; }
-    void set_pixel_config(katherine::bmc&& pixel_config) { conf_.pixel_config = pixel_config; }
+    const katherine::px_config& pixel_config() const { return conf_.pixel_config; }
+    katherine::px_config& pixel_config() { return conf_.pixel_config; }
+    void set_pixel_config(const katherine::px_config& pixel_config) { conf_.pixel_config = pixel_config; }
+    void set_pixel_config(katherine::px_config&& pixel_config) { conf_.pixel_config = pixel_config; }
 
     unsigned char bias_id() const { return conf_.bias_id; }
     void set_bias_id(unsigned char val) { conf_.bias_id = val; }

@@ -16,7 +16,7 @@
 
 #include <katherine/global.h>
 #include <katherine/acquisition.h>
-#include <katherine/bmc.h>
+#include <katherine/px_config.h>
 #include <katherine/config.h>
 #include <katherine/device.h>
 #include <katherine/status.h>

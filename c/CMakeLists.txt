@@ -1,6 +1,6 @@
 set(KATHERINE_SOURCES
     "src/acquisition.c"
-    "src/bmc.c"
+    "src/px_config.c"
     "src/config.c"
     "src/device.c"
     "src/status.c"
@@ -10,7 +10,7 @@ set(KATHERINE_SOURCES
 
 set(KATHERINE_HEADERS
     "include/katherine/acquisition.h"
-    "include/katherine/bmc.h"
+    "include/katherine/px_config.h"
     "include/katherine/command_interface.h"
     "include/katherine/config.h"
     "include/katherine/device.h"
