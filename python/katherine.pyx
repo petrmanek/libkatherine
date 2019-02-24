@@ -18,6 +18,7 @@ import array
 cimport cdevice
 cimport cstatus
 cimport cconfig
+cimport cpx_config
 cimport cacquisition
 
 
@@ -265,6 +266,27 @@ cdef class Dacs:
        self._c_dacs.named.PLL_Vcntrl = val
 
 
+cdef class PxConfig:
+    cdef cpx_config.katherine_px_config_t _c_px_config
+
+    def __init__(self, cdata=None):
+      if cdata is not None:
+         self._c_px_config = cdata
+
+    @staticmethod
+    def from_bmc(path):
+      cdef cpx_config.katherine_px_config_t config
+      res = cpx_config.katherine_px_config_load_bmc_file(&config, path.encode())
+      check_return_code(res)
+      return PxConfig(cdata=config)
+
+    @staticmethod
+    def from_bpc(path):
+      cdef cpx_config.katherine_px_config_t config
+      res = cpx_config.katherine_px_config_load_bpc_file(&config, path.encode())
+      check_return_code(res)
+      return PxConfig(cdata=config)
+
 @unique
 class Phase(Enum):
     PHASE_1          = cconfig.katherine_phase_t.PHASE_1
@@ -391,6 +413,17 @@ cdef class Config:
     @dacs.setter
     def dacs(self, val):
          self._set_dacs(val)
+
+    @property
+    def pixel_config(self):
+       return PxConfig(cdata=self._c_config.pixel_config)
+
+    cdef _set_pixel_config(self, PxConfig val):
+         memcpy(&self._c_config.pixel_config, &val._c_px_config, sizeof(self._c_config.pixel_config))
+
+    @pixel_config.setter
+    def pixel_config(self, val):
+         self._set_pixel_config(val)
 
 
 @unique

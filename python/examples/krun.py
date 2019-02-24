@@ -43,7 +43,7 @@ def configure():
     dacs.PLL_Vcntrl            = 128
     c.dacs = dacs
 
-    # TODO: BMC
+    c.pixel_config = k.PxConfig.from_bmc('chipconfig.bmc')
 
     return c
 

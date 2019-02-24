@@ -8,7 +8,7 @@
 
 from libcpp cimport bool
 from libc.stdint cimport uint16_t
-
+from cpx_config cimport katherine_px_config_t
 
 cdef extern from 'katherine/config.h':
     ctypedef enum katherine_acquisition_mode_t:
@@ -58,7 +58,7 @@ cdef extern from 'katherine/config.h':
         FREQ_160        
 
     ctypedef struct katherine_config_t:
-        #katherine_bmc_t pixel_config
+        katherine_px_config_t pixel_config
 
         unsigned char bias_id
 
