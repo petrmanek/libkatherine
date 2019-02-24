@@ -698,42 +698,24 @@ cdef void _forward_frame_ended(void *user_ctx, int frame_idx, bool completed, co
 
 cdef void _forward_pixels_received_f_toa_tot(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_f_toa_tot_t *dpx = <const cacquisition.katherine_px_f_toa_tot_t *> px
-    pixels = []
-    for i in range(count):
-        pixels.append(PxFastToaTot(cdata=dpx[i]))
-    (<Acquisition> user_ctx).observer.pixels_received(pixels)
+    (<Acquisition> user_ctx).observer.pixels_received([PxFastToaTot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_toa_tot(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_toa_tot_t *dpx = <const cacquisition.katherine_px_toa_tot_t *> px
-    pixels = []
-    for i in range(count):
-        pixels.append(PxToaTot(cdata=dpx[i]))
-    (<Acquisition> user_ctx).observer.pixels_received(pixels)
+    (<Acquisition> user_ctx).observer.pixels_received([PxToaTot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_f_toa_only(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_f_toa_only_t *dpx = <const cacquisition.katherine_px_f_toa_only_t *> px
-    pixels = []
-    for i in range(count):
-        pixels.append(PxFastToaOnly(cdata=dpx[i]))
-    (<Acquisition> user_ctx).observer.pixels_received(pixels)
+    (<Acquisition> user_ctx).observer.pixels_received([PxFastToaOnly(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_toa_only(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_toa_only_t *dpx = <const cacquisition.katherine_px_toa_only_t *> px
-    pixels = []
-    for i in range(count):
-        pixels.append(PxToaOnly(cdata=dpx[i]))
-    (<Acquisition> user_ctx).observer.pixels_received(pixels)
+    (<Acquisition> user_ctx).observer.pixels_received([PxToaOnly(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_f_event_itot(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_f_event_itot_t *dpx = <const cacquisition.katherine_px_f_event_itot_t *> px
-    pixels = []
-    for i in range(count):
-        pixels.append(PxFastEventItot(cdata=dpx[i]))
-    (<Acquisition> user_ctx).observer.pixels_received(pixels)
+    (<Acquisition> user_ctx).observer.pixels_received([PxFastEventItot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_event_itot(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_event_itot_t *dpx = <const cacquisition.katherine_px_event_itot_t *> px
-    pixels = []
-    for i in range(count):
-        pixels.append(PxEventItot(cdata=dpx[i]))
-    (<Acquisition> user_ctx).observer.pixels_received(pixels)
+    (<Acquisition> user_ctx).observer.pixels_received([PxEventItot(cdata=dpx[i]) for i in range(count)])
