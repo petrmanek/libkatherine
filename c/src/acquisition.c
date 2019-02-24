@@ -35,6 +35,11 @@ PACKED(typedef struct md_time_offset {
     uint16_t : 12;          // 43..32
 }) md_time_offset_t;
 
+PACKED(typedef struct md_new_frame {
+    uint32_t offset : 32;   // 31..0
+    uint16_t : 12;
+}) md_new_frame_t;
+
 PACKED(typedef struct md_frame_finished {
     uint64_t n_sent : 44;   // 0..43
 }) md_frame_finished_t;
