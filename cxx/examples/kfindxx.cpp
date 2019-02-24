@@ -68,7 +68,7 @@ parse_args(int argc, char *argv[], int min[4], int max[4])
     }
 
     std::string arg{argv[1]};
-    std::size_t pos[3];
+    std::size_t pos[4];
 
     pos[0] = arg.find('.');
     if (pos[0] == std::string::npos) {
@@ -87,6 +87,8 @@ parse_args(int argc, char *argv[], int min[4], int max[4])
         abort_parsing(argv, "expected 3 dots (got 2)");
         return;
     }
+
+    pos[3] = arg.size();
 
     int component_no = 1;
     try {
