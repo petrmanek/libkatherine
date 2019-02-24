@@ -34,16 +34,18 @@ a read-out at a given IP address.
 #include <stdio.h>
 #include <katherine/katherine.h>
 
-const char *ip_addr = "192.168.1.142";
+int main() {
+  const char *ip_addr = "192.168.1.142";
 
-katherine_device_t dev;
-katherine_device_init(&dev, ip_addr);   // Ignoring return code.
+  katherine_device_t dev;
+  katherine_device_init(&dev, ip_addr);   // Ignoring return code.
 
-char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-katherine_get_chip_id(&dev, chip_id);   // Ignoring return code.
-printf("Device %s has chip id: %s\n", ip_addr, chip_id);
+  char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
+  katherine_get_chip_id(&dev, chip_id);   // Ignoring return code.
+  printf("Device %s has chip id: %s\n", ip_addr, chip_id);
 
-katherine_device_fini(&dev);
+  katherine_device_fini(&dev);
+}
 ```
 
 ```cpp
@@ -51,11 +53,13 @@ katherine_device_fini(&dev);
 #include <iostream>
 #include <katherinexx/katherinexx.hpp>
 
-const std::string ip_addr{"192.168.1.142"};
+int main() {
+  const std::string ip_addr{"192.168.1.142"};
 
-katherine::device dev{ip_addr};
-const std::string chip_id = dev.chip_id();   // Exception can be thrown here.
-std::cout << "Device " << address << " has chip id: " << chip_id << std::endl;
+  katherine::device dev{ip_addr};
+  const std::string chip_id = dev.chip_id();   // Exception can be thrown here.
+  std::cout << "Device " << address << " has chip id: " << chip_id << std::endl;
+}
 ```
 
 ```python
@@ -78,7 +82,7 @@ in the `examples/` subdirectory for each library, or in the table below:
 | C                             | C++                                   | Python                                    | Purpose                                              |
 |-------------------------------|---------------------------------------|-------------------------------------------|------------------------------------------------------|
 | [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)    | Locate Katherine readouts in given IP address range. |
-|                               | [krunxx](./cxx/examples/krunxx.cpp)   |                                           | Configure & perform data-driven acquisition.         |
+|                               | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)      | Configure & perform data-driven acquisition.         |
 
 
 ### Full Documentation

@@ -468,6 +468,10 @@ cdef class PxFastToaTot:
        if cdata is not None:
            self._c_px = cdata
 
+    @staticmethod
+    def RAW_SIZE():
+       return sizeof(cacquisition.katherine_px_f_toa_tot_t)
+
     @property
     def x(self):
        return self._c_px.coord.x
@@ -495,6 +499,10 @@ cdef class PxToaTot:
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
+
+    @staticmethod
+    def RAW_SIZE():
+       return sizeof(cacquisition.katherine_px_toa_tot_t)
 
     @property
     def x(self):
@@ -524,6 +532,10 @@ cdef class PxFastToaOnly:
        if cdata is not None:
            self._c_px = cdata
 
+    @staticmethod
+    def RAW_SIZE():
+       return sizeof(cacquisition.katherine_px_f_toa_only_t)
+
     @property
     def x(self):
        return self._c_px.coord.x
@@ -548,6 +560,10 @@ cdef class PxToaOnly:
        if cdata is not None:
            self._c_px = cdata
 
+    @staticmethod
+    def RAW_SIZE():
+       return sizeof(cacquisition.katherine_px_toa_only_t)
+
     @property
     def x(self):
        return self._c_px.coord.x
@@ -571,6 +587,10 @@ cdef class PxFastEventItot:
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
+
+    @staticmethod
+    def RAW_SIZE():
+       return sizeof(cacquisition.katherine_px_f_event_itot_t)
 
     @property
     def x(self):
@@ -599,6 +619,10 @@ cdef class PxEventItot:
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
+
+    @staticmethod
+    def RAW_SIZE():
+       return sizeof(cacquisition.katherine_px_event_itot_t)
 
     @property
     def x(self):
@@ -719,3 +743,6 @@ cdef void _forward_pixels_received_f_event_itot(void *user_ctx, const void *px, 
 cdef void _forward_pixels_received_event_itot(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_event_itot_t *dpx = <const cacquisition.katherine_px_event_itot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxEventItot(cdata=dpx[i]) for i in range(count)])
+
+def MD_SIZE():
+   return cacquisition.KATHERINE_MD_SIZE

@@ -90,6 +90,8 @@ cdef extern from 'katherine/acquisition.h':
         ACQUISITION_SUCCEEDED
         ACQUISITION_TIMED_OUT
 
+    cdef int KATHERINE_MD_SIZE
+
     int katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
     void katherine_acquisition_fini(katherine_acquisition_t *acq)
     int katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
