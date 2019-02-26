@@ -25,7 +25,7 @@ katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *
     int res = 0;
 
     const size_t expected_size = sizeof(katherine_bmc_t);
-    FILE* file = fopen(file_path, "r");
+    FILE* file = fopen(file_path, "rb");
     if (file == NULL) {
         res = errno;
         goto err_fopen;
@@ -91,7 +91,7 @@ katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *
     int res = 0;
 
     const size_t expected_size = sizeof(katherine_bpc_t);
-    FILE* file = fopen(file_path, "r");
+    FILE* file = fopen(file_path, "rb");
     if (file == NULL) {
         res = errno;
         goto err_fopen;
