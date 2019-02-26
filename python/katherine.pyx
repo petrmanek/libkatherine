@@ -51,9 +51,14 @@ cdef class Device:
 
     def get_chip_id(self):
          cdef char[:] chip_id = array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)
-         res = cstatus.katherine_get_chip_id(self._c_device, &chip_id[0])
+         cdef char *c_chip_id = &chip_id[0]
+         res = cstatus.katherine_get_chip_id(self._c_device, c_chip_id)
          check_return_code(res)
-         return <bytes> chip_id
+         
+         if chip_id[0] == 0:
+            return None
+
+         return c_chip_id.decode('UTF-8')
 
     def get_readout_temperature(self):
          cdef float temp
