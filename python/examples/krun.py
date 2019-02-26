@@ -7,7 +7,7 @@ def configure():
     c = k.Config()
 
     c.bias_id           = 0
-    c.acq_time          = 10 # s
+    c.acq_time          = 10e9 # ns
     c.no_frames         = 1
     c.bias              = 230 # V
 
@@ -28,8 +28,8 @@ def configure():
     dacs.VPReamp_NCAS          = 128
     dacs.Ibias_Ikrum           = 15
     dacs.Vfbk                  = 164
-    dacs.Vthreshold_fine       = 371
-    dacs.Vthreshold_coarse     = 7
+    dacs.Vthreshold_fine       = 476
+    dacs.Vthreshold_coarse     = 8
     dacs.Ibias_DiscS1_ON       = 100
     dacs.Ibias_DiscS1_OFF      = 8
     dacs.Ibias_DiscS2_ON       = 128

@@ -4,7 +4,7 @@
 
 #include <chrono>
 #include <iostream>
-#include <mutex>
+
 #include <katherinexx/katherinexx.hpp>
 
 static const std::string remote_addr{"192.168.1.145"};
@@ -39,8 +39,8 @@ configure(katherine::config& config)
     dacs.named.VPReamp_NCAS          = 128;
     dacs.named.Ibias_Ikrum           = 15;
     dacs.named.Vfbk                  = 164;
-    dacs.named.Vthreshold_fine       = 371;
-    dacs.named.Vthreshold_coarse     = 7;
+    dacs.named.Vthreshold_fine       = 476;
+    dacs.named.Vthreshold_coarse     = 8;
     dacs.named.Ibias_DiscS1_ON       = 100;
     dacs.named.Ibias_DiscS1_OFF      = 8;
     dacs.named.Ibias_DiscS2_ON       = 128;
@@ -58,7 +58,6 @@ configure(katherine::config& config)
     config.set_pixel_config(std::move(px_config));
 }
 
-static std::mutex cerr_mutex;
 static uint64_t n_hits;
 
 void
@@ -66,11 +65,8 @@ frame_started(int frame_idx)
 {
     n_hits = 0;
 
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "Started frame " << frame_idx << "." << std::endl;
-        std::cerr << "X\tY\tToA\tfToA\tToT" << std::endl;
-    }
+    std::cerr << "Started frame " << frame_idx << "." << std::endl;
+    std::cerr << "X\tY\tToA\tfToA\tToT" << std::endl;
 }
 
 void
@@ -78,17 +74,14 @@ frame_ended(int frame_idx, bool completed, const katherine_frame_info_t& info)
 {
     const double recv_perc = 100. * info.received_pixels / info.sent_pixels;
 
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << std::endl << std::endl;
-        std::cerr << "Ended frame " << frame_idx << "." << std::endl;
-        std::cerr << " - tpx3->katherine lost " << info.lost_pixels << " pixels" << std::endl
-                  << " - katherine->pc sent " << info.sent_pixels << " pixels" << std::endl
-                  << " - katherine->pc received " << info.received_pixels << " pixels (" << recv_perc << " %)" << std::endl
-                  << " - state: " << (completed ? "completed" : "not completed") << std::endl
-                  << " - start time: " << info.start_time.d << std::endl
-                  << " - end time: " << info.end_time.d << std::endl;
-    }
+    std::cerr << std::endl << std::endl;
+    std::cerr << "Ended frame " << frame_idx << "." << std::endl;
+    std::cerr << " - tpx3->katherine lost " << info.lost_pixels << " pixels" << std::endl
+                << " - katherine->pc sent " << info.sent_pixels << " pixels" << std::endl
+                << " - katherine->pc received " << info.received_pixels << " pixels (" << recv_perc << " %)" << std::endl
+                << " - state: " << (completed ? "completed" : "not completed") << std::endl
+                << " - start time: " << info.start_time.d << std::endl
+                << " - end time: " << info.end_time.d << std::endl;
 }
 
 void
@@ -116,35 +109,30 @@ void
 run_acquisition(katherine::device& dev, const katherine::config& c)
 {
     using namespace std::chrono;
+    using namespace std::literals::chrono_literals;
 
-    katherine::acquisition<mode> acq{dev, katherine::md_size * 34952533, sizeof(mode::pixel_type) * 4096, 500, 10000};
+    katherine::acquisition<mode> acq{dev, katherine::md_size * 34952533, sizeof(mode::pixel_type) * 65536, 500ms, 10s};
 
     acq.set_frame_started_handler(frame_started);
     acq.set_frame_ended_handler(frame_ended);
     acq.set_pixels_received_handler(pixels_received);
 
     acq.begin(c, katherine::readout_type::data_driven);
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << "Acquisition started." << std::endl;
-    }
+    std::cerr << "Acquisition started." << std::endl;
 
     auto tic = steady_clock::now();
     acq.read();
     auto toc = steady_clock::now();
 
     double duration = duration_cast<milliseconds>(toc - tic).count() / 1000.;
-    {
-        std::lock_guard<std::mutex> lk{cerr_mutex};
-        std::cerr << std::endl;
-        std::cerr << "Acquisition completed:" << std::endl
-                  << " - state: " << katherine::str_acq_state(acq.state()) << std::endl
-                  << " - received " << acq.completed_frames() << " complete frames" << std::endl
-                  << " - dropped " << acq.dropped_measurement_data() << " measurement data items" << std::endl
-                  << " - total hits: " << n_hits << std::endl
-                  << " - total duration: " << duration << " s" << std::endl
-                  << " - throughput: " << (n_hits / duration) << " hits/s" << std::endl;
-    }
+    std::cerr << std::endl;
+    std::cerr << "Acquisition completed:" << std::endl
+                << " - state: " << katherine::str_acq_state(acq.state()) << std::endl
+                << " - received " << acq.completed_frames() << " complete frames" << std::endl
+                << " - dropped " << acq.dropped_measurement_data() << " measurement data items" << std::endl
+                << " - total hits: " << n_hits << std::endl
+                << " - total duration: " << duration << " s" << std::endl
+                << " - throughput: " << (n_hits / duration) << " hits/s" << std::endl;
 }
 
 int

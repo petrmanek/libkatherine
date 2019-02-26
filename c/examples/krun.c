@@ -5,7 +5,7 @@
 #include <stdlib.h>     // exit
 #include <stdio.h>      // printf
 #include <time.h>       // time, difftime
-#include <string.h>      // strerror
+#include <string.h>     // strerror
 
 #include <katherine/katherine.h>
 
@@ -16,16 +16,20 @@ void
 configure(katherine_config_t *config)
 {
     // For now, these constants are hard-coded.
-    // This configuration will produce meaningful results only for: M7-W0005
+    // This configuration will produce meaningful results only for: K7-W0005
     config->bias_id                 = 0;
-    config->acq_time                = 10; // s
+    config->acq_time                = 10e9; // ns
     config->no_frames               = 1;
     config->bias                    = 230; // V
 
     config->delayed_start           = false;
 
-    config->start_trigger.enabled   = false;
-    config->stop_trigger.enabled    = false;
+    config->start_trigger.enabled           = false;
+    config->start_trigger.channel           = 0;
+    config->start_trigger.use_falling_edge  = false;
+    config->stop_trigger.enabled            = false;
+    config->stop_trigger.channel            = 0;
+    config->stop_trigger.use_falling_edge   = false;
 
     config->gray_disable            = false;
     config->polarity_holes          = false;
@@ -38,8 +42,8 @@ configure(katherine_config_t *config)
     config->dacs.named.VPReamp_NCAS          = 128;
     config->dacs.named.Ibias_Ikrum           = 15;
     config->dacs.named.Vfbk                  = 164;
-    config->dacs.named.Vthreshold_fine       = 371;
-    config->dacs.named.Vthreshold_coarse     = 7;
+    config->dacs.named.Vthreshold_fine       = 476;
+    config->dacs.named.Vthreshold_coarse     = 8;
     config->dacs.named.Ibias_DiscS1_ON       = 100;
     config->dacs.named.Ibias_DiscS1_OFF      = 8;
     config->dacs.named.Ibias_DiscS2_ON       = 128;
@@ -117,7 +121,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     int res;
     katherine_acquisition_t acq;
 
-    res = katherine_acquisition_init(&acq, dev, NULL, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 4096, 500, 10000);
+    res = katherine_acquisition_init(&acq, dev, NULL, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 65536, 500, 10000);
     if (res != 0) {
         printf("Cannot initialize acquisition. Is the configuration valid?\n");
         printf("Reason: %s\n", strerror(res));
