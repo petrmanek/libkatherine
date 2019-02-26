@@ -213,6 +213,11 @@ except ImportError:
   print('Something wrong with lib_path')
 ```
 
+If you get linker errors during Cython build phase, check that the target architectures of
+the katherine library and the python extension modules are the same. In Windows environment,
+Cython prefers 64-bit MSVC by default, so it is necessary to choose the "Win64" generator
+in CMake configuration.
+
 
 ## Copyright
 
