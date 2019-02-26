@@ -82,7 +82,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     // Send pixel configuration data.
     const char *config = (const char *) px_config->words;
     for (int i = 0; i < 64; ++i) {
-        res = katherine_cmd(&device->control_socket, px_config + 1024 * i, 1024);
+        res = katherine_cmd(&device->control_socket, config + 1024 * i, 1024);
         if (res) goto err;
     }
 
@@ -263,7 +263,7 @@ katherine_set_seq_readout_start(katherine_device_t *device, int arg)
     res = katherine_cmd_set_seq_readout_start(&device->control_socket, arg);
     if (res) goto err;
 
-    // TODO: no ack? ask
+    /* Note: this command does _not_ produce an acknowledgement. */
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
