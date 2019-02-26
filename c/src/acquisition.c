@@ -296,6 +296,66 @@ handle_unknown_msg(katherine_acquisition_t *acq, const void *data)
     ++acq->dropped_measurement_data;
 }
 
+#ifdef KATHERINE_DEBUG_ACQ
+static inline void
+dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config)
+{
+    printf("---- Begin Acquisition Configuration ----\n");
+    printf("Acquisition Mode:       %d\n",      acq->acq_mode);
+    printf("Read-out Mode:          %d\n",      acq->readout_mode);
+    printf("Fast VCO:               %s\n",      acq->fast_vco_enabled ? "enabled" : "disabled");
+    printf("\n");
+
+    printf("Bias ID:                %d\n",      config->bias_id);
+    printf("Acquisition Time:       %0.3f s\n", config->acq_time / 1e9);
+    printf("No. of Frames:          %d\n",      config->no_frames);
+    printf("Bias:                   %0.3f V\n", config->bias);
+    printf("\n");
+
+    printf("Delay Start:            %s\n",      config->delayed_start ? "true" : "false");
+    printf("Start Trigger:          %s\n",      config->start_trigger.enabled ? "true" : "false");
+    printf("Start Trigger Channel:  %d\n",      config->start_trigger.channel);
+    printf("Start Trigger Signal:   %s\n",      config->start_trigger.use_falling_edge ? "falling edge" : "rising edge");
+    printf("Stop Trigger:           %s\n",      config->stop_trigger.enabled ? "true" : "false");
+    printf("Stop Trigger Channel:   %d\n",      config->stop_trigger.channel);
+    printf("Stop Trigger Signal:    %s\n",      config->stop_trigger.use_falling_edge ? "falling edge" : "rising edge");
+    printf("\n");
+
+    printf("Gray Coding:            %s\n",      config->gray_disable ? "disabled" : "enabled");
+    printf("Polarity:               %s\n",      config->polarity_holes ? "holes (h+)" : "electrons (e-)");
+    printf("Phase:                  %d\n",      config->phase);
+    printf("Clock Frequency:        %d\n",      config->freq);
+    printf("\n");
+
+    printf("Pixel Configuration:    %d %d ... %d %d\n",
+        config->pixel_config.words[0],      config->pixel_config.words[1],
+        config->pixel_config.words[16382],  config->pixel_config.words[16383]);
+    printf("\n");
+    
+    printf("DACs:\n");
+    printf("  - Ibias_Preamp_ON:    %d\n",      config->dacs.named.Ibias_Preamp_ON);
+    printf("  - Ibias_Preamp_OFF:   %d\n",      config->dacs.named.Ibias_Preamp_OFF);
+    printf("  - VPReamp_NCAS:       %d\n",      config->dacs.named.VPReamp_NCAS);
+    printf("  - Ibias_Ikrum:        %d\n",      config->dacs.named.Ibias_Ikrum);
+    printf("  - Vfbk:               %d\n",      config->dacs.named.Vfbk);
+    printf("  - Vthreshold_fine:    %d\n",      config->dacs.named.Vthreshold_fine);
+    printf("  - Vthreshold_coarse:  %d\n",      config->dacs.named.Vthreshold_coarse);
+    printf("  - Ibias_DiscS1_ON:    %d\n",      config->dacs.named.Ibias_DiscS1_ON);
+    printf("  - Ibias_DiscS1_OFF:   %d\n",      config->dacs.named.Ibias_DiscS1_OFF);
+    printf("  - Ibias_DiscS2_ON:    %d\n",      config->dacs.named.Ibias_DiscS2_ON);
+    printf("  - Ibias_DiscS2_OFF:   %d\n",      config->dacs.named.Ibias_DiscS2_OFF);
+    printf("  - Ibias_PixelDAC:     %d\n",      config->dacs.named.Ibias_PixelDAC);
+    printf("  - Ibias_TPbufferIn:   %d\n",      config->dacs.named.Ibias_TPbufferIn);
+    printf("  - Ibias_TPbufferOut:  %d\n",      config->dacs.named.Ibias_TPbufferOut);
+    printf("  - VTP_coarse:         %d\n",      config->dacs.named.VTP_coarse);
+    printf("  - VTP_fine:           %d\n",      config->dacs.named.VTP_fine);
+    printf("  - Ibias_CP_PLL:       %d\n",      config->dacs.named.Ibias_CP_PLL);
+    printf("  - PLL_Vcntrl:         %d\n",      config->dacs.named.PLL_Vcntrl);
+
+    printf("----  End Acquisition Configuration  ----\n");
+}
+#endif /* KATHERINE_DEBUG_ACQ */
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
@@ -498,6 +558,14 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 {
     int res = 0;
 
+    acq->acq_mode = acq_mode;
+    acq->readout_mode = readout_mode;
+    acq->fast_vco_enabled = fast_vco_enabled;
+
+#if KATHERINE_DEBUG_ACQ > 0
+    dump_config(acq, config);
+#endif /* KATHERINE_DEBUG_ACQ */
+
     if (readout_mode == READOUT_DATA_DRIVEN && config->no_frames > 1) {
         res = EINVAL;
         goto err;
@@ -512,15 +580,12 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     res = katherine_set_acq_mode(acq->device, acq_mode, fast_vco_enabled);
     if (res) goto err;
 
-    acq->readout_mode = readout_mode;
     acq->state = ACQUISITION_RUNNING;
 
     acq->completed_frames = 0;
     acq->requested_frames = config->no_frames;
     acq->requested_frame_duration = config->acq_time / 1e9;
     acq->dropped_measurement_data = 0;
-    acq->acq_mode = acq_mode;
-    acq->fast_vco_enabled = fast_vco_enabled;
 
     acq->pixel_buffer_valid = 0;
     acq->pixel_buffer_max_valid = 0;

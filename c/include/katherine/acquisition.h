@@ -24,6 +24,9 @@
 
 #define KATHERINE_MD_SIZE 6
 
+// Uncomment the following line to enable acquisition logging:
+// #define KATHERINE_DEBUG_ACQ 2
+
 #ifdef __cplusplus
 extern "C" {
 #endif
