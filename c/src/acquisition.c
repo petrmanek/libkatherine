@@ -13,184 +13,9 @@
 #include <katherine/global.h>
 #include <katherine/acquisition.h>
 #include <katherine/command_interface.h>
+#include <katherine/md.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-
-/* MD stands for Measurement Data, the 6 byte
- * messages sent during (or after) acquisition.
- * 
- * There are various types of MD's, some contain
- * metadata about the measurement, others can be
- * directly mapped to active pixels. Below are
- * defined all MD's recognized by this library.
- */
-
-PACKED(typedef struct md {
-    uint64_t : 44;
-    uint8_t header : 4;
-}) md_t;
-
-PACKED(typedef struct md_time_offset {
-    uint32_t offset : 32;   // 31..0
-    uint16_t : 12;          // 43..32
-}) md_time_offset_t;
-
-PACKED(typedef struct md_new_frame {
-    uint32_t offset : 32;   // 31..0
-    uint16_t : 12;
-}) md_new_frame_t;
-
-PACKED(typedef struct md_frame_finished {
-    uint64_t n_sent : 44;   // 0..43
-}) md_frame_finished_t;
-
-PACKED(typedef struct md_time_lsb {
-    uint32_t lsb : 32;      // 31..0
-    uint16_t : 12;          // 43..32
-}) md_time_lsb_t;
-
-PACKED(typedef struct md_time_msb {
-    uint16_t msb : 16;      // 15..0
-    uint32_t : 24;          // 43..16
-}) md_time_msb_t;
-
-PACKED(typedef struct md_lost_px {
-    uint64_t n_lost : 44;   // 43..0
-}) md_lost_px_t;
-
-
-/* For MD's which correspond to pixels, we
- * define a direct mapping function named by
- * the following template:
- * 
- *   pmd_{A}_map(dst, src, acq)
- * 
- * This function is responsible for mapping MD
- * `src` of type pmd_{A}_t to a pixel `dst` of
- * type katherine_px_{A}_t. Below are defined
- * such functions for all pixel types.
- */
-
-#define DEFINE_PMD_MAP(SUFFIX) \
-    static inline void\
-    pmd_##SUFFIX##_map(katherine_px_##SUFFIX##_t *dst, const pmd_##SUFFIX##_t *src, const katherine_acquisition_t *acq)
-
-#define DEFINE_PMD_PAIR(NAME, TYPE) \
-    dst->NAME = (TYPE) src->NAME
-
-#define DEFINE_PMD_PAIR_TOA \
-    dst->toa = (uint64_t) src->toa + acq->last_toa_offset
-
-#define DEFINE_PMD_PAIR_COORD \
-    {\
-        dst->coord.x = (uint8_t) src->coord_x;\
-        dst->coord.y = (uint8_t) src->coord_y;\
-    }
-
-PACKED(typedef struct pmd_f_toa_tot {
-    uint16_t ftoa : 4;      // 0..3
-    uint16_t tot : 10;      // 13..4
-    uint16_t toa : 14;      // 27..14
-    uint16_t coord_x : 8;   // 35..28
-    uint16_t coord_y : 8;   // 43..36
-    uint16_t : 4;           // 44..47
-}) pmd_f_toa_tot_t;
-
-DEFINE_PMD_MAP(f_toa_tot)
-{
-    DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(ftoa,   uint8_t);
-    DEFINE_PMD_PAIR(tot,    uint16_t);
-}
-
-PACKED(typedef struct pmd_toa_tot {
-    uint16_t hit_count : 4;     // 0..3
-    uint16_t tot : 10;          // 13..4
-    uint16_t toa : 14;          // 27..14
-    uint16_t coord_x : 8;       // 35..28
-    uint16_t coord_y : 8;       // 43..36
-    uint16_t : 4;               // 44..47
-}) pmd_toa_tot_t;
-
-DEFINE_PMD_MAP(toa_tot)
-{
-    DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(hit_count,  uint8_t);
-    DEFINE_PMD_PAIR(tot,        uint16_t);
-}
-
-PACKED(typedef struct pmd_f_toa_only {
-    uint16_t ftoa : 4;      // 0..3
-    uint16_t : 10;          // 13..4
-    uint16_t toa : 14;      // 27..14
-    uint16_t coord_x : 8;   // 35..28
-    uint16_t coord_y : 8;   // 43..36
-    uint16_t : 4;           // 44..47
-}) pmd_f_toa_only_t;
-
-DEFINE_PMD_MAP(f_toa_only)
-{
-    DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(ftoa,   uint8_t);
-}
-
-PACKED(typedef struct pmd_toa_only {
-    uint16_t hit_count : 4; // 0..3
-    uint16_t : 10;          // 13..4
-    uint16_t toa : 14;      // 27..14
-    uint16_t coord_x : 8;   // 35..28
-    uint16_t coord_y : 8;   // 43..36
-    uint16_t : 4;           // 44..47
-}) pmd_toa_only_t;
-
-DEFINE_PMD_MAP(toa_only)
-{
-    DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR_TOA;
-    DEFINE_PMD_PAIR(hit_count,  uint8_t);
-}
-
-PACKED(typedef struct pmd_f_event_itot {
-    uint16_t hit_count : 4;     // 0..3
-    uint16_t event_count : 10;  // 13..4
-    uint16_t integral_tot : 14; // 27..14
-    uint16_t coord_x : 8;       // 35..28
-    uint16_t coord_y : 8;       // 43..36
-    uint16_t : 4;               // 44..47
-}) pmd_f_event_itot_t;
-
-DEFINE_PMD_MAP(f_event_itot)
-{
-    DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR(hit_count,      uint8_t);
-    DEFINE_PMD_PAIR(event_count,    uint16_t);
-    DEFINE_PMD_PAIR(integral_tot,   uint16_t);
-}
-
-PACKED(typedef struct pmd_event_itot {
-    uint16_t : 4;               // 0..3
-    uint16_t event_count : 10;  // 13..4
-    uint16_t integral_tot : 14; // 27..14
-    uint16_t coord_x : 8;       // 35..28
-    uint16_t coord_y : 8;       // 43..36
-    uint16_t : 4;               // 44..47
-}) pmd_event_itot_t;
-
-DEFINE_PMD_MAP(event_itot)
-{
-    DEFINE_PMD_PAIR_COORD;
-    DEFINE_PMD_PAIR(event_count,    uint16_t);
-    DEFINE_PMD_PAIR(integral_tot,   uint16_t);
-}
-
-#undef DEFINE_PMD_MAP
-#undef DEFINE_PMD_PAIR
-#undef DEFINE_PMD_PAIR_COORD
-#undef DEFINE_PMD_PAIR_TOA
-
 
 static inline void
 flush_buffer(katherine_acquisition_t *acq)
@@ -202,7 +27,7 @@ flush_buffer(katherine_acquisition_t *acq)
 }
 
 static inline void
-handle_new_frame(katherine_acquisition_t *acq, const void *data)
+handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
     acq->current_frame_info.start_time_observed = time(NULL);
@@ -210,23 +35,19 @@ handle_new_frame(katherine_acquisition_t *acq, const void *data)
 }
 
 static inline void
-handle_timestamp_offset_driven_mode(katherine_acquisition_t *acq, const void *data)
+handle_timestamp_offset_driven_mode(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    const md_time_offset_t *md = data;
-
-    acq->last_toa_offset = 16384 * md->offset;
+    acq->last_toa_offset = 16384 * EXTRACT(*data, md_time_offset, offset);
 }
 
 static inline void
-handle_current_frame_finished(katherine_acquisition_t *acq, const void *data)
+handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    const md_frame_finished_t *md = data;
-
     acq->current_frame_info.end_time_observed = time(NULL);
 
     flush_buffer(acq);
 
-    acq->current_frame_info.sent_pixels = md->n_sent;
+    acq->current_frame_info.sent_pixels = EXTRACT(*data, md_frame_finished, n_sent);
     acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, true, &acq->current_frame_info);
 
     ++acq->completed_frames;
@@ -237,53 +58,43 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const void *data)
 }
 
 static inline void
-handle_frame_start_timestamp_lsb(katherine_acquisition_t *acq, const void *data)
+handle_frame_start_timestamp_lsb(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    const md_time_lsb_t *md = data;
-
-    acq->current_frame_info.start_time.b.lsb = md->lsb;
+    acq->current_frame_info.start_time.b.lsb = EXTRACT(*data, md_time_lsb, lsb);
 }
 
 static inline void
-handle_frame_start_timestamp_msb(katherine_acquisition_t *acq, const void *data)
+handle_frame_start_timestamp_msb(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    const md_time_msb_t *md = data;
-
-    acq->current_frame_info.start_time.b.msb = md->msb;
+    acq->current_frame_info.start_time.b.msb = EXTRACT(*data, md_time_msb, msb);
 }
 
 static inline void
-handle_frame_end_timestamp_lsb(katherine_acquisition_t *acq, const void *data)
+handle_frame_end_timestamp_lsb(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    const md_time_lsb_t *md = data;
-
-    acq->current_frame_info.end_time.b.lsb = md->lsb;
+    acq->current_frame_info.end_time.b.lsb = EXTRACT(*data, md_time_lsb, lsb);
 }
 
 static inline void
-handle_frame_end_timestamp_msb(katherine_acquisition_t *acq, const void *data)
+handle_frame_end_timestamp_msb(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    const md_time_msb_t *md = data;
-
-    acq->current_frame_info.end_time.b.msb = md->msb;
+    acq->current_frame_info.end_time.b.msb = EXTRACT(*data, md_time_msb, msb);
 }
 
 static inline void
-handle_lost_pixel_count(katherine_acquisition_t *acq, const void *data)
+handle_lost_pixel_count(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    const md_lost_px_t *md = data;
-
-    acq->current_frame_info.lost_pixels += md->n_lost;
+    acq->current_frame_info.lost_pixels += EXTRACT(*data, md_lost_px, n_lost);
 }
 
 static inline void
-handle_aborted_measurement(katherine_acquisition_t *acq, const void *data)
+handle_aborted_measurement(katherine_acquisition_t *acq, const uint64_t *data)
 {
     acq->aborted = true;
 }
 
 static inline void
-handle_trigger_info(katherine_acquisition_t *acq, const void *data)
+handle_trigger_info(katherine_acquisition_t *acq, const uint64_t *data)
 {
     (void) acq;
     (void) data;
@@ -291,7 +102,7 @@ handle_trigger_info(katherine_acquisition_t *acq, const void *data)
 }
 
 static inline void
-handle_unknown_msg(katherine_acquisition_t *acq, const void *data)
+handle_unknown_msg(katherine_acquisition_t *acq, const uint64_t *data)
 {
     ++acq->dropped_measurement_data;
 }
@@ -380,7 +191,11 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->aborted = false;
 
     acq->md_buffer_size = md_buffer_size;
-    acq->md_buffer = (char *) malloc(acq->md_buffer_size);
+
+    // Round MD buffer size up to the nearest multiple of 8 bytes.
+    // This is just a safety precaution due to accessing 6-byte MD's as uint64_t's.
+    size_t actual_md_buffer_size = ((acq->md_buffer_size + 7) / 8) * 8;
+    acq->md_buffer = (char *) malloc(actual_md_buffer_size);
     if (acq->md_buffer == NULL) {
         res = ENOMEM;
         goto err_datagram_buffer;
@@ -418,32 +233,32 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 
 #define DEFINE_ACQ_IMPL(SUFFIX) \
     static inline void\
-    handle_measurement_data_##SUFFIX(katherine_acquisition_t *acq, const void *data)\
+    handle_measurement_data_##SUFFIX(katherine_acquisition_t *acq, const uint64_t *md)\
     {\
         static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t);\
-        const md_t *md = data;\
+        char hdr = EXTRACT(*md, md, header);\
         \
-        if (md->header == 0x4) {\
+        if (hdr == 0x4) {\
             if (acq->pixel_buffer_valid == acq->pixel_buffer_max_valid) {\
                 flush_buffer(acq);\
             }\
             \
-            pmd_##SUFFIX##_map((katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid, (pmd_##SUFFIX##_t *) md, acq);\
+            pmd_##SUFFIX##_map((katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid, md, acq);\
             ++acq->pixel_buffer_valid;\
         } else {\
-            switch (md->header) {\
-            case 0x2: handle_trigger_info(acq, data); break;\
-            case 0x3: handle_trigger_info(acq, data); break;\
-            case 0x5: handle_timestamp_offset_driven_mode(acq, data); break;\
-            case 0x7: handle_new_frame(acq, data); break;\
-            case 0x8: handle_frame_start_timestamp_lsb(acq, data); break;\
-            case 0x9: handle_frame_start_timestamp_msb(acq, data); break;\
-            case 0xA: handle_frame_end_timestamp_lsb(acq, data); break;\
-            case 0xB: handle_frame_end_timestamp_msb(acq, data); break;\
-            case 0xC: handle_current_frame_finished(acq, data); break;\
-            case 0xD: handle_lost_pixel_count(acq, data); break;\
-            case 0xE: handle_aborted_measurement(acq, data); break;\
-            default:  handle_unknown_msg(acq, data); break;\
+            switch (hdr) {\
+            case 0x2: handle_trigger_info(acq, md); break;\
+            case 0x3: handle_trigger_info(acq, md); break;\
+            case 0x5: handle_timestamp_offset_driven_mode(acq, md); break;\
+            case 0x7: handle_new_frame(acq, md); break;\
+            case 0x8: handle_frame_start_timestamp_lsb(acq, md); break;\
+            case 0x9: handle_frame_start_timestamp_msb(acq, md); break;\
+            case 0xA: handle_frame_end_timestamp_lsb(acq, md); break;\
+            case 0xB: handle_frame_end_timestamp_msb(acq, md); break;\
+            case 0xC: handle_current_frame_finished(acq, md); break;\
+            case 0xD: handle_lost_pixel_count(acq, md); break;\
+            case 0xE: handle_aborted_measurement(acq, md); break;\
+            default:  handle_unknown_msg(acq, md); break;\
             }\
         }\
     }\
@@ -488,7 +303,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             \
             const char *it = acq->md_buffer;\
             for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) {\
-                handle_measurement_data_##SUFFIX(acq, it);\
+                handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it);\
             }\
         }\
         \

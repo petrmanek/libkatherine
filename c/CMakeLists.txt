@@ -10,12 +10,16 @@ set(KATHERINE_SOURCES
 
 set(KATHERINE_HEADERS
     "include/katherine/acquisition.h"
-    "include/katherine/px_config.h"
+    "include/katherine/bitfields.h"
     "include/katherine/command_interface.h"
     "include/katherine/config.h"
+    "include/katherine/crd.h"
     "include/katherine/device.h"
     "include/katherine/global.h"
     "include/katherine/katherine.h"
+    "include/katherine/md.h"
+    "include/katherine/px_config.h"
+    "include/katherine/px.h"
     "include/katherine/status.h"
     "include/katherine/udp.h"
     "include/katherine/udp_nix.h"

@@ -13,6 +13,7 @@
 #include <katherine/global.h>
 #include <katherine/device.h>
 #include <katherine/command_interface.h>
+#include <katherine/crd.h>
 
 /**
  * Inquire the status of the readout.
@@ -32,17 +33,11 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
     if (res) goto err;
 
-    PACKED(const struct {
-        uint8_t hw_type;
-        uint8_t hw_revision;
-        uint16_t hw_serial_number;
-        uint16_t fw_version;
-    }) *status_crd = (const void *) &crd;
-
-    status->hw_type = status_crd->hw_type;
-    status->hw_revision = status_crd->hw_revision;
-    status->hw_serial_number = status_crd->hw_serial_number;
-    status->fw_version = status_crd->fw_version;
+    const uint64_t *status_crd = (const uint64_t *) &crd;
+    status->hw_type             = EXTRACT(*status_crd, readout_status_crd, hw_type);
+    status->hw_revision         = EXTRACT(*status_crd, readout_status_crd, hw_revision);
+    status->hw_serial_number    = EXTRACT(*status_crd, readout_status_crd, hw_serial_number);
+    status->fw_version          = EXTRACT(*status_crd, readout_status_crd, fw_version);
 
     return 0;
 
@@ -68,15 +63,10 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
     if (res) goto err;
 
-    PACKED(const struct {
-        uint8_t comm_lines_mask;
-        uint8_t total_data_rate;
-        uint8_t chip_detected_flag;
-    }) *status_crd = (const void *) &crd;
-
-    status->comm_lines_mask = status_crd->comm_lines_mask;
-    status->data_rate = 5u * status_crd->total_data_rate;
-    status->chip_detected = status_crd->chip_detected_flag;
+    const uint64_t *status_crd = (const uint64_t *) &crd;
+    status->comm_lines_mask         = EXTRACT(*status_crd, comm_status_crd, comm_lines_mask);
+    status->data_rate               = 5u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
+    status->chip_detected           = EXTRACT(*status_crd, comm_status_crd, chip_detected_flag);
 
     return 0;
 
