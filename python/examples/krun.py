@@ -99,7 +99,7 @@ def run_acquisition(dev, c):
     print(' - dropped %d measurement data' % acq.dropped_measurement_data)
     print(' - total hits: %d' % acq.observer.n_hits)
     print(' - total duration: %f s' % duration)
-    print(' - throughput: %f hits/s' % (n_hits / duration))
+    print(' - throughput: %f hits/s' % (acq.observer.n_hits / duration))
 
 
 if __name__ == '__main__':
