@@ -20,7 +20,7 @@
 #include <katherine/udp_win.h>
 
 // Uncomment the following line to enable network trace:
-#define KATHERINE_DEBUG_UDP 2
+// #define KATHERINE_DEBUG_UDP 2
 
 #ifdef __cplusplus
 extern "C" {
