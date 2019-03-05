@@ -466,10 +466,6 @@ cdef class AcquisitionObserver:
 cdef class FrameInfo:
     cdef cacquisition.katherine_frame_info_t _c_info
 
-    def __init__(self, cdata=None):
-       if cdata is not None:
-           self._c_info = cdata
-
     @property
     def received_pixels(self):
        return self._c_info.received_pixels
@@ -754,9 +750,9 @@ cdef void _forward_frame_started(void *user_ctx, int frame_idx):
     (<Acquisition> user_ctx).observer.frame_started(frame_idx)
 
 cdef void _forward_frame_ended(void *user_ctx, int frame_idx, bool completed, const cacquisition.katherine_frame_info_t *info):
-    cdef cacquisition.katherine_frame_info_t loc_info
-    memcpy(&loc_info, info, sizeof(loc_info))
-    (<Acquisition> user_ctx).observer.frame_ended(frame_idx, completed, FrameInfo(cdata=loc_info))
+    py_info = FrameInfo()
+    memcpy(&py_info._c_info, info, sizeof(py_info._c_info))
+    (<Acquisition> user_ctx).observer.frame_ended(frame_idx, completed, py_info)
 
 cdef void _forward_pixels_received_f_toa_tot(void *user_ctx, const void *px, size_t count):
     cdef const cacquisition.katherine_px_f_toa_tot_t *dpx = <const cacquisition.katherine_px_f_toa_tot_t *> px
