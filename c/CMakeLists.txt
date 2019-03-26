@@ -6,18 +6,18 @@ set(KATHERINE_SOURCES
     "src/status.c"
     "src/udp_nix.c"
     "src/udp_win.c"
+    "src/crd.h"
+    "src/bitfields.h"
+    "src/command_interface.h"
+    "src/md.h"
 )
 
 set(KATHERINE_HEADERS
     "include/katherine/acquisition.h"
-    "include/katherine/bitfields.h"
-    "include/katherine/command_interface.h"
     "include/katherine/config.h"
-    "include/katherine/crd.h"
     "include/katherine/device.h"
     "include/katherine/global.h"
     "include/katherine/katherine.h"
-    "include/katherine/md.h"
     "include/katherine/px_config.h"
     "include/katherine/px.h"
     "include/katherine/status.h"
@@ -27,7 +27,13 @@ set(KATHERINE_HEADERS
 )
 
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
-target_include_directories(katherine PUBLIC include)
+target_include_directories(katherine
+    PUBLIC
+        $<INSTALL_INTERFACE:include>    
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)

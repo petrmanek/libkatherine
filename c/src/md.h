@@ -18,7 +18,7 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#include <katherine/bitfields.h>
+#include "bitfields.h"
 #include <katherine/px.h>
 
 /* MD stands for Measurement Data, the 6 byte

@@ -9,7 +9,7 @@
 
 #include <katherine/config.h>
 #include <katherine/device.h>
-#include <katherine/command_interface.h>
+#include "command_interface.h"
 
 /**
  * Set detector configuration.
