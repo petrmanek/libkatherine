@@ -34,9 +34,9 @@
 #define _BITS_md_header_mask                    MASK(4)
 #define _BITS_md_header_type                    uint8_t
 
-#define _BITS_md_time_offset_offset_start       32
-#define _BITS_md_time_offset_offset_mask        MASK(12)
-#define _BITS_md_time_offset_offset_type        uint16_t
+#define _BITS_md_time_offset_offset_start       0
+#define _BITS_md_time_offset_offset_mask        MASK(32)
+#define _BITS_md_time_offset_offset_type        uint32_t
 
 #define _BITS_md_new_frame_offset_start         32
 #define _BITS_md_new_frame_offset_mask          MASK(12)

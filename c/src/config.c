@@ -37,19 +37,26 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_acquisition_setup(device, &config->start_trigger, config->delayed_start, &config->stop_trigger);
     if (res) goto err;
 
-    int reg_backread = 0x59 & 0xf6;
-    int general_setup = reg_backread | !config->polarity_holes | ((config->gray_disable ? 1 : 0) << 3);
+    int32_t general_setup = 0x58;
+    general_setup |= !config->polarity_holes;
+    general_setup |= (config->gray_disable ? 1 : 0) << 3;
     res = katherine_set_sensor_register(device, TPX3_REG_GENERAL_CONFIG, general_setup);
     if (res) goto err;
 
-    int pll_setup = 0xE;
+    int32_t pll_setup = 0xE;
     pll_setup |= (0x7 & config->phase) << 6;
     pll_setup |= (0x3 & config->freq) << 4;
     pll_setup |= 0x14 << 9;
     res = katherine_set_sensor_register(device, TPX3_REG_PLL_CONFIG, pll_setup);
     if (res) goto err;
 
+    res = katherine_output_block_config_update(device);
+    if (res) goto err;
+
     res = katherine_update_sensor_registers(device);
+    if (res) goto err;
+
+    res = katherine_timer_set(device);
     if (res) goto err;
 
     res = katherine_set_dacs(device, &config->dacs);
@@ -364,6 +371,60 @@ katherine_update_sensor_registers(katherine_device_t *device)
     if (res) goto err;
 
     res = katherine_cmd_hw_sensor_config_registers_update(&device->control_socket);
+    if (res) goto err;
+
+    res = katherine_cmd_wait_ack(&device->control_socket);
+    if (res) goto err;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return 0;
+
+err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return res;
+}
+
+/**
+ * Update output block config.
+ * @param device Katherine device
+ * @return Error code.
+ */
+int
+katherine_output_block_config_update(katherine_device_t *device)
+{
+    int res;
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err;
+
+    res = katherine_cmd_hw_output_block_config_update(&device->control_socket);
+    if (res) goto err;
+
+    res = katherine_cmd_wait_ack(&device->control_socket);
+    if (res) goto err;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return 0;
+
+err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return res;
+}
+
+/**
+ * Set timer.
+ * @param device Katherine device
+ * @return Error code.
+ */
+int
+katherine_timer_set(katherine_device_t *device)
+{
+    int res;
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err;
+
+    res = katherine_cmd_hw_timer_set(&device->control_socket);
     if (res) goto err;
 
     res = katherine_cmd_wait_ack(&device->control_socket);

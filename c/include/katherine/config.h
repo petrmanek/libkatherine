@@ -152,6 +152,12 @@ KATHERINE_EXPORTED int
 katherine_update_sensor_registers(katherine_device_t *device);
 
 KATHERINE_EXPORTED int
+katherine_output_block_config_update(katherine_device_t *device);
+
+KATHERINE_EXPORTED int
+katherine_timer_set(katherine_device_t *device);
+
+KATHERINE_EXPORTED int
 katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs);
 
 #ifdef __cplusplus
