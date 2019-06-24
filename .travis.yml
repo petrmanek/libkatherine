@@ -18,7 +18,7 @@ matrix:
     - os: osx
       env: BADGE=osx
       install:
-        - pyenv install 3.7.0
+        - pyenv install 3.6.0
         - pip3 install Cython
       script: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=ON .. && make
     - os: windows
