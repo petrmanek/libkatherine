@@ -9,7 +9,7 @@ matrix:
         - pip install Cython
       script:
         - CC=gcc-7 && CXX=g++-7
-        - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=ON .. && make
+        - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=ON -DPYTHON_LIBRARY=$(python-config --prefix)/lib/libpython3.6m.so -DPYTHON_INCLUDE_DIR=$(python-config --prefix)/include/python3.6 .. && make
       addons:
         apt:
           sources:
