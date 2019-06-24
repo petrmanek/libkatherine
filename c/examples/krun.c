@@ -82,12 +82,12 @@ frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame
 
     printf("\n");
     printf("Ended frame %d.\n", frame_idx);    
-    printf(" - tpx3->katherine lost %d pixels\n", info->lost_pixels);
-    printf(" - katherine->pc sent %d pixels\n", info->sent_pixels);
-    printf(" - katherine->pc received %d pixels\n", info->received_pixels);
+    printf(" - tpx3->katherine lost %llu pixels\n", info->lost_pixels);
+    printf(" - katherine->pc sent %llu pixels\n", info->sent_pixels);
+    printf(" - katherine->pc received %llu pixels\n", info->received_pixels);
     printf(" - state: %s\n", (completed ? "completed" : "not completed"));
-    printf(" - start time: %d\n", info->start_time.d);
-    printf(" - end time: %d\n", info->end_time.d);
+    printf(" - start time: %llu\n", info->start_time.d);
+    printf(" - end time: %llu\n", info->end_time.d);
 }
 
 void
@@ -97,7 +97,7 @@ pixels_received(void *user_ctx, const void *px, size_t count)
 
     const px_t *dpx = (const px_t *) px;
     for (size_t i = 0; i < count; ++i) {
-        printf("%d\t%d\t%d\t%d\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].toa, dpx[i].ftoa, dpx[i].tot);
+        printf("%d\t%d\t%llu\t%d\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].toa, dpx[i].ftoa, dpx[i].tot);
     }
 }
 
@@ -155,8 +155,8 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     printf("Acquisition completed:\n");
     printf(" - state: %s\n", katherine_str_acquisition_status(acq.state));
     printf(" - received %d complete frames\n", acq.completed_frames);
-    printf(" - dropped %d measurement data\n", acq.dropped_measurement_data);
-    printf(" - total hits: %d\n", n_hits);
+    printf(" - dropped %zu measurement data\n", acq.dropped_measurement_data);
+    printf(" - total hits: %llu\n", n_hits);
     printf(" - total duration: %f s\n", duration);
     printf(" - throughput: %f hits/s\n", (n_hits / duration));
 
