@@ -5,6 +5,7 @@ matrix:
     - os: linux
       env: BADGE=linux
       install:
+        - pyenv install 3.6.0
         - pip install Cython
       script:
         - CC=gcc-7 && CXX=g++-7
