@@ -29,11 +29,18 @@ set(KATHERINE_HEADERS
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 target_include_directories(katherine
     PUBLIC
-        $<INSTALL_INTERFACE:include>    
+        $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+INSTALL(TARGETS
+  katherine
+  EXPORT patu
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
