@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.0)
-project(katherine LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.21)
+project(katherine VERSION 0.1 LANGUAGES C CXX)
 
 option(BUILD_CXX        "build C++ binaries"        ON)
 option(BUILD_PYTHON     "build Python 3 bindings"   OFF)
 option(BUILD_EXAMPLES   "build example programs"    ON)
 
-set(CMAKE_C_STANDARD    11)
+set(CMAKE_C_STANDARD    17)
 set(CMAKE_CXX_STANDARD  17)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
