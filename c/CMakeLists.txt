@@ -35,9 +35,19 @@ target_include_directories(katherine
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+file(GLOB headers "include/katherinexx/*")
+target_sources(
+  katherine
+  PUBLIC
+    FILE_SET public_headers
+    TYPE HEADERS
+    BASE_DIRS include
+    FILES ${KATHERINE_HEADERS}
+)
+
 INSTALL(TARGETS
   katherine
-  EXPORT patu
+  FILE_SET public_headers
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
