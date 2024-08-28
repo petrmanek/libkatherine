@@ -10,6 +10,8 @@
 
 #include <katherine/global.h>
 
+void empty_method() {}
+
 #ifdef KATHERINE_WIN
 
 #include <WinSock2.h>
