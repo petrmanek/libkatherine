@@ -40,9 +40,31 @@ public:
         return &dev_;
     }
 
-    // TODO int katherine_get_readout_status(katherine_device_t *, katherine_readout_status_t *);
+    katherine_readout_status_t
+    readout_status()
+    {
+        katherine_readout_status_t ro_status;
+        int res = katherine_get_readout_status(&dev_, &ro_status);
 
-    // TODO int katherine_get_comm_status(katherine_device_t *, katherine_comm_status_t *);
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return ro_status;
+    }
+
+    katherine_comm_status_t
+    comm_status()
+    {
+        katherine_comm_status_t comm_status;
+        int res = katherine_get_comm_status(&dev_, &comm_status);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return comm_status;
+    }
 
     std::string
     chip_id()
