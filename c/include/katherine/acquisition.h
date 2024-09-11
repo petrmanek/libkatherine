@@ -57,6 +57,7 @@ typedef struct katherine_acquisition_handlers {
     void (*pixels_received)(void *, const void *, size_t);
     void (*frame_started)(void *, int);
     void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *);
+    void (*data_received)(void *, const char *, size_t);
 } katherine_acquisition_handlers_t;
 
 typedef enum katherine_readout_type {
@@ -84,6 +85,7 @@ typedef struct katherine_acquisition {
     char *md_buffer;
     size_t md_buffer_size;
 
+    bool decode_data;
     char *pixel_buffer;
     size_t pixel_buffer_size;
     size_t pixel_buffer_valid;
@@ -112,7 +114,7 @@ KATHERINE_EXPORTED void
 katherine_acquisition_fini(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED int
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled);
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data);
 
 KATHERINE_EXPORTED int
 katherine_acquisition_abort(katherine_acquisition_t *acq);

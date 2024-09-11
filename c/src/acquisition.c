@@ -295,16 +295,24 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 if (kill_off_time > 0 && duration > kill_off_time) {\
                     acq->state = ACQUISITION_TIMED_OUT;\
                 }\
+		\
+		if(!acq->decode_data && acq->aborted) {		\
+		  acq->state = ACQUISITION_SUCCEEDED;\
+		}				     \
                 \
                 continue;\
             }\
             \
             last_data_received = time(NULL);\
             \
-            const char *it = acq->md_buffer;\
-            for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) {\
-                handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it);\
-            }\
+	    if(acq->decode_data) {\
+	        const char *it = acq->md_buffer;\
+                for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
+                    handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it);\
+                }\
+	    } else {\
+                acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received);\
+	    }\
         }\
         \
         (void) katherine_udp_mutex_unlock(&acq->device->data_socket);\
@@ -369,13 +377,14 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  * @return Error code.
  */
 int
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
 {
     int res = 0;
 
     acq->acq_mode = acq_mode;
     acq->readout_mode = readout_mode;
     acq->fast_vco_enabled = fast_vco_enabled;
+    acq->decode_data = decode_data;
 
 #if KATHERINE_DEBUG_ACQ > 0
     dump_config(acq, config);
@@ -441,6 +450,8 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+   
+    acq->aborted = true;
     return 0;
 
 err:

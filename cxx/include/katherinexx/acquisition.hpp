@@ -45,6 +45,7 @@ class base_acquisition {
 public:
     using frame_started_handler     = std::function<void(int)>;
     using frame_ended_handler       = std::function<void(int, bool, const katherine::frame_info&)>;
+    using data_received_handler     = std::function<void(const char *, size_t)>;
 
 protected:
     katherine_acquisition_t acq_;
@@ -52,9 +53,11 @@ protected:
 private:
     acq_mode mode_;
     bool fast_vco_enabled_;
-
+    bool decode_data_;
+  
     frame_started_handler frame_started_handler_;
     frame_ended_handler frame_ended_handler_;
+    data_received_handler data_received_handler_;
 
     static void
     forward_frame_started(void *user_ctx, int frame_idx)
@@ -70,14 +73,23 @@ private:
         self->frame_ended_handler_(frame_idx, completed, *info);
     }
 
+    static void
+    forward_data_received(void *user_ctx, const char *px, size_t count)
+    {
+        auto self = reinterpret_cast<base_acquisition*>(user_ctx);
+        self->data_received_handler_(px, count);
+    }
+
 public:
     template<typename Rep1, typename Period1, typename Rep2, typename Period2>
-    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout, acq_mode mode, bool fast_vco_enabled)
+    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout, acq_mode mode, bool fast_vco_enabled, bool decode_data)
         :acq_{},
          mode_{mode},
          fast_vco_enabled_{fast_vco_enabled},
+	 decode_data_{decode_data},
          frame_started_handler_{[](int){ }},
-         frame_ended_handler_{[](int, bool, const katherine::frame_info&){ }}
+         frame_ended_handler_{[](int, bool, const katherine::frame_info&){ }},
+	 data_received_handler_{[](const char*, size_t){ }}
     {
         using namespace std::chrono;
 
@@ -90,7 +102,8 @@ public:
         acq_.handlers = {
             /* .pixels_received = */ nullptr,
             /* .frame_started = */ base_acquisition::forward_frame_started,
-            /* .frame_ended = */ base_acquisition::forward_frame_ended
+            /* .frame_ended = */ base_acquisition::forward_frame_ended,
+	    /* .data_received = */ base_acquisition::forward_data_received
         };
     }
 
@@ -112,10 +125,16 @@ public:
     }
 
     void
+    set_data_received_handler(data_received_handler&& fn)
+    {
+        data_received_handler_ = std::move(fn);
+    }
+
+    void
     begin(const katherine::config& config, katherine::readout_type readout_type)
     {
         int res = katherine_acquisition_begin(&acq_, config.c_config(), (char) readout_type,
-            (katherine_acquisition_mode_t) mode_, fast_vco_enabled_);
+					      (katherine_acquisition_mode_t) mode_, fast_vco_enabled_, decode_data_);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -211,8 +230,8 @@ private:
 
 public:
     template<typename Rep1, typename Period1, typename Rep2, typename Period2>
-    acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout)
-        :base_acquisition{dev, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout, AcqMode::mode, AcqMode::fast_vco_enabled},
+    acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout, bool decode_data)
+      :base_acquisition{dev, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout, AcqMode::mode, AcqMode::fast_vco_enabled, decode_data},
          pixels_received_handler_{[](const pixel_type *, std::size_t){ }}
     {
         acq_.handlers.pixels_received = acquisition::forward_pixels_received;
