@@ -88,7 +88,7 @@ void
 pixels_received(const mode::pixel_type *px, size_t count)
 {
     n_hits += count;
-    
+
     for (size_t i = 0; i < count; ++i) {
         std::cerr << (unsigned) px[i].coord.x << '\t'
                   << (unsigned) px[i].coord.y << '\t'
@@ -111,7 +111,7 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
     using namespace std::chrono;
     using namespace std::literals::chrono_literals;
 
-    katherine::acquisition<mode> acq{dev, katherine::md_size * 34952533, sizeof(mode::pixel_type) * 65536, 500ms, 10s};
+    katherine::acquisition<mode> acq{dev, katherine::md_size * 34952533, sizeof(mode::pixel_type) * 65536, 500ms, 10s, true};
 
     acq.set_frame_started_handler(frame_started);
     acq.set_frame_ended_handler(frame_ended);
