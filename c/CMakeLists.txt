@@ -29,28 +29,17 @@ set(KATHERINE_HEADERS
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 target_include_directories(katherine
     PUBLIC
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-file(GLOB headers "include/katherinexx/*")
-target_sources(
-  katherine
-  PUBLIC
-    FILE_SET public_headers
-    TYPE HEADERS
-    BASE_DIRS include
-    FILES ${KATHERINE_HEADERS}
-)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)
 
-INSTALL(TARGETS
-  katherine
-  FILE_SET public_headers
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS katherine LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES ${KATHERINE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
