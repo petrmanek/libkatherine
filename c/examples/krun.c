@@ -81,7 +81,7 @@ frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame
     const double recv_perc = 100. * info->received_pixels / info->sent_pixels;
 
     printf("\n");
-    printf("Ended frame %d.\n", frame_idx);    
+    printf("Ended frame %d.\n", frame_idx);
     printf(" - tpx3->katherine lost %lu pixels\n", info->lost_pixels);
     printf(" - katherine->pc sent %lu pixels\n", info->sent_pixels);
     printf(" - katherine->pc received %lu pixels\n", info->received_pixels);
@@ -132,7 +132,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     acq.handlers.frame_ended = frame_ended;
     acq.handlers.pixels_received = pixels_received;
 
-    res = katherine_acquisition_begin(&acq, c, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true);
+    res = katherine_acquisition_begin(&acq, c, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true);
     if (res != 0) {
         printf("Cannot begin acquisition.\n");
         printf("Reason: %s\n", strerror(res));
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
         printf("Reason: %s\n", strerror(res));
         exit(6);
     }
-    
+
     print_chip_id(&device);
     run_acquisition(&device, &c);
 

@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: katherine
+Description: Control library for the Katherine DAQ system
+Version: @PROJECT_VERSION@
+
+Requires:
+Libs: -L${libdir} -lkatherine
+Cflags: -I${includedir}
