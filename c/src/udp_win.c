@@ -2,7 +2,7 @@
  *
  * This file was created on 31.8.18 by Felix Lehner.
  * This file was modified on 13.2.19 by Petr Manek.
- * 
+ *
  * Contents of this file are copyrighted and subject to license
  * conditions specified in the LICENSE file located in the top
  * directory.
@@ -14,8 +14,8 @@ void empty_method() {}
 
 #ifdef KATHERINE_WIN
 
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <katherine/udp.h>
 
 #ifdef KATHERINE_DEBUG_UDP

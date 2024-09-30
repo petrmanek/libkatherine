@@ -35,6 +35,11 @@ target_include_directories(katherine
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+# On Windows, link to ws2_32
+if(WIN32 OR MINGW)
+  target_link_libraries(katherine ws2_32)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)
 
 install(TARGETS katherine LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
