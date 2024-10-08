@@ -152,6 +152,16 @@ public:
     }
 
     void
+    stop()
+    {
+        int res = katherine_acquisition_stop(&acq_);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    void
     read()
     {
         int res = katherine_acquisition_read(&acq_);

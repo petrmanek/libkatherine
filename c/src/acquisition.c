@@ -432,6 +432,32 @@ err:
 }
 
 /**
+ * Stop acquisition. This command will wait for confirmation from the
+ * the readout before ending the acquisition.
+ * @param acq Acquisition
+ * @return Error code.
+ */
+int
+katherine_acquisition_stop(katherine_acquisition_t *acq)
+{
+    int res;
+
+    res = katherine_udp_mutex_lock(&acq->device->control_socket);
+    if (res) goto err;
+
+    res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
+    if (res) goto err;
+
+    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    return 0;
+
+err:
+    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    return res;
+}
+
+
+/**
  * Abort acquisition. This command does not wait for confirmation from
  * the readout and will cause the current frame to end upon receiving.
  * @param acq Acquisition
