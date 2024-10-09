@@ -37,7 +37,7 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 static inline void
 handle_timestamp_offset_driven_mode(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    acq->last_toa_offset = 16384 * EXTRACT(*data, md_time_offset, offset);
+    acq->last_toa_offset = ((uint64_t) EXTRACT(*data, md_time_offset, offset) << 14);
 }
 
 static inline void
