@@ -120,6 +120,9 @@ KATHERINE_EXPORTED int
 katherine_acquisition_abort(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED int
+katherine_acquisition_stop(katherine_acquisition_t *acq);
+
+KATHERINE_EXPORTED int
 katherine_acquisition_read(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED const char *
