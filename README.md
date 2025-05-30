@@ -255,7 +255,10 @@ in the development of this library:
  - Jan Broulím, Institute of Experimental and Applied Physics CTU,
  - Lukáš Meduna, Institute of Experimental and Applied Physics CTU,
  - Jakub Begera, Institute of Experimental and Applied Physics CTU,
- - Felix Lehner, Physikalisch-Technische Bundesanstalt.
+ - Felix Lehner, Physikalisch-Technische Bundesanstalt,
+ - Stephan Lachnit, Deutsches Elektronen-Synchrotron (DESY),
+ - Simon Spannagel, Deutsches Elektronen-Synchrotron (DESY),
+ - Stephine Yearley. University of Alberta.
 
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
