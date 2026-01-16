@@ -7,6 +7,7 @@
  * directory.
  */
 
+#include <stdlib.h>
 #include <katherine/config.h>
 #include <katherine/device.h>
 #include "command_interface.h"
@@ -68,6 +69,37 @@ err:
     return res;
 }
 
+static inline void
+recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
+{
+    char *words = (char *) malloc(1024);
+    if (words == NULL) return;
+
+    // Fill buffer with bytes such that if they were understood as commands,
+    // nothing bad would happen.
+    for (int i = 0; i < 1024; ++i) {
+        words[i] = CMD_TYPE_GET_HW_READOUT_TEMPERATURE;
+    }
+
+    // Transmit the contents of the buffer three times (assuming lossy UDP).
+    for (int i = 0; i < 3 * 64; ++i) {
+        // NOTE: ignoring error code below
+        (void) katherine_cmd(&device->control_socket, words, 1024);
+    }
+
+    // Receive any acknowledgements until we start getting timeouts (or exhaust 10 megabytes)
+    size_t recv_size;
+    int res = 0;
+    int attempts = 10;
+    while (attempts > 0 && !!res) {
+        --attempts;
+        recv_size = 1024;
+        res = katherine_udp_recv(&device->control_socket, words, &recv_size);
+    }
+
+    free(words);
+}
+
 /**
  * Configure all pixels of the detector.
  * @param device Katherine device
@@ -82,19 +114,43 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) goto err;
 
-    // Send command.
-    res = katherine_cmd_set_all_pixel_config(&device->control_socket);
-    if (res) goto err;
+    // The following section sometimes cause issues, repeat it several times if need be.
+    int attempts = 10;
+    while (attempts > 0) {
+        --attempts;
 
-    // Send pixel configuration data.
-    const char *config = (const char *) px_config->words;
-    for (int i = 0; i < 64; ++i) {
-        res = katherine_cmd(&device->control_socket, config + 1024 * i, 1024);
-        if (res) goto err;
+        // Send command.
+        res = katherine_cmd_set_all_pixel_config(&device->control_socket);
+        if (res) continue;
+
+        // Send pixel configuration data.
+        const char *config = (const char *) px_config->words;
+        for (int i = 0; i < 64; ++i) {
+            res = katherine_cmd(&device->control_socket, config + 1024 * i, 1024);
+            if (res) break;
+        }
+
+        if (!res) {
+            // If all pixel data were transmitted, wait for acknowledgement.
+            res = katherine_cmd_wait_ack(&device->control_socket);
+        }
+
+        if (!res) {
+            // If everything went well up to this point, jump out of the loop.
+            attempts = -1;
+        } else {
+            // At this point, something is wrong. However, if we would simply return here with error, all subsequent commands
+            // would be incorrectly interpreted as pixel data and fail on ACK timeout. For that reason we will send some more
+            // dummy data. This will result in incorrect pixel configuration but at least the readout will respond to any
+            // commands in the future. Since we do not know how many bytes of data the readout still expects, we will
+            // ridiculously overestimate it (by factor of 3). To ensure that the data will not be interpreted as anything
+            // potentially harmful, the value of the sent buffer has been deliberately filled with command that asks for
+            // readout temperature.
+            recover_from_incomplete_set_all_pixel_config(device);
+        }
     }
 
-    // Wait for acknowledgement.
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    // Here the result is either zero (pixel data trasmitted and acknowledged) or non-zero (all attempts exhausted).
     if (res) goto err;
 
     // Execute HW command 5.
