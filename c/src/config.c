@@ -8,6 +8,7 @@
  */
 
 #include <stdlib.h>
+#include <threads.h>
 #include <katherine/config.h>
 #include <katherine/device.h>
 #include "command_interface.h"
@@ -89,7 +90,7 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
 
     // Receive any acknowledgements until we start getting timeouts (or exhaust 10 megabytes)
     size_t recv_size;
-    int res = 0;
+    int res = 1;
     int attempts = 10;
     while (attempts > 0 && !!res) {
         --attempts;
@@ -115,8 +116,14 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     if (res) goto err;
 
     // The following section sometimes cause issues, repeat it several times if need be.
-    int attempts = 10;
+    static const int max_attempts = 10;
+    int attempts = max_attempts;
     while (attempts > 0) {
+        if (attempts != max_attempts) {
+            // Wait a bit between attempts.
+            thrd_sleep(&(struct timespec) { .tv_nsec = 300000000 /* 300 ms */ }, NULL);
+        }
+
         --attempts;
 
         // Send command.
@@ -128,6 +135,11 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
         for (int i = 0; i < 64; ++i) {
             res = katherine_cmd(&device->control_socket, config + 1024 * i, 1024);
             if (res) break;
+
+           if (i > 0) {
+                 // Wait between words to prevent data loss.
+                 thrd_sleep(&(struct timespec) { .tv_nsec = 10000000 /* 10 ms */ }, NULL);
+           }
         }
 
         if (!res) {
