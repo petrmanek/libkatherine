@@ -71,6 +71,7 @@ cdef extern from 'katherine/acquisition.h':
         void (*pixels_received)(void *, const void *, size_t)
         void (*frame_started)(void *, int)
         void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *)
+        void (*data_received)(void *, const char *, size_t)
 
     ctypedef struct katherine_acquisition_t:
         char state
@@ -94,7 +95,8 @@ cdef extern from 'katherine/acquisition.h':
 
     int katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
     void katherine_acquisition_fini(katherine_acquisition_t *acq)
-    int katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
+    int katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
     int katherine_acquisition_abort(katherine_acquisition_t *acq)
+    int katherine_acquisition_stop(katherine_acquisition_t *acq)
     int katherine_acquisition_read(katherine_acquisition_t *acq)
-    int katherine_str_acquisition_status(char status)
+    const char *katherine_str_acquisition_status(char status)

@@ -690,6 +690,7 @@ cdef class Acquisition:
       self._c_acq.handlers.frame_started = _forward_frame_started
       self._c_acq.handlers.frame_ended = _forward_frame_ended
       self._c_acq.handlers.pixels_received = NULL
+      self._c_acq.handlers.data_received = NULL
       self.observer = AcquisitionObserver()
 
     def __dealloc__(self):
@@ -698,27 +699,31 @@ cdef class Acquisition:
 
       PyMem_Free(self._c_acq)
          
-    def begin(self, Config config, readout_type, acq_mode, bool fast_vco_enabled):
+    def begin(self, Config config, readout_type, acq_mode, bool fast_vco_enabled, bool decode_data=True):
       if fast_vco_enabled:
         if acq_mode == AcquisitionMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_tot
-        elif acq_mode == AcquisitionMode.TOA_ONLY:
+        elif acq_mode == AcquisitionMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_only
         elif acq_mode == AcquisitionMode.EVENT_ITOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_event_itot
       else:
         if acq_mode == AcquisitionMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_tot
-        elif acq_mode == AcquisitionMode.TOA_ONLY:
+        elif acq_mode == AcquisitionMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_only
         elif acq_mode == AcquisitionMode.EVENT_ITOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_event_itot
-      
-      res = cacquisition.katherine_acquisition_begin(self._c_acq, &config._c_config, readout_type.value, acq_mode.value, fast_vco_enabled)
+
+      res = cacquisition.katherine_acquisition_begin(self._c_acq, &config._c_config, readout_type.value, acq_mode.value, fast_vco_enabled, decode_data)
       check_return_code(res)
-      
+
     def abort(self):
       res = cacquisition.katherine_acquisition_abort(self._c_acq)
+      check_return_code(res)
+
+    def stop(self):
+      res = cacquisition.katherine_acquisition_stop(self._c_acq)
       check_return_code(res)
          
     def read(self):
@@ -746,35 +751,35 @@ cdef class Acquisition:
        return self._c_acq.dropped_measurement_data
 
 
-cdef void _forward_frame_started(void *user_ctx, int frame_idx):
+cdef void _forward_frame_started(void *user_ctx, int frame_idx) noexcept:
     (<Acquisition> user_ctx).observer.frame_started(frame_idx)
 
-cdef void _forward_frame_ended(void *user_ctx, int frame_idx, bool completed, const cacquisition.katherine_frame_info_t *info):
+cdef void _forward_frame_ended(void *user_ctx, int frame_idx, bool completed, const cacquisition.katherine_frame_info_t *info) noexcept:
     py_info = FrameInfo()
     memcpy(&py_info._c_info, info, sizeof(py_info._c_info))
     (<Acquisition> user_ctx).observer.frame_ended(frame_idx, completed, py_info)
 
-cdef void _forward_pixels_received_f_toa_tot(void *user_ctx, const void *px, size_t count):
+cdef void _forward_pixels_received_f_toa_tot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cacquisition.katherine_px_f_toa_tot_t *dpx = <const cacquisition.katherine_px_f_toa_tot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxFastToaTot(cdata=dpx[i]) for i in range(count)])
 
-cdef void _forward_pixels_received_toa_tot(void *user_ctx, const void *px, size_t count):
+cdef void _forward_pixels_received_toa_tot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cacquisition.katherine_px_toa_tot_t *dpx = <const cacquisition.katherine_px_toa_tot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxToaTot(cdata=dpx[i]) for i in range(count)])
 
-cdef void _forward_pixels_received_f_toa_only(void *user_ctx, const void *px, size_t count):
+cdef void _forward_pixels_received_f_toa_only(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cacquisition.katherine_px_f_toa_only_t *dpx = <const cacquisition.katherine_px_f_toa_only_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxFastToaOnly(cdata=dpx[i]) for i in range(count)])
 
-cdef void _forward_pixels_received_toa_only(void *user_ctx, const void *px, size_t count):
+cdef void _forward_pixels_received_toa_only(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cacquisition.katherine_px_toa_only_t *dpx = <const cacquisition.katherine_px_toa_only_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxToaOnly(cdata=dpx[i]) for i in range(count)])
 
-cdef void _forward_pixels_received_f_event_itot(void *user_ctx, const void *px, size_t count):
+cdef void _forward_pixels_received_f_event_itot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cacquisition.katherine_px_f_event_itot_t *dpx = <const cacquisition.katherine_px_f_event_itot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxFastEventItot(cdata=dpx[i]) for i in range(count)])
 
-cdef void _forward_pixels_received_event_itot(void *user_ctx, const void *px, size_t count):
+cdef void _forward_pixels_received_event_itot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cacquisition.katherine_px_event_itot_t *dpx = <const cacquisition.katherine_px_event_itot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxEventItot(cdata=dpx[i]) for i in range(count)])
 
