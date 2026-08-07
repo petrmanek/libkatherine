@@ -97,6 +97,15 @@ public:
     bool polarity_holes() const { return conf_.polarity_holes; }
     void set_polarity_holes(bool val) { conf_.polarity_holes = val; }
 
+    bool testpulse_enable() const { return conf_.testpulse_enable; }
+    void set_testpulse_enable(bool val) { conf_.testpulse_enable = val; }
+
+    unsigned int n_testpulses() const { return conf_.n_testpulses; }
+    void set_n_testpulses(unsigned int val) { conf_.n_testpulses = val; }
+
+    unsigned int testpulse_period() const { return conf_.testpulse_period; }
+    void set_testpulse_period(unsigned int val) { conf_.testpulse_period = val; }
+
     katherine::phase phase() const { return (katherine::phase) conf_.phase; }
     void set_phase(katherine::phase val) { conf_.phase = (katherine_phase_t) val; }
 

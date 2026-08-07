@@ -99,6 +99,10 @@ typedef struct katherine_config {
 
     bool gray_disable;
     bool polarity_holes;
+    bool testpulse_enable;
+
+    unsigned int n_testpulses;
+    unsigned int testpulse_period;
 
     katherine_phase_t phase;
     katherine_freq_t freq;
