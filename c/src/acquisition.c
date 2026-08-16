@@ -192,10 +192,11 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
 
     acq->md_buffer_size = md_buffer_size;
 
-    // Round MD buffer size up to the nearest multiple of 8 bytes.
-    // This is just a safety precaution due to accessing 6-byte MD's as uint64_t's.
-    size_t actual_md_buffer_size = ((acq->md_buffer_size + 7) / 8) * 8;
-    acq->md_buffer = (char *) malloc(actual_md_buffer_size);
+    // The read loop accesses 6-byte MD's as uint64_t's, so the last MD of a
+    // full buffer is read up to 2 bytes beyond the received data. Allocate a
+    // whole extra word so that this stays within the allocation for any
+    // requested size, including multiples of 8.
+    acq->md_buffer = (char *) malloc(md_buffer_size + sizeof(uint64_t));
     if (acq->md_buffer == NULL) {
         res = ENOMEM;
         goto err_datagram_buffer;
