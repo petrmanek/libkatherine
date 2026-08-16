@@ -20,7 +20,9 @@
 static inline void
 flush_buffer(katherine_acquisition_t *acq)
 {
-    acq->handlers.pixels_received(acq->user_ctx, acq->pixel_buffer, acq->pixel_buffer_valid);
+    if (acq->handlers.pixels_received != NULL) {
+        acq->handlers.pixels_received(acq->user_ctx, acq->pixel_buffer, acq->pixel_buffer_valid);
+    }
 
     acq->current_frame_info.received_pixels += acq->pixel_buffer_valid;
     acq->pixel_buffer_valid = 0;
@@ -31,7 +33,10 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
     acq->current_frame_info.start_time_observed = time(NULL);
-    acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
+
+    if (acq->handlers.frame_started != NULL) {
+        acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
+    }
 }
 
 static inline void
@@ -48,7 +53,10 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
     flush_buffer(acq);
 
     acq->current_frame_info.sent_pixels = EXTRACT(*data, md_frame_finished, n_sent);
-    acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, true, &acq->current_frame_info);
+
+    if (acq->handlers.frame_ended != NULL) {
+        acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, true, &acq->current_frame_info);
+    }
 
     ++acq->completed_frames;
 
@@ -190,6 +198,10 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->state = ACQUISITION_NOT_STARTED;
     acq->aborted = false;
 
+    // Handlers are optional. Clear them so that a caller which registers only
+    // some of them does not leave the rest pointing at indeterminate values.
+    acq->handlers = (katherine_acquisition_handlers_t){ 0 };
+
     acq->md_buffer_size = md_buffer_size;
 
     // Round MD buffer size up to the nearest multiple of 8 bytes.
@@ -309,7 +321,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
                     handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it);\
                 }\
-	    } else {\
+	    } else if (acq->handlers.data_received != NULL) {\
                 acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received);\
 	    }\
         }\
