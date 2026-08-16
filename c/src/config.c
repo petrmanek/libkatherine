@@ -113,7 +113,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     // The following section sometimes cause issues, repeat it several times if need be.
     static const int max_attempts = 10;
@@ -199,7 +199,7 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     long acqt = (long) (ns / 10.);
     long lsb = (acqt & 0x00000000FFFFFFFF);
@@ -240,7 +240,7 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     char cmd[8] = {0};
     cmd[6] = CMD_TYPE_ACQUISITION_MODE_SETTING;
@@ -275,7 +275,7 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     // TODO use bias_id
 
@@ -305,7 +305,7 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd_set_number_of_frames(&device->control_socket, no_frames);
     if (res) goto err;
@@ -333,7 +333,7 @@ katherine_set_seq_readout_start(katherine_device_t *device, int arg)
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd_set_seq_readout_start(&device->control_socket, arg);
     if (res) goto err;
@@ -362,7 +362,7 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     char cmd[8] = {0};
     cmd[6] = CMD_TYPE_ACQUISITION_SETUP;
@@ -404,7 +404,7 @@ katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t 
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     char cmd[8] = {0};
     cmd[6] = CMD_TYPE_SENSOR_REGISTER_SETTING;
@@ -436,7 +436,7 @@ katherine_update_sensor_registers(katherine_device_t *device)
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd_hw_sensor_config_registers_update(&device->control_socket);
     if (res) goto err;
@@ -463,7 +463,7 @@ katherine_output_block_config_update(katherine_device_t *device)
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd_hw_output_block_config_update(&device->control_socket);
     if (res) goto err;
@@ -490,7 +490,7 @@ katherine_timer_set(katherine_device_t *device)
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd_hw_timer_set(&device->control_socket);
     if (res) goto err;
@@ -518,7 +518,7 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     for (int i = 0; i < 18; ++i) {
         char cmd[8] = {0};

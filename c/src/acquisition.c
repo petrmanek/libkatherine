@@ -443,7 +443,7 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
     int res;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
     if (res) goto err;
@@ -469,7 +469,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     int res;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
     if (res) goto err;
