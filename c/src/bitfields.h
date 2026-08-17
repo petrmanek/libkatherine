@@ -20,7 +20,7 @@
 
 /* Unfortunately, due to multi-platform differences,
  * bitfields are declared using C macro magic. Although
- * they are obviously more elgant, Windows does not seem
+ * they are obviously more elegant, Windows does not seem
  * to support them well enough.
  * 
  * Each bitfield can be pictured as a group of fields.
@@ -43,8 +43,12 @@
  * For convenience, the EXTRACT() macro utilizes this convention
  * to retrieve bitfield data in unified way.
  * 
- * Time for an example!
+ * Much like the EXTRACT() retrieves a field from a bitfield, the
+ * INSERT() macro sets a value to a field, leaving the remainder
+ * of a bitfield unmodified. It is can therefore be viewed as a setter.
  * 
+ * Time for an example!
+ *
  * Consider a bitfield called "md" with a single field "header".
  * Let us also have some data called imaginatively "data". The
  * value returned by EXTRACT(data, md, header) returns the value
@@ -55,9 +59,17 @@
  *   1. _BITS_md_header_start,
  *   2. _BITS_md_header_mask,
  *   3. _BITS_md_header_type.
+ *
+ * The INSERT() macro is the counterpart of EXTRACT(). Following the
+ * example above, INSERT(data, md, header, x) produces the value of
+ * the entire bitfield "data" with the field "header" replaced by "x"
+ * (truncated to the field size); remaining fields are unchanged. Like
+ * EXTRACT, it requires the field's three declarations, and it does not
+ * mutate its arguments -- assign the result back to store it.
  */
 
 #define MASK(n)                             ((1ul << (n)) - 1)
 #define EXTRACT(val, bitfield, name)        ((_BITS_##bitfield##_##name##_type) (((val) >> (_BITS_##bitfield##_##name##_start)) & _BITS_##bitfield##_##name##_mask))
+#define INSERT(val, bitfield, name, x)      (((val) & ~((_BITS_##bitfield##_##name##_mask) << (_BITS_##bitfield##_##name##_start))) | (((x) & _BITS_##bitfield##_##name##_mask) << (_BITS_##bitfield##_##name##_start)))
 
 #endif

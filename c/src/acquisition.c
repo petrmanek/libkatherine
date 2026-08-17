@@ -162,6 +162,14 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("  - VTP_fine:           %d\n",      config->dacs.named.VTP_fine);
     printf("  - Ibias_CP_PLL:       %d\n",      config->dacs.named.Ibias_CP_PLL);
     printf("  - PLL_Vcntrl:         %d\n",      config->dacs.named.PLL_Vcntrl);
+    printf("\n");
+
+    printf("Test Pulses:            %s\n",      config->test_pulse_config.enabled ? "enabled" : "disabled");
+    printf("  - Destination:        %s\n",      config->test_pulse_config.digital_only ? "digital" : "analog");
+    printf("  - Source:             %s\n",      config->test_pulse_config.external ? "external" : "internal");
+    printf("  - Count:              %d\n",      config->test_pulse_config.count);
+    printf("  - Period:             %d cc\n",   config->test_pulse_config.period);
+    printf("  - Phase:              %d\n",      config->test_pulse_config.phase);
 
     printf("----  End Acquisition Configuration  ----\n");
 }

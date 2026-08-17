@@ -3,6 +3,28 @@
 from timeit import default_timer as timer
 import katherine as k
 
+# Set the following flag to inject test pulses into a small subset of
+# pixels during the acquisition.
+TEST_PULSE = False
+
+
+def paint_test_pixels(px_config):
+    # Enable test pulses for pixels forming the letter 'P' (chosen because
+    # it is asymmetric in both axes, making image orientation verifiable).
+    shape = ['XXX.',
+             'X..X',
+             'XXX.',
+             'X...',
+             'X...']
+    x0, y0 = 120, 120  # top-left corner of the shape
+
+    for row, line in enumerate(shape):
+        for col, px in enumerate(line):
+            if px == 'X':
+                px_config.set_test_bit(x0 + col, y0 + row, True)
+                print('Test pulses enabled for pixel at X = %d,\t Y = %d' % (x0 + col, y0 + row))
+
+
 def configure():
     c = k.Config()
 
@@ -41,9 +63,26 @@ def configure():
     dacs.VTP_fine              = 256
     dacs.Ibias_CP_PLL          = 128
     dacs.PLL_Vcntrl            = 128
-    c.dacs = dacs
 
-    c.pixel_config = k.PxConfig.from_bmc('chipconfig.bmc')
+    px_config = k.PxConfig.from_bmc('chipconfig.bmc')
+
+    # Test pulses are disabled unless requested above. (No explicit setup
+    # is needed: a new Config keeps them off.)
+    if TEST_PULSE:
+        # Pulse the analog front-end with amplitude given by the difference
+        # of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
+        dacs.VTP_coarse = 128
+        dacs.VTP_fine   = 352
+
+        c.test_pulse_config = k.TestPulseConfig(
+            enabled=True,
+            count=100,
+            period=6401)  # clock cycles, ~160 us @ 40 MHz
+
+        paint_test_pixels(px_config)
+
+    c.dacs = dacs
+    c.pixel_config = px_config
 
     return c
 

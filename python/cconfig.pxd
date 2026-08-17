@@ -7,7 +7,8 @@
 # directory.
 
 from libcpp cimport bool
-from libc.stdint cimport uint16_t
+from libc.stdint cimport uint8_t, uint16_t
+from cdevice cimport katherine_device_t
 from cpx_config cimport katherine_px_config_t
 
 cdef extern from 'katherine/config.h':
@@ -20,6 +21,14 @@ cdef extern from 'katherine/config.h':
         bool enabled
         char channel
         bool use_falling_edge
+
+    ctypedef struct katherine_test_pulse_config_t:
+        bool enabled
+        bool digital_only
+        bool external
+        uint16_t count
+        uint16_t period
+        uint8_t phase
 
     ctypedef struct katherine_dacs_named_t:
         uint16_t Ibias_Preamp_ON
@@ -76,3 +85,7 @@ cdef extern from 'katherine/config.h':
         katherine_phase_t phase
         katherine_freq_t freq
         katherine_dacs_t dacs
+
+        katherine_test_pulse_config_t test_pulse_config
+
+    int katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *test_pulse_config)

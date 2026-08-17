@@ -28,6 +28,8 @@ static constexpr trigger no_trigger{
 
 using dacs = katherine_dacs_t;
 
+using test_pulse_config = katherine_test_pulse_config_t;
+
 enum class phase: int {
     p1 = PHASE_1,
     p2 = PHASE_2,
@@ -107,6 +109,11 @@ public:
     katherine::dacs& dacs() { return conf_.dacs; }
     void set_dacs(const katherine::dacs& dacs) { conf_.dacs = dacs; }
     void set_dacs(katherine::dacs&& dacs) { conf_.dacs = dacs; }
+
+    const katherine::test_pulse_config& test_pulse_config() const { return conf_.test_pulse_config; }
+    katherine::test_pulse_config& test_pulse_config() { return conf_.test_pulse_config; }
+    void set_test_pulse_config(const katherine::test_pulse_config& tp) { conf_.test_pulse_config = tp; }
+    void set_test_pulse_config(katherine::test_pulse_config&& tp) { conf_.test_pulse_config = tp; }
 
 };
 

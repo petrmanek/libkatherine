@@ -9,6 +9,7 @@ set(PYKATHERINE_SOURCES
     "cacquisition.pxd"
     "cconfig.pxd"
     "cdevice.pxd"
+    "cpx_config.pxd"
     "cstatus.pxd"
     "katherine.pyx"
 )

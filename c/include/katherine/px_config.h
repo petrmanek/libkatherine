@@ -14,8 +14,10 @@
  * @brief Functions related to pixel matrix configuration format.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <katherine/global.h>
+#include <katherine/px.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +46,9 @@ typedef struct katherine_bpc {
     katherine_bpc_px_t px_config[65536];
 } katherine_bpc_t;
 
+
+// Loading full matrix configuration en masse (either from a binary file or a memory buffer):
+
 KATHERINE_EXPORTED int
 katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path);
 
@@ -55,6 +60,27 @@ katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *
 
 KATHERINE_EXPORTED int
 katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc);
+
+
+// Manipulation of values in the registers of individual pixels:
+
+KATHERINE_EXPORTED void
+katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool enabled);
+
+KATHERINE_EXPORTED bool
+katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_coord_t coord);
+
+KATHERINE_EXPORTED void
+katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool masked);
+
+KATHERINE_EXPORTED bool
+katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_coord_t coord);
+
+KATHERINE_EXPORTED void
+katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t loc_thl);
+
+KATHERINE_EXPORTED uint8_t
+katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_coord_t coord);
 
 #ifdef __cplusplus
 }

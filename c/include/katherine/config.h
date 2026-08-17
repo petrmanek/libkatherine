@@ -40,6 +40,16 @@ typedef struct katherine_trigger {
 } katherine_trigger_t;
 
 
+typedef struct katherine_test_pulse_config {
+    bool enabled;           ///< true if test pulses should be injected during acquisition
+    bool digital_only;      ///< false: pulse the analog frontend (amplitude = VTP_coarse - VTP_fine, DAC LSBs 5 mV / 2.5 mV), true: pulse the digital discriminator input
+    bool external;          ///< set true to bypass internal pulse generator with signal from the ExtTPulse pad (in such case count/period/phase do not apply)
+    uint16_t count;         ///< number of pulses per shutter opening, 1 to 65535
+    uint16_t period;        ///< pulse period in pixel-clock cycles (25 ns at 40 MHz), 65 to 16321 (1.625 us to 408.025 us), rounded down to the nearest 64k + 1
+    uint8_t phase;          ///< pulse edge clock phase, selects Clk_ph_shift[0..15]; keep 0 unless a multi-phase pixel clock is configured
+} katherine_test_pulse_config_t;
+
+
 typedef struct katherine_dacs_named {
     uint16_t Ibias_Preamp_ON;
     uint16_t Ibias_Preamp_OFF;
@@ -103,6 +113,8 @@ typedef struct katherine_config {
     katherine_phase_t phase;
     katherine_freq_t freq;
     katherine_dacs_t dacs;
+
+    katherine_test_pulse_config_t test_pulse_config;
 } katherine_config_t;
 
 
@@ -159,6 +171,9 @@ katherine_timer_set(katherine_device_t *device);
 
 KATHERINE_EXPORTED int
 katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs);
+
+KATHERINE_EXPORTED int
+katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *test_pulse_config);
 
 #ifdef __cplusplus
 }

@@ -11,12 +11,9 @@ from libc.time cimport time_t
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from cdevice cimport katherine_device_t
 from cconfig cimport katherine_config_t, katherine_acquisition_mode_t
+from cpx_config cimport katherine_coord_t
 
 cdef extern from 'katherine/acquisition.h':
-    ctypedef struct katherine_coord_t:
-        uint8_t x
-        uint8_t y
-
     ctypedef struct katherine_px_f_toa_tot_t:
         katherine_coord_t coord
         uint8_t ftoa
