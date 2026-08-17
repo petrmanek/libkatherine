@@ -3,6 +3,7 @@
 //
 
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 
 #include <katherinexx/katherinexx.hpp>
@@ -33,10 +34,10 @@ paint_test_pixels(katherine::px_config& px_config)
         for (int col = 0; line[col]; ++col) {
             if (line[col] == 'X') {
                 const katherine::coord coord{
-                    static_cast<uint8_t>(x0 + col),
-                    static_cast<uint8_t>(y0 + row)
+                    static_cast<std::uint8_t>(x0 + col),
+                    static_cast<std::uint8_t>(y0 + row)
                 };
-                katherine::set_test_bit(px_config, coord, true);
+                px_config.set_test_bit(coord, true);
                 std::cerr << "Test pulses enabled for pixel at X = " << (unsigned) coord.x
                           << ",\t Y = " << (unsigned) coord.y << std::endl;
             }
@@ -113,7 +114,7 @@ configure(katherine::config& config)
     }
 }
 
-static uint64_t n_hits;
+static std::uint64_t n_hits;
 
 void
 frame_started(int frame_idx)
