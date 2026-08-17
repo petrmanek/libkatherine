@@ -10,6 +10,41 @@
 static const std::string remote_addr{"192.168.1.145"};
 using mode = katherine::acq::f_toa_tot;
 
+// Set the following flag to inject test pulses into a small subset of
+// pixels during the acquisition.
+static constexpr bool test_pulse = false;
+
+void
+paint_test_pixels(katherine::px_config& px_config)
+{
+    // Enable test pulses for pixels forming the letter 'P' (chosen because
+    // it is asymmetric in both axes, making image orientation verifiable).
+    static const char *shape[] = {
+        "XXX.",
+        "X..X",
+        "XXX.",
+        "X...",
+        "X...",
+    };
+    static constexpr int x0 = 120, y0 = 120; // top-left corner of the shape
+
+    int row = 0;
+    for (const auto *line : shape) {
+        for (int col = 0; line[col]; ++col) {
+            if (line[col] == 'X') {
+                const katherine::coord coord{
+                    static_cast<uint8_t>(x0 + col),
+                    static_cast<uint8_t>(y0 + row)
+                };
+                katherine::set_test_bit(px_config, coord, true);
+                std::cerr << "Test pulses enabled for pixel at X = " << (unsigned) coord.x
+                          << ",\t Y = " << (unsigned) coord.y << std::endl;
+            }
+        }
+        ++row;
+    }
+}
+
 void
 configure(katherine::config& config)
 {
@@ -56,6 +91,26 @@ configure(katherine::config& config)
 
     katherine::px_config px_config = katherine::load_bmc_file("chipconfig.bmc");
     config.set_pixel_config(std::move(px_config));
+
+    // Test pulses are disabled unless requested above. (No explicit setup
+    // is needed: a value-initialized config keeps them off.)
+    if (test_pulse) {
+        // Pulse the analog front-end with amplitude given by the difference
+        // of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
+        config.dacs().named.VTP_coarse = 128;
+        config.dacs().named.VTP_fine   = 352;
+
+        katherine::test_pulse_config tp{};
+        tp.enabled       = true;
+        tp.digital_only  = false;
+        tp.external      = false;
+        tp.count         = 100;
+        tp.period        = 6401; // clock cycles, ~160 us @ 40 MHz
+        tp.phase         = 0;
+        config.set_test_pulse_config(std::move(tp));
+
+        paint_test_pixels(config.pixel_config());
+    }
 }
 
 static uint64_t n_hits;

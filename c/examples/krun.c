@@ -12,6 +12,39 @@
 static const char *remote_addr = "192.168.1.145";
 typedef katherine_px_f_toa_tot_t px_t;
 
+// Set the following flag to inject test pulses into a small subset of
+// pixels during the acquisition.
+static const bool test_pulse = false;
+
+void
+paint_test_pixels(katherine_px_config_t *px_config)
+{
+    // Enable test pulses for pixels forming the letter 'P' (chosen because
+    // it is asymmetric in both axes, making image orientation verifiable).
+    static const char *shape[] = {
+        "XXX.",
+        "X..X",
+        "XXX.",
+        "X...",
+        "X...",
+    };
+    static const int n_rows = sizeof(shape) / sizeof(shape[0]);
+    static const int x0 = 120, y0 = 120; // top-left corner of the shape
+
+    for (int row = 0; row < n_rows; ++row) {
+        for (int col = 0; shape[row][col]; ++col) {
+            if (shape[row][col] == 'X') {
+                const katherine_coord_t coord = {
+                    .x = (uint8_t) (x0 + col),
+                    .y = (uint8_t) (y0 + row)
+                };
+                katherine_px_config_set_test_bit(px_config, coord, true);
+                printf("Test pulses enabled for pixel at X = %d,\t Y = %d\n", coord.x, coord.y);
+            }
+        }
+    }
+}
+
 void
 configure(katherine_config_t *config)
 {
@@ -61,6 +94,25 @@ configure(katherine_config_t *config)
         printf("Cannot load pixel configuration. Does the file exist?\n");
         printf("Reason: %s\n", strerror(res));
         exit(1);
+    }
+
+    // Test pulses are disabled unless requested above.
+    config->test_pulse_config = (katherine_test_pulse_config_t) {0};
+
+    if (test_pulse) {
+        // Pulse the analog front-end with amplitude given by the difference
+        // of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
+        config->dacs.named.VTP_coarse = 128;
+        config->dacs.named.VTP_fine   = 352;
+
+        config->test_pulse_config.enabled       = true;
+        config->test_pulse_config.digital_only  = false;
+        config->test_pulse_config.external      = false;
+        config->test_pulse_config.count         = 100;
+        config->test_pulse_config.period        = 6401; // clock cycles, ~160 us @ 40 MHz
+        config->test_pulse_config.phase         = 0;
+
+        paint_test_pixels(&config->pixel_config);
     }
 }
 
