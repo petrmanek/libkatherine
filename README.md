@@ -14,11 +14,11 @@ This git repository contains 3 libraries in total:
 At the present time, the library is **multi-platform**. The implementation
 supports the following platforms:
 
-Platform | CI Status
----------|:---------
-Linux    | [![Linux Build Status][travis-badge-linux]][travis]
-macOS    | [![macOS Build Status][travis-badge-osx]][travis]
-Windows  | [![Windows Build Status][travis-badge-windows]][travis]
+| Platform | CI Status                                               |
+| -------- | :------------------------------------------------------ |
+| Linux    | [![Linux Build Status][travis-badge-linux]][travis]     |
+| macOS    | [![macOS Build Status][travis-badge-osx]][travis]       |
+| Windows  | [![Windows Build Status][travis-badge-windows]][travis] |
 
 
 ## Usage
@@ -79,10 +79,10 @@ To show advanced usage of all provided libraries, several commented example
 programs and scripts are included in the repository. They can be either found
 in the `examples/` subdirectory for each library, or in the table below:
 
-| C                             | C++                                   | Python                                    | Purpose                                              |
-|-------------------------------|---------------------------------------|-------------------------------------------|------------------------------------------------------|
-| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)    | Locate Katherine readouts in given IP address range. |
-| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)      | Configure & perform data-driven acquisition.         |
+| C                             | C++                                   | Python                                 | Purpose                                              |
+| ----------------------------- | ------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py) | Locate Katherine readouts in given IP address range. |
+| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)   | Configure & perform data-driven acquisition.         |
 
 
 ### Full Documentation
@@ -122,11 +122,11 @@ GNU Makefiles, e.g. ninja)_
 The CMake project also defines several options. They can be defined in the CMake
 cache, by environment variables or using the `-D<option>=<value>` options.
 
-Option            | Default Value | Meaning
-------------------|---------------|-------------------------------------------------------
-`BUILD_CXX`       | `ON`          | Enables building C++ binaries (see requirements)
-`BUILD_PYTHON`    | `OFF`         | Enables building Python extension (see requirements)
-`BUILD_EXAMPLES`  | `ON`          | Enables building example programs
+| Option           | Default Value | Meaning                                              |
+| ---------------- | ------------- | ---------------------------------------------------- |
+| `BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)     |
+| `BUILD_PYTHON`   | `OFF`         | Enables building Python extension (see requirements) |
+| `BUILD_EXAMPLES` | `ON`          | Enables building example programs                    |
 
 For optimal performance, consider also configuring standard CMake options such as
 `CMAKE_BUILD_TYPE` which configures the compiler optimization policies or
@@ -258,7 +258,8 @@ in the development of this library:
  - Felix Lehner, Physikalisch-Technische Bundesanstalt,
  - Stephan Lachnit, Deutsches Elektronen-Synchrotron (DESY),
  - Simon Spannagel, Deutsches Elektronen-Synchrotron (DESY),
- - Stephine Yearley. University of Alberta.
+ - Stephine Yearley, University of Alberta,
+ - Paul Schütze, Deutsches Elektronen-Synchrotron (DESY).
 
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
