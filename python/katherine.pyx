@@ -9,6 +9,7 @@
 # directory.
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from libc.stdint cimport uint8_t
 from libc.string cimport memcpy
 from libcpp cimport bool
 from os import strerror
@@ -82,6 +83,10 @@ cdef class Device:
          check_return_code(res)
          return voltage
 
+    def set_test_pulses(self, TestPulseConfig test_pulse_config):
+         res = cconfig.katherine_set_test_pulses(self._c_device, &test_pulse_config._c_test_pulse_config)
+         check_return_code(res)
+
 
 cdef class Trigger:
     cdef cconfig.katherine_trigger_t _c_trigger
@@ -116,7 +121,70 @@ cdef class Trigger:
 
     @use_falling_edge.setter
     def use_falling_edge(self, val):
-         self._c_trigger.use_falling_edge = val         
+         self._c_trigger.use_falling_edge = val
+
+
+cdef class TestPulseConfig:
+    cdef cconfig.katherine_test_pulse_config_t _c_test_pulse_config
+
+    def __init__(self, enabled=False, digital_only=False, external=False, count=0, period=0, phase=0, cdata=None):
+         if cdata is None:
+             self._c_test_pulse_config.enabled = enabled
+             self._c_test_pulse_config.digital_only = digital_only
+             self._c_test_pulse_config.external = external
+             self._c_test_pulse_config.count = count
+             self._c_test_pulse_config.period = period
+             self._c_test_pulse_config.phase = phase
+         else:
+             self._c_test_pulse_config = cdata
+
+    @property
+    def enabled(self):
+         return self._c_test_pulse_config.enabled
+
+    @enabled.setter
+    def enabled(self, val):
+         self._c_test_pulse_config.enabled = val
+
+    @property
+    def digital_only(self):
+         return self._c_test_pulse_config.digital_only
+
+    @digital_only.setter
+    def digital_only(self, val):
+         self._c_test_pulse_config.digital_only = val
+
+    @property
+    def external(self):
+         return self._c_test_pulse_config.external
+
+    @external.setter
+    def external(self, val):
+         self._c_test_pulse_config.external = val
+
+    @property
+    def count(self):
+         return self._c_test_pulse_config.count
+
+    @count.setter
+    def count(self, val):
+         self._c_test_pulse_config.count = val
+
+    @property
+    def period(self):
+         return self._c_test_pulse_config.period
+
+    @period.setter
+    def period(self, val):
+         self._c_test_pulse_config.period = val
+
+    @property
+    def phase(self):
+         return self._c_test_pulse_config.phase
+
+    @phase.setter
+    def phase(self, val):
+         self._c_test_pulse_config.phase = val
 
 
 cdef class Dacs:
@@ -292,6 +360,36 @@ cdef class PxConfig:
       check_return_code(res)
       return PxConfig(cdata=config)
 
+    @staticmethod
+    cdef cpx_config.katherine_coord_t _coord(int x, int y) except *:
+      if not (0 <= x <= 255 and 0 <= y <= 255):
+         raise ValueError('pixel coordinates must lie within 0 to 255')
+
+      cdef cpx_config.katherine_coord_t coord
+      coord.x = x
+      coord.y = y
+      return coord
+
+    def set_test_bit(self, int x, int y, bool enabled):
+      cpx_config.katherine_px_config_set_test_bit(&self._c_px_config, PxConfig._coord(x, y), enabled)
+
+    def get_test_bit(self, int x, int y):
+      return cpx_config.katherine_px_config_get_test_bit(&self._c_px_config, PxConfig._coord(x, y))
+
+    def set_mask_bit(self, int x, int y, bool masked):
+      cpx_config.katherine_px_config_set_mask_bit(&self._c_px_config, PxConfig._coord(x, y), masked)
+
+    def get_mask_bit(self, int x, int y):
+      return cpx_config.katherine_px_config_get_mask_bit(&self._c_px_config, PxConfig._coord(x, y))
+
+    def set_loc_thl(self, int x, int y, uint8_t loc_thl):
+      if loc_thl > 15:
+         raise ValueError('local threshold adjustment must lie within 0 to 15')
+      cpx_config.katherine_px_config_set_loc_thl(&self._c_px_config, PxConfig._coord(x, y), loc_thl)
+
+    def get_loc_thl(self, int x, int y):
+      return cpx_config.katherine_px_config_get_loc_thl(&self._c_px_config, PxConfig._coord(x, y))
+
 @unique
 class Phase(Enum):
     PHASE_1          = cconfig.katherine_phase_t.PHASE_1
@@ -429,6 +527,17 @@ cdef class Config:
     @pixel_config.setter
     def pixel_config(self, val):
          self._set_pixel_config(val)
+
+    @property
+    def test_pulse_config(self):
+       return TestPulseConfig(cdata=self._c_config.test_pulse_config)
+
+    cdef _set_test_pulse_config(self, TestPulseConfig val):
+         memcpy(&self._c_config.test_pulse_config, &val._c_test_pulse_config, sizeof(self._c_config.test_pulse_config))
+
+    @test_pulse_config.setter
+    def test_pulse_config(self, val):
+         self._set_test_pulse_config(val)
 
 
 @unique

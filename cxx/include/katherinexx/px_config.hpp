@@ -17,6 +17,7 @@ namespace katherine {
 
 using bmc = katherine_bmc_t;
 using bpc = katherine_bpc_t;
+using coord = katherine_coord_t;
 using px_config = katherine_px_config_t;
 
 inline katherine::px_config
@@ -65,6 +66,42 @@ load_bpc_file(std::string file_path)
     }
 
     return data;
+}
+
+inline void
+set_test_bit(katherine::px_config& px_config, katherine::coord coord, bool enabled)
+{
+    katherine_px_config_set_test_bit(&px_config, coord, enabled);
+}
+
+inline bool
+get_test_bit(const katherine::px_config& px_config, katherine::coord coord)
+{
+    return katherine_px_config_get_test_bit(&px_config, coord);
+}
+
+inline void
+set_mask_bit(katherine::px_config& px_config, katherine::coord coord, bool masked)
+{
+    katherine_px_config_set_mask_bit(&px_config, coord, masked);
+}
+
+inline bool
+get_mask_bit(const katherine::px_config& px_config, katherine::coord coord)
+{
+    return katherine_px_config_get_mask_bit(&px_config, coord);
+}
+
+inline void
+set_loc_thl(katherine::px_config& px_config, katherine::coord coord, uint8_t loc_thl)
+{
+    katherine_px_config_set_loc_thl(&px_config, coord, loc_thl);
+}
+
+inline uint8_t
+get_loc_thl(const katherine::px_config& px_config, katherine::coord coord)
+{
+    return katherine_px_config_get_loc_thl(&px_config, coord);
 }
 
 }

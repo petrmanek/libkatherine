@@ -14,6 +14,7 @@
 #include <katherine/device.h>
 #include <katherine/status.h>
 
+#include <katherinexx/config.hpp>
 #include <katherinexx/error.hpp>
 
 namespace katherine {
@@ -109,6 +110,16 @@ public:
     perform_digital_test()
     {
         int res = katherine_perform_digital_test(&dev_);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    void
+    set_test_pulses(const katherine::test_pulse_config& tp)
+    {
+        int res = katherine_set_test_pulses(&dev_, &tp);
 
         if (res != 0) {
             throw katherine::system_error{res};
