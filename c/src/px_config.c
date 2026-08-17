@@ -7,11 +7,29 @@
  * directory.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <katherine/px_config.h>
+#include "bitfields.h"
+
+/* Fields of the per-pixel configuration byte. The packed matrix stores one
+   such byte per pixel in the BMC bit layout (see the katherine_bmc_px
+   struct at the head of px_config.h; the loaders below only permute the
+   local threshold bits of the BPC format). */
+#define _BITS_bmc_px_mask_start         0
+#define _BITS_bmc_px_mask_mask          MASK(1)
+#define _BITS_bmc_px_mask_type          bool
+
+#define _BITS_bmc_px_loc_thl_start      1
+#define _BITS_bmc_px_loc_thl_mask       MASK(4)
+#define _BITS_bmc_px_loc_thl_type       uint8_t
+
+#define _BITS_bmc_px_test_start         5
+#define _BITS_bmc_px_test_mask          MASK(1)
+#define _BITS_bmc_px_test_type          bool
 
 /**
  * Load pixel configuration from a BMC file (in BurdaMan format).
@@ -148,3 +166,115 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
 
     return 0;
 }
+
+/* The helpers below locate the configuration byte of a single pixel in the
+   packed matrix. Pixel coordinates follow the loaders' convention: x is the
+   column, y is the row, and hits reported during acquisition carry the same
+   coordinates. */
+
+static inline uint8_t
+_px_config_get_byte(const katherine_px_config_t *px_config, katherine_coord_t coord)
+{
+    const int yy = 255 - coord.y;
+    return (uint8_t) (px_config->words[(64 * coord.x) + (yy >> 2)] >> (8 * (3 - (yy % 4))));
+}
+
+static inline void
+_px_config_set_byte(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t byte)
+{
+    const int yy = 255 - coord.y;
+    const int shift = 8 * (3 - (yy % 4));
+    uint32_t *word = &px_config->words[(64 * coord.x) + (yy >> 2)];
+
+    *word = (*word & ~((uint32_t) 0xFF << shift)) | ((uint32_t) byte << shift);
+}
+
+/**
+ * Set the test bit of a single pixel.
+ * Pixels with the test bit set receive test pulses during acquisition
+ * (see katherine_set_test_pulses).
+ * @param px_config Configuration matrix to modify.
+ * @param coord Pixel coordinates.
+ * @param enabled New value of the test bit.
+ */
+void
+katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool enabled)
+{
+    const uint8_t byte = _px_config_get_byte(px_config, coord);
+    _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, test, enabled));
+}
+
+/**
+ * Get the test bit of a single pixel.
+ * @param px_config Configuration matrix to inspect.
+ * @param coord Pixel coordinates.
+ * @return Current value of the test bit.
+ */
+bool
+katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_coord_t coord)
+{
+    return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, test);
+}
+
+/**
+ * Set the mask bit of a single pixel.
+ * Masked pixels do not report hits during acquisition.
+ * @param px_config Configuration matrix to modify.
+ * @param coord Pixel coordinates.
+ * @param masked New value of the mask bit.
+ */
+void
+katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool masked)
+{
+    const uint8_t byte = _px_config_get_byte(px_config, coord);
+    _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, mask, masked));
+}
+
+/**
+ * Get the mask bit of a single pixel.
+ * @param px_config Configuration matrix to inspect.
+ * @param coord Pixel coordinates.
+ * @return Current value of the mask bit.
+ */
+bool
+katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_coord_t coord)
+{
+    return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, mask);
+}
+
+/**
+ * Set the local threshold adjustment of a single pixel.
+ * @param px_config Configuration matrix to modify.
+ * @param coord Pixel coordinates.
+ * @param loc_thl New threshold adjustment DAC value, 0 to 15.
+ */
+void
+katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t loc_thl)
+{
+    assert(loc_thl <= 15);
+
+    const uint8_t byte = _px_config_get_byte(px_config, coord);
+    _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, loc_thl, loc_thl));
+}
+
+/**
+ * Get the local threshold adjustment of a single pixel.
+ * @param px_config Configuration matrix to inspect.
+ * @param coord Pixel coordinates.
+ * @return Current threshold adjustment DAC value, 0 to 15.
+ */
+uint8_t
+katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_coord_t coord)
+{
+    return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, loc_thl);
+}
+
+#undef _BITS_bmc_px_mask_start
+#undef _BITS_bmc_px_mask_mask
+#undef _BITS_bmc_px_mask_type
+#undef _BITS_bmc_px_loc_thl_start
+#undef _BITS_bmc_px_loc_thl_mask
+#undef _BITS_bmc_px_loc_thl_type
+#undef _BITS_bmc_px_test_start
+#undef _BITS_bmc_px_test_mask
+#undef _BITS_bmc_px_test_type
