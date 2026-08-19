@@ -219,9 +219,9 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    long acqt = (long) (ns / 10.);
-    long lsb = (acqt & 0x00000000FFFFFFFF);
-    long msb = (acqt & 0xFFFFFFFF00000000) >> 32;
+    int64_t acqt = (int64_t) (ns / 10.);
+    int64_t lsb = (acqt & 0x00000000FFFFFFFF);
+    int64_t msb = (acqt & 0xFFFFFFFF00000000) >> 32;
 
     // Set LSB.
     res = katherine_cmd_set_acqtime_lsb(&device->control_socket, lsb);
