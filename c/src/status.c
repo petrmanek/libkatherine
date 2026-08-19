@@ -29,6 +29,9 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
 {
     int res;
 
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
+
     res = katherine_cmd_get_readout_status(&device->control_socket);
     if (res) goto err;
 
@@ -42,9 +45,11 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     status->hw_serial_number    = EXTRACT(*status_crd, readout_status_crd, hw_serial_number);
     status->fw_version          = EXTRACT(*status_crd, readout_status_crd, fw_version);
 
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
 
 err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
 
@@ -59,6 +64,9 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
 {
     int res;
 
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
+
     res = katherine_cmd_get_comm_status(&device->control_socket);
     if (res) goto err;
 
@@ -71,9 +79,11 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     status->data_rate               = 5u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
     status->chip_detected           = EXTRACT(*status_crd, comm_status_crd, chip_detected_flag);
 
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
 
 err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
 
@@ -87,6 +97,9 @@ int
 katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
 {
     int res;
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
 
     res = katherine_cmd_echo_chip_id(&device->control_socket);
     if (res) goto err;
@@ -102,9 +115,12 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
 
     memset(s_chip_id, '\0', KATHERINE_CHIP_ID_STR_SIZE);
     sprintf(s_chip_id, "%c%d-W000%d", 65 + x, y, w);
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
 
 err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
 
@@ -119,6 +135,9 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
 {
     int res;
 
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
+
     res = katherine_cmd_get_readout_temperature(&device->control_socket);
     if (res) goto err;
 
@@ -127,9 +146,12 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
     if (res) goto err;
 
     *temperature = *(float*) crd;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
 
 err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
 
@@ -144,6 +166,9 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 {
     int res;
 
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
+
     res = katherine_cmd_get_sensor_temperature(&device->control_socket);
     if (res) goto err;
 
@@ -152,9 +177,12 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     if (res) goto err;
 
     *temperature = *(float*) crd;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
 
 err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
 
@@ -167,6 +195,9 @@ int
 katherine_perform_digital_test(katherine_device_t *device)
 {
     int res;
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
 
     res = katherine_cmd_digital_test(&device->control_socket);
     if (res) goto err;
@@ -188,9 +219,11 @@ katherine_perform_digital_test(katherine_device_t *device)
         goto err;
     }
 
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
 
 err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
 
@@ -206,6 +239,9 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
 {
     int res;
 
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
+
     res = katherine_cmd_get_adc_voltage(&device->control_socket, channel_id);
     if (res) goto err;
 
@@ -214,8 +250,11 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
     if (res) goto err;
 
     *voltage = *(float*) crd;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
 
 err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
