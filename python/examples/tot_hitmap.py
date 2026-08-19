@@ -11,6 +11,7 @@ transparent.
 """
 
 import argparse
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -24,8 +25,13 @@ def parse_hits(path):
     # Read every line as up to 5 whitespace-separated fields, then keep
     # only fully numeric rows. This drops the preamble, the header row
     # and the trailing statistics without relying on fixed line numbers.
-    df = pd.read_csv(path, sep=r'\s+', header=None, names=COLUMNS,
-                     on_bad_lines='skip')
+    # index_col=False prevents pandas from treating the first column as an
+    # index when the leading non-hit line happens to have 6 fields.
+    with warnings.catch_warnings():
+        # Truncating over-wide non-hit lines is intended, not data loss.
+        warnings.simplefilter('ignore', pd.errors.ParserWarning)
+        df = pd.read_csv(path, sep=r'\s+', header=None, names=COLUMNS,
+                         index_col=False, on_bad_lines='skip')
     df = df.apply(pd.to_numeric, errors='coerce').dropna().astype(int)
 
     in_range = (df['X'].between(0, SENSOR_DIM - 1)
