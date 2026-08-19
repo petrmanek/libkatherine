@@ -34,7 +34,7 @@
  * 
  * For convenience, the MASK(n) macro below defines a
  * generic integral mask of `n` bits. For instance,
- * MASK(8) will produce 0xF (represented as bits: 11111111).
+ * MASK(8) will produce 0xFF (represented as bits: 11111111).
  * 
  * Each bitfield's field is declared by defining three macros.
  * These directly correspond to the field's attributes listed
