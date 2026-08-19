@@ -27,23 +27,42 @@ paint_test_pixels(katherine::px_config& px_config)
         "X...",
         "X...",
     };
-    static constexpr int x0 = 120, y0 = 120; // top-left corner of the shape
+    static constexpr int n_rows = sizeof(shape) / sizeof(shape[0]);
+    static constexpr int scale = 5;          // each shape cell becomes a scale x scale block of pixels
+    static constexpr int x0 = 120, y0 = 120; // bottom-left corner of the shape
+    int n_painted = 0;
 
     int row = 0;
     for (const auto *line : shape) {
         for (int col = 0; line[col]; ++col) {
-            if (line[col] == 'X') {
-                const katherine::coord coord{
-                    static_cast<std::uint8_t>(x0 + col),
-                    static_cast<std::uint8_t>(y0 + row)
-                };
-                px_config.set_test_bit(coord, true);
-                std::cerr << "Test pulses enabled for pixel at X = " << (unsigned) coord.x
-                          << ",\t Y = " << (unsigned) coord.y << std::endl;
+            if (line[col] != 'X') continue;
+
+            for (int dy = 0; dy < scale; ++dy) {
+                for (int dx = 0; dx < scale; ++dx) {
+                    // Rows of the shape are listed top-down while the Y axis
+                    // grows upwards, hence the flipped row index.
+                    const int x = x0 + scale * col + dx;
+                    const int y = y0 + scale * (n_rows - 1 - row) + dy;
+
+                    if (x < 0 || x > 255 || y < 0 || y > 255) {
+                        std::cerr << "Test pulse pixel at X = " << x << ",\t Y = " << y
+                                  << " is out of bounds, skipping." << std::endl;
+                        continue;
+                    }
+
+                    const katherine::coord coord{
+                        static_cast<std::uint8_t>(x),
+                        static_cast<std::uint8_t>(y)
+                    };
+                    px_config.set_test_bit(coord, true);
+                    ++n_painted;
+                }
             }
         }
         ++row;
     }
+
+    std::cerr << "Test pulses enabled for " << n_painted << " pixels." << std::endl;
 }
 
 void

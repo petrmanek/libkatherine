@@ -29,20 +29,38 @@ paint_test_pixels(katherine_px_config_t *px_config)
         "X...",
     };
     static const int n_rows = sizeof(shape) / sizeof(shape[0]);
-    static const int x0 = 120, y0 = 120; // top-left corner of the shape
+    static const int scale = 5;          // each shape cell becomes a scale x scale block of pixels
+    static const int x0 = 120, y0 = 120; // bottom-left corner of the shape
+    int n_painted = 0;
 
     for (int row = 0; row < n_rows; ++row) {
         for (int col = 0; shape[row][col]; ++col) {
-            if (shape[row][col] == 'X') {
-                const katherine_coord_t coord = {
-                    .x = (uint8_t) (x0 + col),
-                    .y = (uint8_t) (y0 + row)
-                };
-                katherine_px_config_set_test_bit(px_config, coord, true);
-                printf("Test pulses enabled for pixel at X = %d,\t Y = %d\n", coord.x, coord.y);
+            if (shape[row][col] != 'X') continue;
+
+            for (int dy = 0; dy < scale; ++dy) {
+                for (int dx = 0; dx < scale; ++dx) {
+                    // Rows of the shape are listed top-down while the Y axis
+                    // grows upwards, hence the flipped row index.
+                    const int x = x0 + scale * col + dx;
+                    const int y = y0 + scale * (n_rows - 1 - row) + dy;
+
+                    if (x < 0 || x > 255 || y < 0 || y > 255) {
+                        printf("Test pulse pixel at X = %d,\t Y = %d is out of bounds, skipping.\n", x, y);
+                        continue;
+                    }
+
+                    const katherine_coord_t coord = {
+                        .x = (uint8_t) x,
+                        .y = (uint8_t) y
+                    };
+                    katherine_px_config_set_test_bit(px_config, coord, true);
+                    ++n_painted;
+                }
             }
         }
     }
+
+    printf("Test pulses enabled for %d pixels.\n", n_painted);
 }
 
 void

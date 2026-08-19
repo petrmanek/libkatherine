@@ -16,13 +16,30 @@ def paint_test_pixels(px_config):
              'XXX.',
              'X...',
              'X...']
-    x0, y0 = 120, 120  # top-left corner of the shape
+    scale = 5          # each shape cell becomes a scale x scale block of pixels
+    x0, y0 = 120, 120  # bottom-left corner of the shape
+    n_rows = len(shape)
+    n_painted = 0
 
     for row, line in enumerate(shape):
         for col, px in enumerate(line):
-            if px == 'X':
-                px_config.set_test_bit(x0 + col, y0 + row, True)
-                print('Test pulses enabled for pixel at X = %d,\t Y = %d' % (x0 + col, y0 + row))
+            if px != 'X':
+                continue
+            for dy in range(scale):
+                for dx in range(scale):
+                    # Rows of the shape are listed top-down while the Y axis
+                    # grows upwards, hence the flipped row index.
+                    x = x0 + scale * col + dx
+                    y = y0 + scale * (n_rows - 1 - row) + dy
+
+                    if not (0 <= x <= 255 and 0 <= y <= 255):
+                        print('Test pulse pixel at X = %d,\t Y = %d is out of bounds, skipping.' % (x, y))
+                        continue
+
+                    px_config.set_test_bit(x, y, True)
+                    n_painted += 1
+
+    print('Test pulses enabled for %d pixels.' % n_painted)
 
 
 def configure():
