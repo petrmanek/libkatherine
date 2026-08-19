@@ -458,7 +458,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     }
 
     res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) goto err;
+    if (res) return res;
 
     res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
     if (res) goto err;
