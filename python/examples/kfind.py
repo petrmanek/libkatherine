@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# Example: locate Katherine readouts in a given IP address range.
+#
+# Copyright (c) 2018 Petr Mánek.
+# This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+#
+# SPDX-License-Identifier: MIT
 
 from functools import reduce
 from katherine import Device

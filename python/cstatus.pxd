@@ -1,10 +1,10 @@
-# Katherine Control Library
+# Cython declarations for katherine/status.h.
+# Created 3.2.19 by Petr Mánek.
 #
-# This file was created on 3.2.19 by Petr Manek.
-# 
-# Contents of this file are copyrighted and subject to license
-# conditions specified in the LICENSE file located in the top
-# directory.
+# Copyright (c) 2018 Petr Mánek.
+# This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+#
+# SPDX-License-Identifier: MIT
 
 from cdevice cimport katherine_device_t
 

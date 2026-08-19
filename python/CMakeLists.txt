@@ -1,3 +1,8 @@
+# Copyright (c) 2018 Petr Mánek.
+# This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+#
+# SPDX-License-Identifier: MIT
+
 find_package(Python3 COMPONENTS Interpreter Development)
 
 set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.in")

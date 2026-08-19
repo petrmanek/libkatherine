@@ -1,3 +1,8 @@
+# Copyright (c) 2018 Petr Mánek.
+# This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+#
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 3.21)
 project(katherine VERSION 0.1 LANGUAGES C CXX)
 

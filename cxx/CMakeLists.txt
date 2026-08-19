@@ -1,3 +1,8 @@
+# Copyright (c) 2018 Petr Mánek.
+# This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+#
+# SPDX-License-Identifier: MIT
+
 set(KATHERINEXX_HEADERS
     "include/katherinexx/acquisition.hpp"
     "include/katherinexx/config.hpp"

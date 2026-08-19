@@ -1,18 +1,16 @@
-/* Katherine Control Library
- *
- * This file was created on 14.6.18 by Petr Manek.
- * 
- * Contents of this file are copyrighted and subject to license
- * conditions specified in the LICENSE file located in the top
- * directory.
- */
-
-#pragma once
-
 /**
  * @file
  * @brief Functions related to Katherine.
+ * @author Petr Mánek
+ * @date 14.6.18
+ *
+ * @copyright Copyright (c) 2018 Petr Mánek.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+ *
+ * SPDX-License-Identifier: MIT
  */
+
+#pragma once
 
 #include <katherine/global.h>
 #include <katherine/udp.h>

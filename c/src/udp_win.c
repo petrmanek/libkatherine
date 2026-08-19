@@ -1,11 +1,13 @@
-/* Katherine Control Library
+/**
+ * @file
+ * @brief Win32 implementation of the UDP communication layer.
+ * @author Felix Lehner
+ * @date 31.8.18
  *
- * This file was created on 31.8.18 by Felix Lehner.
- * This file was modified on 13.2.19 by Petr Manek.
+ * @copyright Copyright (c) 2018 Petr Mánek.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
- * Contents of this file are copyrighted and subject to license
- * conditions specified in the LICENSE file located in the top
- * directory.
+ * SPDX-License-Identifier: MIT
  */
 
 #include <katherine/global.h>

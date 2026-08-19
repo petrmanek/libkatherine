@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Copyright (c) 2018 Petr Mánek.
+# This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+#
+# SPDX-License-Identifier: MIT
+
 """Plot an integrated ToT hitmap from a pixel readout dump.
 
 The input file is expected to contain whitespace-separated pixel hits

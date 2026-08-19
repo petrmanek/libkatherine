@@ -1,10 +1,13 @@
-/* Katherine Control Library
+/**
+ * @file
+ * @brief Internal bitfield definitions for command response data.
+ * @author Petr Mánek
+ * @date 28.2.19
  *
- * This file was created on 28.2.19 by Petr Manek.
- * 
- * Contents of this file are copyrighted and subject to license
- * conditions specified in the LICENSE file located in the top
- * directory.
+ * @copyright Copyright (c) 2018 Petr Mánek.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+ *
+ * SPDX-License-Identifier: MIT
  */
 
 #pragma once

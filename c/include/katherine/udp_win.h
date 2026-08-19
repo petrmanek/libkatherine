@@ -1,19 +1,16 @@
-/* Katherine Control Library
- *
- * This file was created on 31.8.18 by Felix Lehner.
- * This file was modified on 13.2.19 by Petr Manek.
- *
- * Contents of this file are copyrighted and subject to license
- * conditions specified in the LICENSE file located in the top
- * directory.
- */
-
-#pragma once
-
 /**
  * @file
  * @brief Win32 definitions for the UDP communication layer.
+ * @author Felix Lehner
+ * @date 31.8.18
+ *
+ * @copyright Copyright (c) 2018 Petr Mánek.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+ *
+ * SPDX-License-Identifier: MIT
  */
+
+#pragma once
 
 #include <katherine/global.h>
 
