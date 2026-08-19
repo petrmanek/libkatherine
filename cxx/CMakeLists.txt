@@ -25,6 +25,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherinexx.pc.in katherinexx.pc @ONL
 install(FILES ${KATHERINEXX_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherinexx)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherinexx.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
-if(BUILD_EXAMPLES)
+if(KATHERINE_BUILD_EXAMPLES)
     add_subdirectory(examples)
-endif(BUILD_EXAMPLES)
+endif(KATHERINE_BUILD_EXAMPLES)

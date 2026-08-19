@@ -122,11 +122,16 @@ GNU Makefiles, e.g. ninja)_
 The CMake project also defines several options. They can be defined in the CMake
 cache, by environment variables or using the `-D<option>=<value>` options.
 
-| Option           | Default Value | Meaning                                              |
-| ---------------- | ------------- | ---------------------------------------------------- |
-| `BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)     |
-| `BUILD_PYTHON`   | `OFF`         | Enables building Python extension (see requirements) |
-| `BUILD_EXAMPLES` | `ON`          | Enables building example programs                    |
+| Option                     | Default Value | Meaning                                              |
+| -------------------------- | ------------- | ---------------------------------------------------- |
+| `KATHERINE_BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)     |
+| `KATHERINE_BUILD_PYTHON`   | `OFF`         | Enables building Python extension (see requirements) |
+| `KATHERINE_BUILD_EXAMPLES` | `ON`          | Enables building example programs                    |
+
+A summary table of all feature flags and their configured state is printed
+at configuration time. The pre-1.0 option names (`BUILD_CXX`, `BUILD_PYTHON`,
+`BUILD_EXAMPLES`) are deprecated but still honored; if both the old and the
+new name of an option are set, the new name takes precedence.
 
 For optimal performance, consider also configuring standard CMake options such as
 `CMAKE_BUILD_TYPE` which configures the compiler optimization policies or

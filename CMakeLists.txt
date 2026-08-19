@@ -6,9 +6,13 @@
 cmake_minimum_required(VERSION 3.21)
 project(katherine VERSION 0.1 LANGUAGES C CXX)
 
-option(BUILD_CXX        "build C++ binaries"        ON)
-option(BUILD_PYTHON     "build Python 3 bindings"   OFF)
-option(BUILD_EXAMPLES   "build example programs"    ON)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(KatherineFeatures)
+
+katherine_declare_feature(BUILD_CXX      "build C++ binaries"      DEFAULT ON  LEGACY BUILD_CXX)
+katherine_declare_feature(BUILD_PYTHON   "build Python 3 bindings" DEFAULT OFF LEGACY BUILD_PYTHON)
+katherine_declare_feature(BUILD_EXAMPLES "build example programs"  DEFAULT ON  LEGACY BUILD_EXAMPLES)
+katherine_feature_summary()
 
 set(CMAKE_C_STANDARD    17)
 set(CMAKE_CXX_STANDARD  17)
@@ -20,10 +24,10 @@ include(GNUInstallDirs)
 
 add_subdirectory(c)
 
-if(BUILD_CXX)
+if(KATHERINE_BUILD_CXX)
     add_subdirectory(cxx)
-endif(BUILD_CXX)
+endif(KATHERINE_BUILD_CXX)
 
-if(BUILD_PYTHON)
+if(KATHERINE_BUILD_PYTHON)
     add_subdirectory(python)
-endif(BUILD_PYTHON)
+endif(KATHERINE_BUILD_PYTHON)
