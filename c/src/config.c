@@ -502,7 +502,7 @@ katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t 
     char cmd[8] = {0};
     cmd[6] = CMD_TYPE_SENSOR_REGISTER_SETTING;
     cmd[4] = reg_idx;
-    katherine_cmd_long(cmd, reg_value);
+    katherine_cmd_i64(cmd, reg_value);
 
     res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
     if (res) goto err;
@@ -617,7 +617,7 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
         char cmd[8] = {0};
         cmd[6] = CMD_TYPE_INTERNAL_DAC_SETTINGS;
         cmd[4] = (char) i;
-        katherine_cmd_long(cmd, dacs->array[i]);
+        katherine_cmd_i64(cmd, dacs->array[i]);
 
         res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
         if (res) goto err;

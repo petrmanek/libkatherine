@@ -79,7 +79,7 @@ katherine_cmd60(katherine_udp_t *udp, char val6, char val0)
 }
 
 static inline void
-katherine_cmd_long(char *cmd, int64_t value)
+katherine_cmd_i64(char *cmd, int64_t value)
 {
     int i = 0;
     int mlsb, mmsb;
@@ -95,22 +95,22 @@ katherine_cmd_long(char *cmd, int64_t value)
 }
 
 static inline int
-katherine_cmd64_long(katherine_udp_t *udp, char val6, char val4, int64_t value)
+katherine_cmd64_i64(katherine_udp_t *udp, char val6, char val4, int64_t value)
 {
     char cmd[8] = {0};
     cmd[6] = val6;
     cmd[4] = val4;
-    katherine_cmd_long(cmd, value);
+    katherine_cmd_i64(cmd, value);
 
     return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
 static inline int
-katherine_cmd6_long(katherine_udp_t *udp, char val6, int64_t value)
+katherine_cmd6_i64(katherine_udp_t *udp, char val6, int64_t value)
 {
     char cmd[8] = {0};
     cmd[6] = val6;
-    katherine_cmd_long(cmd, value);
+    katherine_cmd_i64(cmd, value);
 
     return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
@@ -219,33 +219,33 @@ K_DEFINE_CMD_ARG0(cmd60,      hw_chip_id_read,                          CMD_TYPE
 K_DEFINE_CMD_ARG0(cmd60,      hw_output_block_config_update,            CMD_TYPE_HW_COMMAND_START, CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE)
 K_DEFINE_CMD_ARG0(cmd60,      hw_digital_test,                          CMD_TYPE_HW_COMMAND_START, CMD_START_DIGITAL_TEST)
 
-K_DEFINE_CMD_ARG1(cmd6_long,  set_acqtime_lsb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB)
-K_DEFINE_CMD_ARG1(cmd6_long,  set_acqtime_msb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB)
-K_DEFINE_CMD_ARG1(cmd6_long,  set_number_of_frames,                     long, CMD_TYPE_NUMBER_OF_FRAMES)
-K_DEFINE_CMD_ARG1(cmd6_long,  set_seq_readout_start,                    long, CMD_TYPE_SEQ_READOUT_START)
-K_DEFINE_CMD_ARG1(cmd6_long,  start_acquisition,                        char, CMD_TYPE_ACQUISITION_START)
-K_DEFINE_CMD_ARG1(cmd6_long,  stop_acquisition,                         char, CMD_TYPE_ACQUISITION_STOP)
-K_DEFINE_CMD_ARG1(cmd6_long,  get_adc_voltage,                          unsigned char, CMD_TYPE_GET_ADC_VOLTAGE)
+K_DEFINE_CMD_ARG1(cmd6_i64,   set_acqtime_lsb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB)
+K_DEFINE_CMD_ARG1(cmd6_i64,   set_acqtime_msb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB)
+K_DEFINE_CMD_ARG1(cmd6_i64,   set_number_of_frames,                     int64_t, CMD_TYPE_NUMBER_OF_FRAMES)
+K_DEFINE_CMD_ARG1(cmd6_i64,   set_seq_readout_start,                    int64_t, CMD_TYPE_SEQ_READOUT_START)
+K_DEFINE_CMD_ARG1(cmd6_i64,   start_acquisition,                        uint8_t, CMD_TYPE_ACQUISITION_START)
+K_DEFINE_CMD_ARG1(cmd6_i64,   stop_acquisition,                         uint8_t, CMD_TYPE_ACQUISITION_STOP)
+K_DEFINE_CMD_ARG1(cmd6_i64,   get_adc_voltage,                          uint8_t, CMD_TYPE_GET_ADC_VOLTAGE)
 K_DEFINE_CMD_ARG1(cmd6_float, set_bias_settings,                        float, CMD_TYPE_BIAS_SETTINGS)
 
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_preamp_on,                  long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 0)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_preamp_off,                 long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 1)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_vpreamp_ncas,                     long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 2)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_ikrum,                      long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 3)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_vfbk,                             long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 4)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_vthreshold_fine,                  long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 5)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_vthreshold_coarse,                long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 6)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_discs1_on,                  long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 7)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_discs1_off,                 long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 8)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_discs2_on,                  long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 9)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_discs2_off,                 long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 10)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_pixeldac,                   long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 11)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_tpbufferin,                 long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 12)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_tpbufferout,                long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 13)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_vtp_coarse,                       long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 14)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_vtp_fine,                         long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 15)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_ibias_cp_pll,                     long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 16)
-K_DEFINE_CMD_ARG1(cmd64_long, set_dac_pll_vcntrl,                       long, CMD_TYPE_INTERNAL_DAC_SETTINGS, 17)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_preamp_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 0)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_preamp_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 1)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vpreamp_ncas,                     int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 2)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_ikrum,                      int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 3)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vfbk,                             int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 4)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vthreshold_fine,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 5)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vthreshold_coarse,                int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 6)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs1_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 7)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs1_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 8)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs2_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 9)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs2_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 10)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_pixeldac,                   int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 11)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_tpbufferin,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 12)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_tpbufferout,                int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 13)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vtp_coarse,                       int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 14)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vtp_fine,                         int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 15)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_cp_pll,                     int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 16)
+K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_pll_vcntrl,                       int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 17)
 
 #undef K_DEFINE_CMD_ARG0
 #undef K_DEFINE_CMD_ARG1
