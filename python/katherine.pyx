@@ -603,6 +603,10 @@ cdef class FrameInfo:
     def end_time_observed(self):
        return self._c_info.end_time_observed
 
+    @property
+    def completed(self):
+       return self._c_info.completed
+
 
 cdef class PxFastToaTot:
     cdef cacquisition.katherine_px_f_toa_tot_t _c_px

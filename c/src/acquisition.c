@@ -36,6 +36,8 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
     acq->current_frame_info.start_time_observed = time(NULL);
+    acq->current_frame_info.completed = false;
+    acq->frame_active = true;
 
     if (acq->handlers.frame_started != NULL) {
         acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
@@ -56,6 +58,8 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
     flush_buffer(acq);
 
     acq->current_frame_info.sent_pixels = EXTRACT(*data, md_frame_finished, n_sent);
+    acq->current_frame_info.completed = true;
+    acq->frame_active = false;
 
     if (acq->handlers.frame_ended != NULL) {
         acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, true, &acq->current_frame_info);
@@ -65,6 +69,22 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
 
     if (acq->completed_frames == acq->requested_frames) {
         acq->state = ACQUISITION_SUCCEEDED;
+    }
+}
+
+static inline void
+handle_acquisition_interrupted(katherine_acquisition_t *acq)
+{
+    acq->current_frame_info.end_time_observed = time(NULL);
+
+    flush_buffer(acq);
+
+    acq->frame_active = false;
+
+    // The frame-finished MD did not arrive, so sent_pixels is unknown and
+    // current_frame_info.completed remains false.
+    if (acq->handlers.frame_ended != NULL) {
+        acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, false, &acq->current_frame_info);
     }
 }
 
@@ -208,6 +228,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->user_ctx = ctx;
     acq->state = ACQUISITION_NOT_STARTED;
     acq->aborted = false;
+    acq->frame_active = false;
 
     // Handlers are optional. Clear them so that a caller which registers only
     // some of them does not leave the rest pointing at indeterminate values.
@@ -338,6 +359,12 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 	    }\
         }\
         \
+        if (acq->frame_active) {\
+            handle_acquisition_interrupted(acq);\
+        } else if (acq->pixel_buffer_valid > 0) {\
+            flush_buffer(acq);\
+        }\
+        \
         (void) katherine_udp_mutex_unlock(&acq->device->data_socket);\
         switch (acq->state) {\
         case ACQUISITION_SUCCEEDED:     return 0;\
@@ -437,6 +464,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->pixel_buffer_valid = 0;
     acq->pixel_buffer_max_valid = 0;
     acq->last_toa_offset = 0;
+    acq->frame_active = false;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
     if (res) goto err;

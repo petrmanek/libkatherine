@@ -63,6 +63,7 @@ cdef extern from 'katherine/acquisition.h':
         katherine_frame_info_time_t end_time
         time_t start_time_observed
         time_t end_time_observed
+        bool completed
 
     ctypedef struct katherine_acquisition_handlers_t:
         void (*pixels_received)(void *, const void *, size_t)

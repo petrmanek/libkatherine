@@ -40,15 +40,17 @@ typedef union katherine_frame_info_time {
 } katherine_frame_info_time_t;
 
 typedef struct katherine_frame_info {
-    uint64_t received_pixels;
-    uint64_t sent_pixels;
-    uint64_t lost_pixels;
+    uint64_t received_pixels; ///< The number of hit pixels actually received by libkatherine
+    uint64_t sent_pixels;     ///< The number of hit pixels reported sent by Katherine device
+    uint64_t lost_pixels;     ///< The number of hit pixels reported lost by Katherine device
 
-    katherine_frame_info_time_t start_time;
-    katherine_frame_info_time_t end_time;
+    katherine_frame_info_time_t start_time; ///< Timestamp of frame start reported by Katherine device
+    katherine_frame_info_time_t end_time;   ///< Timestamp of frame end, only valid after the frame has ended
 
-    time_t start_time_observed;
-    time_t end_time_observed;
+    time_t start_time_observed; ///< Timestamp of when libkatherine received 'frame started' event, in local time reference
+    time_t end_time_observed;   ///< Timestamp of when libkatherine received 'frame ended' event, only valid after the frame has ended
+
+    bool completed; ///< Set to true if the frame was correctly terminated ahead of the 'frame ended' event. Otherwise this indicates missing data.
 } katherine_frame_info_t;
 
 typedef struct katherine_acquisition_handlers {
@@ -103,6 +105,7 @@ typedef struct katherine_acquisition {
 
     uint64_t last_toa_offset;
 
+    bool frame_active;
 } katherine_acquisition_t;
 
 KATHERINE_EXPORTED int
