@@ -71,7 +71,7 @@
  * mutate its arguments -- assign the result back to store it.
  */
 
-#define MASK(n)                             ((1ul << (n)) - 1)
+#define MASK(n)                             ((1ull << (n)) - 1)
 #define EXTRACT(val, bitfield, name)        ((_BITS_##bitfield##_##name##_type) (((val) >> (_BITS_##bitfield##_##name##_start)) & _BITS_##bitfield##_##name##_mask))
 #define INSERT(val, bitfield, name, x)      (((val) & ~((_BITS_##bitfield##_##name##_mask) << (_BITS_##bitfield##_##name##_start))) | (((x) & _BITS_##bitfield##_##name##_mask) << (_BITS_##bitfield##_##name##_start)))
 
