@@ -173,7 +173,7 @@ KATHERINE_EXPORTED int
 katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs);
 
 KATHERINE_EXPORTED int
-katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *test_pulse_config);
+katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config);
 
 #ifdef __cplusplus
 }

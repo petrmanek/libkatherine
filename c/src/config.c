@@ -420,34 +420,37 @@ err:
  * Likewise, when the external pulse source is selected, the count, period
  * and phase fields do not apply and are neither validated nor transmitted.
  *
+ * The readout acknowledges this command only after applying it, which takes
+ * about one second; this function blocks accordingly.
+ *
  * @param device Katherine device
- * @param test_pulse_config Test pulse configuration to set
+ * @param tp_config Test pulse configuration to set
  * @return Error code.
  */
 int
-katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *test_pulse_config)
+katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config)
 {
     int res;
 
     char cmd[8] = {0};
     cmd[6] = CMD_TYPE_TEST_PULSE_SETTING;
 
-    if (test_pulse_config->enabled) {
-        if (!test_pulse_config->external) {
-            if (test_pulse_config->count == 0
-                || test_pulse_config->period < 65 || test_pulse_config->period > 16321
-                || test_pulse_config->phase > 15) {
+    if (tp_config->enabled) {
+        if (!tp_config->external) {
+            if (tp_config->count == 0
+                || tp_config->period < 65 || tp_config->period > 16321
+                || tp_config->phase > 15) {
                 return EINVAL;
             }
 
-            cmd[0] = test_pulse_config->count & 0xFF;
-            cmd[1] = (test_pulse_config->count >> 8) & 0xFF;
-            cmd[2] = (test_pulse_config->period - 1) / 64;
-            cmd[3] = test_pulse_config->phase;
+            cmd[0] = tp_config->count & 0xFF;
+            cmd[1] = (tp_config->count >> 8) & 0xFF;
+            cmd[2] = (tp_config->period - 1) / 64;
+            cmd[3] = tp_config->phase;
         }
 
-        cmd[4] |= test_pulse_config->digital_only;
-        cmd[4] |= test_pulse_config->external << 1;
+        cmd[4] |= tp_config->digital_only;
+        cmd[4] |= tp_config->external << 1;
         cmd[4] |= 1 << 2;
     }
 
@@ -457,7 +460,17 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    /* The readout applies this command before acknowledging it, and its
+       firmware sleeps for a full second while doing so. A single wait is
+       bounded by the socket receive timeout (100 ms) and would therefore
+       always expire, so keep receiving until the acknowledgement arrives,
+       an unrelated error occurs, or roughly 5 seconds elapse. */
+    static const int max_attempts = 50;
+    int attempts = max_attempts;
+    do {
+        --attempts;
+        res = katherine_cmd_wait_ack(&device->control_socket);
+    } while (res == EAGAIN && attempts > 0);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
