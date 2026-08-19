@@ -11,12 +11,15 @@ Feature flag facility for the Katherine project.
 
 katherine_declare_feature(<name> <description>
                           DEFAULT <ON|OFF>
+                          [AUTO_DETECTED]
                           [LEGACY <old_option_name>])
 
   Declares a boolean feature flag as the cache option KATHERINE_<name>.
-  The default value is resolved by _katherine_feature_default(), which
-  currently returns the hard-coded DEFAULT but serves as the extension
-  point for future auto-detection (host environment, available tools).
+  Without AUTO_DETECTED, the default value is the hard-coded DEFAULT.
+  With AUTO_DETECTED, _katherine_feature_default() probes the host
+  environment and may raise the default to ON; DEFAULT is the fallback
+  used when the probe finds nothing. Either way, a value set by the
+  user overrides the default.
 
   When LEGACY names a deprecated pre-1.0 option and that option is set
   while KATHERINE_<name> is not, the legacy value is adopted and a
@@ -40,15 +43,26 @@ function(_katherine_bool value out_var)
     endif()
 endfunction()
 
-# Extension point: resolve the effective default of a feature. For now the
-# hard-coded default is returned as-is; auto-detection based on the host
-# environment can be plugged in here later without touching declarations.
-function(_katherine_feature_default name hardcoded_default out_var)
-    set(${out_var} "${hardcoded_default}" PARENT_SCOPE)
+# Resolve the default of an AUTO_DETECTED feature by probing the host
+# environment; the declared DEFAULT is the fallback when the probe finds
+# nothing. New detection rules are added here, next to the existing ones.
+function(_katherine_feature_default name fallback out_var)
+    set(default "${fallback}")
+    if(name STREQUAL "BUILD_DOXYGEN")
+        find_package(Doxygen "${KATHERINE_DOXYGEN_MINIMUM_VERSION}" QUIET)
+        if(DOXYGEN_FOUND)
+            set(default ON)
+        endif()
+    else()
+        message(FATAL_ERROR "katherine_declare_feature(${name}): declared "
+                            "AUTO_DETECTED, but no detection rule exists in "
+                            "_katherine_feature_default()")
+    endif()
+    set(${out_var} "${default}" PARENT_SCOPE)
 endfunction()
 
 function(katherine_declare_feature name description)
-    cmake_parse_arguments(PARSE_ARGV 2 ARG "" "DEFAULT;LEGACY" "")
+    cmake_parse_arguments(PARSE_ARGV 2 ARG "AUTO_DETECTED" "DEFAULT;LEGACY" "")
     if(NOT DEFINED ARG_DEFAULT)
         message(FATAL_ERROR "katherine_declare_feature(${name}): DEFAULT is required")
     endif()
@@ -57,7 +71,11 @@ function(katherine_declare_feature name description)
     endif()
     set(flag "KATHERINE_${name}")
 
-    _katherine_feature_default("${name}" "${ARG_DEFAULT}" default)
+    if(ARG_AUTO_DETECTED)
+        _katherine_feature_default("${name}" "${ARG_DEFAULT}" default)
+    else()
+        set(default "${ARG_DEFAULT}")
+    endif()
 
     # Backward compatibility with the deprecated pre-1.0 option name.
     if(ARG_LEGACY AND DEFINED CACHE{${ARG_LEGACY}})
