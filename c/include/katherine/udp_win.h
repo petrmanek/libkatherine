@@ -14,6 +14,11 @@
 
 #include <katherine/global.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #ifdef KATHERINE_WIN
 
 #include <winsock2.h>
@@ -38,3 +43,5 @@ typedef struct katherine_udp {
 #endif
 
 #endif /* KATHERINE_WIN */
+
+/** @} */

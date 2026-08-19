@@ -20,6 +20,11 @@
 
 namespace katherine {
 
+/**
+ * @addtogroup cxx_api
+ * @{
+ */
+
 using bmc = katherine_bmc_t;
 using bpc = katherine_bpc_t;
 using coord = katherine_coord_t;
@@ -88,5 +93,7 @@ load_bpc_file(std::string file_path)
 
     return data;
 }
+
+/** @} */
 
 }

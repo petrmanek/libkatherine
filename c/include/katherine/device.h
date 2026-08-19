@@ -15,6 +15,11 @@
 #include <katherine/global.h>
 #include <katherine/udp.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,3 +38,5 @@ katherine_device_fini(katherine_device_t *device);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */

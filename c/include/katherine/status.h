@@ -16,6 +16,11 @@
 #include <stdbool.h>
 #include <katherine/global.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -61,3 +66,5 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */

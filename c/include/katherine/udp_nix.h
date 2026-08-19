@@ -14,6 +14,11 @@
 
 #include <katherine/global.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #ifdef KATHERINE_NIX
 
 #include <arpa/inet.h>
@@ -36,3 +41,5 @@ typedef struct katherine_udp {
 #endif
 
 #endif /* KATHERINE_NIX */
+
+/** @} */

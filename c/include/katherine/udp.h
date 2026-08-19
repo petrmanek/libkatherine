@@ -17,6 +17,11 @@
 #include <katherine/udp_nix.h>
 #include <katherine/udp_win.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 // Uncomment the following line to enable network trace:
 // #define KATHERINE_DEBUG_UDP 2
 
@@ -48,3 +53,5 @@ katherine_udp_mutex_unlock(katherine_udp_t *u);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */

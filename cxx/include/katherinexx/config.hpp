@@ -20,6 +20,11 @@
 
 namespace katherine {
 
+/**
+ * @addtogroup cxx_api
+ * @{
+ */
+
 using trigger = katherine_trigger_t;
 
 static constexpr trigger no_trigger{
@@ -122,5 +127,7 @@ public:
     void set_test_pulse_config(katherine::test_pulse_config&& tp) { conf_.test_pulse_config = tp; }
 
 };
+
+/** @} */
 
 }

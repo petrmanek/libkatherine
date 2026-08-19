@@ -17,6 +17,11 @@
 #include <katherine/global.h>
 #include <katherine/px.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -83,3 +88,5 @@ katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherin
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */

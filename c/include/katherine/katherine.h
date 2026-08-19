@@ -10,6 +10,11 @@
  * SPDX-License-Identifier: MIT
  */
 
+/**
+ * @defgroup c_api C API
+ * @brief Native C interface of the Katherine control library.
+ */
+
 #pragma once
 
 #include <katherine/global.h>

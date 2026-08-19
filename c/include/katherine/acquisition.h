@@ -21,6 +21,11 @@
 #include <katherine/config.h>
 #include <katherine/px.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #define KATHERINE_MD_SIZE 6
 
 // Uncomment the following line to enable acquisition logging:
@@ -132,3 +137,5 @@ katherine_str_acquisition_status(char status);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */

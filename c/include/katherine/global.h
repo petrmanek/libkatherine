@@ -12,6 +12,11 @@
 
 #pragma once
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 /* Useful macros courtesy of:
  * https://atomheartother.github.io/c++/2018/07/12/CPPDynLib.html
  */
@@ -65,3 +70,5 @@
 #else
 #   error "Unknown platform"
 #endif
+
+/** @} */

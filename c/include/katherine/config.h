@@ -17,6 +17,11 @@
 #include <katherine/global.h>
 #include <katherine/px_config.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -176,3 +181,5 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */

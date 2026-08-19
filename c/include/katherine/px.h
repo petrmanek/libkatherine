@@ -14,6 +14,11 @@
 
 #include <stdint.h>
 
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,3 +70,5 @@ typedef struct katherine_px_event_itot {
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */

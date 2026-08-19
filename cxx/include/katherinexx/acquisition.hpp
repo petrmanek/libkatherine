@@ -22,6 +22,11 @@
 
 namespace katherine {
 
+/**
+ * @addtogroup cxx_api
+ * @{
+ */
+
 static constexpr std::size_t md_size = KATHERINE_MD_SIZE;
 
 enum class readout_type {
@@ -185,6 +190,11 @@ public:
 
 namespace acq {
 
+/**
+ * @addtogroup cxx_api
+ * @{
+ */
+
 struct f_toa_tot {
     using pixel_type                        = katherine_px_f_toa_tot_t;
     static constexpr acq_mode mode          = acq_mode::toa_tot;
@@ -220,6 +230,8 @@ struct event_itot {
     static constexpr acq_mode mode          = acq_mode::event_itot;
     static constexpr bool fast_vco_enabled  = false;
 };
+
+/** @} */
 
 }
 
@@ -263,5 +275,7 @@ str_acq_state(acq_state state)
 {
     return katherine_str_acquisition_status((char) state);
 }
+
+/** @} */
 
 }

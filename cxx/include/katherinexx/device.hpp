@@ -22,6 +22,11 @@
 
 namespace katherine {
 
+/**
+ * @addtogroup cxx_api
+ * @{
+ */
+
 class device {
     katherine_device_t dev_;
 
@@ -143,5 +148,7 @@ public:
     }
 
 };
+
+/** @} */
 
 }

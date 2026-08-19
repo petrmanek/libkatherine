@@ -20,6 +20,11 @@
 
 namespace katherine {
 
+/**
+ * @addtogroup cxx_api
+ * @{
+ */
+
 class error: public std::runtime_error {
 public:
     error(std::string what) :runtime_error{what} { }
@@ -31,5 +36,7 @@ public:
     system_error(int rc) :error{std::strerror(rc)} { }
 
 };
+
+/** @} */
 
 }

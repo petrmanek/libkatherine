@@ -10,6 +10,11 @@
  * SPDX-License-Identifier: MIT
  */
 
+/**
+ * @defgroup cxx_api C++ Wrapper
+ * @brief Header-only C++ interface wrapping the C API.
+ */
+
 #pragma once
 
 #include <katherinexx/error.hpp>

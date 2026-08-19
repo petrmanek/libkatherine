@@ -58,22 +58,44 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTA
 if(KATHERINE_BUILD_DOXYGEN)
     find_package(Doxygen "${KATHERINE_DOXYGEN_MINIMUM_VERSION}" REQUIRED)
 
+    # Render dependency graphs when Graphviz is available (found by
+    # FindDoxygen as the optional dot component).
+    if(TARGET Doxygen::dot)
+        set(KATHERINE_DOXYGEN_HAVE_DOT YES)
+        get_target_property(KATHERINE_DOXYGEN_DOT Doxygen::dot IMPORTED_LOCATION)
+        get_filename_component(KATHERINE_DOXYGEN_DOT_DIR "${KATHERINE_DOXYGEN_DOT}" DIRECTORY)
+    else()
+        set(KATHERINE_DOXYGEN_HAVE_DOT NO)
+        set(KATHERINE_DOXYGEN_DOT_DIR "")
+    endif()
+
     # Wrap the hand-maintained Doxyfile to redirect output into the build
     # tree; a distinct file name keeps in-source builds from clobbering it.
     set(KATHERINE_DOXYGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
     file(CONFIGURE OUTPUT katherine.doxyfile CONTENT [[
 @INCLUDE = "@CMAKE_CURRENT_SOURCE_DIR@/Doxyfile"
 OUTPUT_DIRECTORY = "@KATHERINE_DOXYGEN_OUTPUT_DIR@"
+PROJECT_NUMBER = @PROJECT_VERSION@
+HAVE_DOT = @KATHERINE_DOXYGEN_HAVE_DOT@
+DOT_PATH = "@KATHERINE_DOXYGEN_DOT_DIR@"
 ]] @ONLY)
 
     # Doxygen documents the same sources and headers that make up the
     # katherine target (INPUT = src, include in the Doxyfile), so reuse its
     # file lists as dependencies instead of globbing the directories. The
-    # top-level README serves as the main page of the documentation.
+    # top-level README serves as the main page of the documentation, and the
+    # C++ wrapper headers (mirroring KATHERINEXX_HEADERS, which is not yet
+    # defined when this directory is configured) are documented alongside.
     set(KATHERINE_DOXYGEN_INPUTS
         ${KATHERINE_SOURCES}
         ${KATHERINE_HEADERS}
         "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cxx/include/katherinexx/acquisition.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cxx/include/katherinexx/config.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cxx/include/katherinexx/device.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cxx/include/katherinexx/error.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cxx/include/katherinexx/katherinexx.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../cxx/include/katherinexx/px_config.hpp"
     )
 
     # Snapshot the input list; only rewritten when the set of files changes.
