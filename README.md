@@ -79,10 +79,11 @@ To show advanced usage of all provided libraries, several commented example
 programs and scripts are included in the repository. They can be either found
 in the `examples/` subdirectory for each library, or in the table below:
 
-| C                             | C++                                   | Python                                 | Purpose                                              |
-| ----------------------------- | ------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
-| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py) | Locate Katherine readouts in given IP address range. |
-| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)   | Configure & perform data-driven acquisition.         |
+| C                             | C++                                   | Python                                           | Purpose                                                      |
+| ----------------------------- | ------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ |
+| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)           | Locate Katherine readouts in given IP address range.         |
+| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)             | Configure & perform data-driven acquisition.                 |
+|                               |                                       | [tot_hitmap.py](./python/examples/tot_hitmap.py) | Plot an integrated frame in a pixel matrix from krun output. |
 
 
 ### Full Documentation
