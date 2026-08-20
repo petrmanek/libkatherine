@@ -14,8 +14,9 @@ include(KatherineFeatures)
 # Oldest Doxygen able to process docs/Doxyfile (the file's format version).
 set(KATHERINE_DOXYGEN_MINIMUM_VERSION 1.8.13)
 
-# Oldest Python and Cython able to build the bindings in python/.
-set(KATHERINE_PYTHON_MINIMUM_VERSION 3.5)
+# Oldest Python and Cython able to build the bindings in python/. The
+# Python floor follows the current Cython 3.x line, which requires 3.8.
+set(KATHERINE_PYTHON_MINIMUM_VERSION 3.8)
 set(KATHERINE_CYTHON_MINIMUM_VERSION 3.0)
 
 katherine_declare_feature(BUILD_CXX      "build C++ binaries"      DEFAULT ON  LEGACY BUILD_CXX)

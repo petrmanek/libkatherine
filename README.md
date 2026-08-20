@@ -179,7 +179,7 @@ are directly forwarded to libkatherine.
 
 The Python wrapper uses the following dependencies:
 
- - Python 3.5 (interpreter and development headers),
+ - Python 3.8 (interpreter and development headers),
  - Cython compiler 3.0 or newer,
  - libkatherine (the C library)
 
