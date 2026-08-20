@@ -28,7 +28,8 @@ target_include_directories(katherinexx
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherinexx.pc.in katherinexx.pc @ONLY)
 
 install(FILES ${KATHERINEXX_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherinexx)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherinexx.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+# Header-only, but kept next to katherine.pc for consistency.
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherinexx.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 if(KATHERINE_BUILD_EXAMPLES)
     add_subdirectory(examples)

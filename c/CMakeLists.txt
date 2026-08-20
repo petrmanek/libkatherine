@@ -63,7 +63,9 @@ install(TARGETS katherine
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${KATHERINE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+# The .pc file records the architecture-dependent libdir, so it belongs in
+# the libdir pkgconfig directory rather than the shared-data one.
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 if(KATHERINE_BUILD_EXAMPLES)
     add_subdirectory(examples)
