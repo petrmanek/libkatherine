@@ -62,10 +62,12 @@ jobs:
           -DKATHERINE_BUILD_PYTHON=${{ matrix.python && 'ON' || 'OFF' }}
 
       - name: Build
-        run: cmake --build build --parallel
+        # --config is required by multi-config generators (Visual Studio on
+        # the Windows runner); single-config generators ignore it.
+        run: cmake --build build --parallel --config Release
 
       # Tests land in an upcoming commit; run ctest only once the build
       # tree actually registers tests.
       - name: Test
         if: ${{ hashFiles('build/CTestTestfile.cmake') != '' }}
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure -C Release
