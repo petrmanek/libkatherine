@@ -192,7 +192,7 @@ cdef class Dacs:
 
     def __init__(self, cdata=None):
          if cdata is not None:
-             self._c_dacs.named = cdata.named
+             self._c_dacs.named = cdata['named']
 
     @property
     def Ibias_Preamp_ON(self):
