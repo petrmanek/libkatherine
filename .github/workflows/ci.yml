@@ -29,11 +29,6 @@ jobs:
   build:
     name: build (${{ matrix.os }}${{ matrix.compiler && format(', {0}', matrix.compiler) || '' }})
     runs-on: ${{ matrix.os }}
-    # The windows leg is experimental until verified green: c/src/config.c
-    # now uses C11 <threads.h>, which post-dates the last working Windows
-    # build (MSVC only ships threads.h since VS2022 17.8). Flip
-    # continue-on-error to false once the leg is confirmed working.
-    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +40,6 @@ jobs:
             compiler: clang
           - os: macos-latest
           - os: windows-latest
-            experimental: true
     steps:
       - uses: actions/checkout@v4
 
