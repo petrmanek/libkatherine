@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+enable_language(CXX)
+
 set(KATHERINEXX_HEADERS
     "include/katherinexx/acquisition.hpp"
     "include/katherinexx/config.hpp"
