@@ -88,3 +88,8 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTA
 if(KATHERINE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
+
+if(KATHERINE_BUILD_TESTS)
+    include(KatherineTests)
+    add_subdirectory(tests)
+endif()
