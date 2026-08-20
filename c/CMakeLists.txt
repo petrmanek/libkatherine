@@ -51,7 +51,12 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)
 
-install(TARGETS katherine LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+# On Windows the DLL is a RUNTIME artifact and the import library an ARCHIVE
+# artifact; elsewhere only the LIBRARY destination applies.
+install(TARGETS katherine
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${KATHERINE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
