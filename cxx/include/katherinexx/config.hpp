@@ -38,17 +38,17 @@ using dacs = katherine_dacs_t;
 
 using test_pulse_config = katherine_test_pulse_config_t;
 
-enum class phase: int {
-    p1 = PHASE_1,
-    p2 = PHASE_2,
-    p4 = PHASE_4,
-    p8 = PHASE_8,
+enum class phase : int {
+    p1  = PHASE_1,
+    p2  = PHASE_2,
+    p4  = PHASE_4,
+    p8  = PHASE_8,
     p16 = PHASE_16
 };
 
-enum class freq: int {
-    f40 = FREQ_40,
-    f80 = FREQ_80,
+enum class freq : int {
+    f40  = FREQ_40,
+    f80  = FREQ_80,
     f160 = FREQ_160
 };
 
@@ -56,7 +56,7 @@ class config {
     katherine_config_t conf_;
 
 public:
-    config() = default;
+    config()          = default;
     virtual ~config() = default;
 
     katherine_config_t *c_config() { return &conf_; }
@@ -125,7 +125,6 @@ public:
     katherine::test_pulse_config& test_pulse_config() { return conf_.test_pulse_config; }
     void set_test_pulse_config(const katherine::test_pulse_config& tp) { conf_.test_pulse_config = tp; }
     void set_test_pulse_config(katherine::test_pulse_config&& tp) { conf_.test_pulse_config = tp; }
-
 };
 
 /** @} */

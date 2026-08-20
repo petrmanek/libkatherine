@@ -30,9 +30,9 @@ typedef struct katherine_device katherine_device_t;
 
 
 typedef enum katherine_acquisition_mode {
-    ACQUISITION_MODE_TOA_TOT        = 0,
-    ACQUISITION_MODE_ONLY_TOA       = 1,
-    ACQUISITION_MODE_EVENT_ITOT     = 2,
+    ACQUISITION_MODE_TOA_TOT    = 0,
+    ACQUISITION_MODE_ONLY_TOA   = 1,
+    ACQUISITION_MODE_EVENT_ITOT = 2,
 } katherine_acquisition_mode_t;
 
 
@@ -44,12 +44,12 @@ typedef struct katherine_trigger {
 
 
 typedef struct katherine_test_pulse_config {
-    bool enabled;           ///< true if test pulses should be injected during acquisition
-    bool digital_only;      ///< false: pulse the analog frontend (amplitude = VTP_coarse - VTP_fine, DAC LSBs 5 mV / 2.5 mV), true: pulse the digital discriminator input
-    bool external;          ///< set true to bypass internal pulse generator with signal from the ExtTPulse pad (in such case count/period/phase do not apply)
-    uint16_t count;         ///< number of pulses per shutter opening, 1 to 65535
-    uint16_t period;        ///< pulse period in pixel-clock cycles (25 ns at 40 MHz), 65 to 16321 (1.625 us to 408.025 us), rounded down to the nearest 64k + 1
-    uint8_t phase;          ///< pulse edge clock phase, selects Clk_ph_shift[0..15]; keep 0 unless a multi-phase pixel clock is configured
+    bool enabled;      ///< true if test pulses should be injected during acquisition
+    bool digital_only; ///< false: pulse the analog frontend (amplitude = VTP_coarse - VTP_fine, DAC LSBs 5 mV / 2.5 mV), true: pulse the digital discriminator input
+    bool external;     ///< set true to bypass internal pulse generator with signal from the ExtTPulse pad (in such case count/period/phase do not apply)
+    uint16_t count;    ///< number of pulses per shutter opening, 1 to 65535
+    uint16_t period;   ///< pulse period in pixel-clock cycles (25 ns at 40 MHz), 65 to 16321 (1.625 us to 408.025 us), rounded down to the nearest 64k + 1
+    uint8_t phase;     ///< pulse edge clock phase, selects Clk_ph_shift[0..15]; keep 0 unless a multi-phase pixel clock is configured
 } katherine_test_pulse_config_t;
 
 
@@ -82,18 +82,18 @@ typedef union katherine_dacs {
 
 
 typedef enum katherine_phase {
-    PHASE_1     = 0,
-    PHASE_2     = 1,
-    PHASE_4     = 2,
-    PHASE_8     = 3,
-    PHASE_16    = 4,
+    PHASE_1  = 0,
+    PHASE_2  = 1,
+    PHASE_4  = 2,
+    PHASE_8  = 3,
+    PHASE_16 = 4,
 } katherine_phase_t;
 
 
 typedef enum katherine_freq {
-    FREQ_40     = 1,
-    FREQ_80     = 2,
-    FREQ_160    = 3,
+    FREQ_40  = 1,
+    FREQ_80  = 2,
+    FREQ_160 = 3,
 } katherine_freq_t;
 
 
@@ -125,7 +125,7 @@ KATHERINE_EXPORTED int
 katherine_configure(katherine_device_t *device, const katherine_config_t *config);
 
 KATHERINE_EXPORTED int
-katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t* px_config);
+katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config);
 
 KATHERINE_EXPORTED int
 katherine_set_acq_time(katherine_device_t *device, double ns);
@@ -146,18 +146,18 @@ KATHERINE_EXPORTED int
 katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger);
 
 typedef enum katherine_tpx3_reg {
-    TPX3_REG_TEST_PULSE_METHOD      = 0,
-    TPX3_REG_NUMBER_TEST_PULSES     = 1,
-    TPX3_REG_OUT_BLOCK_CONFIG       = 2,
-    TPX3_REG_PLL_CONFIG             = 3,
-    TPX3_REG_GENERAL_CONFIG         = 4,
-    TPX3_REG_SLVS_CONFIG            = 5,
-    TPX3_REG_POWER_PULSING_PATTERN  = 6,
-    TPX3_REG_SET_TIMER_LOW          = 7,
-    TPX3_REG_SET_TIMER_MID          = 8,
-    TPX3_REG_SET_TIMER_HIGH         = 9,
-    TPX3_REG_SENSE_DAC_SELECTOR     = 10,
-    TPX3_REG_EXT_DAC_SELECTOR       = 11,
+    TPX3_REG_TEST_PULSE_METHOD     = 0,
+    TPX3_REG_NUMBER_TEST_PULSES    = 1,
+    TPX3_REG_OUT_BLOCK_CONFIG      = 2,
+    TPX3_REG_PLL_CONFIG            = 3,
+    TPX3_REG_GENERAL_CONFIG        = 4,
+    TPX3_REG_SLVS_CONFIG           = 5,
+    TPX3_REG_POWER_PULSING_PATTERN = 6,
+    TPX3_REG_SET_TIMER_LOW         = 7,
+    TPX3_REG_SET_TIMER_MID         = 8,
+    TPX3_REG_SET_TIMER_HIGH        = 9,
+    TPX3_REG_SENSE_DAC_SELECTOR    = 10,
+    TPX3_REG_EXT_DAC_SELECTOR      = 11,
 } katherine_tpx3_reg_t;
 
 KATHERINE_EXPORTED int

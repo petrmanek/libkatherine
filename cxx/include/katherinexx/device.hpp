@@ -44,7 +44,7 @@ public:
         katherine_device_fini(&dev_);
     }
 
-    katherine_device_t* c_dev()
+    katherine_device_t *c_dev()
     {
         return &dev_;
     }
@@ -146,7 +146,6 @@ public:
 
         return voltage;
     }
-
 };
 
 /** @} */

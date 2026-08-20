@@ -108,12 +108,12 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
 
     // Receive any acknowledgements until we start getting timeouts (or exhaust 10 megabytes)
     size_t recv_size;
-    int res = 1;
+    int res      = 1;
     int attempts = 10;
     while (attempts > 0 && !!res) {
         --attempts;
         recv_size = 1024;
-        res = katherine_udp_recv(&device->control_socket, words, &recv_size);
+        res       = katherine_udp_recv(&device->control_socket, words, &recv_size);
     }
 
     free(words);
@@ -126,7 +126,7 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  * @return Error code.
  */
 int
-katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t* px_config)
+katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
 {
     int res;
 
@@ -135,11 +135,11 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
 
     // The following section sometimes cause issues, repeat it several times if need be.
     static const int max_attempts = 10;
-    int attempts = max_attempts;
+    int attempts                  = max_attempts;
     while (attempts > 0) {
         if (attempts != max_attempts) {
             // Wait a bit between attempts.
-            thrd_sleep(&(struct timespec) { .tv_nsec = 300000000 /* 300 ms */ }, NULL);
+            thrd_sleep(&(struct timespec) {.tv_nsec = 300000000 /* 300 ms */}, NULL);
         }
 
         --attempts;
@@ -154,10 +154,10 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
             res = katherine_cmd(&device->control_socket, config + 1024 * i, 1024);
             if (res) break;
 
-           if (i > 0) {
-                 // Wait between words to prevent data loss.
-                 thrd_sleep(&(struct timespec) { .tv_nsec = 10000000 /* 10 ms */ }, NULL);
-           }
+            if (i > 0) {
+                // Wait between words to prevent data loss.
+                thrd_sleep(&(struct timespec) {.tv_nsec = 10000000 /* 10 ms */}, NULL);
+            }
         }
 
         if (!res) {
@@ -220,8 +220,8 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
     if (res) return res;
 
     int64_t acqt = (int64_t) (ns / 10.);
-    int64_t lsb = (acqt & 0x00000000FFFFFFFF);
-    int64_t msb = (acqt & 0xFFFFFFFF00000000) >> 32;
+    int64_t lsb  = (acqt & 0x00000000FFFFFFFF);
+    int64_t msb  = (acqt & 0xFFFFFFFF00000000) >> 32;
 
     // Set LSB.
     res = katherine_cmd_set_acqtime_lsb(&device->control_socket, lsb);
@@ -261,7 +261,7 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     if (res) return res;
 
     char cmd[8] = {0};
-    cmd[6] = CMD_TYPE_ACQUISITION_MODE_SETTING;
+    cmd[6]      = CMD_TYPE_ACQUISITION_MODE_SETTING;
 
     cmd[0] |= acq_mode;
     cmd[0] |= fast_vco_enabled << 7;
@@ -383,8 +383,8 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     if (res) return res;
 
     char cmd[8] = {0};
-    cmd[6] = CMD_TYPE_ACQUISITION_SETUP;
-    cmd[4] = 0x05;
+    cmd[6]      = CMD_TYPE_ACQUISITION_SETUP;
+    cmd[4]      = 0x05;
 
     cmd[0] |= start_trigger->enabled;
     cmd[0] |= start_trigger->channel << 1;
@@ -436,7 +436,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     int res;
 
     char cmd[8] = {0};
-    cmd[6] = CMD_TYPE_TEST_PULSE_SETTING;
+    cmd[6]      = CMD_TYPE_TEST_PULSE_SETTING;
 
     if (tp_config->enabled) {
         if (!tp_config->external) {
@@ -469,7 +469,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
        always expire, so keep receiving until the acknowledgement arrives,
        an unrelated error occurs, or roughly 5 seconds elapse. */
     static const int max_attempts = 50;
-    int attempts = max_attempts;
+    int attempts                  = max_attempts;
     do {
         --attempts;
         res = katherine_cmd_wait_ack(&device->control_socket);
@@ -500,8 +500,8 @@ katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t 
     if (res) return res;
 
     char cmd[8] = {0};
-    cmd[6] = CMD_TYPE_SENSOR_REGISTER_SETTING;
-    cmd[4] = reg_idx;
+    cmd[6]      = CMD_TYPE_SENSOR_REGISTER_SETTING;
+    cmd[4]      = reg_idx;
     katherine_cmd_i64(cmd, reg_value);
 
     res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
@@ -615,8 +615,8 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
 
     for (int i = 0; i < 18; ++i) {
         char cmd[8] = {0};
-        cmd[6] = CMD_TYPE_INTERNAL_DAC_SETTINGS;
-        cmd[4] = (char) i;
+        cmd[6]      = CMD_TYPE_INTERNAL_DAC_SETTINGS;
+        cmd[4]      = (char) i;
         katherine_cmd_i64(cmd, dacs->array[i]);
 
         res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));

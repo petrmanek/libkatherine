@@ -15,7 +15,7 @@
 
 #include "address_source.hpp"
 
-int n_found = 0;
+int n_found     = 0;
 int n_attempted = 0;
 
 void

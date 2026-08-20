@@ -25,8 +25,8 @@ namespace katherine {
  * @{
  */
 
-using bmc = katherine_bmc_t;
-using bpc = katherine_bpc_t;
+using bmc   = katherine_bmc_t;
+using bpc   = katherine_bpc_t;
 using coord = katherine_coord_t;
 
 struct px_config: katherine_px_config_t {
@@ -44,7 +44,7 @@ struct px_config: katherine_px_config_t {
    the sole (standard-layout) subobject, which config.hpp relies upon when
    viewing katherine_config_t::pixel_config through this type. */
 static_assert(sizeof(px_config) == sizeof(katherine_px_config_t),
-              "katherine::px_config must not add data members");
+    "katherine::px_config must not add data members");
 
 inline katherine::px_config
 load_bmc_data(const bmc& bmc_data)

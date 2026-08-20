@@ -26,7 +26,7 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 static inline int
-katherine_cmd_wait_ack_crd(katherine_udp_t* udp, char *ack)
+katherine_cmd_wait_ack_crd(katherine_udp_t *udp, char *ack)
 {
     int res;
 
@@ -41,14 +41,14 @@ err:
 }
 
 static inline int
-katherine_cmd_wait_ack(katherine_udp_t* udp)
+katherine_cmd_wait_ack(katherine_udp_t *udp)
 {
     char ack[8];
     return katherine_cmd_wait_ack_crd(udp, ack);
 }
 
 static inline int
-katherine_cmd(katherine_udp_t* udp, const void* buffer, size_t count)
+katherine_cmd(katherine_udp_t *udp, const void *buffer, size_t count)
 {
     int res;
 
@@ -65,7 +65,7 @@ static inline int
 katherine_cmd6(katherine_udp_t *udp, char val6)
 {
     char cmd[8] = {0};
-    cmd[6] = val6;
+    cmd[6]      = val6;
     return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
@@ -73,8 +73,8 @@ static inline int
 katherine_cmd60(katherine_udp_t *udp, char val6, char val0)
 {
     char cmd[8] = {0};
-    cmd[6] = val6;
-    cmd[0] = val0;
+    cmd[6]      = val6;
+    cmd[0]      = val0;
     return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
@@ -98,8 +98,8 @@ static inline int
 katherine_cmd64_i64(katherine_udp_t *udp, char val6, char val4, int64_t value)
 {
     char cmd[8] = {0};
-    cmd[6] = val6;
-    cmd[4] = val4;
+    cmd[6]      = val6;
+    cmd[4]      = val4;
     katherine_cmd_i64(cmd, value);
 
     return katherine_cmd(udp, &cmd, sizeof(cmd));
@@ -109,70 +109,70 @@ static inline int
 katherine_cmd6_i64(katherine_udp_t *udp, char val6, int64_t value)
 {
     char cmd[8] = {0};
-    cmd[6] = val6;
+    cmd[6]      = val6;
     katherine_cmd_i64(cmd, value);
 
     return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
 static inline int
-katherine_cmd6_float(katherine_udp_t* udp, char val6, float value)
+katherine_cmd6_float(katherine_udp_t *udp, char val6, float value)
 {
     char cmd[8] = {0};
-    cmd[6] = val6;
-    int *bits = (int*) &value;
-    cmd[0] = (*bits & 0xff);
-    cmd[1] = ((*bits >> 8) & 0xff);
-    cmd[2] = ((*bits >> 16) & 0xff);
-    cmd[3] = ((*bits >> 24) & 0xff);
+    cmd[6]      = val6;
+    int *bits   = (int *) &value;
+    cmd[0]      = (*bits & 0xff);
+    cmd[1]      = ((*bits >> 8) & 0xff);
+    cmd[2]      = ((*bits >> 16) & 0xff);
+    cmd[3]      = ((*bits >> 24) & 0xff);
 
     return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
 #define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...) \
     static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp) \
-    {\
-        return katherine_##A(udp, __VA_ARGS__);\
+    { \
+        return katherine_##A(udp, __VA_ARGS__); \
     }
 
 #define K_DEFINE_CMD_ARG1(A, CMD_NAME, ARG1_TYPE, ...) \
     static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp, ARG1_TYPE arg1) \
-    {\
-        return katherine_##A(udp, __VA_ARGS__, arg1);\
+    { \
+        return katherine_##A(udp, __VA_ARGS__, arg1); \
     }
 
 typedef enum katherine_cmd_type {
-    CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB  = 0x01,
-    CMD_TYPE_BIAS_SETTINGS                  = 0x02,
-    CMD_TYPE_ACQUISITION_START              = 0x03,
-    CMD_TYPE_INTERNAL_DAC_SETTINGS          = 0x04,
-    CMD_TYPE_SEQ_READOUT_START              = 0x05,
-    CMD_TYPE_ACQUISITION_STOP               = 0x06,
-    CMD_TYPE_HW_COMMAND_START               = 0x07,
-    CMD_TYPE_SENSOR_REGISTER_SETTING        = 0x08,
-    CMD_TYPE_ACQUISITION_MODE_SETTING       = 0x09,
-    CMD_TYPE_ACQUISITION_TIME_SETTING_MSB   = 0x0A,
-    CMD_TYPE_ECHO_CHIP_ID                   = 0x0B,
-    CMD_TYPE_GET_BIAS_VOLTAGE               = 0x0C,
-    CMD_TYPE_GET_ADC_VOLTAGE                = 0x0D,
-    CMD_TYPE_GET_BACK_READ_REGISTER         = 0x0E,
-    CMD_TYPE_INTERNAL_DAC_SCAN              = 0x0F,
-    CMD_TYPE_SET_PIXEL_CONFIG               = 0x10,
-    CMD_TYPE_GET_PIXEL_CONFIG               = 0x11,
-    CMD_TYPE_SET_ALL_PIXEL_CONFIG           = 0x12,
-    CMD_TYPE_NUMBER_OF_FRAMES               = 0x13,
-    CMD_TYPE_GET_ALL_DAC_SCAN               = 0x14,
-    CMD_TYPE_GET_HW_READOUT_TEMPERATURE     = 0x15,
-    CMD_TYPE_LED_SETTINGS                   = 0x16,
-    CMD_TYPE_GET_READOUT_STATUS             = 0x17,
-    CMD_TYPE_GET_COMMUNICATION_STATUS       = 0x18,
-    CMD_TYPE_GET_SENSOR_TEMPERATURE         = 0x19,
-    CMD_TYPE_DIGITAL_TEST                   = 0x20,
-    CMD_TYPE_ACQUISITION_SETUP              = 0x21,
-    CMD_TYPE_INTERNAL_TRIGGER_GENERATOR     = 0x23,
-    CMD_TYPE_TEST_PULSE_SETTING             = 0x26,
-    CMD_TYPE_TOA_CALIBRATION_SETUP          = 0x28,
-    CMD_TYPE_INTERNAL_TDC_SETTINGS          = 0x32,
+    CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB = 0x01,
+    CMD_TYPE_BIAS_SETTINGS                 = 0x02,
+    CMD_TYPE_ACQUISITION_START             = 0x03,
+    CMD_TYPE_INTERNAL_DAC_SETTINGS         = 0x04,
+    CMD_TYPE_SEQ_READOUT_START             = 0x05,
+    CMD_TYPE_ACQUISITION_STOP              = 0x06,
+    CMD_TYPE_HW_COMMAND_START              = 0x07,
+    CMD_TYPE_SENSOR_REGISTER_SETTING       = 0x08,
+    CMD_TYPE_ACQUISITION_MODE_SETTING      = 0x09,
+    CMD_TYPE_ACQUISITION_TIME_SETTING_MSB  = 0x0A,
+    CMD_TYPE_ECHO_CHIP_ID                  = 0x0B,
+    CMD_TYPE_GET_BIAS_VOLTAGE              = 0x0C,
+    CMD_TYPE_GET_ADC_VOLTAGE               = 0x0D,
+    CMD_TYPE_GET_BACK_READ_REGISTER        = 0x0E,
+    CMD_TYPE_INTERNAL_DAC_SCAN             = 0x0F,
+    CMD_TYPE_SET_PIXEL_CONFIG              = 0x10,
+    CMD_TYPE_GET_PIXEL_CONFIG              = 0x11,
+    CMD_TYPE_SET_ALL_PIXEL_CONFIG          = 0x12,
+    CMD_TYPE_NUMBER_OF_FRAMES              = 0x13,
+    CMD_TYPE_GET_ALL_DAC_SCAN              = 0x14,
+    CMD_TYPE_GET_HW_READOUT_TEMPERATURE    = 0x15,
+    CMD_TYPE_LED_SETTINGS                  = 0x16,
+    CMD_TYPE_GET_READOUT_STATUS            = 0x17,
+    CMD_TYPE_GET_COMMUNICATION_STATUS      = 0x18,
+    CMD_TYPE_GET_SENSOR_TEMPERATURE        = 0x19,
+    CMD_TYPE_DIGITAL_TEST                  = 0x20,
+    CMD_TYPE_ACQUISITION_SETUP             = 0x21,
+    CMD_TYPE_INTERNAL_TRIGGER_GENERATOR    = 0x23,
+    CMD_TYPE_TEST_PULSE_SETTING            = 0x26,
+    CMD_TYPE_TOA_CALIBRATION_SETUP         = 0x28,
+    CMD_TYPE_INTERNAL_TDC_SETTINGS         = 0x32,
 } katherine_cmd_type_t;
 
 // clang-format off
@@ -186,22 +186,22 @@ K_DEFINE_CMD_ARG0(cmd6,       digital_test,                             CMD_TYPE
 // clang-format on
 
 typedef enum katherine_hw_cmd_type {
-    CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE            = 0,
-    CMD_START_INTERNAL_DAC_UPDATE                       = 1,
-    CMD_START_INTERNAL_DAC_BACK_READ                    = 2,
-    CMD_START_TIMER_READ                                = 3,
-    CMD_START_TIMER_SET                                 = 4,
-    CMD_START_RESET_MATRIX_SEQUENTIAL                   = 5,
-    CMD_START_STOP_MATRIX_COMMAND                       = 6,
-    CMD_START_LOAD_COLUMN_TEST_PULSE_REGISTER           = 7,
-    CMD_START_READ_COLUMN_TEST_PULSE_REGISTER           = 8,
-    CMD_START_LOAD_PIXEL_REGISTER_CONFIGURATION         = 9,
-    CMD_START_READ_PIXEL_REGISTER_CONFIGURATION         = 10,
-    CMD_START_READ_PIXEL_MATRIX_SEQUENTIAL              = 11,
-    CMD_START_READ_PIXEL_MATRIX_DATA_DRIVEN_SETTING     = 12,
-    CMD_START_CHIP_ID_READ                              = 13,
-    CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE                = 14,
-    CMD_START_DIGITAL_TEST                              = 15,
+    CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE        = 0,
+    CMD_START_INTERNAL_DAC_UPDATE                   = 1,
+    CMD_START_INTERNAL_DAC_BACK_READ                = 2,
+    CMD_START_TIMER_READ                            = 3,
+    CMD_START_TIMER_SET                             = 4,
+    CMD_START_RESET_MATRIX_SEQUENTIAL               = 5,
+    CMD_START_STOP_MATRIX_COMMAND                   = 6,
+    CMD_START_LOAD_COLUMN_TEST_PULSE_REGISTER       = 7,
+    CMD_START_READ_COLUMN_TEST_PULSE_REGISTER       = 8,
+    CMD_START_LOAD_PIXEL_REGISTER_CONFIGURATION     = 9,
+    CMD_START_READ_PIXEL_REGISTER_CONFIGURATION     = 10,
+    CMD_START_READ_PIXEL_MATRIX_SEQUENTIAL          = 11,
+    CMD_START_READ_PIXEL_MATRIX_DATA_DRIVEN_SETTING = 12,
+    CMD_START_CHIP_ID_READ                          = 13,
+    CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE            = 14,
+    CMD_START_DIGITAL_TEST                          = 15,
 } katherine_hw_cmd_type_t;
 
 // clang-format off

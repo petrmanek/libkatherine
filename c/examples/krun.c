@@ -10,10 +10,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <stdlib.h>     // exit
-#include <stdio.h>      // printf
-#include <time.h>       // time, difftime
-#include <string.h>     // strerror
+#include <stdlib.h> // exit
+#include <stdio.h>  // printf
+#include <time.h>   // time, difftime
+#include <string.h> // strerror
 
 #include <katherine/katherine.h>
 
@@ -37,7 +37,7 @@ paint_test_pixels(katherine_px_config_t *px_config)
         "X...",
     };
     static const int n_rows = sizeof(shape) / sizeof(shape[0]);
-    static const int scale = 5;          // each shape cell becomes a scale x scale block of pixels
+    static const int scale  = 5;         // each shape cell becomes a scale x scale block of pixels
     static const int x0 = 120, y0 = 120; // bottom-left corner of the shape
     int n_painted = 0;
 
@@ -76,44 +76,44 @@ configure(katherine_config_t *config)
 {
     // For now, these constants are hard-coded.
     // This configuration will produce meaningful results only for: K7-W0005
-    config->bias_id                 = 0;
-    config->acq_time                = 10e9; // ns
-    config->no_frames               = 1;
-    config->bias                    = 230; // V
+    config->bias_id   = 0;
+    config->acq_time  = 10e9; // ns
+    config->no_frames = 1;
+    config->bias      = 230; // V
 
-    config->delayed_start           = false;
+    config->delayed_start = false;
 
-    config->start_trigger.enabled           = false;
-    config->start_trigger.channel           = 0;
-    config->start_trigger.use_falling_edge  = false;
-    config->stop_trigger.enabled            = false;
-    config->stop_trigger.channel            = 0;
-    config->stop_trigger.use_falling_edge   = false;
+    config->start_trigger.enabled          = false;
+    config->start_trigger.channel          = 0;
+    config->start_trigger.use_falling_edge = false;
+    config->stop_trigger.enabled           = false;
+    config->stop_trigger.channel           = 0;
+    config->stop_trigger.use_falling_edge  = false;
 
-    config->gray_disable            = false;
-    config->polarity_holes          = false;
+    config->gray_disable   = false;
+    config->polarity_holes = false;
 
-    config->phase                   = PHASE_1;
-    config->freq                    = FREQ_40;
+    config->phase = PHASE_1;
+    config->freq  = FREQ_40;
 
-    config->dacs.named.Ibias_Preamp_ON       = 128;
-    config->dacs.named.Ibias_Preamp_OFF      = 8;
-    config->dacs.named.VPReamp_NCAS          = 128;
-    config->dacs.named.Ibias_Ikrum           = 15;
-    config->dacs.named.Vfbk                  = 164;
-    config->dacs.named.Vthreshold_fine       = 476;
-    config->dacs.named.Vthreshold_coarse     = 8;
-    config->dacs.named.Ibias_DiscS1_ON       = 100;
-    config->dacs.named.Ibias_DiscS1_OFF      = 8;
-    config->dacs.named.Ibias_DiscS2_ON       = 128;
-    config->dacs.named.Ibias_DiscS2_OFF      = 8;
-    config->dacs.named.Ibias_PixelDAC        = 128;
-    config->dacs.named.Ibias_TPbufferIn      = 128;
-    config->dacs.named.Ibias_TPbufferOut     = 128;
-    config->dacs.named.VTP_coarse            = 128;
-    config->dacs.named.VTP_fine              = 256;
-    config->dacs.named.Ibias_CP_PLL          = 128;
-    config->dacs.named.PLL_Vcntrl            = 128;
+    config->dacs.named.Ibias_Preamp_ON   = 128;
+    config->dacs.named.Ibias_Preamp_OFF  = 8;
+    config->dacs.named.VPReamp_NCAS      = 128;
+    config->dacs.named.Ibias_Ikrum       = 15;
+    config->dacs.named.Vfbk              = 164;
+    config->dacs.named.Vthreshold_fine   = 476;
+    config->dacs.named.Vthreshold_coarse = 8;
+    config->dacs.named.Ibias_DiscS1_ON   = 100;
+    config->dacs.named.Ibias_DiscS1_OFF  = 8;
+    config->dacs.named.Ibias_DiscS2_ON   = 128;
+    config->dacs.named.Ibias_DiscS2_OFF  = 8;
+    config->dacs.named.Ibias_PixelDAC    = 128;
+    config->dacs.named.Ibias_TPbufferIn  = 128;
+    config->dacs.named.Ibias_TPbufferOut = 128;
+    config->dacs.named.VTP_coarse        = 128;
+    config->dacs.named.VTP_fine          = 256;
+    config->dacs.named.Ibias_CP_PLL      = 128;
+    config->dacs.named.PLL_Vcntrl        = 128;
 
     int res = katherine_px_config_load_bmc_file(&config->pixel_config, "chipconfig.bmc");
     if (res != 0) {
@@ -131,12 +131,12 @@ configure(katherine_config_t *config)
         config->dacs.named.VTP_coarse = 128;
         config->dacs.named.VTP_fine   = 352;
 
-        config->test_pulse_config.enabled       = true;
-        config->test_pulse_config.digital_only  = false;
-        config->test_pulse_config.external      = false;
-        config->test_pulse_config.count         = 100;
-        config->test_pulse_config.period        = 6401; // clock cycles, ~160 us @ 40 MHz
-        config->test_pulse_config.phase         = 0;
+        config->test_pulse_config.enabled      = true;
+        config->test_pulse_config.digital_only = false;
+        config->test_pulse_config.external     = false;
+        config->test_pulse_config.count        = 100;
+        config->test_pulse_config.period       = 6401; // clock cycles, ~160 us @ 40 MHz
+        config->test_pulse_config.phase        = 0;
 
         paint_test_pixels(&config->pixel_config);
     }
@@ -206,8 +206,8 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
         exit(3);
     }
 
-    acq.handlers.frame_started = frame_started;
-    acq.handlers.frame_ended = frame_ended;
+    acq.handlers.frame_started   = frame_started;
+    acq.handlers.frame_ended     = frame_ended;
     acq.handlers.pixels_received = pixels_received;
 
     res = katherine_acquisition_begin(&acq, c, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true);
@@ -220,7 +220,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     printf("Acquisition started.\n");
 
     time_t tic = time(NULL);
-    res = katherine_acquisition_read(&acq);
+    res        = katherine_acquisition_read(&acq);
     if (res != 0) {
         printf("Cannot read acquisition data.\n");
         printf("Reason: %s\n", strerror(res));
@@ -228,7 +228,8 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     }
     time_t toc = time(NULL);
 
-    double duration = difftime(toc, tic);;
+    double duration = difftime(toc, tic);
+    ;
     printf("\n");
     printf("Acquisition completed:\n");
     printf(" - state: %s\n", katherine_str_acquisition_status(acq.state));

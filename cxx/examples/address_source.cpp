@@ -44,16 +44,16 @@ address_source::address() const
 }
 
 address_source::address_source()
-    :have_address_{true}
+    : have_address_{true}
 {
 }
 
 void
-address_source::set_bounds(int* min, int* max)
+address_source::set_bounds(int *min, int *max)
 {
     for (int i = 0; i < 4; ++i) {
         cur_[i] = min_[i] = min[i];
-        max_[i] = max[i];
+        max_[i]           = max[i];
     }
 
     have_address_ = true;

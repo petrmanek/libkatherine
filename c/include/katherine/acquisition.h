@@ -66,15 +66,15 @@ typedef struct katherine_acquisition_handlers {
 } katherine_acquisition_handlers_t;
 
 typedef enum katherine_readout_type {
-    READOUT_SEQUENTIAL = 0,
+    READOUT_SEQUENTIAL  = 0,
     READOUT_DATA_DRIVEN = 1
 } katherine_readout_type_t;
 
 typedef enum katherine_acquisition_state {
     ACQUISITION_NOT_STARTED = 0,
-    ACQUISITION_RUNNING = 1,
-    ACQUISITION_SUCCEEDED = 2,
-    ACQUISITION_TIMED_OUT = 3
+    ACQUISITION_RUNNING     = 1,
+    ACQUISITION_SUCCEEDED   = 2,
+    ACQUISITION_TIMED_OUT   = 3
 } katherine_acquisition_state_t;
 
 typedef struct katherine_acquisition {

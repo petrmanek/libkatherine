@@ -10,10 +10,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <stdio.h>      // printf, sprintf
-#include <string.h>     // strchr
-#include <stdbool.h>    // bool
-#include <stdlib.h>     // abort
+#include <stdio.h>   // printf, sprintf
+#include <string.h>  // strchr
+#include <stdbool.h> // bool
+#include <stdlib.h>  // abort
 #include <katherine/katherine.h>
 
 static bool have_address = true;
@@ -22,7 +22,7 @@ static int cur[] = {0, 0, 0, 0};
 static int min[] = {192, 168, 1, 100};
 static int max[] = {192, 168, 1, 200};
 
-static int n_found = 0;
+static int n_found     = 0;
 static int n_attempted = 0;
 
 static void
@@ -83,10 +83,10 @@ parse_range(int *min, int *max, char *range)
     } else {
         // Expecting two numbers separated by a dash.
         *dash_pos = '\0';
-        *min = atoi(range);
+        *min      = atoi(range);
 
         *dash_pos = '.';
-        *max = atoi(dash_pos + 1);
+        *max      = atoi(dash_pos + 1);
     }
 }
 
@@ -98,7 +98,7 @@ parse_args(int argc, char *argv[], int min[4], int max[4])
     }
 
     static const char separator = '.';
-    char *arg = argv[1];
+    char *arg                   = argv[1];
     char *pos[3];
 
     pos[0] = strchr(arg, separator);

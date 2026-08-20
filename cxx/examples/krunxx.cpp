@@ -36,7 +36,7 @@ paint_test_pixels(katherine::px_config& px_config)
         "X...",
     };
     static constexpr int n_rows = sizeof(shape) / sizeof(shape[0]);
-    static constexpr int scale = 5;          // each shape cell becomes a scale x scale block of pixels
+    static constexpr int scale  = 5;         // each shape cell becomes a scale x scale block of pixels
     static constexpr int x0 = 120, y0 = 120; // bottom-left corner of the shape
     int n_painted = 0;
 
@@ -97,24 +97,24 @@ configure(katherine::config& config)
     config.set_freq(katherine::freq::f40);
 
     katherine::dacs dacs{};
-    dacs.named.Ibias_Preamp_ON       = 128;
-    dacs.named.Ibias_Preamp_OFF      = 8;
-    dacs.named.VPReamp_NCAS          = 128;
-    dacs.named.Ibias_Ikrum           = 15;
-    dacs.named.Vfbk                  = 164;
-    dacs.named.Vthreshold_fine       = 476;
-    dacs.named.Vthreshold_coarse     = 8;
-    dacs.named.Ibias_DiscS1_ON       = 100;
-    dacs.named.Ibias_DiscS1_OFF      = 8;
-    dacs.named.Ibias_DiscS2_ON       = 128;
-    dacs.named.Ibias_DiscS2_OFF      = 8;
-    dacs.named.Ibias_PixelDAC        = 128;
-    dacs.named.Ibias_TPbufferIn      = 128;
-    dacs.named.Ibias_TPbufferOut     = 128;
-    dacs.named.VTP_coarse            = 128;
-    dacs.named.VTP_fine              = 256;
-    dacs.named.Ibias_CP_PLL          = 128;
-    dacs.named.PLL_Vcntrl            = 128;
+    dacs.named.Ibias_Preamp_ON   = 128;
+    dacs.named.Ibias_Preamp_OFF  = 8;
+    dacs.named.VPReamp_NCAS      = 128;
+    dacs.named.Ibias_Ikrum       = 15;
+    dacs.named.Vfbk              = 164;
+    dacs.named.Vthreshold_fine   = 476;
+    dacs.named.Vthreshold_coarse = 8;
+    dacs.named.Ibias_DiscS1_ON   = 100;
+    dacs.named.Ibias_DiscS1_OFF  = 8;
+    dacs.named.Ibias_DiscS2_ON   = 128;
+    dacs.named.Ibias_DiscS2_OFF  = 8;
+    dacs.named.Ibias_PixelDAC    = 128;
+    dacs.named.Ibias_TPbufferIn  = 128;
+    dacs.named.Ibias_TPbufferOut = 128;
+    dacs.named.VTP_coarse        = 128;
+    dacs.named.VTP_fine          = 256;
+    dacs.named.Ibias_CP_PLL      = 128;
+    dacs.named.PLL_Vcntrl        = 128;
     config.set_dacs(std::move(dacs));
 
     katherine::px_config px_config = katherine::load_bmc_file("chipconfig.bmc");
@@ -129,12 +129,12 @@ configure(katherine::config& config)
         config.dacs().named.VTP_fine   = 352;
 
         katherine::test_pulse_config tp{};
-        tp.enabled       = true;
-        tp.digital_only  = false;
-        tp.external      = false;
-        tp.count         = 100;
-        tp.period        = 6401; // clock cycles, ~160 us @ 40 MHz
-        tp.phase         = 0;
+        tp.enabled      = true;
+        tp.digital_only = false;
+        tp.external     = false;
+        tp.count        = 100;
+        tp.period       = 6401; // clock cycles, ~160 us @ 40 MHz
+        tp.phase        = 0;
         config.set_test_pulse_config(std::move(tp));
 
         paint_test_pixels(config.pixel_config());
@@ -157,14 +157,15 @@ frame_ended(int frame_idx, bool completed, const katherine_frame_info_t& info)
 {
     const double recv_perc = 100. * info.received_pixels / info.sent_pixels;
 
-    std::cerr << std::endl << std::endl;
+    std::cerr << std::endl
+              << std::endl;
     std::cerr << "Ended frame " << frame_idx << "." << std::endl;
     std::cerr << " - tpx3->katherine lost " << info.lost_pixels << " pixels" << std::endl
-                << " - katherine->pc sent " << info.sent_pixels << " pixels" << std::endl
-                << " - katherine->pc received " << info.received_pixels << " pixels (" << recv_perc << " %)" << std::endl
-                << " - state: " << (completed ? "completed" : "not completed") << std::endl
-                << " - start time: " << info.start_time.d << std::endl
-                << " - end time: " << info.end_time.d << std::endl;
+              << " - katherine->pc sent " << info.sent_pixels << " pixels" << std::endl
+              << " - katherine->pc received " << info.received_pixels << " pixels (" << recv_perc << " %)" << std::endl
+              << " - state: " << (completed ? "completed" : "not completed") << std::endl
+              << " - start time: " << info.start_time.d << std::endl
+              << " - end time: " << info.end_time.d << std::endl;
 }
 
 void
@@ -210,12 +211,12 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
     double duration = duration_cast<milliseconds>(toc - tic).count() / 1000.;
     std::cerr << std::endl;
     std::cerr << "Acquisition completed:" << std::endl
-                << " - state: " << katherine::str_acq_state(acq.state()) << std::endl
-                << " - received " << acq.completed_frames() << " complete frames" << std::endl
-                << " - dropped " << acq.dropped_measurement_data() << " measurement data items" << std::endl
-                << " - total hits: " << n_hits << std::endl
-                << " - total duration: " << duration << " s" << std::endl
-                << " - throughput: " << (n_hits / duration) << " hits/s" << std::endl;
+              << " - state: " << katherine::str_acq_state(acq.state()) << std::endl
+              << " - received " << acq.completed_frames() << " complete frames" << std::endl
+              << " - dropped " << acq.dropped_measurement_data() << " measurement data items" << std::endl
+              << " - total hits: " << n_hits << std::endl
+              << " - total duration: " << duration << " s" << std::endl
+              << " - throughput: " << (n_hits / duration) << " hits/s" << std::endl;
 }
 
 int

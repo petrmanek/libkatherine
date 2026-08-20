@@ -22,17 +22,17 @@
    such byte per pixel in the BMC bit layout (see the katherine_bmc_px
    struct at the head of px_config.h; the loaders below only permute the
    local threshold bits of the BPC format). */
-#define _BITS_bmc_px_mask_start         0
-#define _BITS_bmc_px_mask_mask          MASK(1)
-#define _BITS_bmc_px_mask_type          bool
+#define _BITS_bmc_px_mask_start    0
+#define _BITS_bmc_px_mask_mask     MASK(1)
+#define _BITS_bmc_px_mask_type     bool
 
-#define _BITS_bmc_px_loc_thl_start      1
-#define _BITS_bmc_px_loc_thl_mask       MASK(4)
-#define _BITS_bmc_px_loc_thl_type       uint8_t
+#define _BITS_bmc_px_loc_thl_start 1
+#define _BITS_bmc_px_loc_thl_mask  MASK(4)
+#define _BITS_bmc_px_loc_thl_type  uint8_t
 
-#define _BITS_bmc_px_test_start         5
-#define _BITS_bmc_px_test_mask          MASK(1)
-#define _BITS_bmc_px_test_type          bool
+#define _BITS_bmc_px_test_start    5
+#define _BITS_bmc_px_test_mask     MASK(1)
+#define _BITS_bmc_px_test_type     bool
 
 /**
  * Load pixel configuration from a BMC file (in BurdaMan format).
@@ -46,7 +46,7 @@ katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *
     int res = 0;
 
     const size_t expected_size = sizeof(katherine_bmc_t);
-    FILE* file = fopen(file_path, "rb");
+    FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
         res = errno;
         goto err_fopen;
@@ -87,7 +87,7 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
     memset(&px_config->words, 0, 65536);
 
     int x, y;
-    uint32_t *dest = (uint32_t*) px_config->words;
+    uint32_t *dest           = (uint32_t *) px_config->words;
     const unsigned char *src = (const unsigned char *) bmc->px_config;
 
     // Parse data from BMC format.
@@ -112,7 +112,7 @@ katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *
     int res = 0;
 
     const size_t expected_size = sizeof(katherine_bpc_t);
-    FILE* file = fopen(file_path, "rb");
+    FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
         res = errno;
         goto err_fopen;
@@ -153,14 +153,14 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
     memset(&px_config->words, 0, 65536);
 
     int x, y;
-    uint32_t *dest = (uint32_t*) px_config->words;
-    const unsigned char *src = (const unsigned char *) bpc->px_config;
-    static unsigned char reverse_array[] = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
+    uint32_t *dest                       = (uint32_t *) px_config->words;
+    const unsigned char *src             = (const unsigned char *) bpc->px_config;
+    static unsigned char reverse_array[] = {0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15};
     unsigned char val;
 
     for (int i = 0; i < 65536; ++i) {
-        y = i / 256;
-        x = i % 256;
+        y   = i / 256;
+        x   = i % 256;
         val = (unsigned char) ((src[i] & 0x21) | (reverse_array[((src[i] & 0x1E) >> 1)] << 1));
 
         y = 255 - y;
@@ -185,9 +185,9 @@ _px_config_get_byte(const katherine_px_config_t *px_config, katherine_coord_t co
 static inline void
 _px_config_set_byte(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t byte)
 {
-    const int yy = 255 - coord.y;
+    const int yy    = 255 - coord.y;
     const int shift = 8 * (3 - (yy % 4));
-    uint32_t *word = &px_config->words[(64 * coord.x) + (yy >> 2)];
+    uint32_t *word  = &px_config->words[(64 * coord.x) + (yy >> 2)];
 
     *word = (*word & ~((uint32_t) 0xFF << shift)) | ((uint32_t) byte << shift);
 }

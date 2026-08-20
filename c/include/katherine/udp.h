@@ -36,13 +36,13 @@ KATHERINE_EXPORTED void
 katherine_udp_fini(katherine_udp_t *u);
 
 KATHERINE_EXPORTED int
-katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count);
+katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count);
 
 KATHERINE_EXPORTED int
-katherine_udp_recv_exact(katherine_udp_t* u, void* data, size_t count);
+katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count);
 
 KATHERINE_EXPORTED int
-katherine_udp_recv(katherine_udp_t* u, void* data, size_t* count);
+katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count);
 
 KATHERINE_EXPORTED int
 katherine_udp_mutex_lock(katherine_udp_t *u);

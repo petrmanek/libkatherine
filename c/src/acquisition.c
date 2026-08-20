@@ -36,8 +36,8 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
     acq->current_frame_info.start_time_observed = time(NULL);
-    acq->current_frame_info.completed = false;
-    acq->frame_active = true;
+    acq->current_frame_info.completed           = false;
+    acq->frame_active                           = true;
 
     if (acq->handlers.frame_started != NULL) {
         acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
@@ -58,8 +58,8 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
     flush_buffer(acq);
 
     acq->current_frame_info.sent_pixels = EXTRACT(*data, md_frame_finished, n_sent);
-    acq->current_frame_info.completed = true;
-    acq->frame_active = false;
+    acq->current_frame_info.completed   = true;
+    acq->frame_active                   = false;
 
     if (acq->handlers.frame_ended != NULL) {
         acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, true, &acq->current_frame_info);
@@ -226,15 +226,15 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
 {
     int res = 0;
 
-    acq->device = device;
-    acq->user_ctx = ctx;
-    acq->state = ACQUISITION_NOT_STARTED;
-    acq->aborted = false;
+    acq->device       = device;
+    acq->user_ctx     = ctx;
+    acq->state        = ACQUISITION_NOT_STARTED;
+    acq->aborted      = false;
     acq->frame_active = false;
 
     // Handlers are optional. Clear them so that a caller which registers only
     // some of them does not leave the rest pointing at indeterminate values.
-    acq->handlers = (katherine_acquisition_handlers_t){ 0 };
+    acq->handlers = (katherine_acquisition_handlers_t) {0};
 
     acq->md_buffer_size = md_buffer_size;
 
@@ -248,8 +248,8 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
         goto err_datagram_buffer;
     }
 
-    acq->pixel_buffer_size = pixel_buffer_size;
-    acq->pixel_buffer = (char *) malloc(acq->pixel_buffer_size);
+    acq->pixel_buffer_size  = pixel_buffer_size;
+    acq->pixel_buffer       = (char *) malloc(acq->pixel_buffer_size);
     acq->pixel_buffer_valid = 0;
     if (acq->pixel_buffer == NULL) {
         res = ENOMEM;
@@ -257,7 +257,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     }
 
     acq->report_timeout = report_timeout;
-    acq->fail_timeout = fail_timeout;
+    acq->fail_timeout   = fail_timeout;
 
     return res;
 
@@ -279,100 +279,100 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 }
 
 #define DEFINE_ACQ_IMPL(SUFFIX) \
-    static inline void\
-    handle_measurement_data_##SUFFIX(katherine_acquisition_t *acq, const uint64_t *md)\
-    {\
-        static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t);\
-        char hdr = EXTRACT(*md, md, header);\
-        \
-        if (hdr == 0x4) {\
-            if (acq->pixel_buffer_valid == acq->pixel_buffer_max_valid) {\
-                flush_buffer(acq);\
-            }\
-            \
-            pmd_##SUFFIX##_map((katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid, md, acq);\
-            ++acq->pixel_buffer_valid;\
-        } else {\
-            switch (hdr) {\
-            case 0x2: handle_trigger_info(acq, md); break;\
-            case 0x3: handle_trigger_info(acq, md); break;\
-            case 0x5: handle_timestamp_offset_driven_mode(acq, md); break;\
-            case 0x7: handle_new_frame(acq, md); break;\
-            case 0x8: handle_frame_start_timestamp_lsb(acq, md); break;\
-            case 0x9: handle_frame_start_timestamp_msb(acq, md); break;\
-            case 0xA: handle_frame_end_timestamp_lsb(acq, md); break;\
-            case 0xB: handle_frame_end_timestamp_msb(acq, md); break;\
-            case 0xC: handle_current_frame_finished(acq, md); break;\
-            case 0xD: handle_lost_pixel_count(acq, md); break;\
-            case 0xE: handle_aborted_measurement(acq, md); break;\
-            default:  handle_unknown_msg(acq, md); break;\
-            }\
-        }\
-    }\
-    \
-    static int\
-    acquisition_read_##SUFFIX(katherine_acquisition_t *acq)\
-    {\
-        static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t);\
-        \
-        if (katherine_udp_mutex_lock(&acq->device->data_socket) != 0) return 1;\
-        \
-        time_t last_data_received = time(NULL);\
-        double duration;\
-        double kill_off_time = acq->fail_timeout <= 0 ? -1 : acq->requested_frames * acq->requested_frame_duration + (double) acq->fail_timeout / 1000.0;\
-        int res;\
-        \
-        size_t i;\
-        size_t received;\
-        \
-        acq->pixel_buffer_valid = 0;\
-        acq->pixel_buffer_max_valid = acq->pixel_buffer_size / PIXEL_SIZE;\
-        \
-        while (acq->state == ACQUISITION_RUNNING) {\
-            received = acq->md_buffer_size;\
-            res = katherine_udp_recv(&acq->device->data_socket, acq->md_buffer, &received);\
-            \
-            if (res) {\
-                duration = 1000 * difftime(time(NULL), last_data_received);\
-                if (acq->report_timeout > 0 && duration > acq->report_timeout && acq->pixel_buffer_valid > 0) {\
-                    flush_buffer(acq);\
-                }\
-                \
-                duration = difftime(time(NULL), acq->acq_start_time);\
-                if (kill_off_time > 0 && duration > kill_off_time) {\
-                    acq->state = ACQUISITION_TIMED_OUT;\
-                }\
-		\
-		if(!acq->decode_data && acq->aborted) {		\
-		  acq->state = ACQUISITION_SUCCEEDED;\
-		}				     \
-            continue;    \
-            }\
-            \
-            last_data_received = time(NULL);\
-            \
-	    if(acq->decode_data) {\
-	        const char *it = acq->md_buffer;\
+    static inline void \
+    handle_measurement_data_##SUFFIX(katherine_acquisition_t *acq, const uint64_t *md) \
+    { \
+        static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
+        char hdr                    = EXTRACT(*md, md, header); \
+\
+        if (hdr == 0x4) { \
+            if (acq->pixel_buffer_valid == acq->pixel_buffer_max_valid) { \
+                flush_buffer(acq); \
+            } \
+\
+            pmd_##SUFFIX##_map((katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid, md, acq); \
+            ++acq->pixel_buffer_valid; \
+        } else { \
+            switch (hdr) { \
+            case 0x2: handle_trigger_info(acq, md); break; \
+            case 0x3: handle_trigger_info(acq, md); break; \
+            case 0x5: handle_timestamp_offset_driven_mode(acq, md); break; \
+            case 0x7: handle_new_frame(acq, md); break; \
+            case 0x8: handle_frame_start_timestamp_lsb(acq, md); break; \
+            case 0x9: handle_frame_start_timestamp_msb(acq, md); break; \
+            case 0xA: handle_frame_end_timestamp_lsb(acq, md); break; \
+            case 0xB: handle_frame_end_timestamp_msb(acq, md); break; \
+            case 0xC: handle_current_frame_finished(acq, md); break; \
+            case 0xD: handle_lost_pixel_count(acq, md); break; \
+            case 0xE: handle_aborted_measurement(acq, md); break; \
+            default:  handle_unknown_msg(acq, md); break; \
+            } \
+        } \
+    } \
+\
+    static int \
+    acquisition_read_##SUFFIX(katherine_acquisition_t *acq) \
+    { \
+        static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
+\
+        if (katherine_udp_mutex_lock(&acq->device->data_socket) != 0) return 1; \
+\
+        time_t last_data_received = time(NULL); \
+        double duration; \
+        double kill_off_time = acq->fail_timeout <= 0 ? -1 : acq->requested_frames * acq->requested_frame_duration + (double) acq->fail_timeout / 1000.0; \
+        int res; \
+\
+        size_t i; \
+        size_t received; \
+\
+        acq->pixel_buffer_valid     = 0; \
+        acq->pixel_buffer_max_valid = acq->pixel_buffer_size / PIXEL_SIZE; \
+\
+        while (acq->state == ACQUISITION_RUNNING) { \
+            received = acq->md_buffer_size; \
+            res      = katherine_udp_recv(&acq->device->data_socket, acq->md_buffer, &received); \
+\
+            if (res) { \
+                duration = 1000 * difftime(time(NULL), last_data_received); \
+                if (acq->report_timeout > 0 && duration > acq->report_timeout && acq->pixel_buffer_valid > 0) { \
+                    flush_buffer(acq); \
+                } \
+\
+                duration = difftime(time(NULL), acq->acq_start_time); \
+                if (kill_off_time > 0 && duration > kill_off_time) { \
+                    acq->state = ACQUISITION_TIMED_OUT; \
+                } \
+\
+                if (!acq->decode_data && acq->aborted) { \
+                    acq->state = ACQUISITION_SUCCEEDED; \
+                } \
+                continue; \
+            } \
+\
+            last_data_received = time(NULL); \
+\
+            if (acq->decode_data) { \
+                const char *it = acq->md_buffer; \
                 for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
-                    handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it);\
-                }\
-	    } else if (acq->handlers.data_received != NULL) {\
-                acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received);\
-	    }\
-        }\
-        \
-        if (acq->frame_active) {\
-            handle_acquisition_interrupted(acq);\
-        } else if (acq->pixel_buffer_valid > 0) {\
-            flush_buffer(acq);\
-        }\
-        \
-        (void) katherine_udp_mutex_unlock(&acq->device->data_socket);\
-        switch (acq->state) {\
-        case ACQUISITION_SUCCEEDED:     return 0;\
-        case ACQUISITION_TIMED_OUT:     return ETIMEDOUT;\
-        default:                        return EAGAIN;\
-        }\
+                    handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it); \
+                } \
+            } else if (acq->handlers.data_received != NULL) { \
+                acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received); \
+            } \
+        } \
+\
+        if (acq->frame_active) { \
+            handle_acquisition_interrupted(acq); \
+        } else if (acq->pixel_buffer_valid > 0) { \
+            flush_buffer(acq); \
+        } \
+\
+        (void) katherine_udp_mutex_unlock(&acq->device->data_socket); \
+        switch (acq->state) { \
+        case ACQUISITION_SUCCEEDED: return 0; \
+        case ACQUISITION_TIMED_OUT: return ETIMEDOUT; \
+        default:                    return EAGAIN; \
+        } \
     }
 
 DEFINE_ACQ_IMPL(f_toa_tot);
@@ -433,10 +433,10 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 {
     int res = 0;
 
-    acq->acq_mode = acq_mode;
-    acq->readout_mode = readout_mode;
+    acq->acq_mode         = acq_mode;
+    acq->readout_mode     = readout_mode;
     acq->fast_vco_enabled = fast_vco_enabled;
-    acq->decode_data = decode_data;
+    acq->decode_data      = decode_data;
 
 #if KATHERINE_DEBUG_ACQ > 0
     dump_config(acq, config);
@@ -458,15 +458,15 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 
     acq->state = ACQUISITION_RUNNING;
 
-    acq->completed_frames = 0;
-    acq->requested_frames = config->no_frames;
+    acq->completed_frames         = 0;
+    acq->requested_frames         = config->no_frames;
     acq->requested_frame_duration = config->acq_time / 1e9;
     acq->dropped_measurement_data = 0;
 
-    acq->pixel_buffer_valid = 0;
+    acq->pixel_buffer_valid     = 0;
     acq->pixel_buffer_max_valid = 0;
-    acq->last_toa_offset = 0;
-    acq->frame_active = false;
+    acq->last_toa_offset        = 0;
+    acq->frame_active           = false;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
     if (res) goto err;
@@ -543,14 +543,14 @@ err:
  * @param status Status to describe
  * @return Null-terminated string.
  */
-const char*
+const char *
 katherine_str_acquisition_status(char status)
 {
     switch (status) {
-    case ACQUISITION_NOT_STARTED:   return "not started";
-    case ACQUISITION_SUCCEEDED:     return "succeeded";
-    case ACQUISITION_RUNNING:       return "running";
-    case ACQUISITION_TIMED_OUT:     return "timed out";
-    default:                        return "unknown";
+    case ACQUISITION_NOT_STARTED: return "not started";
+    case ACQUISITION_SUCCEEDED:   return "succeeded";
+    case ACQUISITION_RUNNING:     return "running";
+    case ACQUISITION_TIMED_OUT:   return "timed out";
+    default:                      return "unknown";
     }
 }

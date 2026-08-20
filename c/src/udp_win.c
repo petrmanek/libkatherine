@@ -12,7 +12,9 @@
 
 #include <katherine/global.h>
 
-void empty_method() {}
+void
+empty_method()
+{ }
 
 #ifdef KATHERINE_WIN
 
@@ -68,11 +70,11 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     }
 
     // Setup and bind the socket address.
-    u->addr_local.sin_family = AF_INET;
-    u->addr_local.sin_port = htons(local_port);
+    u->addr_local.sin_family      = AF_INET;
+    u->addr_local.sin_port        = htons(local_port);
     u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(u->sock, (const struct sockaddr*) &u->addr_local, sizeof(u->addr_local)) == SOCKET_ERROR) {
+    if (bind(u->sock, (const struct sockaddr *) &u->addr_local, sizeof(u->addr_local)) == SOCKET_ERROR) {
         res = WSAGetLastError();
         goto err_bind;
     }
@@ -80,7 +82,7 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     if (timeout_ms > 0) {
         // Set socket timeout.
         DWORD timeout = timeout_ms;
-        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, (char*) &timeout, sizeof(timeout)) == SOCKET_ERROR) {
+        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout)) == SOCKET_ERROR) {
             res = WSAGetLastError();
             goto err_timeout;
         }
@@ -88,7 +90,7 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
 
     // Set remote socket address.
     u->addr_remote.sin_family = AF_INET;
-    u->addr_remote.sin_port = htons(remote_port);
+    u->addr_remote.sin_port   = htons(remote_port);
     if (inet_pton(AF_INET, remote_addr, &u->addr_remote.sin_addr) <= 0) {
         res = WSAGetLastError();
         goto err_remote;
@@ -133,14 +135,14 @@ katherine_udp_fini(katherine_udp_t *u)
  * @return Error code.
  */
 int
-katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count)
+katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
 {
     size_t sent;
-    size_t total = 0;
-    const char *cdata = (const char*) data;
+    size_t total      = 0;
+    const char *cdata = (const char *) data;
 
     do {
-        sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr*) &u->addr_remote, sizeof(u->addr_remote));
+        sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
         if (sent == SOCKET_ERROR) {
             return WSAGetLastError();
         }
@@ -163,12 +165,12 @@ katherine_udp_send_exact(katherine_udp_t* u, const void* data, size_t count)
  * @return Error code.
  */
 int
-katherine_udp_recv_exact(katherine_udp_t* u, void* data, size_t count)
+katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
 {
     size_t received;
-    size_t total = 0;
+    size_t total       = 0;
     socklen_t addr_len = sizeof(u->addr_remote);
-    char *cdata = (char*) data;
+    char *cdata        = (char *) data;
 
     while (total < count) {
         received = recvfrom(u->sock, cdata + total, count - total, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
@@ -194,11 +196,11 @@ katherine_udp_recv_exact(katherine_udp_t* u, void* data, size_t count)
  * @return Error code.
  */
 int
-katherine_udp_recv(katherine_udp_t* u, void* data, size_t* count)
+katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
 {
     socklen_t addr_len = sizeof(u->addr_remote);
-    char *cdata = (char*) data;
-    size_t received = recvfrom(u->sock, cdata, *count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
+    char *cdata        = (char *) data;
+    size_t received    = recvfrom(u->sock, cdata, *count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
 
     if (received == SOCKET_ERROR) {
         return WSAGetLastError();

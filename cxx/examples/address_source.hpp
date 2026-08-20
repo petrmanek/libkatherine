@@ -33,5 +33,4 @@ public:
 
     void
     set_bounds(int min[4], int max[4]);
-
 };
