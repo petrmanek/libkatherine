@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MIT
 
 prefix=@CMAKE_INSTALL_PREFIX@
-libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
-includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+libdir=@KATHERINE_PC_LIBDIR@
+includedir=@KATHERINE_PC_INCLUDEDIR@
 
 Name: katherine
 Description: Control library for the Katherine DAQ system

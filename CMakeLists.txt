@@ -42,6 +42,17 @@ endif()
 
 include(GNUInstallDirs)
 
+# Directory spellings for the pkg-config templates in c/ and cxx/: keep the
+# ${prefix}-relative form (relocatable via pkg-config --define-prefix)
+# unless the install directory was overridden with an absolute path.
+foreach(dir LIBDIR INCLUDEDIR)
+    if(IS_ABSOLUTE "${CMAKE_INSTALL_${dir}}")
+        set(KATHERINE_PC_${dir} "${CMAKE_INSTALL_${dir}}")
+    else()
+        set(KATHERINE_PC_${dir} "\${prefix}/${CMAKE_INSTALL_${dir}}")
+    endif()
+endforeach()
+
 add_subdirectory(c)
 
 if(KATHERINE_BUILD_CXX)
