@@ -1,0 +1,70 @@
+# Copyright (c) 2018 Petr Mánek.
+# This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+#
+# SPDX-License-Identifier: MIT
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: git ls-files '*.c' '*.h' '*.cpp' '*.hpp' | xargs clang-format --dry-run --Werror
+
+  build:
+    name: build (${{ matrix.os }}${{ matrix.compiler && format(', {0}', matrix.compiler) || '' }})
+    runs-on: ${{ matrix.os }}
+    # The windows leg is experimental until verified green: c/src/config.c
+    # now uses C11 <threads.h>, which post-dates the last working Windows
+    # build (MSVC only ships threads.h since VS2022 17.8). Flip
+    # continue-on-error to false once the leg is confirmed working.
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            python: true
+          - os: ubuntu-latest
+            compiler: clang
+          - os: macos-latest
+          - os: windows-latest
+            experimental: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Cython
+        if: matrix.python
+        run: pip install Cython
+
+      - name: Set compiler
+        if: matrix.compiler
+        run: |
+          echo "CC=${{ matrix.compiler }}" >> "$GITHUB_ENV"
+          echo "CXX=${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DKATHERINE_BUILD_CXX=ON
+          -DKATHERINE_BUILD_EXAMPLES=ON
+          -DKATHERINE_BUILD_PYTHON=${{ matrix.python && 'ON' || 'OFF' }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # Tests land in an upcoming commit; run ctest only once the build
+      # tree actually registers tests.
+      - name: Test
+        if: ${{ hashFiles('build/CTestTestfile.cmake') != '' }}
+        run: ctest --test-dir build --output-on-failure

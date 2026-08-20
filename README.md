@@ -11,14 +11,10 @@ This git repository contains 3 libraries in total:
  2. [libkatherinexx](./cxx/), a C++ header-only wrapper,
  3. [katherine](./python/), a Python wrapper package.
 
-At the present time, the library is **multi-platform**. The implementation
-supports the following platforms:
+At the present time, the library is **multi-platform**, supporting Linux,
+macOS and Windows.
 
-| Platform | CI Status                                               |
-| -------- | :------------------------------------------------------ |
-| Linux    | [![Linux Build Status][travis-badge-linux]][travis]     |
-| macOS    | [![macOS Build Status][travis-badge-osx]][travis]       |
-| Windows  | [![Windows Build Status][travis-badge-windows]][travis] |
+[![CI Status][ci-badge]][ci]
 
 
 ## Usage
@@ -107,7 +103,7 @@ prefix `katherine_`).
 ## Build Notes
 
 The project uses CMake 3 build system. It can be configured, built and installed
-by standard CMake commands. In case of doubt, check the [Travis][travis-yml]
+by standard CMake commands. In case of doubt, check the [CI workflow][ci-yml]
 configuration file for examples of build commands for individual platforms.
 
 For convenience, here's a minimal out-of-source-directory build script example:
@@ -254,10 +250,8 @@ in the development of this library:
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
 
-[travis]:               https://travis-ci.org/petrmanek/libkatherine
-[travis-yml]:           ./.travis.yml
-[travis-badge-linux]:   https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=linux&label=build&branch=master
-[travis-badge-osx]:     https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=osx&label=build&branch=master
-[travis-badge-windows]: https://badges.herokuapp.com/travis/petrmanek/libkatherine?env=BADGE=windows&label=build&branch=master
+[ci]:       https://github.com/petrmanek/libkatherine/actions/workflows/ci.yml
+[ci-badge]: https://github.com/petrmanek/libkatherine/actions/workflows/ci.yml/badge.svg
+[ci-yml]:   ./.github/workflows/ci.yml
 
 [cbt-doc]: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html
