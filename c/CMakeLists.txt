@@ -38,6 +38,9 @@ set(KATHERINE_DOCUMENTED_FILES "${KATHERINE_DOCUMENTED_FILES}" PARENT_SCOPE)
 
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 add_library(katherine::katherine ALIAS katherine)
+# The implementation needs C11; the public headers only need C99, so this
+# is not a usage requirement.
+target_compile_features(katherine PRIVATE c_std_11)
 set_target_properties(katherine PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}

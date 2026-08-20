@@ -22,8 +22,13 @@ katherine_declare_feature(BUILD_EXAMPLES "build example programs"  DEFAULT ON  L
 katherine_declare_feature(BUILD_DOXYGEN  "build API documentation" DEFAULT OFF AUTO_DETECTED)
 katherine_feature_summary()
 
-set(CMAKE_C_STANDARD    17)
-set(CMAKE_CXX_STANDARD  17)
+# The dialect this project's own binaries are built with (reproducible
+# across compilers with different defaults); the language floors required
+# by the libraries are declared on their targets with compile features.
+set(CMAKE_C_STANDARD            17)
+set(CMAKE_C_STANDARD_REQUIRED   ON)
+set(CMAKE_CXX_STANDARD          17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
