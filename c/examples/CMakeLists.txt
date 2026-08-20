@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 add_executable(kfind kfind.c)
-target_link_libraries(kfind katherine)
+target_link_libraries(kfind PRIVATE katherine)
 
 add_executable(krun krun.c)
-target_link_libraries(krun katherine)
+target_link_libraries(krun PRIVATE katherine)

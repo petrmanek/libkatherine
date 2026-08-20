@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 add_executable(kfindxx kfindxx.cpp address_source.cpp address_source.hpp)
-target_link_libraries(kfindxx katherinexx)
+target_link_libraries(kfindxx PRIVATE katherinexx)
 
 add_executable(krunxx krunxx.cpp)
-target_link_libraries(krunxx katherinexx)
+target_link_libraries(krunxx PRIVATE katherinexx)

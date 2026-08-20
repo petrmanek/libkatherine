@@ -40,4 +40,4 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherinexx.pc DESTINATION ${CMAKE_INS
 
 if(KATHERINE_BUILD_EXAMPLES)
     add_subdirectory(examples)
-endif(KATHERINE_BUILD_EXAMPLES)
+endif()

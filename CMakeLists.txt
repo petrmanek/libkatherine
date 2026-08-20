@@ -46,17 +46,17 @@ add_subdirectory(c)
 
 if(KATHERINE_BUILD_CXX)
     add_subdirectory(cxx)
-endif(KATHERINE_BUILD_CXX)
+endif()
 
 if(KATHERINE_BUILD_PYTHON)
     add_subdirectory(python)
-endif(KATHERINE_BUILD_PYTHON)
+endif()
 
 # Added last: the documentation build consumes the file lists exported by
 # the c/ and cxx/ directories.
 if(KATHERINE_BUILD_DOXYGEN)
     add_subdirectory(docs)
-endif(KATHERINE_BUILD_DOXYGEN)
+endif()
 
 # CMake package, so that consumers can find_package(katherine) and link
 # katherine::katherine or katherine::katherinexx as an alternative to

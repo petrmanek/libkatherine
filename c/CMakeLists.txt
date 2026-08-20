@@ -55,7 +55,7 @@ target_include_directories(katherine
 
 # On Windows, link to ws2_32
 if(WIN32 OR MINGW)
-  target_link_libraries(katherine ws2_32)
+  target_link_libraries(katherine PRIVATE ws2_32)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)
@@ -74,4 +74,4 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTA
 
 if(KATHERINE_BUILD_EXAMPLES)
     add_subdirectory(examples)
-endif(KATHERINE_BUILD_EXAMPLES)
+endif()
