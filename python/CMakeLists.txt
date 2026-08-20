@@ -69,6 +69,12 @@ endif()
 set(KATHERINE_PYTHON_INSTALL_DIR "${KATHERINE_PYTHON_DEFAULT_INSTALL_DIR}" CACHE PATH
     "Installation directory of the Python module (a relative path is anchored at the install prefix)")
 
+# With the default prefix, the destination is the interpreter's absolute
+# site-packages directory, which -Wdev flags as install-absolute-destination.
+# That is deliberate: the module must land on sys.path to be importable with
+# no further setup, and DESTDIR staging relocates absolute destinations on
+# *nix regardless. Relocatable installs (custom prefixes, packaging) use a
+# prefix-relative destination and are not affected.
 install(TARGETS pykatherine LIBRARY DESTINATION "${KATHERINE_PYTHON_INSTALL_DIR}")
 
 if(WIN32)
