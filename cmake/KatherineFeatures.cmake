@@ -55,13 +55,15 @@ function(_katherine_feature_default name fallback out_var)
         endif()
     elseif(name STREQUAL "BUILD_PYTHON")
         find_package(Python3 "${KATHERINE_PYTHON_MINIMUM_VERSION}" QUIET
-                     COMPONENTS Interpreter Development)
+                     COMPONENTS Interpreter Development.Module)
         if(Python3_FOUND)
-            list(JOIN KATHERINE_PYTHON_REQUIRED_MODULES ", " imports)
-            execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import ${imports}"
-                            RESULT_VARIABLE import_result
-                            OUTPUT_QUIET ERROR_QUIET)
-            if(import_result EQUAL 0)
+            execute_process(COMMAND "${Python3_EXECUTABLE}" -m cython --version
+                            RESULT_VARIABLE cython_result
+                            OUTPUT_VARIABLE cython_output
+                            ERROR_VARIABLE cython_output)
+            if(cython_result EQUAL 0
+               AND cython_output MATCHES "Cython version ([0-9.]+)"
+               AND NOT CMAKE_MATCH_1 VERSION_LESS KATHERINE_CYTHON_MINIMUM_VERSION)
                 set(default ON)
             endif()
         endif()

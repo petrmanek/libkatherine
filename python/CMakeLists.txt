@@ -4,46 +4,76 @@
 # SPDX-License-Identifier: MIT
 
 find_package(Python3 "${KATHERINE_PYTHON_MINIMUM_VERSION}" REQUIRED
-             COMPONENTS Interpreter Development)
+             COMPONENTS Interpreter Development.Module)
 
-# setup.py imports these modules at build time; verify them now so a broken
-# environment fails the configuration rather than the first build.
-list(JOIN KATHERINE_PYTHON_REQUIRED_MODULES ", " KATHERINE_PYTHON_IMPORTS)
-execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import ${KATHERINE_PYTHON_IMPORTS}"
-                RESULT_VARIABLE KATHERINE_PYTHON_IMPORT_RESULT
-                OUTPUT_QUIET ERROR_QUIET)
-if(NOT KATHERINE_PYTHON_IMPORT_RESULT EQUAL 0)
-    message(FATAL_ERROR "KATHERINE_BUILD_PYTHON requires the Python modules "
-                        "${KATHERINE_PYTHON_IMPORTS} to be importable by "
-                        "${Python3_EXECUTABLE}")
+# The bindings are transpiled to C by the cython compiler; verify it now so a
+# broken environment fails the configuration rather than the first build.
+execute_process(COMMAND "${Python3_EXECUTABLE}" -m cython --version
+                RESULT_VARIABLE KATHERINE_CYTHON_RESULT
+                OUTPUT_VARIABLE KATHERINE_CYTHON_OUTPUT
+                ERROR_VARIABLE KATHERINE_CYTHON_OUTPUT)
+if(NOT KATHERINE_CYTHON_RESULT EQUAL 0
+   OR NOT KATHERINE_CYTHON_OUTPUT MATCHES "Cython version ([0-9.]+)"
+   OR CMAKE_MATCH_1 VERSION_LESS KATHERINE_CYTHON_MINIMUM_VERSION)
+    message(FATAL_ERROR "KATHERINE_BUILD_PYTHON requires Cython "
+                        "${KATHERINE_CYTHON_MINIMUM_VERSION} or newer to be "
+                        "usable by ${Python3_EXECUTABLE}")
 endif()
 
-set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.in")
-set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
-
-set(PY_OUTPUT   "${CMAKE_CURRENT_BINARY_DIR}/build/pykatherine")
+set(PYKATHERINE_PYX "${CMAKE_CURRENT_SOURCE_DIR}/katherine.pyx")
+set(PYKATHERINE_C   "${CMAKE_CURRENT_BINARY_DIR}/katherine.c")
 
 set(PYKATHERINE_SOURCES
-    "cacquisition.pxd"
-    "cconfig.pxd"
-    "cdevice.pxd"
-    "cpx_config.pxd"
-    "cstatus.pxd"
-    "katherine.pyx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cacquisition.pxd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cconfig.pxd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cdevice.pxd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cpx.pxd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cpx_config.pxd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cstatus.pxd"
+    "${PYKATHERINE_PYX}"
 )
 
-configure_file(${SETUP_PY_IN} ${SETUP_PY})
+add_custom_command(OUTPUT "${PYKATHERINE_C}"
+                   COMMAND "${Python3_EXECUTABLE}" -m cython -3
+                           -I "${CMAKE_CURRENT_SOURCE_DIR}"
+                           -o "${PYKATHERINE_C}"
+                           "${PYKATHERINE_PYX}"
+                   DEPENDS ${PYKATHERINE_SOURCES}
+                   COMMENT "Cythonizing katherine.pyx"
+                   VERBATIM)
 
-add_custom_command(OUTPUT "${PY_OUTPUT}"
-                   COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} build_ext
-                   COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
-                   COMMENT "Generating Python bindings"
-               )
+# The extension module is importable as 'katherine'; the target keeps the
+# historical name because the C library already claims 'katherine'.
+Python3_add_library(pykatherine MODULE WITH_SOABI "${PYKATHERINE_C}")
+set_target_properties(pykatherine PROPERTIES
+    OUTPUT_NAME katherine
+    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+)
+target_link_libraries(pykatherine PRIVATE katherine)
 
-add_custom_target(pykatherine
-                  ALL
-                  DEPENDS ${PY_OUTPUT} katherine
-                  SOURCES ${PYKATHERINE_SOURCES}
-                )
+# Default destination of the Python module. An install into the default
+# system prefix goes straight to the interpreter's site-packages, so that
+# 'import katherine' works with no further setup. An install into a custom
+# prefix keeps the module under that prefix instead (mirroring the
+# interpreter's own site-packages layout), like every other artifact.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(KATHERINE_PYTHON_DEFAULT_INSTALL_DIR "${Python3_SITEARCH}")
+else()
+    execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import sys; print(sys.prefix)"
+                    OUTPUT_VARIABLE KATHERINE_PYTHON_SYS_PREFIX
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    file(RELATIVE_PATH KATHERINE_PYTHON_DEFAULT_INSTALL_DIR
+         "${KATHERINE_PYTHON_SYS_PREFIX}" "${Python3_SITEARCH}")
+endif()
 
-install(CODE "execute_process(COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} install)")
+set(KATHERINE_PYTHON_INSTALL_DIR "${KATHERINE_PYTHON_DEFAULT_INSTALL_DIR}" CACHE PATH
+    "Installation directory of the Python module (a relative path is anchored at the install prefix)")
+
+install(TARGETS pykatherine LIBRARY DESTINATION "${KATHERINE_PYTHON_INSTALL_DIR}")
+
+if(WIN32)
+    # Python 3.8+ does not search PATH for the dependencies of an extension
+    # module, and rpath does not exist on Windows; ship the C library next to
+    # the module so that it is importable with no further setup.
+    install(FILES $<TARGET_FILE:katherine> DESTINATION "${KATHERINE_PYTHON_INSTALL_DIR}")
+endif()

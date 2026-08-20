@@ -178,62 +178,34 @@ are directly forwarded to libkatherine.
 
 The Python wrapper uses the following dependencies:
 
- - Python 3.5,
- - Cython compiler 0.29,
+ - Python 3.5 (interpreter and development headers),
+ - Cython compiler 3.0 or newer,
  - libkatherine (the C library)
 
-The wrapper generates an extension module which can be loaded and used by any script.
-Its file name is derived from platform and Python version. Upon successful build, the
-file can be located inside the CMake build directory at path:
-`./python/build/lib.{PLATFORM}-{ARCH}-{PYTHON_VERSION}/`. While in Linux systems, the
-file has .so extension (e.g. `katherine.cpython-37m-x86_64-linux-gnu.so`), in Windows
-the file's extension is .pyd (e.g. `katherine.cp37-win_amd64.pyd`).
+The wrapper builds an extension module whose file name is derived from platform
+and Python version. Upon successful build, it is located in the root of the
+CMake build directory. While in Linux systems, the file has .so extension
+(e.g. `katherine.cpython-314-x86_64-linux-gnu.so`), in Windows the file's
+extension is .pyd (e.g. `katherine.cp314-win_amd64.pyd`).
 
-**Note:** Before using the Python wrapper, make sure that the interpeter has access to all
-the required files. Specifically:
+With the default install prefix, the install step copies the module into the
+interpreter's site-packages directory, after which `import katherine` works
+with no further setup (in \*nix systems the module locates `libkatherine.so`
+through its embedded rpath; in Windows `katherine.dll` is installed next to
+the module). When a custom `CMAKE_INSTALL_PREFIX` is chosen at configuration
+time, the module is kept under that prefix instead (mirroring the
+interpreter's site-packages layout, e.g. `<prefix>/lib/python3.14/site-packages`),
+and the directory must be added to `PYTHONPATH`. Either behavior can be
+overridden by pointing the `KATHERINE_PYTHON_INSTALL_DIR` cache variable
+(absolute, or relative to the prefix) at the desired directory, e.g. that of
+a virtual environment.
 
- 1. The extension module is located in one of the `PYTHONPATH` directories.
- 2. The `libkatherine.so` library file (or `katherine.dll` in Windows) is located in one
-    of the `LD_LIBRARY_PATH` directories (or `PATH` directories in Windows).
+To use the module from the build tree without installing, add the build
+directory to `PYTHONPATH`:
 
-If these conditions are not satisfied, you are likely going to encounter to `ModuleNotFoundError`
-in the first case and `ImportError` in the second.
-
-Be also aware that you can change the variables directly from Python without having to
-alter their values on system-wide level. This is especially useful in Windows environments. Here's
-an example script:
-
-```python
-import sys
-import os
-
-ext_path = '<directory containing extension module>'
-lib_path = '<directory containing katherine library file>'
-
-# Alter environment to include the extension module
-sys.path.append(ext_path)
-
-# Alter environment to include the library
-if os.name == 'nt':
-  # use semicolon on Windows systems
-  os.environ['PATH'] += ';%s;' % lib_path
-else:
-  # use different variable and colon on *nix systems
-  os.environ['LD_LIBRARY_PATH'] += ':%s:' % lib_path
-
-try:
-  import katherine
-  dev = katherine.Device('192.168.1.145')
-except ModuleNotFoundError:
-  print('Something wrong with ext_path')
-except ImportError:
-  print('Something wrong with lib_path')
+```shell
+PYTHONPATH=/path/to/build python3 -c 'import katherine'
 ```
-
-If you get linker errors during Cython build phase, check that the target architectures of
-the katherine library and the python extension modules are the same. In Windows environment,
-Cython prefers 64-bit MSVC by default, so it is necessary to choose the "Win64" generator
-in CMake configuration.
 
 
 ## Copyright
