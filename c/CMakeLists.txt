@@ -37,6 +37,7 @@ list(TRANSFORM KATHERINE_DOCUMENTED_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/"
 set(KATHERINE_DOCUMENTED_FILES "${KATHERINE_DOCUMENTED_FILES}" PARENT_SCOPE)
 
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
+add_library(katherine::katherine ALIAS katherine)
 set_target_properties(katherine PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
@@ -59,6 +60,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)
 # On Windows the DLL is a RUNTIME artifact and the import library an ARCHIVE
 # artifact; elsewhere only the LIBRARY destination applies.
 install(TARGETS katherine
+        EXPORT katherine-targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

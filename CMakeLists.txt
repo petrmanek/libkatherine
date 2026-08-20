@@ -45,3 +45,25 @@ endif(KATHERINE_BUILD_PYTHON)
 if(KATHERINE_BUILD_DOXYGEN)
     add_subdirectory(docs)
 endif(KATHERINE_BUILD_DOXYGEN)
+
+# CMake package, so that consumers can find_package(katherine) and link
+# katherine::katherine or katherine::katherinexx as an alternative to
+# pkg-config. The katherine-targets export set is populated by the install
+# rules in c/ and cxx/.
+include(CMakePackageConfigHelpers)
+set(KATHERINE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/katherine")
+
+install(EXPORT katherine-targets
+        NAMESPACE katherine::
+        DESTINATION "${KATHERINE_INSTALL_CMAKEDIR}")
+
+configure_package_config_file(cmake/katherine-config.cmake.in
+        "${CMAKE_CURRENT_BINARY_DIR}/katherine-config.cmake"
+        INSTALL_DESTINATION "${KATHERINE_INSTALL_CMAKEDIR}")
+write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/katherine-config-version.cmake"
+        COMPATIBILITY SameMajorVersion)
+install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/katherine-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/katherine-config-version.cmake"
+        DESTINATION "${KATHERINE_INSTALL_CMAKEDIR}")

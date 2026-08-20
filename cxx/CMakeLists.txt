@@ -18,6 +18,7 @@ list(TRANSFORM KATHERINEXX_DOCUMENTED_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}
 set(KATHERINEXX_DOCUMENTED_FILES "${KATHERINEXX_DOCUMENTED_FILES}" PARENT_SCOPE)
 
 add_library(katherinexx INTERFACE)
+add_library(katherine::katherinexx ALIAS katherinexx)
 target_link_libraries(katherinexx INTERFACE katherine)
 target_include_directories(katherinexx
     INTERFACE
@@ -27,6 +28,7 @@ target_include_directories(katherinexx
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherinexx.pc.in katherinexx.pc @ONLY)
 
+install(TARGETS katherinexx EXPORT katherine-targets)
 install(FILES ${KATHERINEXX_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherinexx)
 # Header-only, but kept next to katherine.pc for consistency.
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherinexx.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
