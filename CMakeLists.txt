@@ -30,8 +30,13 @@ set(CMAKE_C_STANDARD_REQUIRED   ON)
 set(CMAKE_CXX_STANDARD          17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+# Flatten build outputs into the build root for convenient in-tree use --
+# but only in standalone builds: when consumed with add_subdirectory or
+# FetchContent, the parent project's layout must be respected.
+if(PROJECT_IS_TOP_LEVEL)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
 
 include(GNUInstallDirs)
 
