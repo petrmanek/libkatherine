@@ -16,6 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The tree is formatted with clang-format 22 and .clang-format uses
+      # keys unknown to older releases, so the runner's system formatter
+      # cannot be relied on; pin the version the check is meaningful for.
+      - name: Install clang-format
+        run: |
+          pip install 'clang-format==22.*'
+          clang-format --version
       - name: Check formatting
         run: git ls-files '*.c' '*.h' '*.cpp' '*.hpp' | xargs clang-format --dry-run --Werror
 
