@@ -12,6 +12,11 @@ set(KATHERINEXX_HEADERS
     "include/katherinexx/px_config.hpp"
 )
 
+# The project-wide documentation build in docs/ documents these files.
+set(KATHERINEXX_DOCUMENTED_FILES ${KATHERINEXX_HEADERS})
+list(TRANSFORM KATHERINEXX_DOCUMENTED_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+set(KATHERINEXX_DOCUMENTED_FILES "${KATHERINEXX_DOCUMENTED_FILES}" PARENT_SCOPE)
+
 add_library(katherinexx INTERFACE)
 target_link_libraries(katherinexx INTERFACE katherine)
 target_include_directories(katherinexx

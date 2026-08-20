@@ -9,7 +9,7 @@ project(katherine VERSION 1.0.1 LANGUAGES C CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(KatherineFeatures)
 
-# Oldest Doxygen able to process c/Doxyfile (the file's format version).
+# Oldest Doxygen able to process docs/Doxyfile (the file's format version).
 set(KATHERINE_DOXYGEN_MINIMUM_VERSION 1.8.13)
 
 # Oldest Python and Cython able to build the bindings in python/.
@@ -39,3 +39,9 @@ endif(KATHERINE_BUILD_CXX)
 if(KATHERINE_BUILD_PYTHON)
     add_subdirectory(python)
 endif(KATHERINE_BUILD_PYTHON)
+
+# Added last: the documentation build consumes the file lists exported by
+# the c/ and cxx/ directories.
+if(KATHERINE_BUILD_DOXYGEN)
+    add_subdirectory(docs)
+endif(KATHERINE_BUILD_DOXYGEN)
