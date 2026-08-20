@@ -12,8 +12,13 @@ include(KatherineFeatures)
 # Oldest Doxygen able to process c/Doxyfile (the file's format version).
 set(KATHERINE_DOXYGEN_MINIMUM_VERSION 1.8.13)
 
+# Oldest Python supported by python/setup.py, and the modules it imports
+# at build time.
+set(KATHERINE_PYTHON_MINIMUM_VERSION 3.5)
+set(KATHERINE_PYTHON_REQUIRED_MODULES distutils.core Cython.Build Cython.Distutils)
+
 katherine_declare_feature(BUILD_CXX      "build C++ binaries"      DEFAULT ON  LEGACY BUILD_CXX)
-katherine_declare_feature(BUILD_PYTHON   "build Python 3 bindings" DEFAULT OFF LEGACY BUILD_PYTHON)
+katherine_declare_feature(BUILD_PYTHON   "build Python 3 bindings" DEFAULT OFF LEGACY BUILD_PYTHON AUTO_DETECTED)
 katherine_declare_feature(BUILD_EXAMPLES "build example programs"  DEFAULT ON  LEGACY BUILD_EXAMPLES)
 katherine_declare_feature(BUILD_DOXYGEN  "build API documentation" DEFAULT OFF AUTO_DETECTED)
 katherine_feature_summary()

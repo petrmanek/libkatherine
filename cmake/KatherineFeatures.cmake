@@ -53,6 +53,18 @@ function(_katherine_feature_default name fallback out_var)
         if(DOXYGEN_FOUND)
             set(default ON)
         endif()
+    elseif(name STREQUAL "BUILD_PYTHON")
+        find_package(Python3 "${KATHERINE_PYTHON_MINIMUM_VERSION}" QUIET
+                     COMPONENTS Interpreter Development)
+        if(Python3_FOUND)
+            list(JOIN KATHERINE_PYTHON_REQUIRED_MODULES ", " imports)
+            execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import ${imports}"
+                            RESULT_VARIABLE import_result
+                            OUTPUT_QUIET ERROR_QUIET)
+            if(import_result EQUAL 0)
+                set(default ON)
+            endif()
+        endif()
     else()
         message(FATAL_ERROR "katherine_declare_feature(${name}): declared "
                             "AUTO_DETECTED, but no detection rule exists in "

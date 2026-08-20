@@ -126,16 +126,19 @@ cache, by environment variables or using the `-D<option>=<value>` options.
 | Option                     | Default Value | Meaning                                              |
 | -------------------------- | ------------- | ---------------------------------------------------- |
 | `KATHERINE_BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)     |
-| `KATHERINE_BUILD_PYTHON`   | `OFF`         | Enables building Python extension (see requirements) |
+| `KATHERINE_BUILD_PYTHON`   | _detected_    | Enables building Python extension (see requirements) |
 | `KATHERINE_BUILD_EXAMPLES` | `ON`          | Enables building example programs                    |
 | `KATHERINE_BUILD_DOXYGEN`  | _detected_    | Enables building HTML documentation                  |
 
-The default value of `KATHERINE_BUILD_DOXYGEN` is detected at configuration
-time: it is `ON` if Doxygen 1.8.13 or newer is found, and `OFF` otherwise.
-Setting the option explicitly overrides the detection (forcing it `ON` without
-a suitable Doxygen makes the configuration fail). When enabled, the `docs`
-target builds the documentation website, and the install step deposits it
-under `share/doc/katherine`.
+The default values of `KATHERINE_BUILD_PYTHON` and `KATHERINE_BUILD_DOXYGEN`
+are detected at configuration time. The former is `ON` if a Python 3
+interpreter with development headers and the Cython compiler are found; the
+latter is `ON` if Doxygen 1.8.13 or newer is found. Both default to `OFF`
+otherwise. Setting either option explicitly overrides the detection (forcing
+it `ON` without the requirements makes the configuration fail). When
+`KATHERINE_BUILD_DOXYGEN` is enabled, the `docs` target builds the
+documentation website, and the install step deposits it under
+`share/doc/katherine`.
 
 A summary table of all feature flags and their configured state is printed
 at configuration time. The pre-1.0 option names (`BUILD_CXX`, `BUILD_PYTHON`,

@@ -3,7 +3,20 @@
 #
 # SPDX-License-Identifier: MIT
 
-find_package(Python3 COMPONENTS Interpreter Development)
+find_package(Python3 "${KATHERINE_PYTHON_MINIMUM_VERSION}" REQUIRED
+             COMPONENTS Interpreter Development)
+
+# setup.py imports these modules at build time; verify them now so a broken
+# environment fails the configuration rather than the first build.
+list(JOIN KATHERINE_PYTHON_REQUIRED_MODULES ", " KATHERINE_PYTHON_IMPORTS)
+execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import ${KATHERINE_PYTHON_IMPORTS}"
+                RESULT_VARIABLE KATHERINE_PYTHON_IMPORT_RESULT
+                OUTPUT_QUIET ERROR_QUIET)
+if(NOT KATHERINE_PYTHON_IMPORT_RESULT EQUAL 0)
+    message(FATAL_ERROR "KATHERINE_BUILD_PYTHON requires the Python modules "
+                        "${KATHERINE_PYTHON_IMPORTS} to be importable by "
+                        "${Python3_EXECUTABLE}")
+endif()
 
 set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.in")
 set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
