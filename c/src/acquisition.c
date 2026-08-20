@@ -139,6 +139,7 @@ handle_unknown_msg(katherine_acquisition_t *acq, const uint64_t *data)
 }
 
 #ifdef KATHERINE_DEBUG_ACQ
+// clang-format off
 static inline void
 dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config)
 {
@@ -173,7 +174,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
         config->pixel_config.words[0],      config->pixel_config.words[1],
         config->pixel_config.words[16382],  config->pixel_config.words[16383]);
     printf("\n");
-    
+
     printf("DACs:\n");
     printf("  - Ibias_Preamp_ON:    %d\n",      config->dacs.named.Ibias_Preamp_ON);
     printf("  - Ibias_Preamp_OFF:   %d\n",      config->dacs.named.Ibias_Preamp_OFF);
@@ -204,6 +205,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
 
     printf("----  End Acquisition Configuration  ----\n");
 }
+// clang-format on
 #endif /* KATHERINE_DEBUG_ACQ */
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
@@ -527,7 +529,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
-   
+
     acq->aborted = true;
     return 0;
 

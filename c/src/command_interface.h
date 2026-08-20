@@ -10,7 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#pragma once 
+#pragma once
 
 #include <stdint.h>
 #include <katherine/global.h>
@@ -175,6 +175,7 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_INTERNAL_TDC_SETTINGS          = 0x32,
 } katherine_cmd_type_t;
 
+// clang-format off
 K_DEFINE_CMD_ARG0(cmd6,       set_all_pixel_config,                     CMD_TYPE_SET_ALL_PIXEL_CONFIG)
 K_DEFINE_CMD_ARG0(cmd6,       echo_chip_id,                             CMD_TYPE_ECHO_CHIP_ID)
 K_DEFINE_CMD_ARG0(cmd6,       get_readout_temperature,                  CMD_TYPE_GET_HW_READOUT_TEMPERATURE)
@@ -182,6 +183,7 @@ K_DEFINE_CMD_ARG0(cmd6,       get_sensor_temperature,                   CMD_TYPE
 K_DEFINE_CMD_ARG0(cmd6,       get_readout_status,                       CMD_TYPE_GET_READOUT_STATUS)
 K_DEFINE_CMD_ARG0(cmd6,       get_comm_status,                          CMD_TYPE_GET_COMMUNICATION_STATUS)
 K_DEFINE_CMD_ARG0(cmd6,       digital_test,                             CMD_TYPE_DIGITAL_TEST)
+// clang-format on
 
 typedef enum katherine_hw_cmd_type {
     CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE            = 0,
@@ -202,6 +204,7 @@ typedef enum katherine_hw_cmd_type {
     CMD_START_DIGITAL_TEST                              = 15,
 } katherine_hw_cmd_type_t;
 
+// clang-format off
 K_DEFINE_CMD_ARG0(cmd60,      hw_sensor_config_registers_update,        CMD_TYPE_HW_COMMAND_START, CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE)
 K_DEFINE_CMD_ARG0(cmd60,      hw_internal_dac_update,                   CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_UPDATE)
 K_DEFINE_CMD_ARG0(cmd60,      hw_internal_dac_back_read,                CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_BACK_READ)
@@ -246,6 +249,7 @@ K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vtp_coarse,                       int64_t,
 K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vtp_fine,                         int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 15)
 K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_cp_pll,                     int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 16)
 K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_pll_vcntrl,                       int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 17)
+// clang-format on
 
 #undef K_DEFINE_CMD_ARG0
 #undef K_DEFINE_CMD_ARG1

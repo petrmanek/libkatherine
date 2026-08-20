@@ -59,7 +59,7 @@ paint_test_pixels(katherine_px_config_t *px_config)
 
                     const katherine_coord_t coord = {
                         .x = (uint8_t) x,
-                        .y = (uint8_t) y
+                        .y = (uint8_t) y,
                     };
                     katherine_px_config_set_test_bit(px_config, coord, true);
                     ++n_painted;

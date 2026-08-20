@@ -21,6 +21,7 @@
  * https://atomheartother.github.io/c++/2018/07/12/CPPDynLib.html
  */
 
+// clang-format off
 // Define KATHERINE_EXPORTED for any platform
 #if defined _WIN32 || defined __CYGWIN__
   #ifdef katherine_EXPORTS
@@ -70,5 +71,6 @@
 #else
 #   error "Unknown platform"
 #endif
+// clang-format on
 
 /** @} */

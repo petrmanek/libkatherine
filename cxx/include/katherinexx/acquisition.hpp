@@ -62,7 +62,7 @@ private:
     acq_mode mode_;
     bool fast_vco_enabled_;
     bool decode_data_;
-  
+
     frame_started_handler frame_started_handler_;
     frame_ended_handler frame_ended_handler_;
     data_received_handler data_received_handler_;
@@ -111,7 +111,7 @@ public:
             /* .pixels_received = */ nullptr,
             /* .frame_started = */ base_acquisition::forward_frame_started,
             /* .frame_ended = */ base_acquisition::forward_frame_ended,
-	    /* .data_received = */ base_acquisition::forward_data_received
+	    /* .data_received = */ base_acquisition::forward_data_received,
         };
     }
 

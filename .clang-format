@@ -1,0 +1,97 @@
+# Coding conventions of libkatherine.
+#
+# The style is captured from the existing sources; the column limit is
+# intentionally unlimited so that existing (often long) lines and manual
+# line-breaking decisions are preserved on save-and-format.
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: Auto
+
+ColumnLimit: 0
+IndentWidth: 4
+ContinuationIndentWidth: 4
+UseTab: Never
+TabWidth: 4
+MaxEmptyLinesToKeep: 2
+
+# int
+# katherine_device_init(...)   <- top-level declarations and definitions
+BreakAfterReturnType: TopLevel
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterExternBlock: false
+  AfterControlStatement: Never
+  BeforeElse: false
+  BeforeCatch: false
+  BeforeWhile: false
+  BeforeLambdaBody: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+# katherine_device_t *device; but device& dev (C++ references attach left)
+PointerAlignment: Right
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeInheritanceColon: false
+SpaceAfterTemplateKeyword: false
+SpaceInEmptyBlock: true
+Cpp11BracedListStyle: true
+
+IndentCaseLabels: false
+IndentGotoLabels: false
+IndentPPDirectives: None
+IndentExternBlock: NoIndent
+NamespaceIndentation: None
+FixNamespaceComments: false
+
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignCaseColons: false
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+AlignEscapedNewlines: DontAlign
+AlignAfterOpenBracket: DontAlign
+AlignOperands: DontAlign
+
+BreakConstructorInitializers: BeforeColon
+BreakBeforeBinaryOperators: NonAssignment
+PackConstructorInitializers: CurrentLine
+ConstructorInitializerIndentWidth: 4
+
+BinPackArguments: true
+BinPackParameters: true
+ReflowComments: false
+SortIncludes: Never
+InsertTrailingCommas: None
+KeepEmptyLinesAtTheStartOfBlocks: true
+SeparateDefinitionBlocks: Leave
+AccessModifierOffset: -4

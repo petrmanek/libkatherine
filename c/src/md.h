@@ -26,7 +26,7 @@
 
 /* MD stands for Measurement Data, the 6 byte
  * messages sent during (or after) acquisition.
- * 
+ *
  * There are various types of MD's, some contain
  * metadata about the measurement, others can be
  * directly mapped to active pixels. Below are
@@ -65,9 +65,9 @@
 /* For MD's which correspond to pixels, we
  * define a direct mapping function named by
  * the following template:
- * 
+ *
  *   pmd_{A}_map(dst, src, acq)
- * 
+ *
  * This function is responsible for mapping MD
  * `src` of bitfield pmd_{A} to a pixel `dst` of
  * type katherine_px_{A}_t. Below are defined

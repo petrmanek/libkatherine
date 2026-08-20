@@ -67,7 +67,7 @@ katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *
     res = katherine_px_config_load_bmc_data(px_config, buffer);
 
 err_fread:
-    free(buffer);    
+    free(buffer);
 err_buffer:
     fclose(file);
 err_fopen:
@@ -133,7 +133,7 @@ katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *
     res = katherine_px_config_load_bpc_data(px_config, buffer);
 
 err_fread:
-    free(buffer);    
+    free(buffer);
 err_buffer:
     fclose(file);
 err_fopen:

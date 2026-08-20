@@ -38,7 +38,7 @@ test_ip_address(const std::string& address)
 
     try {
         katherine::device device{address};
-        
+
         std::string chip_id = device.chip_id();
         test_succeeded(address, chip_id);
     } catch (const katherine::error&) {

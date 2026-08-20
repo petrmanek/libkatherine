@@ -25,31 +25,31 @@
  * bitfields are declared using C macro magic. Although
  * they are obviously more elegant, Windows does not seem
  * to support them well enough.
- * 
+ *
  * Each bitfield can be pictured as a group of fields.
  * Each field has the following attributes:
  *   1. start bit - the bit where the field begins,
  *   2. mask - a bit mask which encodes the field size,
  *   3. type - a type suitable for the field value.
- * 
+ *
  * For convenience, the MASK(n) macro below defines a
  * generic integral mask of `n` bits. For instance,
  * MASK(8) will produce 0xFF (represented as bits: 11111111).
- * 
+ *
  * Each bitfield's field is declared by defining three macros.
  * These directly correspond to the field's attributes listed
  * above. The naming convention for macro names is as follows:
  *   1. _BITS_{bitfield name}_{field name}_start,
  *   2. _BITS_{bitfield name}_{field name}_mask,
  *   3. _BITS_{bitfield name}_{field name}_type.
- * 
+ *
  * For convenience, the EXTRACT() macro utilizes this convention
  * to retrieve bitfield data in unified way.
- * 
+ *
  * Much like the EXTRACT() retrieves a field from a bitfield, the
  * INSERT() macro sets a value to a field, leaving the remainder
  * of a bitfield unmodified. It is can therefore be viewed as a setter.
- * 
+ *
  * Time for an example!
  *
  * Consider a bitfield called "md" with a single field "header".

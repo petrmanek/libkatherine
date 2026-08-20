@@ -60,7 +60,7 @@ paint_test_pixels(katherine::px_config& px_config)
 
                     const katherine::coord coord{
                         static_cast<std::uint8_t>(x),
-                        static_cast<std::uint8_t>(y)
+                        static_cast<std::uint8_t>(y),
                     };
                     px_config.set_test_bit(coord, true);
                     ++n_painted;
