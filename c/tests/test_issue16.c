@@ -5,7 +5,6 @@
  * measurement-data stream. No hardware required.
  */
 
-#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +16,8 @@
 #include <katherine/acquisition.h>
 #include <katherine/device.h>
 #include <katherine/udp.h>
+
+#include "ktest.h"
 
 #define MD_SIZE 6
 
@@ -75,11 +76,19 @@ run_case(bool send_frame_finished, struct stats *s)
 
     /* Only the data socket is used by the read loop. 100 ms recv timeout. */
     int res = katherine_udp_init(&dev.data_socket, 0, "127.0.0.1", 1, 100);
-    assert(res == 0);
+    KT_CHECK(res == 0);
+    if (res != 0) {
+        return res;
+    }
 
     struct sockaddr_in bound;
     socklen_t bound_len = sizeof(bound);
-    assert(getsockname(dev.data_socket.sock, (struct sockaddr *) &bound, &bound_len) == 0);
+    int gs_res          = getsockname(dev.data_socket.sock, (struct sockaddr *) &bound, &bound_len);
+    KT_CHECK(gs_res == 0);
+    if (gs_res != 0) {
+        katherine_udp_fini(&dev.data_socket);
+        return -1;
+    }
     bound.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
     katherine_acquisition_t acq;
@@ -89,7 +98,12 @@ run_case(bool send_frame_finished, struct stats *s)
         65536 /* pixel buffer, never fills */,
         0 /* report_timeout disabled */,
         1 /* fail_timeout ms */);
-    assert(res == 0);
+    KT_CHECK(res == 0);
+    if (res != 0) {
+        katherine_acquisition_fini(&acq);
+        katherine_udp_fini(&dev.data_socket);
+        return -1;
+    }
 
     acq.handlers.pixels_received = pixels_received;
     acq.handlers.frame_started   = frame_started;
@@ -116,10 +130,10 @@ run_case(bool send_frame_finished, struct stats *s)
     }
 
     int sender = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    assert(sender >= 0);
-    assert(sendto(sender, packet, n * MD_SIZE, 0,
-               (struct sockaddr *) &bound, sizeof(bound))
-        == (ssize_t) (n * MD_SIZE));
+    KT_CHECK(sender >= 0);
+    ssize_t sent = sendto(sender, packet, n * MD_SIZE, 0,
+        (struct sockaddr *) &bound, sizeof(bound));
+    KT_CHECK(sent == (ssize_t) (n * MD_SIZE));
     close(sender);
 
     res = katherine_acquisition_read(&acq);
@@ -129,43 +143,54 @@ run_case(bool send_frame_finished, struct stats *s)
     return res;
 }
 
+/* Case 1: normal completion -- behavior must be unchanged. */
+static void
+test_case_completed(void)
+{
+    struct stats s;
+    memset(&s, 0, sizeof(s));
+    int res = run_case(true, &s);
+    printf("case 1 (completed):   res=%d pixels=%zu started=%d ended=%d "
+           "completed_arg=%d info.completed=%d info.received=%llu\n",
+        res, s.pixels_received_total, s.frames_started, s.frames_ended,
+        s.last_completed_arg, s.last_completed_info,
+        (unsigned long long) s.last_received_pixels);
+
+    KT_CHECK(res == 0);
+    KT_CHECK(s.pixels_received_total == 5);
+    KT_CHECK(s.frames_started == 1);
+    KT_CHECK(s.frames_ended == 1);
+    KT_CHECK(s.last_completed_arg == true);
+    KT_CHECK(s.last_completed_info == true);
+    KT_CHECK(s.last_received_pixels == 5);
+}
+
+/* Case 2: acquisition times out mid-frame -- issue #16. */
+static void
+test_case_interrupted(void)
+{
+    struct stats s;
+    memset(&s, 0, sizeof(s));
+    int res = run_case(false, &s);
+    printf("case 2 (interrupted): res=%d pixels=%zu started=%d ended=%d "
+           "completed_arg=%d info.completed=%d info.received=%llu\n",
+        res, s.pixels_received_total, s.frames_started, s.frames_ended,
+        s.last_completed_arg, s.last_completed_info,
+        (unsigned long long) s.last_received_pixels);
+
+    KT_CHECK(res == ETIMEDOUT);
+    KT_CHECK(s.pixels_received_total == 5); /* previously 0: pixels were dropped */
+    KT_CHECK(s.frames_started == 1);
+    KT_CHECK(s.frames_ended == 1); /* previously 0: unbalanced handlers */
+    KT_CHECK(s.last_completed_arg == false);
+    KT_CHECK(s.last_completed_info == false);
+    KT_CHECK(s.last_received_pixels == 5);
+}
+
 int
 main(void)
 {
-    /* Case 1: normal completion — behavior must be unchanged. */
-    struct stats s1;
-    memset(&s1, 0, sizeof(s1));
-    int res = run_case(true, &s1);
-    printf("case 1 (completed):   res=%d pixels=%zu started=%d ended=%d "
-           "completed_arg=%d info.completed=%d info.received=%llu\n",
-        res, s1.pixels_received_total, s1.frames_started, s1.frames_ended,
-        s1.last_completed_arg, s1.last_completed_info,
-        (unsigned long long) s1.last_received_pixels);
-    assert(res == 0);
-    assert(s1.pixels_received_total == 5);
-    assert(s1.frames_started == 1);
-    assert(s1.frames_ended == 1);
-    assert(s1.last_completed_arg == true);
-    assert(s1.last_completed_info == true);
-    assert(s1.last_received_pixels == 5);
-
-    /* Case 2: acquisition times out mid-frame — issue #16. */
-    struct stats s2;
-    memset(&s2, 0, sizeof(s2));
-    res = run_case(false, &s2);
-    printf("case 2 (interrupted): res=%d pixels=%zu started=%d ended=%d "
-           "completed_arg=%d info.completed=%d info.received=%llu\n",
-        res, s2.pixels_received_total, s2.frames_started, s2.frames_ended,
-        s2.last_completed_arg, s2.last_completed_info,
-        (unsigned long long) s2.last_received_pixels);
-    assert(res == ETIMEDOUT);
-    assert(s2.pixels_received_total == 5); /* previously 0: pixels were dropped */
-    assert(s2.frames_started == 1);
-    assert(s2.frames_ended == 1); /* previously 0: unbalanced handlers */
-    assert(s2.last_completed_arg == false);
-    assert(s2.last_completed_info == false);
-    assert(s2.last_received_pixels == 5);
-
-    printf("all assertions passed\n");
-    return 0;
+    KT_RUN(test_case_completed);
+    KT_RUN(test_case_interrupted);
+    return kt_summary();
 }

@@ -10,3 +10,6 @@ if(NOT WIN32)
     katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
     katherine_add_test(NAME test_issue16 SOURCES test_issue16.c LABELS unit)
 endif()
+
+# Pure bitfield/wire-format vectors: no sockets or threads, builds everywhere.
+katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
