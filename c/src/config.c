@@ -12,10 +12,10 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <threads.h>
 #include <katherine/config.h>
 #include <katherine/device.h>
 #include "command_interface.h"
+#include "msleep.h"
 
 /**
  * Set detector configuration.
@@ -139,7 +139,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     while (attempts > 0) {
         if (attempts != max_attempts) {
             // Wait a bit between attempts.
-            thrd_sleep(&(struct timespec) {.tv_nsec = 300000000 /* 300 ms */}, NULL);
+            katherine_msleep(300);
         }
 
         --attempts;
@@ -156,7 +156,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
 
             if (i > 0) {
                 // Wait between words to prevent data loss.
-                thrd_sleep(&(struct timespec) {.tv_nsec = 10000000 /* 10 ms */}, NULL);
+                katherine_msleep(10);
             }
         }
 

@@ -15,6 +15,7 @@ set(KATHERINE_SOURCES
     "src/crd.h"
     "src/bitfields.h"
     "src/command_interface.h"
+    "src/msleep.h"
     "src/md.h"
 )
 
