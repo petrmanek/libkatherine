@@ -87,17 +87,18 @@ in the `examples/` subdirectory for each library, or in the table below:
 
 ### Full Documentation
 
-The contents of the C library use in-code and Javadoc-style documentation.
-Pre-built documentation may be found in the `docs/` directory. Upon changes,
-the Doxygen tool can recreate its contents.
+The contents of the C library and the C++ wrapper use in-code Javadoc-style
+documentation. If the Doxygen tool is available, the build can produce a
+documentation website (see the `KATHERINE_BUILD_DOXYGEN` option in Build
+Notes below), in which the two interfaces appear as separate topics.
 
 High-level overview may be found in the Chapter 3 of the thesis.
 
 
 ### Wrappers
 
-For the reasons of redundancy, the provided wrappers are deliberately _not_
-documented. Since their programming interface models that of libkatherine,
+For the reasons of redundancy, the Python wrapper is deliberately _not_
+documented. Since its programming interface models that of libkatherine,
 corresponding functions can be easily identified (usually just by adding the
 prefix `katherine_`).
 
@@ -127,6 +128,14 @@ cache, by environment variables or using the `-D<option>=<value>` options.
 | `KATHERINE_BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)     |
 | `KATHERINE_BUILD_PYTHON`   | `OFF`         | Enables building Python extension (see requirements) |
 | `KATHERINE_BUILD_EXAMPLES` | `ON`          | Enables building example programs                    |
+| `KATHERINE_BUILD_DOXYGEN`  | _detected_    | Enables building HTML documentation                  |
+
+The default value of `KATHERINE_BUILD_DOXYGEN` is detected at configuration
+time: it is `ON` if Doxygen 1.8.13 or newer is found, and `OFF` otherwise.
+Setting the option explicitly overrides the detection (forcing it `ON` without
+a suitable Doxygen makes the configuration fail). When enabled, the `docs`
+target builds the documentation website, and the install step deposits it
+under `share/doc/katherine`.
 
 A summary table of all feature flags and their configured state is printed
 at configuration time. The pre-1.0 option names (`BUILD_CXX`, `BUILD_PYTHON`,
