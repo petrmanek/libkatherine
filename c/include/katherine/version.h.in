@@ -1,0 +1,59 @@
+/**
+ * @file
+ * @brief Library version macros and runtime version checking.
+ * @author Petr Mánek
+ * @date 20.8.26
+ *
+ * @copyright Copyright (c) 2018 Petr Mánek.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#pragma once
+
+#include <stdint.h>
+#include <katherine/global.h>
+
+/**
+ * @addtogroup c_api
+ * @{
+ */
+
+// Version of libkatherine this header was generated for, split into
+// components and composed forms. These are fixed at build time; use
+// katherine_version() or katherine_version_string() to query the version
+// of the library actually loaded at runtime.
+#define KATHERINE_VERSION_MAJOR  @PROJECT_VERSION_MAJOR@
+#define KATHERINE_VERSION_MINOR  @PROJECT_VERSION_MINOR@
+#define KATHERINE_VERSION_PATCH  @PROJECT_VERSION_PATCH@
+#define KATHERINE_VERSION_STRING "@PROJECT_VERSION@"
+
+// Single-integer form of the version above, suitable for ordered
+// comparisons (e.g. `#if KATHERINE_VERSION_HEX >= KATHERINE_VERSION_MAKE_HEX(1, 2, 0)`).
+#define KATHERINE_VERSION_MAKE_HEX(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#define KATHERINE_VERSION_HEX (KATHERINE_VERSION_MAKE_HEX(KATHERINE_VERSION_MAJOR, KATHERINE_VERSION_MINOR, KATHERINE_VERSION_PATCH))
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * Query the version of libkatherine loaded at runtime.
+ * @return Version in the same composed form as `KATHERINE_VERSION_HEX`.
+ */
+KATHERINE_EXPORTED uint64_t
+katherine_version();
+
+/**
+ * Query the version of libkatherine loaded at runtime.
+ * @return Version string in the same form as `KATHERINE_VERSION_STRING`.
+ */
+KATHERINE_EXPORTED const char *
+katherine_version_string();
+
+#ifdef __cplusplus
+}
+#endif
+
+/** @} */

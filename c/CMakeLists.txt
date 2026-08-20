@@ -11,6 +11,7 @@ set(KATHERINE_SOURCES
     "src/status.c"
     "src/udp_nix.c"
     "src/udp_win.c"
+    "src/version.c"
     "src/crd.h"
     "src/bitfields.h"
     "src/command_interface.h"
@@ -31,9 +32,19 @@ set(KATHERINE_HEADERS
     "include/katherine/udp_win.h"
 )
 
+# Generated from version.h.in with the values from the project() call
+# above, so the version macros can never drift from CMakeLists.txt.
+set(KATHERINE_GENERATED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+set(KATHERINE_VERSION_HEADER "${KATHERINE_GENERATED_INCLUDE_DIR}/katherine/version.h")
+configure_file(include/katherine/version.h.in "${KATHERINE_VERSION_HEADER}" @ONLY)
+
 # The project-wide documentation build in docs/ documents these files.
 set(KATHERINE_DOCUMENTED_FILES ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 list(TRANSFORM KATHERINE_DOCUMENTED_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+# version.h is generated (its .in template is not valid C due to the
+# @VAR@ substitution placeholders), so the generated copy is documented
+# instead, from its location in the build tree.
+list(APPEND KATHERINE_DOCUMENTED_FILES "${KATHERINE_VERSION_HEADER}")
 set(KATHERINE_DOCUMENTED_FILES "${KATHERINE_DOCUMENTED_FILES}" PARENT_SCOPE)
 
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
@@ -49,6 +60,7 @@ target_include_directories(katherine
     PUBLIC
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${KATHERINE_GENERATED_INCLUDE_DIR}>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -68,6 +80,7 @@ install(TARGETS katherine
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${KATHERINE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
+install(FILES ${KATHERINE_VERSION_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
 # The .pc file records the architecture-dependent libdir, so it belongs in
 # the libdir pkgconfig directory rather than the shared-data one.
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)

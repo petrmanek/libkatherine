@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <katherine/version.h>
 #include <katherine/global.h>
 #include <katherine/acquisition.h>
 #include <katherine/px_config.h>
