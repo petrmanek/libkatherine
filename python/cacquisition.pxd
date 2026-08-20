@@ -8,45 +8,11 @@
 
 from libcpp cimport bool
 from libc.time cimport time_t
-from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
+from libc.stdint cimport uint32_t, uint64_t
 from cdevice cimport katherine_device_t
 from cconfig cimport katherine_config_t, katherine_acquisition_mode_t
-from cpx_config cimport katherine_coord_t
 
 cdef extern from 'katherine/acquisition.h':
-    ctypedef struct katherine_px_f_toa_tot_t:
-        katherine_coord_t coord
-        uint8_t ftoa
-        uint64_t toa
-        uint16_t tot
-
-    ctypedef struct katherine_px_toa_tot_t:
-        katherine_coord_t coord
-        uint64_t toa
-        uint8_t hit_count
-        uint16_t tot
-        
-    ctypedef struct katherine_px_f_toa_only_t:
-        katherine_coord_t coord
-        uint8_t ftoa
-        uint64_t toa
-
-    ctypedef struct katherine_px_toa_only_t:
-        katherine_coord_t coord
-        uint64_t toa
-        uint8_t hit_count
-
-    ctypedef struct katherine_px_f_event_itot_t:
-        katherine_coord_t coord
-        uint8_t hit_count
-        uint16_t event_count
-        uint16_t integral_tot
-        
-    ctypedef struct katherine_px_event_itot_t:
-        katherine_coord_t coord
-        uint16_t event_count
-        uint16_t integral_tot
-
     ctypedef struct katherine_frame_info_time_split_t:
         uint32_t msb
         uint32_t lsb
@@ -72,12 +38,39 @@ cdef extern from 'katherine/acquisition.h':
         void (*data_received)(void *, const char *, size_t)
 
     ctypedef struct katherine_acquisition_t:
+        katherine_device_t *device
+        void *user_ctx
+
         char state
         bool aborted
+        char readout_mode
+        char acq_mode
+        bool fast_vco_enabled
+
+        char *md_buffer
+        size_t md_buffer_size
+
+        bool decode_data
+        char *pixel_buffer
+        size_t pixel_buffer_size
+        size_t pixel_buffer_valid
+        size_t pixel_buffer_max_valid
+
         int requested_frames
+        double requested_frame_duration
         int completed_frames
         size_t dropped_measurement_data
+
+        time_t acq_start_time
+        int report_timeout
+        int fail_timeout
+
         katherine_acquisition_handlers_t handlers
+        katherine_frame_info_t current_frame_info
+
+        uint64_t last_toa_offset
+
+        bool frame_active
 
     ctypedef enum katherine_readout_type_t:
         READOUT_SEQUENTIAL

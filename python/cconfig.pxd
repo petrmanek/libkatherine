@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: MIT
 
 from libcpp cimport bool
-from libc.stdint cimport uint8_t, uint16_t
+from libc.stdint cimport uint8_t, uint16_t, int32_t
 from cdevice cimport katherine_device_t
 from cpx_config cimport katherine_px_config_t
 
@@ -88,4 +88,31 @@ cdef extern from 'katherine/config.h':
 
         katherine_test_pulse_config_t test_pulse_config
 
+    ctypedef enum katherine_tpx3_reg_t:
+        TPX3_REG_TEST_PULSE_METHOD
+        TPX3_REG_NUMBER_TEST_PULSES
+        TPX3_REG_OUT_BLOCK_CONFIG
+        TPX3_REG_PLL_CONFIG
+        TPX3_REG_GENERAL_CONFIG
+        TPX3_REG_SLVS_CONFIG
+        TPX3_REG_POWER_PULSING_PATTERN
+        TPX3_REG_SET_TIMER_LOW
+        TPX3_REG_SET_TIMER_MID
+        TPX3_REG_SET_TIMER_HIGH
+        TPX3_REG_SENSE_DAC_SELECTOR
+        TPX3_REG_EXT_DAC_SELECTOR
+
+    int katherine_configure(katherine_device_t *device, const katherine_config_t *config)
+    int katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
+    int katherine_set_acq_time(katherine_device_t *device, double ns)
+    int katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
+    int katherine_set_no_frames(katherine_device_t *device, int no_frames)
+    int katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
+    int katherine_set_seq_readout_start(katherine_device_t *device, int arg)
+    int katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
+    int katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
+    int katherine_update_sensor_registers(katherine_device_t *device)
+    int katherine_output_block_config_update(katherine_device_t *device)
+    int katherine_timer_set(katherine_device_t *device)
+    int katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     int katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *test_pulse_config)
