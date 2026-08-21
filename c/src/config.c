@@ -106,12 +106,16 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
         (void) katherine_cmd(&device->control_socket, words, 1024);
     }
 
-    // Receive any acknowledgements until we start getting timeouts (or exhaust 10 megabytes)
+    // The readout answers every filler command above, so the flood leaves as many responses in flight as it sent
+    // datagrams. All of them have to be consumed here: a response left queued is read as the acknowledgement of some
+    // later command, and from then on every command of the session pairs with the response of an earlier one, so
+    // nothing can fail visibly again. Receiving therefore continues until it times out, i.e. until the socket has been
+    // quiet for a whole receive timeout, and is bounded regardless so that a peer talking without pause cannot hold
+    // this loop forever.
+    static const int max_drain = 512;
     size_t recv_size;
-    int res      = 1;
-    int attempts = 10;
-    while (attempts > 0 && !!res) {
-        --attempts;
+    int res = 0;
+    for (int attempts = max_drain; attempts > 0 && !res; --attempts) {
         recv_size = 1024;
         res       = katherine_udp_recv(&device->control_socket, words, &recv_size);
     }
@@ -135,7 +139,11 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
 
     // The following section sometimes cause issues, repeat it several times if need be.
     static const int max_attempts = 10;
-    int attempts                  = max_attempts;
+
+    // Receives spent waiting for the acknowledgement of one attempt, each bounded by the socket receive timeout.
+    static const int max_ack_attempts = 10;
+
+    int attempts = max_attempts;
     while (attempts > 0) {
         if (attempts != max_attempts) {
             // Wait a bit between attempts.
@@ -161,8 +169,16 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
         }
 
         if (!res) {
-            // If all pixel data were transmitted, wait for acknowledgement.
-            res = katherine_cmd_wait_ack(&device->control_socket);
+            // If all pixel data were transmitted, wait for acknowledgement. The readout answers once it has counted
+            // all of the configuration words, and a single wait is bounded by the socket receive timeout (100 ms),
+            // which a busy host or a readout still absorbing the last chunks can outlast. Since the alternative is the
+            // recovery below -- some two hundred filler datagrams and a full retry -- keep receiving until the
+            // acknowledgement arrives, an unrelated error occurs, or roughly a second has elapsed.
+            int ack_attempts = max_ack_attempts;
+            do {
+                --ack_attempts;
+                res = katherine_cmd_wait_ack(&device->control_socket);
+            } while (res == EAGAIN && ack_attempts > 0);
         }
 
         if (!res) {
