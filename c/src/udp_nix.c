@@ -45,6 +45,72 @@ dump_buffer(const char *msg, const unsigned char *buf, size_t count)
 }
 #endif /* KATHERINE_DEBUG_UDP */
 
+/* True if a datagram received from addr counts as coming from the pinned
+   remote of session u.
+
+   Only the host is compared, never the port: a readout answers commands from
+   its command port but streams measurement data from another one (1556 vs
+   1555 for the emulated readout), and no source port of the firmware is
+   specified anywhere, whereas the hazard a pin guards against -- another
+   peer's stray datagram becoming the session's remote -- is a property of
+   the host. */
+static bool
+from_pinned_remote(const katherine_udp_t *u, const struct sockaddr_in *addr)
+{
+    return addr->sin_addr.s_addr == u->addr_remote.sin_addr.s_addr;
+}
+
+/* Receives one datagram from the pinned remote of session u, discarding up to
+   KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
+   Spending that budget is reported as EAGAIN, the very code the expired
+   receive timeout of an idle socket yields, so that no caller needs a
+   separate path for it.
+
+   The pinned address is read from addr_remote itself rather than from a copy
+   taken when the pin was placed, which is what makes the pin follow
+   katherine_udp_set_remote(). */
+static int
+recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received)
+{
+    for (uint32_t discarded = 0; discarded < KATHERINE_UDP_PIN_MAX_DISCARDS; ++discarded) {
+        struct sockaddr_in addr_from;
+        socklen_t addr_len = sizeof(addr_from);
+        ssize_t res        = recvfrom(u->sock, data, count, 0, (struct sockaddr *) &addr_from, &addr_len);
+        if (res == -1) {
+            return errno;
+        }
+
+        if (from_pinned_remote(u, &addr_from)) {
+            *received = (size_t) res;
+            return 0;
+        }
+    }
+
+    return EAGAIN;
+}
+
+/* Receives one datagram into data, honoring the pin of session u: a pinned
+   session accepts only datagrams from its remote host and leaves addr_remote
+   alone, an unpinned one accepts the next datagram from anybody and adopts
+   its sender as the remote -- the server behavior of replying to whoever
+   asked last. */
+static int
+recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received)
+{
+    if (u->remote_pinned) {
+        return recv_pinned(u, data, count, received);
+    }
+
+    socklen_t addr_len = sizeof(u->addr_remote);
+    ssize_t res        = recvfrom(u->sock, data, count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
+    if (res == -1) {
+        return errno;
+    }
+
+    *received = (size_t) res;
+    return 0;
+}
+
 /**
  * Initialize new UDP session.
  * @param u UDP session to initialize
@@ -80,6 +146,12 @@ int
 katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
 {
     int res = 0;
+
+    // A session starts out tracking the sender of the datagram it last
+    // received (see katherine_udp_pin_remote()). Callers hand this function
+    // uninitialized storage, so the default cannot be left to the
+    // allocation.
+    u->remote_pinned = false;
 
     // Create socket.
     if ((u->sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
@@ -199,14 +271,15 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
 int
 katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
 {
-    ssize_t received;
-    size_t total       = 0;
-    socklen_t addr_len = sizeof(u->addr_remote);
+    size_t received = 0;
+    size_t total    = 0;
 
+    // A pinned session verifies every datagram of the message separately, and
+    // the discard budget is spent per datagram rather than per message.
     while (total < count) {
-        received = recvfrom(u->sock, data + total, count - total, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
-        if (received == -1) {
-            return errno;
+        int res = recv_datagram(u, data + total, count - total, &received);
+        if (res != 0) {
+            return res;
         }
 
         total += received;
@@ -229,30 +302,32 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
 int
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
 {
-    socklen_t addr_len = sizeof(u->addr_remote);
-    ssize_t received   = recvfrom(u->sock, data, *count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
+    size_t received;
+    int res = recv_datagram(u, data, *count, &received);
 
-    if (received == -1) {
-        return errno;
+    if (res != 0) {
+        return res;
     }
 
 #ifdef KATHERINE_DEBUG_UDP
     dump_buffer("Received:", data, received);
 #endif /* KATHERINE_DEBUG_UDP */
 
-    *count = (size_t) received;
+    *count = received;
     return 0;
 }
 
 /**
  * Repoint the remote address of a UDP session.
  *
- * Note that katherine_udp_recv() and katherine_udp_recv_exact() already update the session's
+ * On an unpinned session, katherine_udp_recv() and katherine_udp_recv_exact() already update the
  * remote address to whoever last sent to it, which is how a server naturally replies to its last
  * peer. This function instead sets the *initial or overriding* destination used for outgoing
  * messages until the next inbound datagram arrives (or until this function is called again) --
  * useful for a session that only ever sends, such as a data-only socket that must be redirected to
- * a peer learned over a different session.
+ * a peer learned over a different session. On a pinned session (see katherine_udp_pin_remote())
+ * this function is the only way the remote address ever moves, and the pin follows it: from here on
+ * the newly named host is the one whose datagrams the session accepts.
  *
  * @param u UDP session
  * @param remote_addr Remote IP address
@@ -271,6 +346,28 @@ katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t r
 
     u->addr_remote = addr_remote;
     return 0;
+}
+
+/**
+ * Pin the remote address of a UDP session, opting it out of tracking the sender.
+ *
+ * A session starts out unpinned, where every received datagram makes its sender the session's
+ * remote address: the behavior a server wants, and a hazard for a client, whose session a single
+ * stray datagram -- a late response, a scan, a datagram delivered back to its own sender -- then
+ * retargets for good (issue #23, "net: stop stray datagrams retargeting remote addr"). A pinned
+ * session keeps sending where it was told to by katherine_udp_init() or
+ * katherine_udp_set_remote(), and silently discards inbound datagrams from any other host, up to
+ * KATHERINE_UDP_PIN_MAX_DISCARDS of them per receive call before reporting EAGAIN.
+ *
+ * Only the remote host is pinned, not its port, because a readout answers commands from its
+ * command port but streams measurement data from another. Pinning cannot be undone.
+ *
+ * @param u UDP session
+ */
+void
+katherine_udp_pin_remote(katherine_udp_t *u)
+{
+    u->remote_pinned = true;
 }
 
 /**

@@ -23,6 +23,7 @@
 
 #include <winsock2.h>
 #include <windows.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -36,6 +37,8 @@ typedef struct katherine_udp {
 
     HANDLE mutex;
     WSADATA wsa_data;
+
+    bool remote_pinned;
 } katherine_udp_t;
 
 #ifdef __cplusplus

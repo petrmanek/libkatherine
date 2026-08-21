@@ -39,9 +39,21 @@ katherine_device_init(katherine_device_t *device, const char *addr)
         goto err_control;
     }
 
+    // Both sessions address one readout, named here and never learned from
+    // the network, so both are pinned to it right away: a client that let an
+    // arriving datagram repoint its session would be hijacked for good by any
+    // stray one -- a late response of a readout probed earlier, or its own
+    // command delivered back to it by a loopback address nobody is bound to
+    // (issue #23, "net: stop stray datagrams retargeting remote addr").
+    // Pinning cannot fail and needs no undoing, so the error paths below stay
+    // as they were.
+    katherine_udp_pin_remote(&device->control_socket);
+
     if ((res = katherine_udp_init(&device->data_socket, DATA_PORT, addr, REMOTE_PORT, DATA_TIMEOUT)) != 0) {
         goto err_data;
     }
+
+    katherine_udp_pin_remote(&device->data_socket);
 
     return 0;
 

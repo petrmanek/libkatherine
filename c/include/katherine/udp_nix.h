@@ -23,6 +23,7 @@
 
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +35,8 @@ typedef struct katherine_udp {
     struct sockaddr_in addr_remote;
 
     pthread_mutex_t mutex;
+
+    bool remote_pinned;
 } katherine_udp_t;
 
 #ifdef __cplusplus
