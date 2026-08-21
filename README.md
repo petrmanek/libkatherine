@@ -120,12 +120,14 @@ GNU Makefiles, e.g. ninja)_
 The CMake project also defines several options. They can be defined in the CMake
 cache, by environment variables or using the `-D<option>=<value>` options.
 
-| Option                     | Default Value | Meaning                                              |
-| -------------------------- | ------------- | ---------------------------------------------------- |
-| `KATHERINE_BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)     |
-| `KATHERINE_BUILD_PYTHON`   | _detected_    | Enables building Python extension (see requirements) |
-| `KATHERINE_BUILD_EXAMPLES` | `ON`          | Enables building example programs                    |
-| `KATHERINE_BUILD_DOXYGEN`  | _detected_    | Enables building HTML documentation                  |
+| Option                     | Default Value | Meaning                                               |
+| -------------------------- | ------------- | ----------------------------------------------------- |
+| `KATHERINE_BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)      |
+| `KATHERINE_BUILD_PYTHON`   | _detected_    | Enables building Python extension (see requirements)  |
+| `KATHERINE_BUILD_EXAMPLES` | `ON`          | Enables building example programs                     |
+| `KATHERINE_BUILD_DOXYGEN`  | _detected_    | Enables building HTML documentation                   |
+| `KATHERINE_BUILD_TESTS`    | `ON`          | Enables the test suite (run with `ctest`)             |
+| `KATHERINE_BUILD_EMULATOR` | `ON`          | Enables the readout emulator (`katherine/emulator.h`) |
 
 The default values of `KATHERINE_BUILD_PYTHON` and `KATHERINE_BUILD_DOXYGEN`
 are detected at configuration time. The former is `ON` if a Python 3
@@ -136,6 +138,12 @@ it `ON` without the requirements makes the configuration fail). When
 `KATHERINE_BUILD_DOXYGEN` is enabled, the `docs` target builds the
 documentation website, and the install step deposits it under
 `share/doc/katherine`.
+
+When `KATHERINE_BUILD_TESTS` is enabled, the test suite is registered with
+CTest (`ctest -L unit` selects the hardware-free tests). When
+`KATHERINE_BUILD_EMULATOR` is enabled, a deterministic emulator of the
+readout is compiled into the library and its `katherine/emulator.h` header
+is installed, allowing development and testing without hardware.
 
 A summary table of all feature flags and their configured state is printed
 at configuration time. The pre-1.0 option names (`BUILD_CXX`, `BUILD_PYTHON`,
