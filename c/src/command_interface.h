@@ -13,6 +13,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <katherine/config.h>
 #include <katherine/global.h>
 #include <katherine/udp.h>
 
@@ -126,6 +127,36 @@ katherine_cmd6_float(katherine_udp_t *udp, char val6, float value)
     cmd[3]      = ((*bits >> 24) & 0xff);
 
     return katherine_cmd(udp, &cmd, sizeof(cmd));
+}
+
+/*
+ * GeneralConfig sensor register (Timepix3 manual v2, sec 4.2.5.4.1,
+ * headers 0h30/0h31). Bit positions are named per the manual; the three
+ * bits this word derives from katherine_config_t fields (Polarity,
+ * Gray_count_en, TP_en) both set and clear with their field. The other
+ * bits keep their historical fixed values: Op_mode [2:1] stays 0
+ * (ToA_ToT), AckCommand_en and Fast_lo_en stay pinned enabled, and the
+ * remaining test-pulse selectors stay 0 -- those travel in the dedicated
+ * test-pulse command instead.
+ */
+typedef enum katherine_general_config_bit {
+    GENERAL_CONFIG_BIT_POLARITY      = 0,
+    GENERAL_CONFIG_BIT_GRAY_COUNT_EN = 3,
+    GENERAL_CONFIG_BIT_ACKCOMMAND_EN = 4,
+    GENERAL_CONFIG_BIT_TP_EN         = 5,
+    GENERAL_CONFIG_BIT_FAST_LO_EN    = 6,
+} katherine_general_config_bit_t;
+
+static inline int32_t
+katherine_general_config_word(const katherine_config_t *config)
+{
+    int32_t word = 0;
+    word |= (!config->polarity_holes) << GENERAL_CONFIG_BIT_POLARITY;
+    word |= (!config->gray_disable) << GENERAL_CONFIG_BIT_GRAY_COUNT_EN;
+    word |= 1 << GENERAL_CONFIG_BIT_ACKCOMMAND_EN;
+    word |= (config->test_pulse_config.enabled ? 1 : 0) << GENERAL_CONFIG_BIT_TP_EN;
+    word |= 1 << GENERAL_CONFIG_BIT_FAST_LO_EN;
+    return word;
 }
 
 #define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...) \

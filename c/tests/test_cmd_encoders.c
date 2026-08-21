@@ -22,6 +22,10 @@
  *   4. Boundary vectors for katherine_cmd_i64: values whose low 32 bits are
  *      all that ever reach the wire, and a negative value, which encodes
  *      via the two's complement bit pattern of those low 32 bits.
+ *   5. katherine_general_config_word() (config.c, via command_interface.h):
+ *      the GeneralConfig sensor register value built from named bits of
+ *      katherine_config_t, encoded the same way katherine_configure()
+ *      sends it.
  *
  * The 0x26 test-pulse datagram already has byte-exact coverage in
  * test_tp.c and is not repeated here.
@@ -45,6 +49,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <katherine/config.h>
 #include <katherine/udp.h>
 
 #include "command_interface.h"
@@ -370,6 +375,86 @@ test_i64_boundary(void)
     CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
+/* ------------------------------------------------------------------ */
+/* 5. katherine_general_config_word(): the GeneralConfig sensor register */
+/* built from named bits of katherine_config_t, encoded via            */
+/* katherine_cmd64_i64 exactly as katherine_configure() (config.c)     */
+/* sends it: opcode CMD_TYPE_SENSOR_REGISTER_SETTING, sub-index         */
+/* TPX3_REG_GENERAL_CONFIG.                                             */
+
+static void
+test_general_config_word(void)
+{
+    katherine_config_t config;
+    memset(&config, 0, sizeof(config));
+
+    /* All-zero config: AckCommand_en and Fast_lo_en are pinned on (no
+       corresponding field), Gray_count_en is on because gray_disable is
+       false, and Polarity is high because polarity_holes is false
+       (electrons) -- 0x59. This is the value the preexisting 0x58-preset
+       code also produced for these inputs: no regression here. */
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x59, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+
+    /* gray_disable = true: Gray_count_en (bit 3) must clear -- 0x51. The
+       preexisting code started general_setup from a 0x58 base with bit 3
+       already set and only ever ORed gray_disable into it, so it kept
+       producing 0x59 here regardless of this field; this is the
+       newly-effective case. */
+    config.gray_disable = true;
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x51, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+    config.gray_disable = false;
+
+    /* polarity_holes = true: Polarity (bit 0) clears -- 0x58. This bit
+       already worked under the preexisting code too, since its base
+       value started at 0; included to freeze every named bit, not only
+       the one the fix changes. */
+    config.polarity_holes = true;
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x58, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+    config.polarity_holes = false;
+
+    /* test_pulse_config.enabled = true: TP_en (bit 5) sets -- 0x79. Also
+       already correct under the preexisting code (same zero-base
+       reasoning as Polarity). */
+    config.test_pulse_config.enabled = true;
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x79, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+    config.test_pulse_config.enabled = false;
+
+    /* The remaining flag combinations, freezing the whole 2^3 space the
+       word derives from. The two involving gray_disable are further
+       newly-effective values; the last one exercised all three bits at
+       once under neither the old nor the new code until here. */
+    config.gray_disable              = true;
+    config.test_pulse_config.enabled = true;
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x71, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+
+    config.test_pulse_config.enabled = false;
+    config.polarity_holes            = true;
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x50, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+
+    config.gray_disable              = false;
+    config.test_pulse_config.enabled = true;
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x78, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+
+    config.gray_disable = true;
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x70, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+}
+
 int
 main(void)
 {
@@ -389,6 +474,7 @@ main(void)
     KT_RUN(test_wrappers_set_bias_settings);
     KT_RUN(test_wrappers_dac);
     KT_RUN(test_i64_boundary);
+    KT_RUN(test_general_config_word);
 
     fixture_fini();
     return kt_summary();

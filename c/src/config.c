@@ -43,11 +43,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_acquisition_setup(device, &config->start_trigger, config->delayed_start, &config->stop_trigger);
     if (res) goto err;
 
-    int32_t general_setup = 0x58;
-    general_setup |= !config->polarity_holes;
-    general_setup |= (config->gray_disable ? 1 : 0) << 3;
-    general_setup |= (config->test_pulse_config.enabled ? 1 : 0) << 5;
-    res = katherine_set_sensor_register(device, TPX3_REG_GENERAL_CONFIG, general_setup);
+    res = katherine_set_sensor_register(device, TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
     if (res) goto err;
 
     int32_t pll_setup = 0xE;
