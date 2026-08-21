@@ -24,6 +24,7 @@ katherine_declare_feature(BUILD_PYTHON   "build Python 3 bindings" DEFAULT OFF L
 katherine_declare_feature(BUILD_EXAMPLES "build example programs"  DEFAULT ON  LEGACY BUILD_EXAMPLES)
 katherine_declare_feature(BUILD_DOXYGEN  "build API documentation" DEFAULT OFF AUTO_DETECTED)
 katherine_declare_feature(BUILD_TESTS    "build unit tests"        DEFAULT ON)
+katherine_declare_feature(BUILD_EMULATOR "build protocol emulator" DEFAULT ON)
 katherine_feature_summary()
 
 # The dialect this project's own binaries are built with (reproducible

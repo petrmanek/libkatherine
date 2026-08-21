@@ -33,6 +33,19 @@ set(KATHERINE_HEADERS
     "include/katherine/udp_win.h"
 )
 
+# The emulator is an optional part of the library: with the feature off,
+# its sources are not compiled and its header is not installed.
+if(KATHERINE_BUILD_EMULATOR)
+    list(APPEND KATHERINE_SOURCES
+        "src/emu/emulator.c"
+        "src/emu/emu_stream.c"
+        "src/emu/emu.h"
+    )
+    list(APPEND KATHERINE_HEADERS
+        "include/katherine/emulator.h"
+    )
+endif()
+
 # Generated from version.h.in with the values from the project() call
 # above, so the version macros can never drift from CMakeLists.txt.
 set(KATHERINE_GENERATED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
