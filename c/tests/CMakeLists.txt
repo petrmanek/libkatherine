@@ -9,6 +9,7 @@
 if(NOT WIN32)
     katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
     katherine_add_test(NAME test_issue16 SOURCES test_issue16.c LABELS unit)
+    katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
     katherine_add_test(NAME test_cmd_encoders SOURCES test_cmd_encoders.c LABELS unit)
 endif()
 
