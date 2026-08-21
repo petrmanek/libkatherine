@@ -190,12 +190,10 @@ static char g_skip_reason[256];
    address is not lost, because the whole of 127.0.0.0/8 is local, but
    delivered straight back to the library's own wildcard-bound control
    socket -- which then reads its own 8-byte command as the readout's
-   acknowledgement. Worse, katherine_udp_recv() repoints the session's remote
-   address at whoever last sent to it, so that single round trip leaves the
-   session addressed to itself for good (issue #23, "net: stop stray
-   datagrams retargeting remote addr"), and no amount of
-   retrying on the same device can recover. Discarding the device is the only
-   way back with the 1.x API. */
+   acknowledgement. The device's sessions pin their remote address, so the
+   echo cannot retarget them (it once could, and then no amount of retrying
+   on the same device would recover); recreating the device between attempts
+   still sheds anything else a failed attempt may have left queued. */
 static const char *
 fixture_init(const char *ksim_path)
 {

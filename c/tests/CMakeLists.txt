@@ -16,6 +16,12 @@ endif()
 # Pure bitfield/wire-format vectors: no sockets or threads, builds everywhere.
 katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
 
+# Remote-address pinning of the UDP layer. Sockets, but only through the
+# public katherine_udp_* API and on uncommon high ports of its own, so it
+# builds everywhere and claims nothing another test could want: no daemon, no
+# threads, and none of the fixed ports that would make it RUN_SERIAL.
+katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit)
+
 # End-to-end acquisition against the ksim daemon, which hosts the protocol
 # emulator on real UDP sockets -- hence the guard on the emulator feature,
 # which is what brings the ksim target into the build. The test drives only
