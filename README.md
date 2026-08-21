@@ -75,11 +75,26 @@ To show advanced usage of all provided libraries, several commented example
 programs and scripts are included in the repository. They can be either found
 in the `examples/` subdirectory for each library, or in the table below:
 
-| C                             | C++                                   | Python                                           | Purpose                                                      |
-| ----------------------------- | ------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ |
-| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)           | Locate Katherine readouts in given IP address range.         |
-| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)             | Configure & perform data-driven acquisition.                 |
-|                               |                                       | [tot_hitmap.py](./python/examples/tot_hitmap.py) | Plot an integrated frame in a pixel matrix from krun output. |
+| C                             | C++                                   | Python                                           | Purpose                                                                 |
+| ----------------------------- | ------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)           | Locate Katherine readouts in given IP address range.                    |
+| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)             | Configure & perform data-driven acquisition.                            |
+|                               |                                       | [tot_hitmap.py](./python/examples/tot_hitmap.py) | Plot an integrated frame in a pixel matrix from krun output.            |
+
+### Trying Without Hardware
+
+When no readout is available, the [ksim](./tools/ksim/)
+daemon (built when `KATHERINE_BUILD_EMULATOR` is enabled) hosts an
+emulated readout that the examples can talk to over loopback:
+
+```shell
+./ksim --listen 127.0.0.2 &
+./krun 127.0.0.2
+./kfind 127.0.0.1-5
+```
+
+The daemon also offers deterministic seeding, rate shaping and fault
+injection; see `ksim --help`.
 
 
 ### Full Documentation

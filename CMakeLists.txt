@@ -72,6 +72,8 @@ if(KATHERINE_BUILD_PYTHON)
     add_subdirectory(python)
 endif()
 
+add_subdirectory(tools)
+
 # Added last: the documentation build consumes the file lists exported by
 # the c/ and cxx/ directories.
 if(KATHERINE_BUILD_DOXYGEN)
