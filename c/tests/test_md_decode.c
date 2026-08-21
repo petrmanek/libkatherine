@@ -283,10 +283,68 @@ test_toa_offset_reset(void)
 }
 
 /* ------------------------------------------------------------------ */
+/* b) A datagram whose length is not a whole number of data.           */
+
+/* Length of the fragment the second datagram below ends with, and the
+   arrival times of the four hits it and its predecessor carry. */
+#define TAIL_BYTES 3
+#define HIT_TOA(i) (0x0101 * ((i) + 1))
+
+static void
+test_partial_datum_ignored(void)
+{
+    /* Two datagrams, the second of which ends three bytes into a fourth
+       datum. The readout never cuts a datagram there, but a truncated one
+       arrives exactly like this, and the loop that walks the buffer in
+       six-byte steps must not step onto the fragment: the word it would
+       read there is the fragment followed by whatever the longer datagram
+       before it left further along the buffer.
+
+       Those leftovers are arranged here to make the fragment look like a
+       hit, so that the over-read is observed rather than guessed at. The
+       fragment begins at offset 18, so the header nibble of the word read
+       there -- bits 44 to 47 -- comes from byte 23, which is the last byte
+       of the fourth datum of the first datagram, hence that datum's own
+       header: a pixel. */
+    unsigned char stream[8 * KATHERINE_MD_SIZE + TAIL_BYTES];
+    memset(stream, 0, sizeof(stream));
+
+    /* First datagram: a whole frame of three hits. */
+    store_md(stream, 0, make_new_frame());
+    store_md(stream, 1, make_pixel(1, 1, HIT_TOA(0)));
+    store_md(stream, 2, make_pixel(2, 2, HIT_TOA(1)));
+    store_md(stream, 3, make_pixel(3, 3, HIT_TOA(2)));
+    store_md(stream, 4, make_frame_finished(3));
+
+    /* Second datagram: a whole frame of one hit, then the fragment left by
+       the memset above. */
+    store_md(stream, 5, make_new_frame());
+    store_md(stream, 6, make_pixel(4, 4, HIT_TOA(3)));
+    store_md(stream, 7, make_frame_finished(1));
+
+    size_t datagram_len[2] = {5 * KATHERINE_MD_SIZE, 3 * KATHERINE_MD_SIZE + TAIL_BYTES};
+    decode_probe_t probe;
+    KT_CHECK_EQ(run_stream(stream, datagram_len, 2, 2, &probe), 0);
+
+    KT_CHECK_EQ(probe.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(probe.completed_frames, 2);
+    KT_CHECK_EQ(probe.dropped, 0);
+    KT_CHECK_EQ(probe.frames_started, 2);
+    KT_CHECK_EQ(probe.frames_ended, 2);
+
+    /* Four data carried four hits: the fragment is not a fifth. */
+    KT_CHECK_EQ(probe.hits, 4);
+    for (size_t i = 0; i < 4 && i < probe.hits; ++i) {
+        KT_CHECK_EQ(probe.toa[i], HIT_TOA(i));
+    }
+}
+
+/* ------------------------------------------------------------------ */
 
 int
 main(void)
 {
     KT_RUN(test_toa_offset_reset);
+    KT_RUN(test_partial_datum_ignored);
     return kt_summary();
 }
