@@ -214,8 +214,7 @@ print_usage(FILE *out, const char *prog)
         "                               completion acknowledgement\n"
         "  --stray-crd                  send one unsolicited response datagram right\n"
         "                               after the first command arrives\n"
-        "  --log <file>                 append one line per received command to file,\n"
-        "                               or to standard error when file is '-'\n"
+        "  --log <file>                 append one line per received command to file\n"
         "  --quiet                      suppress the startup banner\n"
         "  --help                       print this message and exit\n",
         prog, DEFAULT_LISTEN_ADDR, DEFAULT_CTL_PORT, DEFAULT_DATA_PORT, DEFAULT_CLIENT_DATA_PORT);
@@ -463,10 +462,6 @@ track_client(katherine_udp_t *data_udp, const katherine_udp_t *ctl_udp, uint16_t
 
     *data_remote_ip  = ip;
     *data_remote_set = true;
-
-    if (!quiet) {
-        fprintf(stderr, "ksim: data stream -> %s:%u\n", ip_str, (unsigned) client_data_port);
-    }
 }
 
 /* Elapsed time from a monotonic sample taken at from to one taken at to (both
@@ -571,9 +566,7 @@ main(int argc, char *argv[])
     }
 
     FILE *log_fp = NULL;
-    if (options.log_path != NULL && strcmp(options.log_path, "-") == 0) {
-        log_fp = stderr;
-    } else if (options.log_path != NULL) {
+    if (options.log_path != NULL) {
         log_fp = fopen(options.log_path, "a");
         if (log_fp == NULL) {
             fprintf(stderr, "ksim: cannot open --log file '%s': %s\n", options.log_path, strerror(errno));
@@ -623,13 +616,7 @@ main(int argc, char *argv[])
     bool crd_count_armed  = false;
     uint64_t crds_counted = 0;
 
-    /* One activity line per second at most, and only when the counters
-       moved: quiet phases print nothing, so the volume is bounded by the
-       time the client spends actually talking. */
-    uint64_t prev_ns        = ksim_monotonic_ns();
-    uint64_t stats_ns       = prev_ns;
-    uint64_t stats_commands = 0;
-    uint64_t stats_md_bytes = 0;
+    uint64_t prev_ns = ksim_monotonic_ns();
 
     while (!g_stop) {
         for (int i = 0; i < MAX_DRAIN_PER_TICK; ++i) {
@@ -734,21 +721,11 @@ main(int argc, char *argv[])
             }
         }
 
-        if (!options.quiet && ns_diff(stats_ns, now_ns) >= UINT64_C(1000000000)) {
-            if (commands_seen != stats_commands || md_bytes_sent != stats_md_bytes) {
-                fprintf(stderr, "ksim: stats: commands=%" PRIu64 " md_bytes=%" PRIu64 " md_send_errors=%" PRIu64 "\n",
-                    commands_seen, md_bytes_sent, md_send_errors);
-                stats_commands = commands_seen;
-                stats_md_bytes = md_bytes_sent;
-            }
-            stats_ns = now_ns;
-        }
-
         drain_log(log_fp, &emu);
     }
 
     drain_log(log_fp, &emu);
-    if (log_fp != NULL && log_fp != stderr) fclose(log_fp);
+    if (log_fp != NULL) fclose(log_fp);
 
     katherine_udp_fini(&data_udp);
     katherine_udp_fini(&ctl_udp);
