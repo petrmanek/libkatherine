@@ -37,4 +37,13 @@ if(KATHERINE_BUILD_EMULATOR)
     # generate time, by when it does. Without the dependency, building the
     # test target alone would leave the daemon it runs unbuilt.
     add_dependencies(test_e2e_acq ksim)
+
+    # Recovery of a pixel-configuration upload whose acknowledgement the
+    # daemon is told to drop. Same daemon, same fixed ports, hence the same
+    # properties as above.
+    katherine_add_test(NAME test_px_recovery SOURCES test_px_recovery.c
+        ARGS "$<TARGET_FILE:ksim>"
+        LABELS e2e
+        PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
+    add_dependencies(test_px_recovery ksim)
 endif()
