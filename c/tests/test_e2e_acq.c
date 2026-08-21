@@ -321,9 +321,22 @@ typedef struct acq_probe {
 
     uint32_t data_callbacks; /* undecoded mode only */
     uint64_t data_bytes;
+    bool abort_enabled; /* whether the abort cases below drive this run */
     bool abort_requested;
     int abort_result;
 } acq_probe_t;
+
+/* Aborts the acquisition in progress, once, if this run is one of the abort
+   cases. Runs on the read loop's own thread, from inside the loop, and takes
+   the control socket -- not the data socket the loop holds. */
+static void
+request_abort(acq_probe_t *probe)
+{
+    if (!probe->abort_enabled || probe->abort_requested) return;
+
+    probe->abort_requested = true;
+    probe->abort_result    = katherine_acquisition_abort(probe->acq);
+}
 
 static void
 on_frame_started(void *ctx, int frame_idx)
@@ -335,6 +348,12 @@ on_frame_started(void *ctx, int frame_idx)
     ++probe->frames_started;
     probe->hits_in_frame = 0;
     probe->prev_toa      = 0;
+
+    /* This is invoked by the new-frame datum, the first datum of the frame,
+       so the shutter is open by the time it runs: aborting here aborts a
+       frame in progress. It is the decoding chain's counterpart of the abort
+       from on_data_received below, which decoding never calls. */
+    request_abort(probe);
 }
 
 static void
@@ -379,6 +398,12 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
     ++probe->frames_ended;
     if (completed) ++probe->frames_completed;
 
+    /* A frame an abort cut short carries neither the frame-finished datum
+       nor the end timestamp, so how many hits it was to deliver and when it
+       was to close are not knowable: only a frame that ran to its end is
+       held against the ground truth below. */
+    if (!completed) return;
+
     KT_CHECK_EQ(info->sent_pixels, HITS_PER_FRAME);
     KT_CHECK_EQ(info->received_pixels, HITS_PER_FRAME);
     KT_CHECK_EQ(info->lost_pixels, LOST_PER_FRAME);
@@ -414,13 +439,8 @@ on_data_received(void *ctx, const char *data, size_t count)
 
     /* The first datagram of a frame necessarily opens with the new-frame
        datum, so the shutter is open by the time this runs: aborting here
-       aborts a frame in progress. This runs on the read loop's own thread,
-       from inside the loop, and takes the control socket -- not the data
-       socket the loop holds. */
-    if (!probe->abort_requested) {
-        probe->abort_requested = true;
-        probe->abort_result    = katherine_acquisition_abort(probe->acq);
-    }
+       aborts a frame in progress. */
+    request_abort(probe);
 }
 
 /* Fills in a configuration equivalent to the one c/examples/krun.c uses,
@@ -467,18 +487,21 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
 /* Configures the readout, runs one bounded acquisition to completion and
    returns what katherine_acquisition_read() returned. The acquisition is
    left initialized (and zeroed beforehand, so finalizing it is safe on
-   every path) for the caller to inspect and finalize. */
+   every path) for the caller to inspect and finalize. With abort_enabled,
+   the run is instead cut short from inside the read loop, by the first
+   handler of the selected chain that reports the shutter open. */
 static int
 acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, double acq_time_ns, int no_frames,
-    bool decode_data)
+    bool decode_data, bool abort_enabled)
 {
     katherine_config_t config;
     int res;
 
     memset(acq, 0, sizeof(*acq));
     memset(probe, 0, sizeof(*probe));
-    probe->acq         = acq;
-    probe->frame_ticks = (uint32_t) (acq_time_ns / TICK_NS);
+    probe->acq           = acq;
+    probe->frame_ticks   = (uint32_t) (acq_time_ns / TICK_NS);
+    probe->abort_enabled = abort_enabled;
 
     configure(&config, acq_time_ns, no_frames);
 
@@ -509,7 +532,7 @@ test_data_driven_frame(void)
     /* One frame only: katherine_acquisition_begin() rejects a data-driven
        acquisition of more than one frame outright (EINVAL), which is what
        bounds this case. */
-    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
 
     KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, 1);
@@ -543,7 +566,7 @@ test_sequential_frames(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_SEQUENTIAL, SHORT_ACQ_TIME_NS, SEQ_FRAMES, true), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_SEQUENTIAL, SHORT_ACQ_TIME_NS, SEQ_FRAMES, true, false), 0);
 
     KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, SEQ_FRAMES);
@@ -564,7 +587,12 @@ test_sequential_frames(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* d) Abort path.                                                      */
+/* d) Abort path. Once the abort is requested, the read loop drains
+   whatever the readout has already sent -- including the aborted
+   measurement datum that closes the interrupted frame -- and ends the
+   acquisition as soon as the stream dries up. That is one behavior, not
+   two: the pair of cases below differ only in which chain carries the
+   data, and assert the same outcome.                                    */
 
 static void
 test_abort_undecoded(void)
@@ -572,13 +600,7 @@ test_abort_undecoded(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    /* KNOWN-BUG (issue #23, "acq: terminate decode loop on abort MD"): the
-       same abort with decode_data = true
-       does not terminate the read loop -- the loop's abort check is guarded
-       by !decode_data, so a decoding acquisition keeps reading until the
-       kill-off timeout expires and then reports ACQUISITION_TIMED_OUT. That
-       case is added when the fix lands. */
-    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, false), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, false, true), 0);
 
     KT_CHECK(probe.data_callbacks > 0);
     KT_CHECK(probe.abort_requested);
@@ -593,6 +615,35 @@ test_abort_undecoded(void)
     KT_CHECK_EQ(acq.completed_frames, 0);
     KT_CHECK_EQ(probe.frames_started, 0);
     KT_CHECK_EQ(probe.frames_ended, 0);
+
+    katherine_acquisition_fini(&acq);
+}
+
+static void
+test_abort_decoded(void)
+{
+    katherine_acquisition_t acq;
+    acq_probe_t probe;
+
+    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, true, true), 0);
+
+    /* The undecoded chain is not consulted at all here: the abort came from
+       the frame-started handler instead. */
+    KT_CHECK_EQ(probe.data_callbacks, 0);
+    KT_CHECK(probe.abort_requested);
+    KT_CHECK_EQ(probe.abort_result, 0);
+
+    KT_CHECK(acq.aborted);
+    KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
+
+    /* The shutter was still open, so the frame the abort interrupted is
+       reported ended and incomplete, and it delivered fewer hits than a
+       whole frame carries. */
+    KT_CHECK_EQ(acq.completed_frames, 0);
+    KT_CHECK_EQ(probe.frames_started, 1);
+    KT_CHECK_EQ(probe.frames_ended, 1);
+    KT_CHECK_EQ(probe.frames_completed, 0);
+    KT_CHECK(probe.hits_delivered < HITS_PER_FRAME);
 
     katherine_acquisition_fini(&acq);
 }
@@ -669,6 +720,7 @@ main(int argc, char *argv[])
     KT_RUN(test_data_driven_frame);
     KT_RUN(test_sequential_frames);
     KT_RUN(test_abort_undecoded);
+    KT_RUN(test_abort_decoded);
 
     katherine_device_fini(&g_device);
     kspawn_stop(&g_ksim);
