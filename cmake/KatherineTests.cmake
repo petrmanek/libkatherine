@@ -11,7 +11,9 @@ Test registration facility for the Katherine project.
 
 katherine_add_test(NAME <name>
                     SOURCES <source>...
-                    LABELS <label>...)
+                    [ARGS <arg>...]
+                    [LABELS <label>...]
+                    [PROPERTIES <property> <value>...])
 
   Builds an executable called <name> from <source>... and registers it
   with CTest via add_test(). The executable is linked against the
@@ -20,6 +22,14 @@ katherine_add_test(NAME <name>
   tests may reach the library's internal headers alongside its public
   API. LABELS is recorded as the test's CTest LABELS property, so e.g.
   `ctest -L unit` can select a subset of the registered tests.
+
+  ARGS is appended to the add_test() command line, which is how a test
+  that drives an auxiliary executable is told where to find it (e.g.
+  ARGS "$<TARGET_FILE:ksim>"). PROPERTIES is passed on to
+  set_tests_properties() verbatim, for the remaining CTest properties a
+  test may need -- RUN_SERIAL for one that claims a global resource such
+  as a fixed port, TIMEOUT, SKIP_RETURN_CODE for one that can decide at
+  run time that its environment cannot host it.
 #]=======================================================================]
 
 include_guard(GLOBAL)
@@ -29,7 +39,7 @@ include_guard(GLOBAL)
 find_package(Threads REQUIRED)
 
 function(katherine_add_test)
-    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "NAME" "SOURCES;LABELS")
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "NAME" "SOURCES;ARGS;LABELS;PROPERTIES")
     if(NOT ARG_NAME)
         message(FATAL_ERROR "katherine_add_test: NAME is required")
     endif()
@@ -44,8 +54,11 @@ function(katherine_add_test)
     target_link_libraries(${ARG_NAME} PRIVATE katherine Threads::Threads)
     target_include_directories(${ARG_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/c/src")
 
-    add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME})
+    add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME} ${ARG_ARGS})
     if(ARG_LABELS)
         set_tests_properties(${ARG_NAME} PROPERTIES LABELS "${ARG_LABELS}")
+    endif()
+    if(ARG_PROPERTIES)
+        set_tests_properties(${ARG_NAME} PROPERTIES ${ARG_PROPERTIES})
     endif()
 endfunction()
