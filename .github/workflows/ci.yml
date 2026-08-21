@@ -78,12 +78,3 @@ jobs:
       - name: Test
         if: ${{ hashFiles('build/CTestTestfile.cmake') != '' }}
         run: ctest --test-dir build --output-on-failure -C Release
-
-      # --output-on-failure hides the output of tests that passed or
-      # skipped, but a skip reason (e.g. the end-to-end test explaining why
-      # the emulated readout cannot be hosted) and the ksim daemon's exit
-      # summary are exactly what a platform regression needs; print the full
-      # log unconditionally.
-      - name: Print the test log
-        if: ${{ always() && hashFiles('build/Testing/Temporary/LastTest.log') != '' }}
-        run: cat build/Testing/Temporary/LastTest.log
