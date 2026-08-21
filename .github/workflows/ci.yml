@@ -53,6 +53,13 @@ jobs:
           echo "CC=${{ matrix.compiler }}" >> "$GITHUB_ENV"
           echo "CXX=${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}" >> "$GITHUB_ENV"
 
+      # macOS configures only 127.0.0.1 on loopback; the end-to-end tests
+      # host the emulated readout on a secondary address, so alias it.
+      # Linux routes all of 127/8 to loopback and needs nothing.
+      - name: Alias the emulator loopback address
+        if: runner.os == 'macOS'
+        run: sudo ifconfig lo0 alias 127.0.0.2 up
+
       - name: Configure
         run: >
           cmake -B build
