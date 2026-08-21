@@ -206,16 +206,9 @@ fixture_init(const char *ksim_path)
         (char *) E2E_STR(LOST_PER_FRAME),
         (char *) "--pattern",
         (char *) "hot-column",
-        (char *) "--log",
-        (char *) "-",
+        (char *) "--quiet",
         NULL,
     };
-    /* Deliberately not --quiet, and with the command log on standard error:
-       the daemon's banner in the CTest log proves its stderr survives the
-       process-spawn plumbing on every platform, the rare event lines
-       (data-stream repoints, send failures, activity stats) are the first
-       thing a platform regression needs, and the command log shows exactly
-       what the emulated readout was asked to do and in what order. */
 
     int res = kspawn_start(&g_ksim, ksim_path, argv);
     if (res != 0) {

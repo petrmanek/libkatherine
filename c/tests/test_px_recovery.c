@@ -167,18 +167,12 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
         (char *) "hot-column",
         (char *) "--drop-crd",
         (char *) KPX_STR(DROP_DONE_ACK_CRD),
-        (char *) "--log",
-        (char *) "-",
+        (char *) "--quiet",
         /* Filled in below, or left as the terminator. */
         NULL,
         NULL,
         NULL,
     };
-    /* Deliberately not --quiet, and with the command log on standard error:
-       the log is what shows the emulated readout's side of a recovery --
-       which chunks it absorbed, which filler datagrams it answered, and
-       whether it was still expecting configuration data when the
-       acquisition was supposed to start. */
 
     if (drop_chunk != 0) {
         size_t i = sizeof(argv) / sizeof(argv[0]) - 3;
