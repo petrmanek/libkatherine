@@ -85,6 +85,14 @@
 /* Size of one pixel-configuration chunk, as sent by katherine_set_all_pixel_config(). */
 #define PX_CHUNK_SIZE            1024
 
+/* Length of a command datagram, the byte carrying its operation code (a
+   response echoes the code of its request in the same byte), and the code of
+   the pixel-configuration upload command: what arms the --drop-crd counter
+   below. */
+#define CMD_DATAGRAM_SIZE        8
+#define CMD_OPCODE_BYTE          6
+#define CMD_SET_ALL_PIXEL_CONFIG 0x12
+
 /* A measurement data datagram carries whole 6-byte data at up to 1356 bytes
    (226 of them), matching the chunking of the real readout. */
 #define MD_DATAGRAM_MAX_MDS      226
@@ -114,6 +122,7 @@ enum {
     OPT_PATTERN,
     OPT_ACK_LATENCY_US,
     OPT_DROP_PX_CHUNK,
+    OPT_DROP_CRD,
     OPT_STRAY_CRD,
     OPT_LOG,
 };
@@ -131,6 +140,7 @@ static const ksim_opt_t OPTS[] = {
     {"pattern", '\0', true, OPT_PATTERN},
     {"ack-latency-us", '\0', true, OPT_ACK_LATENCY_US},
     {"drop-px-chunk", '\0', true, OPT_DROP_PX_CHUNK},
+    {"drop-crd", '\0', true, OPT_DROP_CRD},
     {"stray-crd", '\0', false, OPT_STRAY_CRD},
     {"log", '\0', true, OPT_LOG},
     {"quiet", 'q', false, 'q'},
@@ -164,6 +174,7 @@ typedef struct daemon_options {
     bool ack_latency_set;
 
     uint32_t drop_px_chunk;
+    uint32_t drop_crd;
     bool stray_crd;
 
     const char *log_path;
@@ -197,6 +208,10 @@ print_usage(FILE *out, const char *prog)
         "  --ack-latency-us <n>         virtual latency of command responses\n"
         "  --drop-px-chunk <k>          drop the k-th 1024-byte pixel-configuration\n"
         "                               chunk instead of delivering it, 0 to disable\n"
+        "  --drop-crd <n>               drop the n-th response datagram counted from\n"
+        "                               the first pixel-configuration upload command,\n"
+        "                               0 to disable; n = 1 is that upload's own\n"
+        "                               completion acknowledgement\n"
         "  --stray-crd                  send one unsolicited response datagram right\n"
         "                               after the first command arrives\n"
         "  --log <file>                 append one line per received command to file,\n"
@@ -362,6 +377,13 @@ parse_options(int argc, char *argv[], daemon_options_t *options)
         case OPT_DROP_PX_CHUNK:
             if (!parse_u32(value, &options->drop_px_chunk)) {
                 fprintf(stderr, "ksim: invalid --drop-px-chunk '%s'\n", value);
+                return EXIT_FAILURE;
+            }
+            break;
+
+        case OPT_DROP_CRD:
+            if (!parse_u32(value, &options->drop_crd)) {
+                fprintf(stderr, "ksim: invalid --drop-crd '%s'\n", value);
                 return EXIT_FAILURE;
             }
             break;
@@ -592,6 +614,15 @@ main(int argc, char *argv[])
     uint64_t px_chunks_seen    = 0;
     uint64_t self_sourced_seen = 0;
 
+    /* --drop-crd counts responses from the first pixel-configuration upload
+       command onwards, and never from earlier: the readiness probing of a
+       client varies in length from run to run, whereas the responses of an
+       upload and of the recovery that may follow it are dictated by the
+       protocol, so an ordinal counted from there names the same datagram
+       every time. */
+    bool crd_count_armed  = false;
+    uint64_t crds_counted = 0;
+
     /* One activity line per second at most, and only when the counters
        moved: quiet phases print nothing, so the volume is bounded by the
        time the client spends actually talking. */
@@ -649,6 +680,10 @@ main(int argc, char *argv[])
                 }
             }
 
+            if (n == CMD_DATAGRAM_SIZE && buf[CMD_OPCODE_BYTE] == CMD_SET_ALL_PIXEL_CONFIG) {
+                crd_count_armed = true;
+            }
+
             if (deliver) (void) katherine_emu_cmd_in(&emu, buf, n);
 
             if (stray_crd_pending && is_first_command) {
@@ -665,6 +700,16 @@ main(int argc, char *argv[])
             uint8_t crd[KATHERINE_EMU_CRD_SIZE];
             size_t crd_len;
             while (katherine_emu_crd_out(&emu, crd, &crd_len) == 0) {
+                if (crd_count_armed) ++crds_counted;
+                if (options.drop_crd != 0 && crds_counted == options.drop_crd) {
+                    if (!options.quiet) {
+                        fprintf(stderr,
+                            "ksim: dropping response datagram #%" PRIu64 " since the upload command (opcode 0x%02X)\n",
+                            crds_counted, crd[CMD_OPCODE_BYTE]);
+                    }
+                    continue;
+                }
+
                 (void) katherine_udp_send_exact(&ctl_udp, crd, crd_len);
             }
 
