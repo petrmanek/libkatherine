@@ -94,6 +94,16 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received)
         socklen_t addr_len = sizeof(addr_from);
         int res            = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &addr_from, &addr_len);
         if (res == SOCKET_ERROR) {
+            // A datagram larger than the remaining buffer fails with
+            // WSAEMSGSIZE here, after being consumed and with the source
+            // address filled in -- where POSIX truncates the same datagram
+            // silently and lets the address check below deal with it. An
+            // oversized datagram from a foreign host is therefore a discard
+            // like any other; only one from the pinned remote itself is the
+            // caller's problem, as it always was.
+            if (WSAGetLastError() == WSAEMSGSIZE && !from_pinned_remote(u, &addr_from)) {
+                continue;
+            }
             return recv_error_code();
         }
 
