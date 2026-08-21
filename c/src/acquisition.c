@@ -39,6 +39,11 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
     acq->current_frame_info.completed           = false;
     acq->frame_active                           = true;
 
+    // The coarse time of arrival restarts with the frame, so the offset the
+    // previous frame delivered no longer applies: the hits arriving before
+    // the first offset of this frame belong to its first window.
+    acq->last_toa_offset = 0;
+
     if (acq->handlers.frame_started != NULL) {
         acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
     }
