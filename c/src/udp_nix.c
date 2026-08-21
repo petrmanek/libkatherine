@@ -65,6 +65,16 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
         goto err_socket;
     }
 
+    // Allow another local process bound to a different local address (e.g.
+    // the ksim example) to reuse the same port number; without this, a
+    // second bind() to 1555 or 1556 on this host fails outright even though
+    // the addresses differ.
+    int reuseaddr = 1;
+    if (setsockopt(u->sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
+        res = errno;
+        goto err_reuseaddr;
+    }
+
     // Setup and bind the socket address.
     u->addr_local.sin_family      = AF_INET;
     u->addr_local.sin_port        = htons(local_port);
@@ -104,6 +114,7 @@ err_mutex:
 err_remote:
 err_timeout:
 err_bind:
+err_reuseaddr:
     close(u->sock);
 err_socket:
     return res;
