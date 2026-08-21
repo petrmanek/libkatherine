@@ -104,6 +104,11 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
     for (int i = 0; i < 3 * 64; ++i) {
         // NOTE: ignoring error code below
         (void) katherine_cmd(&device->control_socket, words, 1024);
+
+        if (i % 16 == 15) {
+            // Same pacing as the upload itself: the flood must not outrun the readout either.
+            katherine_msleep(10);
+        }
     }
 
     // The readout answers every filler command above, so the flood leaves as many responses in flight as it sent
@@ -162,8 +167,9 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
             res = katherine_cmd(&device->control_socket, config + 1024 * i, 1024);
             if (res) break;
 
-            if (i > 0) {
-                // Wait between words to prevent data loss.
+            if (i % 16 == 15) {
+                // Pause after every sixteenth chunk so the readout can drain what it has received so far. Pacing
+                // every single chunk stretched the upload to 640 ms without helping reliability any further.
                 katherine_msleep(10);
             }
         }
@@ -189,9 +195,9 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
             // would be incorrectly interpreted as pixel data and fail on ACK timeout. For that reason we will send some more
             // dummy data. This will result in incorrect pixel configuration but at least the readout will respond to any
             // commands in the future. Since we do not know how many bytes of data the readout still expects, we will
-            // ridiculously overestimate it (by factor of 3). To ensure that the data will not be interpreted as anything
-            // potentially harmful, the value of the sent buffer has been deliberately filled with command that asks for
-            // readout temperature.
+            // ridiculously overestimate it (by factor of 3). The filler is inert: with every byte set to 0x15, an
+            // 8-byte prefix read as a command carries the operation code 0x1515 (bytes 6 and 7 of the repeating
+            // pattern), which names no real command and is not acted upon.
             recover_from_incomplete_set_all_pixel_config(device);
         }
     }
