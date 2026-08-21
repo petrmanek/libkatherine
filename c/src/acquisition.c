@@ -348,7 +348,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                     acq->state = ACQUISITION_TIMED_OUT; \
                 } \
 \
-                if (!acq->decode_data && acq->aborted) { \
+                /* An abort ends the acquisition as soon as the stream has \
+                   dried up, whether or not the data are decoded. The flag \
+                   is raised by katherine_acquisition_abort() and by the \
+                   aborted measurement datum alike. */ \
+                if (acq->aborted) { \
                     acq->state = ACQUISITION_SUCCEEDED; \
                 } \
                 continue; \
