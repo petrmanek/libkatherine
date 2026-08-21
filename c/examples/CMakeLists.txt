@@ -11,3 +11,6 @@ target_link_libraries(krun PRIVATE katherine)
 
 add_executable(ktemp ktemp.c)
 target_link_libraries(ktemp PRIVATE katherine)
+
+add_executable(kinfo kinfo.c)
+target_link_libraries(kinfo PRIVATE katherine)
