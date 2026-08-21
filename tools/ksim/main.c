@@ -440,6 +440,10 @@ track_client(katherine_udp_t *data_udp, const katherine_udp_t *ctl_udp, uint16_t
 
     *data_remote_ip  = ip;
     *data_remote_set = true;
+
+    if (!quiet) {
+        fprintf(stderr, "ksim: data stream -> %s:%u\n", ip_str, (unsigned) client_data_port);
+    }
 }
 
 /* Elapsed time from a monotonic sample taken at from to one taken at to (both
@@ -579,10 +583,11 @@ main(int argc, char *argv[])
     struct in_addr data_remote_ip;
     memset(&data_remote_ip, 0, sizeof(data_remote_ip));
 
-    uint64_t commands_seen  = 0;
-    uint64_t md_bytes_sent  = 0;
-    uint64_t md_send_errors = 0;
-    uint64_t px_chunks_seen = 0;
+    uint64_t commands_seen     = 0;
+    uint64_t md_bytes_sent     = 0;
+    uint64_t md_send_errors    = 0;
+    uint64_t px_chunks_seen    = 0;
+    uint64_t self_sourced_seen = 0;
 
     uint64_t prev_ns = ksim_monotonic_ns();
 
@@ -602,6 +607,24 @@ main(int argc, char *argv[])
             bool is_first_command = !client_known;
             client_known          = true;
             ++commands_seen;
+
+            // On macOS, a datagram sent from a wildcard-bound socket to an
+            // aliased loopback address carries that address -- the
+            // *destination* -- as its source, so a client command appears
+            // to come from this daemon's own socket, and a reply to the
+            // observed sender would be delivered right back here (where a
+            // CRD parses as a command, so the loop then feeds itself).
+            // Nothing ever truly sends to itself, so such a source proves
+            // the peer sits on the same host behind a wildcard bind, which
+            // the primary loopback address reaches; reply there instead.
+            if (ctl_udp.addr_remote.sin_addr.s_addr == ctl_udp.addr_local.sin_addr.s_addr
+                && ctl_udp.addr_remote.sin_port == ctl_udp.addr_local.sin_port) {
+                (void) katherine_udp_set_remote(&ctl_udp, "127.0.0.1", options.ctl_port);
+                if (!options.quiet && self_sourced_seen == 0) {
+                    fprintf(stderr, "ksim: commands arrive from this daemon's own address, replying to 127.0.0.1\n");
+                }
+                ++self_sourced_seen;
+            }
 
             track_client(&data_udp, &ctl_udp, options.client_data_port, &data_remote_set, &data_remote_ip,
                 options.quiet);
