@@ -81,17 +81,16 @@ katherine_cmd60(katherine_udp_t *udp, char val6, char val0)
 static inline void
 katherine_cmd_i64(char *cmd, int64_t value)
 {
-    int i = 0;
-    int mlsb, mmsb;
-    while (value > 0) {
-        mlsb = (0x0f) & (int) (value % 16);
-        value /= 16;
-
-        mmsb = (0x0f) & (int) (value % 16);
-        value /= 16;
-
-        cmd[i++] = (char) ((0xff & mlsb) | (0xff & mmsb) << 4);
-    }
+    /* Payload is a fixed 4-byte little-endian field: only the low 32 bits
+       of value ever reach the wire. A negative value contributes the
+       two's complement bit pattern of those low 32 bits, matching the
+       plain 32-bit word the receiving hardware register takes with no
+       sign extension. */
+    uint32_t bits = (uint32_t) value;
+    cmd[0]        = (char) (bits & 0xff);
+    cmd[1]        = (char) ((bits >> 8) & 0xff);
+    cmd[2]        = (char) ((bits >> 16) & 0xff);
+    cmd[3]        = (char) ((bits >> 24) & 0xff);
 }
 
 static inline int

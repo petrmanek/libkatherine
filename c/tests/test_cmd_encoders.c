@@ -15,12 +15,13 @@
  *   1. The five encoding primitives (katherine_cmd6, katherine_cmd60,
  *      katherine_cmd6_i64, katherine_cmd64_i64, katherine_cmd6_float), plus
  *      a couple of boundary vectors that freeze correct edge-case behavior
- *      of the nibble-packing loop in katherine_cmd_i64.
+ *      of the payload store in katherine_cmd_i64.
  *   2. Every ARG0 wrapper (base commands and the 16 hw_* sub-commands).
  *   3. Every ARG1 wrapper (the plain settings, set_bias_settings, and the
  *      18 set_dac_* wrappers).
- *   4. Boundary vectors that freeze known bugs in katherine_cmd_i64 so a
- *      later fix flips them in one visible place.
+ *   4. Boundary vectors for katherine_cmd_i64: values whose low 32 bits are
+ *      all that ever reach the wire, and a negative value, which encodes
+ *      via the two's complement bit pattern of those low 32 bits.
  *
  * The 0x26 test-pulse datagram already has byte-exact coverage in
  * test_tp.c and is not repeated here.
@@ -180,13 +181,11 @@ test_primitive_cmd6_i64(void)
     /* value = 0x0A0B0C0D -> little-endian payload 0D 0C 0B 0A. */
     CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x0A0B0C0D), 0x0D, 0x0C, 0x0B, 0x0A, 0, 0, 0x2A, 0);
 
-    /* value = 0xFFFFFFFF: the byte-splitting loop consumes exactly the 32
-       payload bits and stops there, since its pre-iteration check sees
-       value >> 32 == 0 for any input that fits in 32 bits. byte[4] is
-       never written and stays at its zero-initialized value. This pins
-       the high-nibble packing at the top of the 32-bit range, right below
-       the byte[4]/byte[5] overrun boundary frozen in
-       test_known_bugs_i64_boundary(). */
+    /* value = 0xFFFFFFFF: the payload store only ever writes cmd[0..3],
+       so the top of the representable 32-bit range still leaves byte[4]
+       at its zero-initialized value. This pins down the same boundary
+       that test_i64_boundary() exercises from the other side, with values
+       whose bits extend past bit 31. */
     CHECK_CMD(
         katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0xFFFFFFFF), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
@@ -198,13 +197,13 @@ test_primitive_cmd64_i64(void)
     CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) 0x04, (char) 0x09, (int64_t) 0x0E0F1011), 0x11, 0x10, 0x0F, 0x0E,
         0x09, 0, 0x04, 0);
 
-    /* value = 0: the byte-splitting loop's condition is "value > 0", so it
-       never runs at all and cmd[4] keeps the sub-index that
-       katherine_cmd64_i64 had already written before calling into it. This
-       is correct behavior worth freezing on its own: it is exactly what
-       katherine_set_dacs() (config.c) relies on when a caller configures a
-       DAC to value 0 -- the sub-index must survive so the datagram still
-       addresses the right DAC instead of silently reading as DAC 0. */
+    /* value = 0: the payload store only ever writes cmd[0..3], so cmd[4]
+       keeps the sub-index that katherine_cmd64_i64 had already written
+       before calling into it. This is correct behavior worth freezing on
+       its own: it is exactly what katherine_set_dacs() (config.c) relies
+       on when a caller configures a DAC to value 0 -- the sub-index must
+       survive so the datagram still addresses the right DAC instead of
+       silently reading as DAC 0. */
     CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) 0x04, (char) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 }
 
@@ -336,57 +335,39 @@ test_wrappers_dac(void)
 /* 4. Boundary vectors for katherine_cmd_i64                           */
 
 static void
-test_known_bugs_i64_boundary(void)
+test_i64_boundary(void)
 {
-    /* KNOWN-BUG: header-byte overrun, fixed by a later commit -- these expectations flip then. */
-
-    /* katherine_cmd6_i64 with value = 2^32: the byte-splitting loop in
-       katherine_cmd_i64 runs on "value > 0", not a fixed 4-byte count, so
-       a value whose low 32 bits are zero but which is itself nonzero
-       forces a fifth iteration. That iteration writes cmd[4], which for
-       this primitive is otherwise unused (and stays zero for any value
-       that fits in 32 bits). Observed: payload 00 00 00 00, byte[4] = 01
-       (the low byte of value >> 32), opcode untouched at byte[6]. */
-    CHECK_CMD(
-        katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0x01, 0, 0x2A, 0);
+    /* katherine_cmd6_i64 with value = 2^32: the payload is a fixed 4-byte
+       little-endian store of the low 32 bits, so a value whose low 32
+       bits are zero encodes as an all-zero payload regardless of any bits
+       set above bit 31. byte[4] is not part of the payload store and
+       stays at its zero-initialized value; opcode untouched at byte[6]. */
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
     /* katherine_cmd64_i64 with value = 2^32, taken via the set_dac_vfbk
-       path (sub-index 4, the real DAC index for VFBK): the same fifth
-       iteration now lands on byte[4], which katherine_cmd64_i64 had
-       already set to the sub-index. The sub-index is silently replaced
-       by the overflow byte 01, so the datagram reads as sub-index 1
-       (ibias_preamp_off) instead of 4 (vfbk). Observed: payload all
-       zero, byte[4] = 01, opcode 0x04 unaffected. */
-    CHECK_CMD(katherine_cmd_set_dac_vfbk(&g_sender, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0x01, 0, 0x04, 0);
+       path (sub-index 4, the real DAC index for VFBK): byte[4] keeps the
+       sub-index katherine_cmd64_i64 had already written before calling
+       into the payload store, since the store never reaches past
+       byte[3]. The datagram still addresses VFBK, not some other DAC. */
+    CHECK_CMD(katherine_cmd_set_dac_vfbk(&g_sender, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 
-    /* katherine_cmd6_i64 with value = 2^40: the same "value > 0" loop
-       condition runs a sixth iteration once the value no longer fits in 40
-       bits, writing cmd[5] too -- one byte further than the byte[4] overrun
-       above. 2^40 is the smallest value for which this happens: bytes
-       [0..3] hold the low 32 bits (zero here), byte[4] holds bits 32-39
-       (also zero here), and the sixth iteration writes byte[5] = bits
-       40-47 of the value, i.e. 0x01. Observed: payload 00 00 00 00,
-       byte[4] = 00, byte[5] = 01, opcode untouched at byte[6]. */
-    CHECK_CMD(
-        katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0x01, 0x2A, 0);
+    /* katherine_cmd6_i64 with value = 2^40: same boundary as 2^32, one
+       nibble further up -- still only the low 32 bits reach the wire, so
+       byte[4] and byte[5] both stay zero and the opcode is untouched. */
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
-    /* katherine_cmd6_i64 with value = INT64_MAX (0x7FFFFFFFFFFFFFFF, all 63
-       low bits set): the loop keeps splitting off one byte per iteration
-       for as long as the remaining value is nonzero, so a 63-bit value
-       drives it through all 8 iterations. The seventh iteration overwrites
-       cmd[6], which katherine_cmd6_i64 had already set to the opcode, and
-       the eighth writes cmd[7] -- every payload byte and the opcode itself
-       end up clobbered. Observed: all eight bytes overwritten, so byte[6]
-       reads as 0xFF instead of the requested opcode 0x2A. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-        0xFF, 0x7F);
+    /* katherine_cmd6_i64 with value = INT64_MAX (0x7FFFFFFFFFFFFFFF): the
+       low 32 bits are all set, so the payload is 0xFFFFFFFF; the opcode
+       at byte[6] is untouched since the store never reaches past
+       byte[3]. */
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 
-    /* katherine_cmd6_i64 with a negative value: the loop condition is
-       "value > 0", so a negative value never enters the loop at all and
-       every payload byte stays at its zero-initialized value -- the
-       argument is silently dropped rather than encoded. Observed:
-       payload 00 00 00 00, opcode untouched at byte[6]. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) -1), 0, 0, 0, 0, 0, 0, 0x2A, 0);
+    /* katherine_cmd6_i64 with value = -1: the store reinterprets the
+       value's low 32 bits as their two's complement bit pattern, so -1
+       encodes identically to 0xFFFFFFFF instead of being silently dropped
+       -- the wire field is a fixed-width word, not a signed quantity the
+       encoder can decline to represent. */
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
 int
@@ -407,7 +388,7 @@ main(void)
     KT_RUN(test_wrappers_arg1_i64);
     KT_RUN(test_wrappers_set_bias_settings);
     KT_RUN(test_wrappers_dac);
-    KT_RUN(test_known_bugs_i64_boundary);
+    KT_RUN(test_i64_boundary);
 
     fixture_fini();
     return kt_summary();
