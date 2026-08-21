@@ -362,7 +362,10 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 \
             if (acq->decode_data) { \
                 const char *it = acq->md_buffer; \
-                for (i = 0; i < received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
+                /* Whole data only: the trailing fragment of a datagram cut \
+                   short is not a datum, and decoding it would decode the \
+                   bytes that happen to follow it in the buffer. */ \
+                for (i = 0; i + KATHERINE_MD_SIZE <= received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
                     handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it); \
                 } \
             } else if (acq->handlers.data_received != NULL) { \
