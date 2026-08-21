@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <katherine/status.h>
@@ -109,9 +110,23 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     if (res) goto err;
 
     int chip_id = *(int *) crd;
-    int x       = (chip_id & 0xF) - 1;
-    int y       = (chip_id >> 4) & 0xF;
-    int w       = (chip_id >> 8) & 0xFFF;
+
+    // A response whose identifier fields are all zero cannot come from a
+    // readout: the chip letter is encoded one-based, so a real identifier
+    // always has a nonzero low nibble. What it actually is, is this very
+    // command echoed back at its sender -- a request sent to one of the
+    // host's own addresses with no readout listening is delivered straight
+    // back to the wildcard-bound control socket, and a command and its
+    // response differ only in the fields the readout fills in. Fail exactly
+    // like a receive timeout, as if nobody had answered.
+    if (chip_id == 0) {
+        res = EAGAIN;
+        goto err;
+    }
+
+    int x = (chip_id & 0xF) - 1;
+    int y = (chip_id >> 4) & 0xF;
+    int w = (chip_id >> 8) & 0xFFF;
 
     memset(s_chip_id, '\0', KATHERINE_CHIP_ID_STR_SIZE);
     sprintf(s_chip_id, "%c%d-W000%d", 65 + x, y, w);
