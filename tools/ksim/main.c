@@ -581,6 +581,7 @@ main(int argc, char *argv[])
 
     uint64_t commands_seen  = 0;
     uint64_t md_bytes_sent  = 0;
+    uint64_t md_send_errors = 0;
     uint64_t px_chunks_seen = 0;
 
     uint64_t prev_ns = ksim_monotonic_ns();
@@ -638,7 +639,21 @@ main(int argc, char *argv[])
             uint8_t md_buf[MD_DATAGRAM_MAX_BYTES];
             size_t md_len;
             while (katherine_emu_data_out(&emu, md_buf, sizeof(md_buf), &md_len) == 0) {
-                if (katherine_udp_send_exact(&data_udp, md_buf, md_len) == 0) md_bytes_sent += (uint64_t) md_len;
+                int sres = katherine_udp_send_exact(&data_udp, md_buf, md_len);
+                if (sres == 0) {
+                    md_bytes_sent += (uint64_t) md_len;
+                    continue;
+                }
+
+                // A failed send silently discards measurement data the
+                // emulator already considers delivered, which is invisible
+                // from the client side; report the first failure with the
+                // raw code (Winsock codes have no strerror() text) and keep
+                // a count for the exit summary.
+                if (md_send_errors == 0) {
+                    fprintf(stderr, "ksim: data send failed: %d (%s)\n", sres, strerror(sres));
+                }
+                ++md_send_errors;
             }
         }
 
@@ -653,8 +668,9 @@ main(int argc, char *argv[])
 
     fprintf(stderr,
         "ksim: summary: commands=%" PRIu64 " unknown=%" PRIu64 " dropped_crds=%" PRIu64
-        " md_bytes=%" PRIu64 "\n",
-        commands_seen, katherine_emu_unknown_cmd_count(&emu), katherine_emu_dropped_crd_count(&emu), md_bytes_sent);
+        " md_bytes=%" PRIu64 " md_send_errors=%" PRIu64 "\n",
+        commands_seen, katherine_emu_unknown_cmd_count(&emu), katherine_emu_dropped_crd_count(&emu), md_bytes_sent,
+        md_send_errors);
 
     katherine_emu_fini(&emu);
     return EXIT_SUCCESS;
