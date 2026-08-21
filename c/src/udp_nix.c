@@ -57,6 +57,28 @@ dump_buffer(const char *msg, const unsigned char *buf, size_t count)
 int
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
 {
+    return katherine_udp_init_bound(u, NULL, local_port, remote_addr, remote_port, timeout_ms);
+}
+
+/**
+ * Initialize new UDP session, binding the local socket to a specific local address.
+ *
+ * This is the general form of katherine_udp_init(), which is a thin wrapper calling this function
+ * with a NULL local address (i.e. the wildcard address). It is useful for hosts with several local
+ * addresses (e.g. a daemon serving several emulated readouts, each bound to a distinct address on
+ * the same port).
+ *
+ * @param u UDP session to initialize
+ * @param local_addr Local IP address to bind to, or NULL for the wildcard address (INADDR_ANY)
+ * @param local_port Local port number
+ * @param remote_addr Remote IP address
+ * @param remote_port Remote port number
+ * @param timeout_ms Communication timeout in milliseconds (zero if disabled)
+ * @return Error code.
+ */
+int
+katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
+{
     int res = 0;
 
     // Create socket.
@@ -66,9 +88,9 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     }
 
     // Allow another local process bound to a different local address (e.g.
-    // the ksim example) to reuse the same port number; without this, a
-    // second bind() to 1555 or 1556 on this host fails outright even though
-    // the addresses differ.
+    // the ksim daemon) to reuse the same port number; without this,
+    // a second bind() to 1555 or 1556 on this host fails outright even
+    // though the addresses differ.
     int reuseaddr = 1;
     if (setsockopt(u->sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
         res = errno;
@@ -76,9 +98,14 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
     }
 
     // Setup and bind the socket address.
-    u->addr_local.sin_family      = AF_INET;
-    u->addr_local.sin_port        = htons(local_port);
-    u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
+    u->addr_local.sin_family = AF_INET;
+    u->addr_local.sin_port   = htons(local_port);
+    if (local_addr == NULL) {
+        u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
+    } else if (inet_pton(AF_INET, local_addr, &u->addr_local.sin_addr) <= 0) {
+        res = EINVAL;
+        goto err_local_addr;
+    }
 
     if (bind(u->sock, (struct sockaddr *) &u->addr_local, sizeof(u->addr_local)) == -1) {
         res = errno;
@@ -114,6 +141,7 @@ err_mutex:
 err_remote:
 err_timeout:
 err_bind:
+err_local_addr:
 err_reuseaddr:
     close(u->sock);
 err_socket:
@@ -213,6 +241,35 @@ katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
 #endif /* KATHERINE_DEBUG_UDP */
 
     *count = (size_t) received;
+    return 0;
+}
+
+/**
+ * Repoint the remote address of a UDP session.
+ *
+ * Note that katherine_udp_recv() and katherine_udp_recv_exact() already update the session's
+ * remote address to whoever last sent to it, which is how a server naturally replies to its last
+ * peer. This function instead sets the *initial or overriding* destination used for outgoing
+ * messages until the next inbound datagram arrives (or until this function is called again) --
+ * useful for a session that only ever sends, such as a data-only socket that must be redirected to
+ * a peer learned over a different session.
+ *
+ * @param u UDP session
+ * @param remote_addr Remote IP address
+ * @param remote_port Remote port number
+ * @return Error code.
+ */
+int
+katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
+{
+    struct sockaddr_in addr_remote;
+    addr_remote.sin_family = AF_INET;
+    addr_remote.sin_port   = htons(remote_port);
+    if (inet_pton(AF_INET, remote_addr, &addr_remote.sin_addr) <= 0) {
+        return EINVAL;
+    }
+
+    u->addr_remote = addr_remote;
     return 0;
 }
 

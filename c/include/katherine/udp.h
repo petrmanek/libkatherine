@@ -32,6 +32,9 @@ extern "C" {
 KATHERINE_EXPORTED int
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms);
 
+KATHERINE_EXPORTED int
+katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms);
+
 KATHERINE_EXPORTED void
 katherine_udp_fini(katherine_udp_t *u);
 
@@ -43,6 +46,9 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count);
 
 KATHERINE_EXPORTED int
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count);
+
+KATHERINE_EXPORTED int
+katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port);
 
 KATHERINE_EXPORTED int
 katherine_udp_mutex_lock(katherine_udp_t *u);
