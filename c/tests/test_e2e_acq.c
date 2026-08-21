@@ -206,9 +206,12 @@ fixture_init(const char *ksim_path)
         (char *) E2E_STR(LOST_PER_FRAME),
         (char *) "--pattern",
         (char *) "hot-column",
-        (char *) "--quiet",
         NULL,
     };
+    /* Deliberately not --quiet: the daemon's banner in the CTest log proves
+       its stderr survives the process-spawn plumbing on every platform, and
+       the rare event lines (data-stream repoints, send failures) are the
+       first thing a platform regression needs. */
 
     int res = kspawn_start(&g_ksim, ksim_path, argv);
     if (res != 0) {
