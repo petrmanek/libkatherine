@@ -10,18 +10,29 @@
  * SPDX-License-Identifier: MIT
  */
 
+// Must precede every include: nanosleep() below is guarded by _POSIX_C_SOURCE,
+// which only has an effect before the first libc header is pulled in. Harmless
+// on Windows, whose headers do not gate on it.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdbool.h> // bool
 #include <stdio.h>   // printf, fprintf, fflush
 #include <stdlib.h>  // strtod, exit
-#include <string.h>  // strcmp
+#include <string.h>  // strcmp, strerror
+
+// katherine/katherine.h must precede <windows.h> below: it transitively
+// pulls in <winsock2.h> (via udp_win.h), and windows.h internally drags in
+// the legacy Winsock 1.1 header unless Winsock 2 was already established
+// first, so the reverse order does not compile under the Windows SDK.
+#include <katherine/katherine.h>
 
 #ifdef _WIN32
 #include <windows.h> // Sleep
 #else
 #include <time.h> // nanosleep
 #endif
-
-#include <katherine/katherine.h>
 
 typedef struct ktemp_args {
     bool show_readout;
