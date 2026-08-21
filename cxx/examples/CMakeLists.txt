@@ -8,3 +8,6 @@ target_link_libraries(kfindxx PRIVATE katherinexx)
 
 add_executable(krunxx krunxx.cpp)
 target_link_libraries(krunxx PRIVATE katherinexx)
+
+add_executable(ktempxx ktempxx.cpp)
+target_link_libraries(ktempxx PRIVATE katherinexx)

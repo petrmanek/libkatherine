@@ -8,3 +8,6 @@ target_link_libraries(kfind PRIVATE katherine)
 
 add_executable(krun krun.c)
 target_link_libraries(krun PRIVATE katherine)
+
+add_executable(ktemp ktemp.c)
+target_link_libraries(ktemp PRIVATE katherine)

@@ -79,6 +79,7 @@ in the `examples/` subdirectory for each library, or in the table below:
 | ----------------------------- | ------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
 | [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)           | Locate Katherine readouts in given IP address range.                    |
 | [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)             | Configure & perform data-driven acquisition.                            |
+| [ktemp](./c/examples/ktemp.c) | [ktempxx](./cxx/examples/ktempxx.cpp) | [ktemp.py](./python/examples/ktemp.py)           | Monitor readout & chip temperature periodically.                        |
 |                               |                                       | [tot_hitmap.py](./python/examples/tot_hitmap.py) | Plot an integrated frame in a pixel matrix from krun output.            |
 
 ### Trying Without Hardware
