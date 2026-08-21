@@ -148,6 +148,11 @@
    reserved for documentation and never assigned, so nothing answers. */
 #define DEAD_ADDR            "192.0.2.1"
 
+/* Deliberately the opposite of DEAD_ADDR: a local address nobody is bound
+   to, so that a command sent there comes straight back to the sender (all
+   of 127.0.0.0/8 is local) and exercises the faux-echo rejection. */
+#define SILENT_LOOPBACK_ADDR "127.0.0.9"
+
 /* Bounds the timeout case: the control timeout is 100 ms, and time(NULL) has
    one-second granularity, so anything at or under two seconds of difference
    proves the call did not hang. */
@@ -619,6 +624,28 @@ test_control_timeout(void)
 }
 
 /* ------------------------------------------------------------------ */
+/* f) Faux-echo path. A loopback address nobody is bound to delivers a
+   command straight back to the library's own wildcard-bound control
+   socket, where it parses as a response with all identifier fields
+   zeroed -- once mistaken for a genuine answer, discovery over an
+   address range reported a phantom readout "@0-W0000" on the host's
+   own addresses. The library must treat it like a timeout. Where the
+   platform does not deliver to self, the inquiry fails anyway (timeout
+   or no route), so this asserts the same outcome either way.           */
+
+static void
+test_faux_echo_rejected(void)
+{
+    katherine_device_t device;
+    KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDR) == 0);
+
+    char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
+    KT_CHECK(katherine_get_chip_id(&device, chip_id) != 0);
+
+    katherine_device_fini(&device);
+}
+
+/* ------------------------------------------------------------------ */
 
 int
 main(int argc, char *argv[])
@@ -647,6 +674,7 @@ main(int argc, char *argv[])
     kspawn_stop(&g_ksim);
 
     KT_RUN(test_control_timeout);
+    KT_RUN(test_faux_echo_rejected);
 
     return kt_summary();
 }
