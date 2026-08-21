@@ -245,6 +245,11 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
 int
 main(int argc, char *argv[])
 {
+    if (argc > 1) {
+        remote_addr = argv[1];
+    }
+    printf("Using remote address: %s\n", remote_addr);
+
     katherine_config_t c;
     configure(&c);
 
