@@ -51,8 +51,7 @@ function(katherine_add_test)
     endif()
 
     add_executable(${ARG_NAME} ${ARG_SOURCES})
-    target_link_libraries(${ARG_NAME} PRIVATE katherine Threads::Threads)
-    target_include_directories(${ARG_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/c/src")
+    target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private Threads::Threads)
 
     add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME} ${ARG_ARGS})
     if(ARG_LABELS)

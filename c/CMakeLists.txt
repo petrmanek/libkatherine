@@ -63,6 +63,14 @@ set(KATHERINE_DOCUMENTED_FILES "${KATHERINE_DOCUMENTED_FILES}" PARENT_SCOPE)
 
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 add_library(katherine::katherine ALIAS katherine)
+
+# The private header surface under c/src, for in-tree tests and benchmarks:
+# linking this interface target grants the internal include path without
+# installing or exporting anything. Out-of-tree code must not use it.
+add_library(katherine_private INTERFACE)
+target_include_directories(katherine_private INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+add_library(katherine::private ALIAS katherine_private)
+
 # The implementation needs C11; the public headers only need C99, so this
 # is not a usage requirement.
 target_compile_features(katherine PRIVATE c_std_11)
