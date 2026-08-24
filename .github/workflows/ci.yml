@@ -78,3 +78,18 @@ jobs:
       - name: Test
         if: ${{ hashFiles('build/CTestTestfile.cmake') != '' }}
         run: ctest --test-dir build --output-on-failure -C Release
+
+      # Observation mode: the results are printed into the run log so that
+      # tolerances can be calibrated from real runner data before any gate
+      # is armed -- shared runners differ widely across hardware
+      # generations, so a gate carried over from one machine would only
+      # train everyone to ignore red. The ctest entries above already smoke
+      # the benchmarks; this runs them at their full measurement duration.
+      - name: Benchmark (observation)
+        if: ${{ hashFiles('build/CTestTestfile.cmake') != '' }}
+        shell: bash
+        run: |
+          for b in bench_decode bench_udp; do
+            bin=$(find build \( -name "$b" -o -name "$b.exe" \) -type f | head -1)
+            "$bin"
+          done
