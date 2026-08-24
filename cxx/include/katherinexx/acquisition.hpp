@@ -41,11 +41,9 @@ enum class acq_state {
     timed_out   = ACQUISITION_TIMED_OUT
 };
 
-enum class acq_mode : int {
-    toa_tot    = ACQUISITION_MODE_TOA_TOT,
-    only_toa   = ACQUISITION_MODE_ONLY_TOA,
-    event_itot = ACQUISITION_MODE_EVENT_ITOT
-};
+/* acq_mode itself now lives in config.hpp (see the comment there); this
+   header still uses it unqualified below via the katherinexx/config.hpp
+   include above. */
 
 using frame_info = katherine_frame_info_t;
 

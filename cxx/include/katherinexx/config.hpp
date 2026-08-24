@@ -52,6 +52,16 @@ enum class freq : int {
     f160 = FREQ_160
 };
 
+/* Lives here rather than in acquisition.hpp (which also uses it, via this
+   header) because katherine_acquisition_mode_t is itself declared in
+   katherine/config.h; keeping the two together lets katherine::device use
+   the enum class without pulling in acquisition.hpp. */
+enum class acq_mode : int {
+    toa_tot    = ACQUISITION_MODE_TOA_TOT,
+    only_toa   = ACQUISITION_MODE_ONLY_TOA,
+    event_itot = ACQUISITION_MODE_EVENT_ITOT
+};
+
 class config {
     katherine_config_t conf_;
 
