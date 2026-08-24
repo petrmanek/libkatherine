@@ -24,6 +24,7 @@ cimport cpx
 cimport cpx_config
 cimport cacquisition
 cimport cudp
+cimport cversion
 
 
 def check_return_code(int res):
@@ -36,7 +37,11 @@ def check_return_code(int res):
 # Version of the loaded library, e.g. '1.0.1'. Queried at import time from
 # katherine_version_string(), so it always names the library actually linked
 # in, not merely the one the bindings were compiled against.
+__version__ = cversion.katherine_version_string().decode('UTF-8')
 
+
+def version():
+    return cversion.katherine_version()
 
 
 cdef class Device:
