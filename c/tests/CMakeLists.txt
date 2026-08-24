@@ -3,18 +3,28 @@
 #
 # SPDX-License-Identifier: MIT
 
-# These tests talk POSIX sockets and pthreads directly, so they cannot
-# build on Windows yet. Keep the guard scoped tightly around them so that
-# future portable tests can be registered unconditionally below it.
-if(NOT WIN32)
-    katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
-    katherine_add_test(NAME test_issue16 SOURCES test_issue16.c LABELS unit)
-    katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
-    katherine_add_test(NAME test_cmd_encoders SOURCES test_cmd_encoders.c LABELS unit)
-endif()
-
 # Pure bitfield/wire-format vectors: no sockets or threads, builds everywhere.
 katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
+
+# Golden byte-vector tests for the command encoders. Sockets, but only
+# through the public katherine_udp_* API and on uncommon high ports of its
+# own (see the file for the exact pair), so it builds everywhere and claims
+# no global resource.
+katherine_add_test(NAME test_cmd_encoders SOURCES test_cmd_encoders.c LABELS unit)
+
+# Regression tests driving the real read loop over crafted measurement-data
+# streams queued in through the public katherine_udp_* API, each on its own
+# fixed pair of uncommon high ports (see the individual files). No hardware,
+# no daemon, no global resource.
+katherine_add_test(NAME test_issue16 SOURCES test_issue16.c LABELS unit)
+katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
+
+# Test-pulse validation. Its byte-exact datagram check drives a mock readout
+# through the public katherine_udp_* API, on its own thread (kthread.h) since
+# katherine_set_test_pulses() sends and waits for the acknowledgement inside
+# one opaque, blocking library call -- see test_tp.c for why that rules out
+# the inline, lockstep ping-pong bench_udp.c uses instead.
+katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
 
 # Remote-address pinning of the UDP layer. Sockets, but only through the
 # public katherine_udp_* API and on uncommon high ports of its own, so it

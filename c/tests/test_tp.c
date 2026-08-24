@@ -13,18 +13,18 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <arpa/inet.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
+// katherine/katherine.h must precede kthread.h: on Windows it transitively
+// pulls in <winsock2.h> (via udp_win.h) ahead of the <windows.h> that
+// kthread.h includes, and the reverse order does not compile under the
+// Windows SDK. Same reasoning as test_e2e_acq.c's ordering of kspawn.h.
 #include <katherine/katherine.h>
 
+#include "kthread.h"
 #include "ktest.h"
 
 #define CO(X, Y) ((katherine_coord_t) {.x = (uint8_t) (X), .y = (uint8_t) (Y)})
@@ -184,27 +184,43 @@ test_validation(void)
 /* ------------------------------------------------------------------ */
 /* Test 3: byte-exact datagram check against a mock readout            */
 
-static int mock_sock = -1;
+/* katherine_set_test_pulses() sends the command and then blocks in a
+   retrying wait for its acknowledgement (config.c), all inside one opaque
+   library call: the test cannot step in between the send and the receive
+   the way the inline ping-pong of bench_udp's run_cmd_roundtrips() does, so
+   the mock readout that supplies the acknowledgement genuinely has to run
+   on its own thread, concurrently with that call, rather than lockstep in
+   this one. */
+
+/* MOCK_TIMEOUT_MS bounds how long the mock readout waits for the command: on
+   the happy path it arrives within microseconds of katherine_set_test_pulses
+   sending it, so this is pure headroom against scheduling jitter, not a
+   value the test ever expects to actually wait out. */
+#define MOCK_TIMEOUT_MS 5000
+
+static katherine_udp_t mock_endpoint;
 static unsigned char mock_captured[8];
 
 static void *
 mock_readout(void *arg)
 {
     (void) arg;
-    struct sockaddr_in src;
-    socklen_t src_len = sizeof(src);
 
-    ssize_t n = recvfrom(mock_sock, mock_captured, sizeof(mock_captured), 0,
-        (struct sockaddr *) &src, &src_len);
-    if (n != 8) {
-        fprintf(stderr, "mock readout: unexpected datagram size %zd\n", n);
+    size_t n = sizeof(mock_captured);
+    int res  = katherine_udp_recv(&mock_endpoint, mock_captured, &n);
+    if (res != 0 || n != 8) {
+        fprintf(stderr, "mock readout: unexpected datagram (res=%d, size=%zu)\n", res, n);
         exit(1);
     }
 
-    /* Acknowledge: echo the command id with zero response data. */
+    /* Acknowledge: echo the command id with zero response data. The mock
+       endpoint is never pinned, so katherine_udp_recv() above already
+       retargeted its remote address at whoever just sent the command --
+       exactly the server behavior katherine_udp_pin_remote() documents as
+       the unpinned default. */
     unsigned char ack[8] = {0};
     ack[6]               = mock_captured[6];
-    sendto(mock_sock, ack, sizeof(ack), 0, (struct sockaddr *) &src, src_len);
+    (void) katherine_udp_send_exact(&mock_endpoint, ack, sizeof(ack));
     return NULL;
 }
 
@@ -212,12 +228,12 @@ static void
 send_and_capture(katherine_device_t *device, const katherine_test_pulse_config_t *tp,
     const unsigned char expected[8])
 {
-    pthread_t thread;
+    kthread_t thread;
     memset(mock_captured, 0xAA, sizeof(mock_captured));
-    KT_REQUIRE(pthread_create(&thread, NULL, mock_readout, NULL) == 0);
+    KT_REQUIRE(kthread_start(&thread, mock_readout, NULL) == 0);
 
     KT_CHECK(katherine_set_test_pulses(device, tp) == 0);
-    KT_CHECK(pthread_join(thread, NULL) == 0);
+    KT_CHECK(kthread_join(&thread) == 0);
 
     KT_CHECK_MEM_EQ(mock_captured, expected, 8);
 }
@@ -228,14 +244,10 @@ test_datagram(void)
     static const uint16_t MOCK_PORT  = 45679;
     static const uint16_t LOCAL_PORT = 45678;
 
-    /* Mock readout socket. */
-    mock_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    KT_CHECK(mock_sock != -1);
-    struct sockaddr_in addr = {0};
-    addr.sin_family         = AF_INET;
-    addr.sin_port           = htons(MOCK_PORT);
-    addr.sin_addr.s_addr    = htonl(INADDR_LOOPBACK);
-    KT_CHECK(bind(mock_sock, (struct sockaddr *) &addr, sizeof(addr)) == 0);
+    /* Mock readout endpoint, over the public katherine_udp_* API alone. */
+    KT_REQUIRE(
+        katherine_udp_init_bound(&mock_endpoint, "127.0.0.1", MOCK_PORT, "127.0.0.1", LOCAL_PORT, MOCK_TIMEOUT_MS)
+        == 0);
 
     /* Device whose control socket points at the mock. A failed init leaves
        device.control_socket in an indeterminate state (its mutex is never
@@ -283,7 +295,7 @@ test_datagram(void)
     send_and_capture(&device, &tp, (const unsigned char[8]) {0, 0, 0, 0, 0, 0, 0x26, 0});
 
     katherine_udp_fini(&device.control_socket);
-    close(mock_sock);
+    katherine_udp_fini(&mock_endpoint);
 }
 
 int

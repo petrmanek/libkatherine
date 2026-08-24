@@ -5,9 +5,9 @@
  * Wire format: every command is one 8-byte little-endian UDP datagram --
  * byte[6] carries the opcode, byte[4] a sub-index where the command has one,
  * bytes[0..3] the payload; byte[5] is the chip index and byte[7] the high
- * opcode byte, both always zero for this single-chip device generation. A
- * receiving socket is bound on loopback and a katherine_udp_t sender is
- * pointed at it; each case invokes an encoder directly and captures the
+ * opcode byte, both always zero for this single-chip device generation. Two
+ * katherine_udp_t endpoints sit on loopback, one pinned to capture what the
+ * other sends; each case invokes an encoder directly and captures the
  * resulting datagram for a byte-exact comparison against a hand-written
  * expected array.
  *
@@ -39,15 +39,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <arpa/inet.h>
 #include <errno.h>
-#include <netinet/in.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <unistd.h>
 
 #include <katherine/config.h>
 #include <katherine/udp.h>
@@ -56,65 +52,45 @@
 #include "ktest.h"
 
 /* ------------------------------------------------------------------ */
-/* Loopback fixture: one bound capture socket, one sender pointed at   */
+/* Loopback fixture: one capture endpoint pinned to a sender pointed at */
 /* it. Shared by every test below -- these primitives never wait for   */
 /* an acknowledgement, so a single send/recv pair per case is enough.  */
 
-static int g_capture_sock = -1;
+/* High, uncommon ports of their own, distinct from every other fixed pair
+   registered in this tree (test_udp_pinning.c's 42555-42557, bench_udp.c's
+   47301/47302/47311/47312, the ksim daemon's 1555/1556): this fixture claims
+   no global resource, so the test needs no exclusive slot among the others. */
+#define PORT_SENDER        42600
+#define PORT_CAPTURE       42601
+
+/* Receive timeout of the capture endpoint. It serves two purposes: bounding
+   the wait for the datagram a case just sent (always already queued by the
+   time capture() runs, loopback delivery being complete before
+   katherine_udp_send_exact() returns, so this is pure headroom against
+   scheduling jitter) and, on the drain check below, bounding how long an
+   empty read actually blocks -- so it is kept short rather than generous,
+   since the drain check pays this cost once per CHECK_CMD case. */
+#define CAPTURE_TIMEOUT_MS 20
+
+static katherine_udp_t g_capture;
 static katherine_udp_t g_sender;
 
 static int
 fixture_init(void)
 {
-    g_capture_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (g_capture_sock < 0) return -1;
+    int res = katherine_udp_init_bound(
+        &g_capture, "127.0.0.1", PORT_CAPTURE, "127.0.0.1", PORT_SENDER, CAPTURE_TIMEOUT_MS);
+    if (res != 0) return res;
 
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family      = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    addr.sin_port        = 0; /* let the OS pick a free port */
-    if (bind(g_capture_sock, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
-        close(g_capture_sock);
-        return -1;
-    }
+    /* Pin the capture endpoint to the sender's address, so a stray datagram
+       from any other socket on the box can never be mistaken for part of
+       this test's traffic. */
+    katherine_udp_pin_remote(&g_capture);
 
-    struct timeval tv = {.tv_sec = 2, .tv_usec = 0};
-    if (setsockopt(g_capture_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) != 0) {
-        close(g_capture_sock);
-        return -1;
-    }
-
-    struct sockaddr_in bound;
-    socklen_t bound_len = sizeof(bound);
-    if (getsockname(g_capture_sock, (struct sockaddr *) &bound, &bound_len) != 0) {
-        close(g_capture_sock);
-        return -1;
-    }
-
-    if (katherine_udp_init(&g_sender, 0, "127.0.0.1", ntohs(bound.sin_port), 2000) != 0) {
-        close(g_capture_sock);
-        return -1;
-    }
-
-    /* Pin the capture socket to the sender's source address, so a stray
-       datagram from any other socket on the box can never be mistaken for
-       part of this test's traffic. katherine_udp_init() above was given
-       local_port 0, so the sender's socket is bound to INADDR_ANY on an
-       OS-picked port; but since it only ever talks to 127.0.0.1, its
-       outgoing packets leave with 127.0.0.1 as their source address. */
-    struct sockaddr_in sender_addr;
-    socklen_t sender_len = sizeof(sender_addr);
-    if (getsockname(g_sender.sock, (struct sockaddr *) &sender_addr, &sender_len) != 0) {
-        katherine_udp_fini(&g_sender);
-        close(g_capture_sock);
-        return -1;
-    }
-    sender_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    if (connect(g_capture_sock, (struct sockaddr *) &sender_addr, sizeof(sender_addr)) != 0) {
-        katherine_udp_fini(&g_sender);
-        close(g_capture_sock);
-        return -1;
+    res = katherine_udp_init_bound(&g_sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_CAPTURE, CAPTURE_TIMEOUT_MS);
+    if (res != 0) {
+        katherine_udp_fini(&g_capture);
+        return res;
     }
 
     return 0;
@@ -124,30 +100,41 @@ static void
 fixture_fini(void)
 {
     katherine_udp_fini(&g_sender);
-    close(g_capture_sock);
+    katherine_udp_fini(&g_capture);
+}
+
+/* True if res is the code an expired receive timeout yields -- EAGAIN, which
+   is also what a pinned receive reports once its discard budget is spent
+   (see katherine_udp_pin_remote()). The other two are what a Winsock timeout
+   can surface as. */
+static bool
+is_timeout(int res)
+{
+    return res == EAGAIN || res == EWOULDBLOCK || res == ETIMEDOUT;
 }
 
 /* Captures the next datagram sent by g_sender into got[8]. The recv buffer
    is oversized to 16 bytes and the received length is required to be
    exactly 8, so an encoder that emits a short or long datagram fails here
    instead of being silently truncated or padded into a false match. Once
-   the datagram is read, the socket must be empty: a single extra
-   MSG_DONTWAIT recv is required to fail with EAGAIN/EWOULDBLOCK, so a
-   future two-datagram encoder is caught at its own CHECK_CMD instead of
-   desynchronizing every case that runs after it. */
+   the datagram is read, the endpoint must be empty: a second recv is
+   required to time out (a short-timeout recv returning EAGAIN proving
+   emptiness, in place of the MSG_DONTWAIT drain-check a raw socket would
+   use), so a future two-datagram encoder is caught at its own CHECK_CMD
+   instead of desynchronizing every case that runs after it. */
 static void
 capture(unsigned char got[8])
 {
     unsigned char buf[16];
     memset(buf, 0xAA, sizeof(buf));
-    ssize_t n = recv(g_capture_sock, buf, sizeof(buf), 0);
+    size_t n = sizeof(buf);
+    (void) katherine_udp_recv(&g_capture, buf, &n);
     KT_CHECK_EQ(n, 8);
     memcpy(got, buf, 8);
 
     unsigned char drain[16];
-    errno            = 0;
-    ssize_t leftover = recv(g_capture_sock, drain, sizeof(drain), MSG_DONTWAIT);
-    KT_CHECK(leftover == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
+    size_t drain_n = sizeof(drain);
+    KT_CHECK(is_timeout(katherine_udp_recv(&g_capture, drain, &drain_n)));
 }
 
 /* Sends one command via `send_expr`, captures the reply datagram, and

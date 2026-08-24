@@ -2,16 +2,14 @@
  * acquisition ends without a frame-finished datum (e.g. times out).
  *
  * Drives the real read loop over a localhost UDP socket with a crafted
- * measurement-data stream. No hardware required.
+ * measurement-data stream, queued in with a second katherine_udp_t sender.
+ * No hardware required.
  */
 
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 
 #include <katherine/acquisition.h>
 #include <katherine/device.h>
@@ -19,7 +17,16 @@
 
 #include "ktest.h"
 
-#define MD_SIZE 6
+#define MD_SIZE     6
+
+/* High, uncommon ports of their own, distinct from every other fixed pair
+   registered in this tree (test_cmd_encoders.c's 42600/42601,
+   test_udp_pinning.c's 42555-42557, bench_udp.c's
+   47301/47302/47311/47312, the ksim daemon's 1555/1556): this fixture
+   claims no global resource, so the test needs no exclusive slot among the
+   others. */
+#define PORT_DATA   42610
+#define PORT_SENDER 42611
 
 static void
 make_md(unsigned char *dst, unsigned header, uint64_t payload)
@@ -74,22 +81,14 @@ run_case(bool send_frame_finished, struct stats *s)
     katherine_device_t dev;
     memset(&dev, 0, sizeof(dev));
 
-    /* Only the data socket is used by the read loop. 100 ms recv timeout. */
-    int res = katherine_udp_init(&dev.data_socket, 0, "127.0.0.1", 1, 100);
+    /* Only the data socket is used by the read loop. 100 ms recv timeout.
+       Bound to a fixed port on loopback, so the sender below can be pointed
+       at it directly instead of discovering an OS-picked one. */
+    int res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, 100);
     KT_CHECK(res == 0);
     if (res != 0) {
         return res;
     }
-
-    struct sockaddr_in bound;
-    socklen_t bound_len = sizeof(bound);
-    int gs_res          = getsockname(dev.data_socket.sock, (struct sockaddr *) &bound, &bound_len);
-    KT_CHECK(gs_res == 0);
-    if (gs_res != 0) {
-        katherine_udp_fini(&dev.data_socket);
-        return -1;
-    }
-    bound.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
@@ -129,12 +128,10 @@ run_case(bool send_frame_finished, struct stats *s)
         make_md(packet + (n++) * MD_SIZE, 0xC, 5 /* n_sent */);
     }
 
-    int sender = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    KT_CHECK(sender >= 0);
-    ssize_t sent = sendto(sender, packet, n * MD_SIZE, 0,
-        (struct sockaddr *) &bound, sizeof(bound));
-    KT_CHECK(sent == (ssize_t) (n * MD_SIZE));
-    close(sender);
+    katherine_udp_t sender;
+    KT_CHECK(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_DATA, 0) == 0);
+    KT_CHECK(katherine_udp_send_exact(&sender, packet, n * MD_SIZE) == 0);
+    katherine_udp_fini(&sender);
 
     res = katherine_acquisition_read(&acq);
 

@@ -4,12 +4,9 @@
  *
  * These tests drive the real read loop of c/src/acquisition.c over a crafted
  * measurement data stream, with no readout and no emulator involved: the
- * datagrams are queued in the receive buffer of a localhost UDP socket
- * before the loop starts, exactly as test_issue16.c does it, and the loop
- * reads them in order. The socket is the only way in -- the loop calls
- * katherine_udp_recv() itself -- so this program uses POSIX sockets
- * directly and is registered inside the same platform guard as
- * test_issue16.
+ * datagrams are queued in with a second katherine_udp_t sender before the
+ * loop starts, exactly as test_issue16.c does it, and the loop reads them
+ * in order.
  *
  * Every datum is built with the field declarations of c/src/md.h, the ones
  * the decoder reads them back with, so that the two can never disagree.
@@ -28,9 +25,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 
 #include <katherine/acquisition.h>
 #include <katherine/device.h>
@@ -47,6 +41,15 @@
 #define MD_HDR_TIME_OFFSET    0x5
 #define MD_HDR_NEW_FRAME      0x7
 #define MD_HDR_FRAME_FINISHED 0xC
+
+/* High, uncommon ports of their own, distinct from every other fixed pair
+   registered in this tree (test_cmd_encoders.c's 42600/42601,
+   test_issue16.c's 42610/42611, test_udp_pinning.c's 42555-42557,
+   bench_udp.c's 47301/47302/47311/47312, the ksim daemon's 1555/1556): this
+   fixture claims no global resource, so the test needs no exclusive slot
+   among the others. */
+#define PORT_DATA             42620
+#define PORT_SENDER           42621
 
 /* The timestamp offset counts whole coarse time-of-arrival windows, i.e.
    multiples of the 1 << 14 ticks the coarse field holds. */
@@ -176,22 +179,14 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     memset(&dev, 0, sizeof(dev));
     memset(probe, 0, sizeof(*probe));
 
-    /* Only the data socket is used by the read loop. */
-    int res = katherine_udp_init(&dev.data_socket, 0, "127.0.0.1", 1, RECV_TIMEOUT_MS);
+    /* Only the data socket is used by the read loop. Bound to a fixed port
+       on loopback, so the sender below can be pointed at it directly
+       instead of discovering an OS-picked one. */
+    int res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, RECV_TIMEOUT_MS);
     KT_CHECK(res == 0);
     if (res != 0) {
         return res;
     }
-
-    struct sockaddr_in bound;
-    socklen_t bound_len = sizeof(bound);
-    int gs_res          = getsockname(dev.data_socket.sock, (struct sockaddr *) &bound, &bound_len);
-    KT_CHECK(gs_res == 0);
-    if (gs_res != 0) {
-        katherine_udp_fini(&dev.data_socket);
-        return -1;
-    }
-    bound.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
@@ -218,16 +213,14 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     acq.requested_frame_duration = 0.0;
     acq.acq_start_time           = time(NULL);
 
-    int sender = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    KT_CHECK(sender >= 0);
+    katherine_udp_t sender;
+    KT_CHECK(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_DATA, 0) == 0);
     size_t offset = 0;
     for (size_t i = 0; i < datagrams; ++i) {
-        ssize_t sent = sendto(sender, stream + offset, datagram_len[i], 0,
-            (struct sockaddr *) &bound, sizeof(bound));
-        KT_CHECK(sent == (ssize_t) datagram_len[i]);
+        KT_CHECK(katherine_udp_send_exact(&sender, stream + offset, datagram_len[i]) == 0);
         offset += datagram_len[i];
     }
-    close(sender);
+    katherine_udp_fini(&sender);
 
     res = katherine_acquisition_read(&acq);
 
