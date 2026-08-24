@@ -14,8 +14,8 @@ from cconfig cimport katherine_config_t, katherine_acquisition_mode_t
 
 cdef extern from 'katherine/acquisition.h':
     ctypedef struct katherine_frame_info_time_split_t:
-        uint32_t msb
         uint32_t lsb
+        uint32_t msb
 
     ctypedef union katherine_frame_info_time_t:
         katherine_frame_info_time_split_t b

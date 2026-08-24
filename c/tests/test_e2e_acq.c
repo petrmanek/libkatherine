@@ -407,21 +407,17 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
     KT_CHECK_EQ(info->lost_pixels, LOST_PER_FRAME);
     KT_CHECK_EQ(probe->hits_in_frame, HITS_PER_FRAME);
 
-    /* KNOWN-BUG (issue #23, "acq: fix frame timestamp word order"): the
-       composite katherine_frame_info_time_t
-       .d member is unusable, because the two halves are declared in the
-       opposite order to the one the readout sends them in, so .d reads as
-       (lsb << 32) | msb. Only the raw halves are asserted here, per current
-       behavior; the .d expectations are added when the field order is fixed.
-
-       The halves themselves are a wall-clock quantity -- the frame opens at
-       whatever the daemon's virtual clock reads -- so what is pinned down is
-       their relation: a frame lasts exactly the configured shutter, in 25 ns
-       ticks, and the daemon has not been alive for the 107 seconds it would
-       take the low half to overflow. */
-    KT_CHECK_EQ(info->start_time.b.msb, 0);
+    /* The timestamps are a wall-clock quantity -- the frame opens at
+       whatever the daemon's virtual clock reads -- so what is pinned down
+       is their relation: a frame lasts exactly the configured shutter, in
+       25 ns ticks. Asserting through the composite .d member (and not the
+       raw halves) is deliberate: it regresses if the union's field order
+       ever again disagrees with little-endian composition, the defect that
+       once made .d read as (lsb << 32) | msb. The halves are also checked
+       to agree with the composite by name. */
+    KT_CHECK_EQ(info->end_time.d - info->start_time.d, probe->frame_ticks);
+    KT_CHECK_EQ(info->start_time.d, ((uint64_t) info->start_time.b.msb << 32) | info->start_time.b.lsb);
     KT_CHECK_EQ(info->end_time.b.msb, 0);
-    KT_CHECK_EQ((uint32_t) (info->end_time.b.lsb - info->start_time.b.lsb), probe->frame_ticks);
 }
 
 static void

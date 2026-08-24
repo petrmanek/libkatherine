@@ -36,7 +36,11 @@ extern "C" {
 #endif
 
 typedef struct katherine_frame_info_time_split {
-    uint32_t msb, lsb;
+    // The least significant half is declared first so that the union below
+    // composes correctly on a little-endian host: the low bytes of d and
+    // the first member share the same addresses. (Declared the other way
+    // around, d read as (lsb << 32) | msb.)
+    uint32_t lsb, msb;
 } katherine_frame_info_time_split_t;
 
 typedef union katherine_frame_info_time {
