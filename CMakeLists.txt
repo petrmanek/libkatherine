@@ -19,12 +19,13 @@ set(KATHERINE_DOXYGEN_MINIMUM_VERSION 1.8.13)
 set(KATHERINE_PYTHON_MINIMUM_VERSION 3.8)
 set(KATHERINE_CYTHON_MINIMUM_VERSION 3.0)
 
-katherine_declare_feature(BUILD_CXX      "build C++ binaries"      DEFAULT ON  LEGACY BUILD_CXX)
-katherine_declare_feature(BUILD_PYTHON   "build Python 3 bindings" DEFAULT OFF LEGACY BUILD_PYTHON AUTO_DETECTED)
-katherine_declare_feature(BUILD_EXAMPLES "build example programs"  DEFAULT ON  LEGACY BUILD_EXAMPLES)
-katherine_declare_feature(BUILD_DOXYGEN  "build API documentation" DEFAULT OFF AUTO_DETECTED)
-katherine_declare_feature(BUILD_TESTS    "build unit tests"        DEFAULT ON)
-katherine_declare_feature(BUILD_EMULATOR "build protocol emulator" DEFAULT ON)
+katherine_declare_feature(BUILD_CXX        "build C++ binaries"      DEFAULT ON  LEGACY BUILD_CXX)
+katherine_declare_feature(BUILD_PYTHON     "build Python 3 bindings" DEFAULT OFF LEGACY BUILD_PYTHON AUTO_DETECTED)
+katherine_declare_feature(BUILD_EXAMPLES   "build example programs"  DEFAULT ON  LEGACY BUILD_EXAMPLES)
+katherine_declare_feature(BUILD_DOXYGEN    "build API documentation" DEFAULT OFF AUTO_DETECTED)
+katherine_declare_feature(BUILD_TESTS      "build unit tests"        DEFAULT ON)
+katherine_declare_feature(BUILD_BENCHMARKS "build benchmark suite"   DEFAULT ON)
+katherine_declare_feature(BUILD_EMULATOR   "build protocol emulator" DEFAULT ON)
 katherine_feature_summary()
 
 # The dialect this project's own binaries are built with (reproducible
@@ -58,7 +59,9 @@ endforeach()
 
 # Testing must be enabled at the source root (before the subdirectories
 # register their tests), otherwise the build root gets no CTest manifest.
-if(KATHERINE_BUILD_TESTS)
+# Benchmarks register through add_test() exactly like tests do, so either
+# feature turns this on.
+if(KATHERINE_BUILD_TESTS OR KATHERINE_BUILD_BENCHMARKS)
     enable_testing()
 endif()
 

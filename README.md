@@ -75,13 +75,13 @@ To show advanced usage of all provided libraries, several commented example
 programs and scripts are included in the repository. They can be either found
 in the `examples/` subdirectory for each library, or in the table below:
 
-| C                             | C++                                   | Python                                           | Purpose                                                                 |
-| ----------------------------- | ------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
-| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)           | Locate Katherine readouts in given IP address range.                    |
-| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)             | Configure & perform data-driven acquisition.                            |
-| [ktemp](./c/examples/ktemp.c) | [ktempxx](./cxx/examples/ktempxx.cpp) | [ktemp.py](./python/examples/ktemp.py)           | Monitor readout & chip temperature periodically.                        |
-| [kinfo](./c/examples/kinfo.c) | [kinfoxx](./cxx/examples/kinfoxx.cpp) | [kinfo.py](./python/examples/kinfo.py)           | Enumerate a readout: chip ID, readout & comm status.                    |
-|                               |                                       | [tot_hitmap.py](./python/examples/tot_hitmap.py) | Plot an integrated frame in a pixel matrix from krun output.            |
+| C                             | C++                                   | Python                                           | Purpose                                                      |
+| ----------------------------- | ------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ |
+| [kfind](./c/examples/kfind.c) | [kfindxx](./cxx/examples/kfindxx.cpp) | [kfind.py](./python/examples/kfind.py)           | Locate Katherine readouts in given IP address range.         |
+| [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)             | Configure & perform data-driven acquisition.                 |
+| [ktemp](./c/examples/ktemp.c) | [ktempxx](./cxx/examples/ktempxx.cpp) | [ktemp.py](./python/examples/ktemp.py)           | Monitor readout & chip temperature periodically.             |
+| [kinfo](./c/examples/kinfo.c) | [kinfoxx](./cxx/examples/kinfoxx.cpp) | [kinfo.py](./python/examples/kinfo.py)           | Enumerate a readout: chip ID, readout & comm status.         |
+|                               |                                       | [tot_hitmap.py](./python/examples/tot_hitmap.py) | Plot an integrated frame in a pixel matrix from krun output. |
 
 ### Trying Without Hardware
 
@@ -137,14 +137,15 @@ GNU Makefiles, e.g. ninja)_
 The CMake project also defines several options. They can be defined in the CMake
 cache, by environment variables or using the `-D<option>=<value>` options.
 
-| Option                     | Default Value | Meaning                                               |
-| -------------------------- | ------------- | ----------------------------------------------------- |
-| `KATHERINE_BUILD_CXX`      | `ON`          | Enables building C++ binaries (see requirements)      |
-| `KATHERINE_BUILD_PYTHON`   | _detected_    | Enables building Python extension (see requirements)  |
-| `KATHERINE_BUILD_EXAMPLES` | `ON`          | Enables building example programs                     |
-| `KATHERINE_BUILD_DOXYGEN`  | _detected_    | Enables building HTML documentation                   |
-| `KATHERINE_BUILD_TESTS`    | `ON`          | Enables the test suite (run with `ctest`)             |
-| `KATHERINE_BUILD_EMULATOR` | `ON`          | Enables the readout emulator (`katherine/emulator.h`) |
+| Option                       | Default Value | Meaning                                               |
+| ---------------------------- | ------------- | ----------------------------------------------------- |
+| `KATHERINE_BUILD_CXX`        | `ON`          | Enables building C++ binaries (see requirements)      |
+| `KATHERINE_BUILD_PYTHON`     | _detected_    | Enables building Python extension (see requirements)  |
+| `KATHERINE_BUILD_EXAMPLES`   | `ON`          | Enables building example programs                     |
+| `KATHERINE_BUILD_DOXYGEN`    | _detected_    | Enables building HTML documentation                   |
+| `KATHERINE_BUILD_TESTS`      | `ON`          | Enables the test suite (run with `ctest`)             |
+| `KATHERINE_BUILD_BENCHMARKS` | `ON`          | Enables performance benchmarks (run with `ctest`)     |
+| `KATHERINE_BUILD_EMULATOR`   | `ON`          | Enables the readout emulator (`katherine/emulator.h`) |
 
 The default values of `KATHERINE_BUILD_PYTHON` and `KATHERINE_BUILD_DOXYGEN`
 are detected at configuration time. The former is `ON` if a Python 3
@@ -158,9 +159,11 @@ documentation website, and the install step deposits it under
 
 When `KATHERINE_BUILD_TESTS` is enabled, the test suite is registered with
 CTest (`ctest -L unit` selects the hardware-free tests). When
-`KATHERINE_BUILD_EMULATOR` is enabled, a deterministic emulator of the
-readout is compiled into the library and its `katherine/emulator.h` header
-is installed, allowing development and testing without hardware.
+`KATHERINE_BUILD_BENCHMARKS` is enabled, the tests suite is further extended
+with a series of performance benchmarks. When `KATHERINE_BUILD_EMULATOR` is
+enabled, a deterministic emulator of the readout is compiled into the library
+and its `katherine/emulator.h` header is installed, allowing development and
+testing without hardware.
 
 A summary table of all feature flags and their configured state is printed
 at configuration time. The pre-1.0 option names (`BUILD_CXX`, `BUILD_PYTHON`,

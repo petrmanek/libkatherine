@@ -115,3 +115,8 @@ if(KATHERINE_BUILD_TESTS)
     include(KatherineTests)
     add_subdirectory(tests)
 endif()
+
+if(KATHERINE_BUILD_BENCHMARKS)
+    include(KatherineBenchmarks)
+    add_subdirectory(benchmarks)
+endif()

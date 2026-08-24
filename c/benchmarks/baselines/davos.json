@@ -1,0 +1,40 @@
+{
+  "metrics": {
+    "decode_event_itot": {
+      "unit": "Mhit/s",
+      "value": 622.38
+    },
+    "decode_f_event_itot": {
+      "unit": "Mhit/s",
+      "value": 553.99
+    },
+    "decode_f_toa_only": {
+      "unit": "Mhit/s",
+      "value": 642.79
+    },
+    "decode_f_toa_tot": {
+      "unit": "Mhit/s",
+      "value": 559.84
+    },
+    "decode_memcpy": {
+      "unit": "Mhit/s",
+      "value": 1895.62
+    },
+    "decode_toa_only": {
+      "unit": "Mhit/s",
+      "value": 656.48
+    },
+    "decode_toa_tot": {
+      "unit": "Mhit/s",
+      "value": 561.75
+    }
+  },
+  "ratios": {
+    "decode_event_itot": 0.32832529726421966,
+    "decode_f_event_itot": 0.29224739135480743,
+    "decode_f_toa_only": 0.3390922231248879,
+    "decode_f_toa_tot": 0.2953334529072283,
+    "decode_toa_only": 0.346314134689442,
+    "decode_toa_tot": 0.29634103881579643
+  }
+}
