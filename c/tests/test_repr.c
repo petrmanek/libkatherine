@@ -429,13 +429,13 @@ test_config_nests_dacs_verbatim(void)
 static void
 test_truncation(void)
 {
-    char small[10];
-    int n = katherine_test_pulse_config_snprint(small, sizeof(small), &g_tp_config);
+    char clipped[10];
+    int n = katherine_test_pulse_config_snprint(clipped, sizeof(clipped), &g_tp_config);
 
     const char *full = "test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}";
-    KT_CHECK_EQ(n, (long long) strlen(full));        /* would-be length, not the truncated one */
-    KT_CHECK_EQ(strlen(small), sizeof(small) - 1);   /* buffer filled up to the NUL */
-    KT_CHECK_MEM_EQ(small, full, sizeof(small) - 1); /* and what got written matches the prefix */
+    KT_CHECK_EQ(n, (long long) strlen(full));            /* would-be length, not the truncated one */
+    KT_CHECK_EQ(strlen(clipped), sizeof(clipped) - 1);   /* buffer filled up to the NUL */
+    KT_CHECK_MEM_EQ(clipped, full, sizeof(clipped) - 1); /* and what got written matches the prefix */
 }
 
 static void
