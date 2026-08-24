@@ -68,7 +68,11 @@ else()
          "${KATHERINE_PYTHON_SYS_PREFIX}" "${Python3_SITEARCH}")
 endif()
 
-set(KATHERINE_PYTHON_INSTALL_DIR "${KATHERINE_PYTHON_DEFAULT_INSTALL_DIR}" CACHE PATH
+# Deliberately STRING, not PATH: cmake absolutizes a relative -D value of a
+# PATH-typed cache entry against the shell's working directory before the
+# project sees it, which would silently break the anchored-at-the-prefix
+# contract promised below.
+set(KATHERINE_PYTHON_INSTALL_DIR "${KATHERINE_PYTHON_DEFAULT_INSTALL_DIR}" CACHE STRING
     "Installation directory of the Python module (a relative path is anchored at the install prefix)")
 
 # With the default prefix, the destination is the interpreter's absolute
