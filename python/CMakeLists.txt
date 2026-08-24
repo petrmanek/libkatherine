@@ -100,3 +100,15 @@ endif()
 # The fixed ports 1555/1556 are a global resource, so this test must not run
 # beside anything else that binds them (RUN_SERIAL); the timeout is a
 # generous multiple of the couple of seconds a healthy run takes.
+# SKIP_RETURN_CODE lets the script report at run time that its environment
+# cannot host the daemon (see python/tests/smoke.py) rather than failing.
+if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_EMULATOR)
+    add_test(NAME test_python_smoke
+             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/smoke.py"
+                     "$<TARGET_FILE:ksim>" "$<TARGET_FILE_DIR:pykatherine>")
+    set_tests_properties(test_python_smoke PROPERTIES
+        LABELS "e2e;python"
+        RUN_SERIAL TRUE
+        TIMEOUT 120
+        SKIP_RETURN_CODE 77)
+endif()
