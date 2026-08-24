@@ -27,6 +27,18 @@
     "decode_toa_tot": {
       "unit": "Mhit/s",
       "value": 561.75
+    },
+    "udp_cmd_roundtrips": {
+      "unit": "op/s",
+      "value": 333032.4
+    },
+    "udp_md_dgrams": {
+      "unit": "dgram/s",
+      "value": 569938.75
+    },
+    "udp_md_throughput": {
+      "unit": "MB/s",
+      "value": 772.84
     }
   },
   "ratios": {
