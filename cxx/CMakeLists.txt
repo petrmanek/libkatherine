@@ -12,6 +12,7 @@ set(KATHERINEXX_HEADERS
     "include/katherinexx/error.hpp"
     "include/katherinexx/katherinexx.hpp"
     "include/katherinexx/px_config.hpp"
+    "include/katherinexx/repr.hpp"
     "include/katherinexx/udp.hpp"
     "include/katherinexx/version.hpp"
 )

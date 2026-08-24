@@ -24,3 +24,4 @@
 #include <katherinexx/px_config.hpp>
 #include <katherinexx/udp.hpp>
 #include <katherinexx/version.hpp>
+#include <katherinexx/repr.hpp>

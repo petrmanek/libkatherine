@@ -51,6 +51,11 @@ public:
         return &dev_;
     }
 
+    const katherine_device_t *c_dev() const
+    {
+        return &dev_;
+    }
+
     katherine_readout_status_t
     readout_status()
     {
