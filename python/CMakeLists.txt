@@ -30,6 +30,7 @@ set(PYKATHERINE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/cpx.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cpx_config.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cstatus.pxd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cudp.pxd"
     "${PYKATHERINE_PYX}"
 )
 
@@ -83,3 +84,18 @@ if(WIN32)
     # the module so that it is importable with no further setup.
     install(FILES $<TARGET_FILE:katherine> DESTINATION "${KATHERINE_PYTHON_INSTALL_DIR}")
 endif()
+
+# Smoke test against ksim, the standalone daemon hosting the protocol
+# emulator (tools/ksim), driven through the built extension module. Guarded
+# the same way c/tests guards its own e2e test against the same daemon:
+# KATHERINE_BUILD_TESTS is what turns on test registration at all, and
+# KATHERINE_BUILD_EMULATOR is what brings the ksim target into the build (the
+# daemon the script spawns). No add_dependencies() on ksim is needed here,
+# unlike in c/tests/CMakeLists.txt: that dependency orders the *build* of one
+# target against another for a parallel build, but this test is not a build
+# target, only a CTest entry that runs the already-built ksim and pykatherine
+# after the build step has completed.
+#
+# The fixed ports 1555/1556 are a global resource, so this test must not run
+# beside anything else that binds them (RUN_SERIAL); the timeout is a
+# generous multiple of the couple of seconds a healthy run takes.

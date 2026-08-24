@@ -9,7 +9,8 @@
 # SPDX-License-Identifier: MIT
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from libc.stdint cimport uint8_t, int32_t
+from cpython.bytes cimport PyBytes_FromStringAndSize
+from libc.stdint cimport uint8_t, uint16_t, uint32_t, int32_t
 from libc.string cimport memcpy
 from libcpp cimport bool
 from os import strerror
@@ -22,6 +23,7 @@ cimport cconfig
 cimport cpx
 cimport cpx_config
 cimport cacquisition
+cimport cudp
 
 
 def check_return_code(int res):
@@ -29,6 +31,12 @@ def check_return_code(int res):
          return
 
     raise OSError(res, strerror(res))
+
+
+# Version of the loaded library, e.g. '1.0.1'. Queried at import time from
+# katherine_version_string(), so it always names the library actually linked
+# in, not merely the one the bindings were compiled against.
+
 
 
 cdef class Device:
@@ -147,6 +155,63 @@ cdef class Device:
     def set_dacs(self, Dacs dacs):
          res = cconfig.katherine_set_dacs(self._c_device, &dacs._c_dacs)
          check_return_code(res)
+
+
+cdef class Udp:
+    cdef cudp.katherine_udp_t* _c_udp
+
+    def __cinit__(self, local_addr, uint16_t local_port, remote_addr, uint16_t remote_port, uint32_t timeout_ms):
+         self._c_udp = <cudp.katherine_udp_t*> PyMem_Malloc(sizeof(cudp.katherine_udp_t))
+         if self._c_udp is NULL:
+             raise MemoryError()
+
+         cdef char *c_local_addr = NULL
+         cdef bytes local_addr_b
+         if local_addr is not None:
+             local_addr_b = local_addr.encode()
+             c_local_addr = local_addr_b
+
+         res = cudp.katherine_udp_init_bound(self._c_udp, c_local_addr, local_port, remote_addr.encode(), remote_port, timeout_ms)
+         check_return_code(res)
+
+    def __dealloc__(self):
+         if self._c_udp is not NULL:
+             cudp.katherine_udp_fini(self._c_udp)
+
+         PyMem_Free(self._c_udp)
+
+    # katherine_udp_mutex_lock()/katherine_udp_mutex_unlock() are deliberately
+    # not wrapped here: they exist so that a caller with several C calls in a
+    # row (e.g. Device pairing a command with its response) can hold the
+    # session's mutex across all of them, which has no counterpart in a
+    # binding that only ever exposes one call at a time.
+
+    def send_exact(self, bytes data):
+         cdef char *buf = data
+         res = cudp.katherine_udp_send_exact(self._c_udp, buf, len(data))
+         check_return_code(res)
+
+    def recv_exact(self, size_t size):
+         cdef bytes data = PyBytes_FromStringAndSize(NULL, size)
+         cdef char *buf = data
+         res = cudp.katherine_udp_recv_exact(self._c_udp, buf, size)
+         check_return_code(res)
+         return data
+
+    def recv(self, size_t max_size):
+         cdef bytes data = PyBytes_FromStringAndSize(NULL, max_size)
+         cdef char *buf = data
+         cdef size_t count = max_size
+         res = cudp.katherine_udp_recv(self._c_udp, buf, &count)
+         check_return_code(res)
+         return data[:count]
+
+    def set_remote(self, remote_addr, uint16_t remote_port):
+         res = cudp.katherine_udp_set_remote(self._c_udp, remote_addr.encode(), remote_port)
+         check_return_code(res)
+
+    def pin_remote(self):
+         cudp.katherine_udp_pin_remote(self._c_udp)
 
 
 cdef class ReadoutStatus:
