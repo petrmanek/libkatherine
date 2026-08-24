@@ -13,6 +13,7 @@ set(KATHERINEXX_HEADERS
     "include/katherinexx/katherinexx.hpp"
     "include/katherinexx/px_config.hpp"
     "include/katherinexx/udp.hpp"
+    "include/katherinexx/version.hpp"
 )
 
 # The project-wide documentation build in docs/ documents these files.
