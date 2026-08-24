@@ -57,9 +57,10 @@
  * katherine_udp_* facility) and the wall clock; the emulator itself never
  * learns either, which keeps recorded runs comparable across machines.
  *
- * Platform specifics (long-option parsing, the stop signal, the monotonic
- * clock) live in the small private headers alongside this file (args.h,
- * stopsig.h, monoclock.h); this file itself has no #ifdef of its own, and
+ * Platform specifics live outside this file: long-option parsing and the
+ * stop signal in the small private headers alongside it (args.h, stopsig.h),
+ * the monotonic clock in the library's private surface (monoclock.h, via
+ * katherine::private). This file itself has no #ifdef of its own, and
  * builds the same way on POSIX and Windows.
  */
 
@@ -465,7 +466,7 @@ track_client(katherine_udp_t *data_udp, const katherine_udp_t *ctl_udp, uint16_t
 }
 
 /* Elapsed time from a monotonic sample taken at from to one taken at to (both
-   ksim_monotonic_ns() results), clamped to zero (the caller always feeds
+   katherine_clock_monotonic_ns() results), clamped to zero (the caller always feeds
    this consecutive samples, so a negative result would only ever come from
    clock oddities, never from real elapsed time). */
 static uint64_t
@@ -616,7 +617,7 @@ main(int argc, char *argv[])
     bool crd_count_armed  = false;
     uint64_t crds_counted = 0;
 
-    uint64_t prev_ns = ksim_monotonic_ns();
+    uint64_t prev_ns = katherine_clock_monotonic_ns();
 
     while (!g_stop) {
         for (int i = 0; i < MAX_DRAIN_PER_TICK; ++i) {
@@ -679,7 +680,7 @@ main(int argc, char *argv[])
             }
         }
 
-        uint64_t now_ns = ksim_monotonic_ns();
+        uint64_t now_ns = katherine_clock_monotonic_ns();
         katherine_emu_advance(&emu, ns_diff(prev_ns, now_ns));
         prev_ns = now_ns;
 

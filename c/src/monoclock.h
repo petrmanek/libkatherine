@@ -1,8 +1,8 @@
 /**
  * @file
- * @brief Internal portable monotonic clock for ksim.
+ * @brief Internal portable monotonic clock.
  * @author Petr Mánek
- * @date 21.8.26
+ * @date 24.8.26
  *
  * @copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
@@ -51,7 +51,7 @@
  * remainder before scaling so the conversion cannot overflow uint64_t for
  * decades of uptime. */
 static inline uint64_t
-ksim_monotonic_ns(void)
+katherine_clock_monotonic_ns(void)
 {
     // QueryPerformanceFrequency() is guaranteed constant for the life of
     // the process (and has been since Windows XP, so it cannot fail on any
@@ -92,7 +92,7 @@ ksim_monotonic_ns(void)
  * remainder before scaling so the conversion cannot overflow uint64_t for
  * decades of uptime. */
 static inline uint64_t
-ksim_monotonic_ns(void)
+katherine_clock_monotonic_ns(void)
 {
     struct timespec ts;
     (void) clock_gettime(CLOCK_MONOTONIC, &ts);

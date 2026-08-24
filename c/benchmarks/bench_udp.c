@@ -37,9 +37,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include <katherine/udp.h>
+
+/* Internal header, provided by the katherine_private interface target:
+   wraps the platform monotonic clock. */
+#include "monoclock.h"
 
 /* High, uncommon ports of their own -- distinct from c/tests/test_udp_pinning
    (42555-42557) and the ksim daemon (1555/1556) -- so this benchmark claims
@@ -67,9 +70,7 @@ static double g_min_seconds = BENCH_MIN_SECONDS;
 static double
 now_s(void)
 {
-    struct timespec ts;
-    (void) clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double) ts.tv_sec + 1e-9 * (double) ts.tv_nsec;
+    return 1e-9 * (double) katherine_clock_monotonic_ns();
 }
 
 /* Bursts of MD_BURST measurement-sized datagrams sent then drained, over a

@@ -44,14 +44,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include <katherine/acquisition.h>
 
-/* Internal header, provided by the katherine_private interface target --
-   see the file comment. Pulls in "bitfields.h" (EXTRACT/INSERT) itself, the
-   same way it does for c/src/acquisition.c. */
+/* Internal headers, provided by the katherine_private interface target --
+   see the file comment. md.h pulls in "bitfields.h" (EXTRACT/INSERT)
+   itself, the same way it does for c/src/acquisition.c; monoclock.h wraps
+   the platform monotonic clock. */
 #include "md.h"
+#include "monoclock.h"
 
 /* Size of the canned buffer, in whole six-byte words: several MB, comfortably
    past L1/L2 but not so large a run wastes time or memory. */
@@ -78,9 +79,7 @@ static volatile uint64_t g_sink;
 static double
 now_s(void)
 {
-    struct timespec ts;
-    (void) clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double) ts.tv_sec + 1e-9 * (double) ts.tv_nsec;
+    return 1e-9 * (double) katherine_clock_monotonic_ns();
 }
 
 /* xorshift64: fast, deterministic, and good enough to scatter every field
