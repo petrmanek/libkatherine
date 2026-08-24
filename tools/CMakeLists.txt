@@ -11,5 +11,5 @@ if(KATHERINE_BUILD_EMULATOR)
     add_subdirectory(ksim)
 endif()
 
-add_subdirectory(gdb)
+add_subdirectory(debuggers)
 add_subdirectory(wireshark)

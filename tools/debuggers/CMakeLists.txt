@@ -17,3 +17,10 @@
 install(FILES libkatherine-gdb.py
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RENAME "$<TARGET_FILE_NAME:katherine>-gdb.py")
+
+# LLDB has no auto-load convention for ELF objects, so its script keeps a
+# stable, documented name and the user imports it explicitly (see the
+# script's header). Both debugger scripts share libkatherine_debuggers.py,
+# the single list of covered types, which therefore installs beside them.
+install(FILES libkatherine_lldb.py libkatherine_debuggers.py
+        DESTINATION ${CMAKE_INSTALL_LIBDIR})

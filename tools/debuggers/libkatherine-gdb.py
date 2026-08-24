@@ -20,7 +20,8 @@
 # function, and not to_string(), that declines).
 #
 # Installed as <soname-file>-gdb.py next to the library (see the install()
-# rule in c/CMakeLists.txt), per gdb's objfile auto-load convention: gdb
+# rule in tools/debuggers/CMakeLists.txt), per gdb's objfile auto-load
+# convention: gdb
 # looks for a script named after the exact path of the shared object it has
 # mapped, plus "-gdb.py". For a few reasons unrelated to this script, that
 # directory is usually NOT on gdb's auto-load safe-path by default, so the
@@ -40,38 +41,20 @@
 
 import gdb
 
-# Generous scratch buffer for the inferior call: every covered type's
-# rendering is at most a few hundred bytes (katherine_config_t, the
-# largest, nests five other structs and a pixel-matrix digest), so this
-# never truncates in practice; katherine_*_snprint()'s own return value is
-# still honored below regardless, exactly as a real caller would.
-_SCRATCH_CAP = 4096
+# The set of covered types and the naming of their snprint functions live
+# in the debugger-agnostic module installed (and kept in the repository)
+# next to this script; see libkatherine_debuggers.py. Everything below is
+# gdb-specific mechanics only.
+import os
+import sys
 
-# tag (the struct/union name gdb reports once typedefs are stripped, i.e.
-# the C name without the trailing "_t") -> the katherine_*_snprint()
-# function that is the single source of truth for rendering it. Mirrors
-# the coverage of c/src/repr.c exactly.
-_SNPRINT_BY_TAG = {
-    'katherine_coord': 'katherine_coord_snprint',
-    'katherine_px_f_toa_tot': 'katherine_px_f_toa_tot_snprint',
-    'katherine_px_toa_tot': 'katherine_px_toa_tot_snprint',
-    'katherine_px_f_toa_only': 'katherine_px_f_toa_only_snprint',
-    'katherine_px_toa_only': 'katherine_px_toa_only_snprint',
-    'katherine_px_f_event_itot': 'katherine_px_f_event_itot_snprint',
-    'katherine_px_event_itot': 'katherine_px_event_itot_snprint',
-    'katherine_trigger': 'katherine_trigger_snprint',
-    'katherine_test_pulse_config': 'katherine_test_pulse_config_snprint',
-    'katherine_dacs': 'katherine_dacs_snprint',
-    'katherine_px_config': 'katherine_px_config_snprint',
-    'katherine_config': 'katherine_config_snprint',
-    'katherine_frame_info_time': 'katherine_frame_info_time_snprint',
-    'katherine_frame_info': 'katherine_frame_info_snprint',
-    'katherine_acquisition': 'katherine_acquisition_snprint',
-    'katherine_readout_status': 'katherine_readout_status_snprint',
-    'katherine_comm_status': 'katherine_comm_status_snprint',
-    'katherine_udp': 'katherine_udp_snprint',
-    'katherine_device': 'katherine_device_snprint',
-}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    import libkatherine_debuggers as _kat
+finally:
+    sys.path.pop(0)
+
+_SCRATCH_CAP = _kat.SCRATCH_CAP
 
 
 def _call_snprint(fn_name, addr):
@@ -79,12 +62,14 @@ def _call_snprint(fn_name, addr):
     inferior: malloc() a scratch buffer, call the snprint function into it,
     read back its own would-be-length return value's worth of bytes, then
     free() the buffer. Returns the decoded string, or None if any step
-    could not be carried out (no running/callable inferior -- e.g. a core
+    could not be carried out (no running/callable inferior -- e. Casts use gdb/lldb built-in types
+    (unsigned long, not size_t): a typedef is only evaluable when the
+    debuggee's own debug info happens to carry it.g. a core
     dump -- or a missing symbol), so the caller falls back to gdb's default
     display.
     """
     try:
-        buf = gdb.parse_and_eval('(char *) malloc((size_t) %d)' % _SCRATCH_CAP)
+        buf = gdb.parse_and_eval('(char *) malloc((unsigned long) %d)' % _SCRATCH_CAP)
         if int(buf) == 0:
             return None
     except gdb.error:
@@ -92,7 +77,7 @@ def _call_snprint(fn_name, addr):
 
     try:
         try:
-            call = '(int) %s((char *) %d, (size_t) %d, %s)' % (fn_name, int(buf), _SCRATCH_CAP, addr)
+            call = '(int) %s((char *) %d, (unsigned long) %d, %s)' % (fn_name, int(buf), _SCRATCH_CAP, addr)
             n = int(gdb.parse_and_eval(call))
         except gdb.error:
             return None
@@ -140,9 +125,10 @@ def _lookup_katherine_printer(val):
     if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
         return None
 
-    fn_name = _SNPRINT_BY_TAG.get(t.tag)
-    if fn_name is None:
+    tag = _kat.tag_of(t.tag) if t.tag else None
+    if tag is None:
         return None
+    fn_name = _kat.snprint_name(tag)
 
     addr = val.address
     if addr is None:
