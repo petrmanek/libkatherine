@@ -12,3 +12,4 @@ if(KATHERINE_BUILD_EMULATOR)
 endif()
 
 add_subdirectory(gdb)
+add_subdirectory(wireshark)
