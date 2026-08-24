@@ -12,8 +12,9 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <katherine/global.h>
 
 /**
@@ -35,6 +36,9 @@ typedef struct katherine_readout_status {
 } katherine_readout_status_t;
 
 KATHERINE_EXPORTED int
+katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_status_t *v);
+
+KATHERINE_EXPORTED int
 katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status);
 
 typedef struct katherine_comm_status {
@@ -42,6 +46,9 @@ typedef struct katherine_comm_status {
     uint32_t data_rate;
     bool chip_detected;
 } katherine_comm_status_t;
+
+KATHERINE_EXPORTED int
+katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status_t *v);
 
 KATHERINE_EXPORTED int
 katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status);

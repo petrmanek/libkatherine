@@ -36,6 +36,17 @@
 extern "C" {
 #endif
 
+/**
+ * Render a UDP session: its local and remote endpoints (dotted-quad IPv4
+ * address and port, hand-formatted -- no inet_ntop(), so this needs no
+ * platform-specific include beyond what this header already pulls in) and
+ * whether its remote address is pinned (see katherine_udp_pin_remote()).
+ * The socket handle and the mutex are omitted: neither is meaningful in a
+ * log line, and the mutex additionally has no portable readable state.
+ */
+KATHERINE_EXPORTED int
+katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);
+
 KATHERINE_EXPORTED int
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms);
 

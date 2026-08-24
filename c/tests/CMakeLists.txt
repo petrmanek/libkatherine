@@ -12,6 +12,14 @@ katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
 # no global resource.
 katherine_add_test(NAME test_cmd_encoders SOURCES test_cmd_encoders.c LABELS unit)
 
+# Golden-string tests for the debug stringification facility (repr.c):
+# katherine_*_snprint() and katherine_str_*() for every covered public
+# struct/enum. Plain, portable C plus two katherine_udp_t fixtures on
+# uncommon high loopback ports of their own (never the device's fixed
+# 1555/1556), so it builds and runs everywhere and claims no global
+# resource, exactly like test_cmd_encoders above.
+katherine_add_test(NAME test_repr SOURCES test_repr.c LABELS unit)
+
 # Regression tests driving the real read loop over crafted measurement-data
 # streams queued in through the public katherine_udp_* API, each on its own
 # fixed pair of uncommon high ports (see the individual files). No hardware,

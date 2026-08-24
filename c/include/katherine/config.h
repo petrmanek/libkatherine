@@ -13,6 +13,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <katherine/global.h>
 #include <katherine/px_config.h>
@@ -35,12 +36,18 @@ typedef enum katherine_acquisition_mode {
     ACQUISITION_MODE_EVENT_ITOT = 2,
 } katherine_acquisition_mode_t;
 
+KATHERINE_EXPORTED const char *
+katherine_str_acquisition_mode(katherine_acquisition_mode_t mode);
+
 
 typedef struct katherine_trigger {
     bool enabled;
     char channel;
     bool use_falling_edge;
 } katherine_trigger_t;
+
+KATHERINE_EXPORTED int
+katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v);
 
 
 typedef struct katherine_test_pulse_config {
@@ -51,6 +58,9 @@ typedef struct katherine_test_pulse_config {
     uint16_t period;   ///< pulse period in pixel-clock cycles (25 ns at 40 MHz), 65 to 16321 (1.625 us to 408.025 us), rounded down to the nearest 64k + 1
     uint8_t phase;     ///< pulse edge clock phase, selects Clk_ph_shift[0..15]; keep 0 unless a multi-phase pixel clock is configured
 } katherine_test_pulse_config_t;
+
+KATHERINE_EXPORTED int
+katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v);
 
 
 typedef struct katherine_dacs_named {
@@ -80,6 +90,9 @@ typedef union katherine_dacs {
     katherine_dacs_named_t named;
 } katherine_dacs_t;
 
+KATHERINE_EXPORTED int
+katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v);
+
 
 typedef enum katherine_phase {
     PHASE_1  = 0,
@@ -89,12 +102,18 @@ typedef enum katherine_phase {
     PHASE_16 = 4,
 } katherine_phase_t;
 
+KATHERINE_EXPORTED const char *
+katherine_str_phase(katherine_phase_t phase);
+
 
 typedef enum katherine_freq {
     FREQ_40  = 1,
     FREQ_80  = 2,
     FREQ_160 = 3,
 } katherine_freq_t;
+
+KATHERINE_EXPORTED const char *
+katherine_str_freq(katherine_freq_t freq);
 
 
 typedef struct katherine_config {
@@ -119,6 +138,9 @@ typedef struct katherine_config {
 
     katherine_test_pulse_config_t test_pulse_config;
 } katherine_config_t;
+
+KATHERINE_EXPORTED int
+katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v);
 
 
 KATHERINE_EXPORTED int

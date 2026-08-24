@@ -552,6 +552,14 @@ err:
 
 /**
  * Get human-readable description of acquisition status.
+ *
+ * The tokens are the same style katherine_str_readout_type(),
+ * katherine_str_acquisition_mode(), katherine_str_phase() and
+ * katherine_str_freq() use (repr.c): lowercase, underscore-separated,
+ * stable across releases. Note for callers of the 1.x series: this
+ * function used to return "not started" and "timed out" (with a space);
+ * it now returns "not_started" and "timed_out" to match.
+ *
  * @param status Status to describe
  * @return Null-terminated string.
  */
@@ -559,10 +567,10 @@ const char *
 katherine_str_acquisition_status(char status)
 {
     switch (status) {
-    case ACQUISITION_NOT_STARTED: return "not started";
+    case ACQUISITION_NOT_STARTED: return "not_started";
     case ACQUISITION_SUCCEEDED:   return "succeeded";
     case ACQUISITION_RUNNING:     return "running";
-    case ACQUISITION_TIMED_OUT:   return "timed out";
+    case ACQUISITION_TIMED_OUT:   return "timed_out";
     default:                      return "unknown";
     }
 }

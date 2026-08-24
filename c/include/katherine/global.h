@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 /**
  * @addtogroup c_api
  * @{
@@ -72,5 +74,20 @@
 #   error "Unknown platform"
 #endif
 // clang-format on
+
+/**
+ * Render a bool the way every katherine_*_snprint() function in this
+ * library does for its bool fields: the literal token "true" or "false",
+ * never a raw 0/1 or a translated word. Included from every public header
+ * (this one), so it is always in scope where a snprint implementation or a
+ * caller composing its own debug output needs it.
+ * @param value Value to render
+ * @return A statically allocated, NUL-terminated string. Never NULL.
+ */
+static inline const char *
+katherine_str_bool(bool value)
+{
+    return value ? "true" : "false";
+}
 
 /** @} */

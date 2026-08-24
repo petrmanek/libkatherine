@@ -8,6 +8,7 @@ set(KATHERINE_SOURCES
     "src/px_config.c"
     "src/config.c"
     "src/device.c"
+    "src/repr.c"
     "src/status.c"
     "src/udp_nix.c"
     "src/udp_win.c"

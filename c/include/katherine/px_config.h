@@ -13,6 +13,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <katherine/global.h>
 #include <katherine/px.h>
@@ -42,6 +43,16 @@ typedef struct katherine_bmc {
 typedef struct katherine_px_config {
     uint32_t words[16384];
 } katherine_px_config_t;
+
+/**
+ * Render a digest of the pixel configuration matrix: the word count and a
+ * 64-bit XOR fold of its contents, never the 16384 words themselves. See
+ * katherine_px_config_snprint() (repr.c) for how the fold is computed; it is
+ * a fingerprint for telling two matrices apart at a glance in a log, not a
+ * checksum, and carries no error-detection guarantee.
+ */
+KATHERINE_EXPORTED int
+katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v);
 
 typedef unsigned char katherine_bpc_px_t;
 

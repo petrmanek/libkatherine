@@ -48,6 +48,9 @@ typedef union katherine_frame_info_time {
     uint64_t d;
 } katherine_frame_info_time_t;
 
+KATHERINE_EXPORTED int
+katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_info_time_t *v);
+
 typedef struct katherine_frame_info {
     uint64_t received_pixels; ///< The number of hit pixels actually received by libkatherine
     uint64_t sent_pixels;     ///< The number of hit pixels reported sent by Katherine device
@@ -62,6 +65,9 @@ typedef struct katherine_frame_info {
     bool completed; ///< Set to true if the frame was correctly terminated ahead of the 'frame ended' event. Otherwise this indicates missing data.
 } katherine_frame_info_t;
 
+KATHERINE_EXPORTED int
+katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t *v);
+
 typedef struct katherine_acquisition_handlers {
     void (*pixels_received)(void *, const void *, size_t);
     void (*frame_started)(void *, int);
@@ -73,6 +79,9 @@ typedef enum katherine_readout_type {
     READOUT_SEQUENTIAL  = 0,
     READOUT_DATA_DRIVEN = 1
 } katherine_readout_type_t;
+
+KATHERINE_EXPORTED const char *
+katherine_str_readout_type(katherine_readout_type_t type);
 
 typedef enum katherine_acquisition_state {
     ACQUISITION_NOT_STARTED = 0,
@@ -116,6 +125,9 @@ typedef struct katherine_acquisition {
 
     bool frame_active;
 } katherine_acquisition_t;
+
+KATHERINE_EXPORTED int
+katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v);
 
 KATHERINE_EXPORTED int
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout);
