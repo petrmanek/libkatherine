@@ -271,6 +271,40 @@ def run_acquisition(katherine, device):
     return acq, probe
 
 
+def check_reprs(tap, katherine, device):
+    """Debug-stringification checks (repr.c via the __repr__ methods added
+    to katherine.pyx): golden-string byte-identity for objects that need no
+    hardware, copied verbatim from the same-valued cases in
+    c/tests/test_repr.c so a change to the C rendering that the Python
+    binding fails to pick up shows up here; plus non-empty/right-prefix
+    sanity checks for a couple of objects that do need the daemon (their
+    field values are already checked elsewhere in run_checks())."""
+
+    tp = katherine.TestPulseConfig(enabled=True, digital_only=False, external=False, count=100, period=65, phase=0)
+    tap.check_eq('TestPulseConfig repr matches the C golden byte-for-byte', repr(tp),
+        'test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}')
+
+    trig = katherine.Trigger(enabled=True, channel=3, use_falling_edge=False)
+    tap.check_eq('Trigger repr matches the C golden byte-for-byte', repr(trig),
+        'trigger{enabled: true, channel: 3, use_falling_edge: false}')
+
+    px = katherine.PxConfig()
+    tap.check_eq('PxConfig repr matches the C golden byte-for-byte (all-zero matrix)', repr(px),
+        'px_config{words: 16384, xor64: 0x0000000000000000}')
+
+    rs_repr = repr(device.get_readout_status())
+    tap.check('Device.get_readout_status() repr is non-empty and prefixed',
+        rs_repr.startswith('readout_status{') and rs_repr.endswith('}') and len(rs_repr) > len('readout_status{}'))
+
+    comm_repr = repr(device.get_comm_status())
+    tap.check('Device.get_comm_status() repr is non-empty and prefixed',
+        comm_repr.startswith('comm_status{') and comm_repr.endswith('}') and len(comm_repr) > len('comm_status{}'))
+
+    device_repr = repr(device)
+    tap.check('Device repr is non-empty and prefixed',
+        device_repr.startswith('device{') and device_repr.endswith('}') and len(device_repr) > len('device{}'))
+
+
 def run_checks(tap, katherine, device):
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
 
@@ -308,6 +342,8 @@ def run_checks(tap, katherine, device):
 
     version_int_ok = isinstance(katherine.version(), int) and katherine.version() > 0
     tap.check('version() returns a positive integer', version_int_ok)
+
+    check_reprs(tap, katherine, device)
 
     acq, probe = run_acquisition(katherine, device)
 

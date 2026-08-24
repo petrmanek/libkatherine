@@ -22,6 +22,8 @@ cdef extern from 'katherine/config.h':
         char channel
         bool use_falling_edge
 
+    int katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
+
     ctypedef struct katherine_test_pulse_config_t:
         bool enabled
         bool digital_only
@@ -29,6 +31,8 @@ cdef extern from 'katherine/config.h':
         uint16_t count
         uint16_t period
         uint8_t phase
+
+    int katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v)
 
     ctypedef struct katherine_dacs_named_t:
         uint16_t Ibias_Preamp_ON
@@ -53,6 +57,8 @@ cdef extern from 'katherine/config.h':
     ctypedef union katherine_dacs_t:
         uint16_t array[18]
         katherine_dacs_named_t named
+
+    int katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
 
     ctypedef enum katherine_phase_t:
         PHASE_1
@@ -87,6 +93,8 @@ cdef extern from 'katherine/config.h':
         katherine_dacs_t dacs
 
         katherine_test_pulse_config_t test_pulse_config
+
+    int katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 
     ctypedef enum katherine_tpx3_reg_t:
         TPX3_REG_TEST_PULSE_METHOD

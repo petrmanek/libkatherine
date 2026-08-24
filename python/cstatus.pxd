@@ -17,10 +17,14 @@ cdef extern from 'katherine/status.h':
         int hw_serial_number
         int fw_version
 
+    int katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_status_t *v)
+
     ctypedef struct katherine_comm_status_t:
         uint8_t comm_lines_mask
         uint32_t data_rate
         bool chip_detected
+
+    int katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status_t *v)
 
     cdef int KATHERINE_CHIP_ID_STR_SIZE
 

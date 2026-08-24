@@ -19,6 +19,8 @@ cdef extern from 'katherine/px_config.h':
     ctypedef struct katherine_px_config_t:
         uint32_t words[16384]
 
+    int katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v)
+
     ctypedef unsigned char katherine_bpc_px_t
 
     ctypedef struct katherine_bpc_t:

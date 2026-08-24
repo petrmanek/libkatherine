@@ -34,6 +34,31 @@ def check_return_code(int res):
     raise OSError(res, strerror(res))
 
 
+# Function pointer type shared by every katherine_*_snprint() declared in
+# the cimported c*.pxd files: same (buf, cap, const T *) shape, T erased to
+# void* here so that one helper (below) can call any of them. Casting a
+# katherine_*_snprint reference to this type at each call site is safe: the
+# calling convention does not depend on what T is, only C's own pointer
+# arithmetic does, and that never happens on the caller's side of the cast.
+ctypedef int (*snprint_fn_t)(char *, size_t, const void *)
+
+
+cdef str _snprint_repr(snprint_fn_t fn, const void *v):
+    """The two-call pattern every __repr__ below is a one-liner over: size
+    with a NULL/0 call exactly like snprintf(), allocate that many bytes
+    plus a NUL, then fill and decode. The single source of truth for the
+    rendering itself is fn (one of the katherine_*_snprint() family in
+    c/src/repr.c); nothing here reimplements any formatting."""
+    cdef int n = fn(NULL, 0, v)
+    if n < 0:
+        return ''
+
+    cdef bytearray buf = bytearray(n + 1)
+    cdef char[:] view = buf
+    fn(<char *> &view[0], n + 1, v)
+    return bytes(view[:n]).decode('UTF-8')
+
+
 # Version of the loaded library, e.g. '1.0.1'. Queried at import time from
 # katherine_version_string(), so it always names the library actually linked
 # in, not merely the one the bindings were compiled against.
@@ -59,6 +84,9 @@ cdef class Device:
              cdevice.katherine_device_fini(self._c_device)
 
          PyMem_Free(self._c_device)
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._c_device)
 
     def get_readout_status(self):
          cdef ReadoutStatus status = ReadoutStatus()
@@ -185,6 +213,9 @@ cdef class Udp:
 
          PyMem_Free(self._c_udp)
 
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cudp.katherine_udp_snprint, self._c_udp)
+
     # katherine_udp_mutex_lock()/katherine_udp_mutex_unlock() are deliberately
     # not wrapped here: they exist so that a caller with several C calls in a
     # row (e.g. Device pairing a command with its response) can hold the
@@ -222,6 +253,9 @@ cdef class Udp:
 cdef class ReadoutStatus:
     cdef cstatus.katherine_readout_status_t _c_status
 
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cstatus.katherine_readout_status_snprint, &self._c_status)
+
     @property
     def hw_type(self):
        return self._c_status.hw_type
@@ -241,6 +275,9 @@ cdef class ReadoutStatus:
 
 cdef class CommStatus:
     cdef cstatus.katherine_comm_status_t _c_status
+
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cstatus.katherine_comm_status_snprint, &self._c_status)
 
     @property
     def comm_lines_mask(self):
@@ -265,6 +302,9 @@ cdef class Trigger:
              self._c_trigger.use_falling_edge = use_falling_edge
          else:
              self._c_trigger = cdata
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_trigger_snprint, &self._c_trigger)
 
     @property
     def enabled(self):
@@ -304,6 +344,9 @@ cdef class TestPulseConfig:
              self._c_test_pulse_config.phase = phase
          else:
              self._c_test_pulse_config = cdata
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_test_pulse_config_snprint, &self._c_test_pulse_config)
 
     @property
     def enabled(self):
@@ -360,6 +403,9 @@ cdef class Dacs:
     def __init__(self, cdata=None):
          if cdata is not None:
              self._c_dacs.named = cdata['named']
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_dacs_snprint, &self._c_dacs)
 
     @property
     def Ibias_Preamp_ON(self):
@@ -513,6 +559,9 @@ cdef class PxConfig:
       if cdata is not None:
          self._c_px_config = cdata
 
+    def __repr__(self):
+      return _snprint_repr(<snprint_fn_t> cpx_config.katherine_px_config_snprint, &self._c_px_config)
+
     @staticmethod
     def from_bmc(path):
       cdef cpx_config.katherine_px_config_t config
@@ -614,6 +663,9 @@ cdef class Config:
 
     def __init__(self):
          pass
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_config_snprint, &self._c_config)
 
     @property
     def bias_id(self):
@@ -788,6 +840,9 @@ cdef class AcquisitionObserver:
 cdef class FrameInfo:
     cdef cacquisition.katherine_frame_info_t _c_info
 
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cacquisition.katherine_frame_info_snprint, &self._c_info)
+
     @property
     def received_pixels(self):
        return self._c_info.received_pixels
@@ -828,6 +883,9 @@ cdef class PxFastToaTot:
        if cdata is not None:
            self._c_px = cdata
 
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_toa_tot_snprint, &self._c_px)
+
     @staticmethod
     def RAW_SIZE():
        return sizeof(cpx.katherine_px_f_toa_tot_t)
@@ -859,6 +917,9 @@ cdef class PxToaTot:
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
+
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_toa_tot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
@@ -892,6 +953,9 @@ cdef class PxFastToaOnly:
        if cdata is not None:
            self._c_px = cdata
 
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_toa_only_snprint, &self._c_px)
+
     @staticmethod
     def RAW_SIZE():
        return sizeof(cpx.katherine_px_f_toa_only_t)
@@ -920,6 +984,9 @@ cdef class PxToaOnly:
        if cdata is not None:
            self._c_px = cdata
 
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_toa_only_snprint, &self._c_px)
+
     @staticmethod
     def RAW_SIZE():
        return sizeof(cpx.katherine_px_toa_only_t)
@@ -947,6 +1014,9 @@ cdef class PxFastEventItot:
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
+
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_event_itot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
@@ -979,6 +1049,9 @@ cdef class PxEventItot:
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
+
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_event_itot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
@@ -1024,7 +1097,10 @@ cdef class Acquisition:
          cacquisition.katherine_acquisition_fini(self._c_acq)
 
       PyMem_Free(self._c_acq)
-         
+
+    def __repr__(self):
+      return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._c_acq)
+
     def begin(self, Config config, readout_type, acq_mode, bool fast_vco_enabled, bool decode_data=True):
       if fast_vco_enabled:
         if acq_mode == AcquisitionMode.TOA_TOT:

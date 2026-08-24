@@ -21,6 +21,8 @@ cdef extern from 'katherine/acquisition.h':
         katherine_frame_info_time_split_t b
         uint64_t d
 
+    int katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_info_time_t *v)
+
     ctypedef struct katherine_frame_info_t:
         uint64_t received_pixels
         uint64_t sent_pixels
@@ -30,6 +32,8 @@ cdef extern from 'katherine/acquisition.h':
         time_t start_time_observed
         time_t end_time_observed
         bool completed
+
+    int katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t *v)
 
     ctypedef struct katherine_acquisition_handlers_t:
         void (*pixels_received)(void *, const void *, size_t)
@@ -71,6 +75,8 @@ cdef extern from 'katherine/acquisition.h':
         uint64_t last_toa_offset
 
         bool frame_active
+
+    int katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v)
 
     ctypedef enum katherine_readout_type_t:
         READOUT_SEQUENTIAL
