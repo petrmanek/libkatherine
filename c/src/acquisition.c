@@ -487,10 +487,11 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 
     acq->state = ACQUISITION_RUNNING;
 
-    acq->completed_frames         = 0;
-    acq->requested_frames         = config->no_frames;
-    acq->requested_frame_duration = config->acq_time / 1e9;
-    acq->dropped_measurement_data = 0;
+    acq->completed_frames           = 0;
+    acq->requested_frames           = config->no_frames;
+    acq->requested_frame_duration   = config->acq_time / 1e9;
+    acq->dropped_measurement_data   = 0;
+    acq->truncated_measurement_data = 0;
 
     acq->pixel_buffer_valid     = 0;
     acq->pixel_buffer_max_valid = 0;
