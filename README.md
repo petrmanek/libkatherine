@@ -175,25 +175,6 @@ For optimal performance, consider also configuring standard CMake options such a
 include additional debug information. See [CMake docs][cbt-doc] for more information.
 
 
-### Language standards
-
-By default, the project is built under the oldest language standards it
-supports: C11 for the C library and C++11 for the C++ wrapper. These are
-only configure-time defaults — any newer standard can be selected through
-the standard CMake variables [`CMAKE_C_STANDARD`][ccs-doc] and
-[`CMAKE_CXX_STANDARD`][cxs-doc], for instance:
-
-```shell
-cmake -DCMAKE_C_STANDARD=23 -DCMAKE_CXX_STANDARD=23 ..
-```
-
-Requesting a standard older than the supported floor stops the configuration
-with an explicit error. The library and its full test suite build and pass
-under C11, C17 and C23 with GCC and Clang — with compiler extensions both
-enabled and disabled (see [`CMAKE_C_EXTENSIONS`][cce-doc]) — and under
-C++11, C++14, C++17, C++20 and C++23.
-
-
 ### C library (libkatherine)
 
 The C library uses the following dependencies:
@@ -302,6 +283,3 @@ in the development of this library:
 [ci-yml]:   ./.github/workflows/ci.yml
 
 [cbt-doc]: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html
-[ccs-doc]: https://cmake.org/cmake/help/latest/variable/CMAKE_C_STANDARD.html
-[cxs-doc]: https://cmake.org/cmake/help/latest/variable/CMAKE_CXX_STANDARD.html
-[cce-doc]: https://cmake.org/cmake/help/latest/variable/CMAKE_C_EXTENSIONS.html
