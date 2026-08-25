@@ -93,3 +93,53 @@ jobs:
             bin=$(find build \( -name "$b" -o -name "$b.exe" \) -type f | head -1)
             "$bin"
           done
+
+  # The build honors -DCMAKE_C_STANDARD / -DCMAKE_CXX_STANDARD from C11 and
+  # C++11 up (see "Language standards" in the README). The two extremes
+  # bracket the whole range: the strict oldest dialect catches code leaning
+  # on GNU extensions or newer-standard features, the newest catches
+  # constructs the later standards deprecate or repurpose.
+  standards:
+    name: standards (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: C11 strict
+            cc: gcc
+            cxx: g++
+            c_standard: 11
+            cxx_standard: 11
+            extensions: OFF
+          - name: C23/C++23
+            cc: clang
+            cxx: clang++
+            c_standard: 23
+            cxx_standard: 23
+            extensions: ON
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_STANDARD=${{ matrix.c_standard }}
+          -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }}
+          -DCMAKE_C_EXTENSIONS=${{ matrix.extensions }}
+          -DKATHERINE_BUILD_CXX=ON
+          -DKATHERINE_BUILD_EXAMPLES=ON
+          -DKATHERINE_BUILD_PYTHON=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # The unit label is enough here: the full suite (end-to-end tests
+      # against the daemon) already runs in every leg of the build job, and
+      # a language dialect cannot change what those cover.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -L unit
