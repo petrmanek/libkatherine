@@ -217,10 +217,16 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
 
 /**
  * Initialize acquisition.
+ *
+ * md_buffer_size must be at least 65536 bytes on real hardware: the readout
+ * sends measurement data as one UDP datagram per SDRAM slot, up to about
+ * 65 kB, and a smaller buffer risks silently truncating a datagram (see
+ * katherine_acquisition_t::truncated_measurement_data).
+ *
  * @param acq Acquisition to initialize
  * @param device Katherine device
  * @param ctx User context (may be used to convey useful info)
- * @param md_buffer_size Size of the measurement data buffer in bytes
+ * @param md_buffer_size Size of the measurement data buffer in bytes; at least 65536 on real hardware
  * @param pixel_buffer_size Size of the pixel buffer in bytes
  * @param report_timeout Timeout for reporting incomplete pixel buffers (ms). Set zero to disable.
  * @param fail_timeout Timeout for any device communication (ms). Set zero to disable.
@@ -236,6 +242,8 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->state        = ACQUISITION_NOT_STARTED;
     acq->aborted      = false;
     acq->frame_active = false;
+
+    acq->truncated_measurement_data = 0;
 
     // Handlers are optional. Clear them so that a caller which registers only
     // some of them does not leave the rest pointing at indeterminate values.
@@ -359,6 +367,15 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             } \
 \
             last_data_received = time(NULL); \
+\
+            /* A datagram that exactly fills the buffer may be intact, or may \
+               have been longer on the wire and cut off exactly at the \
+               buffer boundary -- the two are indistinguishable from the \
+               byte count alone. MSG_TRUNC would tell them apart exactly but \
+               is platform-specific; this is the portable heuristic instead, \
+               so it can overcount (a datagram that just happens to fill the \
+               buffer) but never miss a real truncation. */ \
+            if (received == acq->md_buffer_size) ++acq->truncated_measurement_data; \
 \
             if (acq->decode_data) { \
                 const char *it = acq->md_buffer; \

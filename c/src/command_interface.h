@@ -5,18 +5,17 @@
  * @date 9.6.18
  *
  * @copyright Copyright (c) 2018 Petr Mánek.
- * This software is distributed under the terms of the MIT License, copied
- * verbatim in the file "LICENSE".
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
  */
 
 #pragma once
 
+#include <stdint.h>
 #include <katherine/config.h>
 #include <katherine/global.h>
 #include <katherine/udp.h>
-#include <stdint.h>
 
 /*
  * IMPORTANT NOTICE:
@@ -27,95 +26,107 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-static inline int katherine_cmd_wait_ack_crd(katherine_udp_t *udp, char *ack) {
-  int res;
+static inline int
+katherine_cmd_wait_ack_crd(katherine_udp_t *udp, char *ack)
+{
+    int res;
 
-  res = katherine_udp_recv_exact(udp, ack, 8);
-  if (res)
-    goto err;
+    res = katherine_udp_recv_exact(udp, ack, 8);
+    if (res) goto err;
 
-  // TODO: optionally check command response id
-  return 0;
-
-err:
-  return res;
-}
-
-static inline int katherine_cmd_wait_ack(katherine_udp_t *udp) {
-  char ack[8];
-  return katherine_cmd_wait_ack_crd(udp, ack);
-}
-
-static inline int katherine_cmd(katherine_udp_t *udp, const void *buffer,
-                                size_t count) {
-  int res;
-
-  res = katherine_udp_send_exact(udp, buffer, count);
-  if (res)
-    goto err;
-
-  return 0;
+    // TODO: optionally check command response id
+    return 0;
 
 err:
-  return res;
+    return res;
 }
 
-static inline int katherine_cmd6(katherine_udp_t *udp, char val6) {
-  char cmd[8] = {0};
-  cmd[6] = val6;
-  return katherine_cmd(udp, &cmd, sizeof(cmd));
+static inline int
+katherine_cmd_wait_ack(katherine_udp_t *udp)
+{
+    char ack[8];
+    return katherine_cmd_wait_ack_crd(udp, ack);
 }
 
-static inline int katherine_cmd60(katherine_udp_t *udp, char val6, char val0) {
-  char cmd[8] = {0};
-  cmd[6] = val6;
-  cmd[0] = val0;
-  return katherine_cmd(udp, &cmd, sizeof(cmd));
+static inline int
+katherine_cmd(katherine_udp_t *udp, const void *buffer, size_t count)
+{
+    int res;
+
+    res = katherine_udp_send_exact(udp, buffer, count);
+    if (res) goto err;
+
+    return 0;
+
+err:
+    return res;
 }
 
-static inline void katherine_cmd_i64(char *cmd, int64_t value) {
-  /* Payload is a fixed 4-byte little-endian field: only the low 32 bits
-     of value ever reach the wire. A negative value contributes the
-     two's complement bit pattern of those low 32 bits, matching the
-     plain 32-bit word the receiving hardware register takes with no
-     sign extension. */
-  uint32_t bits = (uint32_t)value;
-  cmd[0] = (char)(bits & 0xff);
-  cmd[1] = (char)((bits >> 8) & 0xff);
-  cmd[2] = (char)((bits >> 16) & 0xff);
-  cmd[3] = (char)((bits >> 24) & 0xff);
+static inline int
+katherine_cmd6(katherine_udp_t *udp, char val6)
+{
+    char cmd[8] = {0};
+    cmd[6]      = val6;
+    return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
-static inline int katherine_cmd64_i64(katherine_udp_t *udp, char val6,
-                                      char val4, int64_t value) {
-  char cmd[8] = {0};
-  cmd[6] = val6;
-  cmd[4] = val4;
-  katherine_cmd_i64(cmd, value);
-
-  return katherine_cmd(udp, &cmd, sizeof(cmd));
+static inline int
+katherine_cmd60(katherine_udp_t *udp, char val6, char val0)
+{
+    char cmd[8] = {0};
+    cmd[6]      = val6;
+    cmd[0]      = val0;
+    return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
-static inline int katherine_cmd6_i64(katherine_udp_t *udp, char val6,
-                                     int64_t value) {
-  char cmd[8] = {0};
-  cmd[6] = val6;
-  katherine_cmd_i64(cmd, value);
-
-  return katherine_cmd(udp, &cmd, sizeof(cmd));
+static inline void
+katherine_cmd_i64(char *cmd, int64_t value)
+{
+    /* Payload is a fixed 4-byte little-endian field: only the low 32 bits
+       of value ever reach the wire. A negative value contributes the
+       two's complement bit pattern of those low 32 bits, matching the
+       plain 32-bit word the receiving hardware register takes with no
+       sign extension. */
+    uint32_t bits = (uint32_t) value;
+    cmd[0]        = (char) (bits & 0xff);
+    cmd[1]        = (char) ((bits >> 8) & 0xff);
+    cmd[2]        = (char) ((bits >> 16) & 0xff);
+    cmd[3]        = (char) ((bits >> 24) & 0xff);
 }
 
-static inline int katherine_cmd6_float(katherine_udp_t *udp, char val6,
-                                       float value) {
-  char cmd[8] = {0};
-  cmd[6] = val6;
-  int *bits = (int *)&value;
-  cmd[0] = (*bits & 0xff);
-  cmd[1] = ((*bits >> 8) & 0xff);
-  cmd[2] = ((*bits >> 16) & 0xff);
-  cmd[3] = ((*bits >> 24) & 0xff);
+static inline int
+katherine_cmd64_i64(katherine_udp_t *udp, char val6, char val4, int64_t value)
+{
+    char cmd[8] = {0};
+    cmd[6]      = val6;
+    cmd[4]      = val4;
+    katherine_cmd_i64(cmd, value);
 
-  return katherine_cmd(udp, &cmd, sizeof(cmd));
+    return katherine_cmd(udp, &cmd, sizeof(cmd));
+}
+
+static inline int
+katherine_cmd6_i64(katherine_udp_t *udp, char val6, int64_t value)
+{
+    char cmd[8] = {0};
+    cmd[6]      = val6;
+    katherine_cmd_i64(cmd, value);
+
+    return katherine_cmd(udp, &cmd, sizeof(cmd));
+}
+
+static inline int
+katherine_cmd6_float(katherine_udp_t *udp, char val6, float value)
+{
+    char cmd[8] = {0};
+    cmd[6]      = val6;
+    int *bits   = (int *) &value;
+    cmd[0]      = (*bits & 0xff);
+    cmd[1]      = ((*bits >> 8) & 0xff);
+    cmd[2]      = ((*bits >> 16) & 0xff);
+    cmd[3]      = ((*bits >> 24) & 0xff);
+
+    return katherine_cmd(udp, &cmd, sizeof(cmd));
 }
 
 /*
@@ -129,96 +140,96 @@ static inline int katherine_cmd6_float(katherine_udp_t *udp, char val6,
  * test-pulse command instead.
  */
 typedef enum katherine_general_config_bit {
-  GENERAL_CONFIG_BIT_POLARITY = 0,
-  GENERAL_CONFIG_BIT_GRAY_COUNT_EN = 3,
-  GENERAL_CONFIG_BIT_ACKCOMMAND_EN = 4,
-  GENERAL_CONFIG_BIT_TP_EN = 5,
-  GENERAL_CONFIG_BIT_FAST_LO_EN = 6,
+    GENERAL_CONFIG_BIT_POLARITY      = 0,
+    GENERAL_CONFIG_BIT_GRAY_COUNT_EN = 3,
+    GENERAL_CONFIG_BIT_ACKCOMMAND_EN = 4,
+    GENERAL_CONFIG_BIT_TP_EN         = 5,
+    GENERAL_CONFIG_BIT_FAST_LO_EN    = 6,
 } katherine_general_config_bit_t;
 
 static inline int32_t
-katherine_general_config_word(const katherine_config_t *config) {
-  int32_t word = 0;
-  word |= (!config->polarity_holes) << GENERAL_CONFIG_BIT_POLARITY;
-  word |= (!config->gray_disable) << GENERAL_CONFIG_BIT_GRAY_COUNT_EN;
-  word |= 1 << GENERAL_CONFIG_BIT_ACKCOMMAND_EN;
-  word |= (config->test_pulse_config.enabled ? 1 : 0)
-          << GENERAL_CONFIG_BIT_TP_EN;
-  word |= 1 << GENERAL_CONFIG_BIT_FAST_LO_EN;
-  return word;
+katherine_general_config_word(const katherine_config_t *config)
+{
+    int32_t word = 0;
+    word |= (!config->polarity_holes) << GENERAL_CONFIG_BIT_POLARITY;
+    word |= (!config->gray_disable) << GENERAL_CONFIG_BIT_GRAY_COUNT_EN;
+    word |= 1 << GENERAL_CONFIG_BIT_ACKCOMMAND_EN;
+    word |= (config->test_pulse_config.enabled ? 1 : 0) << GENERAL_CONFIG_BIT_TP_EN;
+    word |= 1 << GENERAL_CONFIG_BIT_FAST_LO_EN;
+    return word;
 }
 
-#define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...)                                    \
-  static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp) {           \
-    return katherine_##A(udp, __VA_ARGS__);                                    \
-  }
+#define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...) \
+    static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp) \
+    { \
+        return katherine_##A(udp, __VA_ARGS__); \
+    }
 
-#define K_DEFINE_CMD_ARG1(A, CMD_NAME, ARG1_TYPE, ...)                         \
-  static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp,             \
-                                             ARG1_TYPE arg1) {                 \
-    return katherine_##A(udp, __VA_ARGS__, arg1);                              \
-  }
+#define K_DEFINE_CMD_ARG1(A, CMD_NAME, ARG1_TYPE, ...) \
+    static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp, ARG1_TYPE arg1) \
+    { \
+        return katherine_##A(udp, __VA_ARGS__, arg1); \
+    }
 
 typedef enum katherine_cmd_type {
-  CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB = 0x01,
-  CMD_TYPE_BIAS_SETTINGS = 0x02,
-  CMD_TYPE_ACQUISITION_START = 0x03,
-  CMD_TYPE_INTERNAL_DAC_SETTINGS = 0x04,
-  CMD_TYPE_SEQ_READOUT_START = 0x05,
-  CMD_TYPE_ACQUISITION_STOP = 0x06,
-  CMD_TYPE_HW_COMMAND_START = 0x07,
-  CMD_TYPE_SENSOR_REGISTER_SETTING = 0x08,
-  CMD_TYPE_ACQUISITION_MODE_SETTING = 0x09,
-  CMD_TYPE_ACQUISITION_TIME_SETTING_MSB = 0x0A,
-  CMD_TYPE_ECHO_CHIP_ID = 0x0B,
-  CMD_TYPE_GET_BIAS_VOLTAGE = 0x0C,
-  CMD_TYPE_GET_ADC_VOLTAGE = 0x0D,
-  CMD_TYPE_GET_BACK_READ_REGISTER = 0x0E,
+    CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB = 0x01,
+    CMD_TYPE_BIAS_SETTINGS                 = 0x02,
+    CMD_TYPE_ACQUISITION_START             = 0x03,
+    CMD_TYPE_INTERNAL_DAC_SETTINGS         = 0x04,
+    CMD_TYPE_SEQ_READOUT_START             = 0x05,
+    CMD_TYPE_ACQUISITION_STOP              = 0x06,
+    CMD_TYPE_HW_COMMAND_START              = 0x07,
+    CMD_TYPE_SENSOR_REGISTER_SETTING       = 0x08,
+    CMD_TYPE_ACQUISITION_MODE_SETTING      = 0x09,
+    CMD_TYPE_ACQUISITION_TIME_SETTING_MSB  = 0x0A,
+    CMD_TYPE_ECHO_CHIP_ID                  = 0x0B,
+    CMD_TYPE_GET_BIAS_VOLTAGE              = 0x0C,
+    CMD_TYPE_GET_ADC_VOLTAGE               = 0x0D,
+    CMD_TYPE_GET_BACK_READ_REGISTER        = 0x0E,
 
-  /* DAC-scan opcodes (this one and 0x14 below): the scan indexes chip DAC
-     codes 1-based, 1..18 for the named DACs plus 28..31 for BandGap /
-     BandGap_Temp / Ibias_dac / Ibias_dac_cas (Tpx3 manual Table 11) --
-     unlike CMD_TYPE_INTERNAL_DAC_SETTINGS above, which is 0-based 0..17.
-     An off-by-one trap for a future scan API that reuses katherine_dacs_t
-     indexing. */
-  CMD_TYPE_INTERNAL_DAC_SCAN = 0x0F,
+    /* DAC-scan opcodes (this one and 0x14 below): the scan indexes chip DAC
+       codes 1-based, 1..18 for the named DACs plus 28..31 for BandGap /
+       BandGap_Temp / Ibias_dac / Ibias_dac_cas (Tpx3 manual Table 11) --
+       unlike CMD_TYPE_INTERNAL_DAC_SETTINGS above, which is 0-based 0..17.
+       An off-by-one trap for a future scan API that reuses katherine_dacs_t
+       indexing. */
+    CMD_TYPE_INTERNAL_DAC_SCAN = 0x0F,
 
-  CMD_TYPE_SET_PIXEL_CONFIG = 0x10,
-  CMD_TYPE_GET_PIXEL_CONFIG = 0x11,
-  CMD_TYPE_SET_ALL_PIXEL_CONFIG = 0x12,
-  CMD_TYPE_NUMBER_OF_FRAMES = 0x13,
-  CMD_TYPE_GET_ALL_DAC_SCAN =
-      0x14, /* same 1-based DAC indexing as 0x0F above */
-  CMD_TYPE_GET_HW_READOUT_TEMPERATURE = 0x15,
-  CMD_TYPE_LED_SETTINGS = 0x16,
-  CMD_TYPE_GET_READOUT_STATUS = 0x17,
-  CMD_TYPE_GET_COMMUNICATION_STATUS = 0x18,
-  CMD_TYPE_GET_SENSOR_TEMPERATURE = 0x19,
-  CMD_TYPE_DIGITAL_TEST = 0x20,
-  CMD_TYPE_ACQUISITION_SETUP = 0x21,
-  CMD_TYPE_GET_ACQUISITION_UNIT_DATA = 0x22,
-  CMD_TYPE_INTERNAL_TRIGGER_GENERATOR = 0x23,
+    CMD_TYPE_SET_PIXEL_CONFIG           = 0x10,
+    CMD_TYPE_GET_PIXEL_CONFIG           = 0x11,
+    CMD_TYPE_SET_ALL_PIXEL_CONFIG       = 0x12,
+    CMD_TYPE_NUMBER_OF_FRAMES           = 0x13,
+    CMD_TYPE_GET_ALL_DAC_SCAN           = 0x14, /* same 1-based DAC indexing as 0x0F above */
+    CMD_TYPE_GET_HW_READOUT_TEMPERATURE = 0x15,
+    CMD_TYPE_LED_SETTINGS               = 0x16,
+    CMD_TYPE_GET_READOUT_STATUS         = 0x17,
+    CMD_TYPE_GET_COMMUNICATION_STATUS   = 0x18,
+    CMD_TYPE_GET_SENSOR_TEMPERATURE     = 0x19,
+    CMD_TYPE_DIGITAL_TEST               = 0x20,
+    CMD_TYPE_ACQUISITION_SETUP          = 0x21,
+    CMD_TYPE_GET_ACQUISITION_UNIT_DATA  = 0x22,
+    CMD_TYPE_INTERNAL_TRIGGER_GENERATOR = 0x23,
 
-  /* The readout firmware answers this with response id 0x22
-     (GetAcquisitionUnitData), not 0x24 -- a firmware quirk, not a
-     transcription error, should a future caller key off the response id. */
-  CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ = 0x24,
+    /* The readout firmware answers this with response id 0x22
+       (GetAcquisitionUnitData), not 0x24 -- a firmware quirk, not a
+       transcription error, should a future caller key off the response id. */
+    CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ = 0x24,
 
-  CMD_TYPE_TEST_PULSE_SETTING = 0x26,
-  CMD_TYPE_TOA_CALIBRATION_SETUP = 0x28,
-  CMD_TYPE_NUMBER_OF_TOKENS_SETTING = 0x29,
-  CMD_TYPE_GET_BIAS_CURRENT = 0x30,
-  CMD_TYPE_INTERNAL_TDC_SETTINGS = 0x32,
+    CMD_TYPE_TEST_PULSE_SETTING       = 0x26,
+    CMD_TYPE_TOA_CALIBRATION_SETUP    = 0x28,
+    CMD_TYPE_NUMBER_OF_TOKENS_SETTING = 0x29,
+    CMD_TYPE_GET_BIAS_CURRENT         = 0x30,
+    CMD_TYPE_INTERNAL_TDC_SETTINGS    = 0x32,
 
-  /* The readout firmware sends five counter datagrams for this command,
-     not six: a reader waiting for a sixth would hang. */
-  CMD_TYPE_INTERNAL_TDC_READ_COUNTS = 0x33,
+    /* The readout firmware sends five counter datagrams for this command,
+       not six: a reader waiting for a sixth would hang. */
+    CMD_TYPE_INTERNAL_TDC_READ_COUNTS = 0x33,
 
-  CMD_TYPE_INTERFACE_SELECTION = 0x50,
+    CMD_TYPE_INTERFACE_SELECTION = 0x50,
 
-  CMD_TYPE_USB_REDRIVER_SETTING = 0x98, /* Gen2 hardware only */
+    CMD_TYPE_USB_REDRIVER_SETTING = 0x98, /* Gen2 hardware only */
 
-  CMD_TYPE_CHANGE_PORTS = 0xF0,
+    CMD_TYPE_CHANGE_PORTS = 0xF0,
 } katherine_cmd_type_t;
 
 // clang-format off
@@ -232,22 +243,22 @@ K_DEFINE_CMD_ARG0(cmd6,       digital_test,                             CMD_TYPE
 // clang-format on
 
 typedef enum katherine_hw_cmd_type {
-  CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE = 0,
-  CMD_START_INTERNAL_DAC_UPDATE = 1,
-  CMD_START_INTERNAL_DAC_BACK_READ = 2,
-  CMD_START_TIMER_READ = 3,
-  CMD_START_TIMER_SET = 4,
-  CMD_START_RESET_MATRIX_SEQUENTIAL = 5,
-  CMD_START_STOP_MATRIX_COMMAND = 6,
-  CMD_START_LOAD_COLUMN_TEST_PULSE_REGISTER = 7,
-  CMD_START_READ_COLUMN_TEST_PULSE_REGISTER = 8,
-  CMD_START_LOAD_PIXEL_REGISTER_CONFIGURATION = 9,
-  CMD_START_READ_PIXEL_REGISTER_CONFIGURATION = 10,
-  CMD_START_READ_PIXEL_MATRIX_SEQUENTIAL = 11,
-  CMD_START_READ_PIXEL_MATRIX_DATA_DRIVEN_SETTING = 12,
-  CMD_START_CHIP_ID_READ = 13,
-  CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE = 14,
-  CMD_START_DIGITAL_TEST = 15,
+    CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE        = 0,
+    CMD_START_INTERNAL_DAC_UPDATE                   = 1,
+    CMD_START_INTERNAL_DAC_BACK_READ                = 2,
+    CMD_START_TIMER_READ                            = 3,
+    CMD_START_TIMER_SET                             = 4,
+    CMD_START_RESET_MATRIX_SEQUENTIAL               = 5,
+    CMD_START_STOP_MATRIX_COMMAND                   = 6,
+    CMD_START_LOAD_COLUMN_TEST_PULSE_REGISTER       = 7,
+    CMD_START_READ_COLUMN_TEST_PULSE_REGISTER       = 8,
+    CMD_START_LOAD_PIXEL_REGISTER_CONFIGURATION     = 9,
+    CMD_START_READ_PIXEL_REGISTER_CONFIGURATION     = 10,
+    CMD_START_READ_PIXEL_MATRIX_SEQUENTIAL          = 11,
+    CMD_START_READ_PIXEL_MATRIX_DATA_DRIVEN_SETTING = 12,
+    CMD_START_CHIP_ID_READ                          = 13,
+    CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE            = 14,
+    CMD_START_DIGITAL_TEST                          = 15,
 } katherine_hw_cmd_type_t;
 
 // clang-format off
