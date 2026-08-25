@@ -652,6 +652,12 @@ err:
 
 /**
  * Set DAC register values.
+ *
+ * Values are transmitted unchecked: a value wider than its DAC's bit width
+ * (Tpx3 manual Table 11) is truncated by the chip, not rejected here. Call
+ * katherine_dacs_validate() first if that matters to the caller; this
+ * function's own behavior is unchanged from the 1.x series.
+ *
  * @param device Katherine device
  * @param dacs DAC register values to set
  * @return Error code.
@@ -689,4 +695,42 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
+}
+
+/* Per-DAC maxima (Tpx3 manual Table 11, "DAC Value" column width), in
+   katherine_dacs_named_t / array order, i.e. chip DAC Code minus one. */
+static const uint16_t KATHERINE_DAC_MAX[18] = {
+    255, // Ibias_Preamp_ON     [7:0]
+    15,  // Ibias_Preamp_OFF    [3:0]
+    255, // VPReamp_NCAS        [7:0]
+    255, // Ibias_Ikrum         [7:0]
+    255, // Vfbk                [7:0]
+    511, // Vthreshold_fine     [8:0]
+    15,  // Vthreshold_coarse   [3:0]
+    255, // Ibias_DiscS1_ON     [7:0]
+    15,  // Ibias_DiscS1_OFF    [3:0]
+    255, // Ibias_DiscS2_ON     [7:0]
+    15,  // Ibias_DiscS2_OFF    [3:0]
+    255, // Ibias_PixelDAC      [7:0]
+    255, // Ibias_TPbufferIn    [7:0]
+    255, // Ibias_TPbufferOut   [7:0]
+    255, // VTP_coarse          [7:0]
+    511, // VTP_fine            [8:0]
+    255, // Ibias_CP_PLL        [7:0]
+    255, // PLL_Vcntrl          [7:0]
+};
+
+/**
+ * Validate DAC register values against the chip's per-DAC bit widths.
+ * @param v DAC register values to validate.
+ * @return 0 if every value fits its DAC's range, EINVAL otherwise.
+ */
+int
+katherine_dacs_validate(const katherine_dacs_t *v)
+{
+    for (int i = 0; i < 18; ++i) {
+        if (v->array[i] > KATHERINE_DAC_MAX[i]) return EINVAL;
+    }
+
+    return 0;
 }

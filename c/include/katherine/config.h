@@ -97,6 +97,20 @@ typedef union katherine_dacs {
 KATHERINE_EXPORTED int katherine_dacs_snprint(char *buf, size_t cap,
                                               const katherine_dacs_t *v);
 
+/**
+ * Validate DAC register values against the chip's per-DAC bit widths
+ * (Tpx3 manual Table 11: each of the 18 DACs is 4, 8 or 9 bits wide).
+ *
+ * This check is opt-in: katherine_set_dacs() transmits every value
+ * unchecked, and a value wider than its DAC's field is silently truncated
+ * by the chip rather than rejected there. Calling this function first is a
+ * caller's choice; it does not change katherine_set_dacs()'s own behavior.
+ *
+ * @param v DAC register values to validate.
+ * @return 0 if every value fits its DAC's range, EINVAL otherwise.
+ */
+KATHERINE_EXPORTED int katherine_dacs_validate(const katherine_dacs_t *v);
+
 // With DualEdgeClock = 1 (always the case, see config.c), Tpx3 manual Table
 // 17 clamps the achieved phase count by the clock divider: PHASE_16 yields
 // only 4 actual phases at FREQ_160, not 16, and less still at FREQ_80.
