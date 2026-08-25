@@ -5,16 +5,17 @@
  * @date 28.2.19
  *
  * @copyright Copyright (c) 2018 Petr Mánek.
- * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+ * This software is distributed under the terms of the MIT License, copied
+ * verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
  */
 
 #pragma once
 
+#include <katherine/global.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <katherine/global.h>
 
 /**
  * @addtogroup c_api
@@ -48,69 +49,81 @@ extern "C" {
  */
 
 typedef struct katherine_coord {
-    uint8_t x;
-    uint8_t y;
+  uint8_t x;
+  uint8_t y;
 } katherine_coord_t;
 
-KATHERINE_EXPORTED int
-katherine_coord_snprint(char *buf, size_t cap, const katherine_coord_t *v);
+KATHERINE_EXPORTED int katherine_coord_snprint(char *buf, size_t cap,
+                                               const katherine_coord_t *v);
 
 typedef struct katherine_px_f_toa_tot {
-    katherine_coord_t coord;
-    uint8_t ftoa; ///< Fast ToA, binary counter (Table 3); saturates at 15 (Table 4)
-    uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint16_t tot; ///< Chip LFSR counter state; see the file header
+  katherine_coord_t coord;
+  uint8_t
+      ftoa; ///< Fast ToA, binary counter (Table 3); saturates at 15 (Table 4)
+  uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file
+                ///< header for units and wrap behavior
+  uint16_t tot; ///< Chip LFSR counter state; see the file header
 } katherine_px_f_toa_tot_t;
 
 KATHERINE_EXPORTED int
-katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v);
+katherine_px_f_toa_tot_snprint(char *buf, size_t cap,
+                               const katherine_px_f_toa_tot_t *v);
 
 typedef struct katherine_px_toa_tot {
-    katherine_coord_t coord;
-    uint64_t toa;      ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint8_t hit_count; ///< Chip LFSR counter state; see the file header
-    uint16_t tot;      ///< Chip LFSR counter state; see the file header
+  katherine_coord_t coord;
+  uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file
+                ///< header for units and wrap behavior
+  uint8_t hit_count; ///< Chip LFSR counter state; see the file header
+  uint16_t tot;      ///< Chip LFSR counter state; see the file header
 } katherine_px_toa_tot_t;
 
 KATHERINE_EXPORTED int
-katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v);
+katherine_px_toa_tot_snprint(char *buf, size_t cap,
+                             const katherine_px_toa_tot_t *v);
 
 typedef struct katherine_px_f_toa_only {
-    katherine_coord_t coord;
-    uint8_t ftoa; ///< Fast ToA, binary counter (Table 3); saturates at 15 (Table 4)
-    uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
+  katherine_coord_t coord;
+  uint8_t
+      ftoa; ///< Fast ToA, binary counter (Table 3); saturates at 15 (Table 4)
+  uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file
+                ///< header for units and wrap behavior
 } katherine_px_f_toa_only_t;
 
 KATHERINE_EXPORTED int
-katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v);
+katherine_px_f_toa_only_snprint(char *buf, size_t cap,
+                                const katherine_px_f_toa_only_t *v);
 
 typedef struct katherine_px_toa_only {
-    katherine_coord_t coord;
-    uint64_t toa;      ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint8_t hit_count; ///< Chip LFSR counter state; see the file header
+  katherine_coord_t coord;
+  uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file
+                ///< header for units and wrap behavior
+  uint8_t hit_count; ///< Chip LFSR counter state; see the file header
 } katherine_px_toa_only_t;
 
 KATHERINE_EXPORTED int
-katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v);
+katherine_px_toa_only_snprint(char *buf, size_t cap,
+                              const katherine_px_toa_only_t *v);
 
 typedef struct katherine_px_f_event_itot {
-    katherine_coord_t coord;
-    uint8_t hit_count;     ///< Chip LFSR counter state; see the file header
-    uint16_t event_count;  ///< Chip LFSR counter state; see the file header
-    uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
+  katherine_coord_t coord;
+  uint8_t hit_count;     ///< Chip LFSR counter state; see the file header
+  uint16_t event_count;  ///< Chip LFSR counter state; see the file header
+  uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
 } katherine_px_f_event_itot_t;
 
 KATHERINE_EXPORTED int
-katherine_px_f_event_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_itot_t *v);
+katherine_px_f_event_itot_snprint(char *buf, size_t cap,
+                                  const katherine_px_f_event_itot_t *v);
 
 typedef struct katherine_px_event_itot {
-    katherine_coord_t coord;
-    uint16_t event_count;  ///< Chip LFSR counter state; see the file header
-    uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
+  katherine_coord_t coord;
+  uint16_t event_count;  ///< Chip LFSR counter state; see the file header
+  uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
 } katherine_px_event_itot_t;
 
 KATHERINE_EXPORTED int
-katherine_px_event_itot_snprint(char *buf, size_t cap, const katherine_px_event_itot_t *v);
+katherine_px_event_itot_snprint(char *buf, size_t cap,
+                                const katherine_px_event_itot_t *v);
 
 #ifdef __cplusplus
 }

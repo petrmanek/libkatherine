@@ -46,6 +46,15 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_sensor_register(device, TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
     if (res) goto err;
 
+    // PLL configuration word (Tpx3 manual Table 16, sensor register 3). The
+    // 0xE sets four fixed one-bit fields at [3:0]: ByPassPLL = 0 (bit 0, PLL
+    // on), ResetPLL = 1 (bit 1, running), SelectVcntrl_PLL_DAC = 1 (bit 2,
+    // Vcntrl sourced from the PLL), DualEdgeClock = 1 (bit 3). Bits [5:4]
+    // are Clk_phaseShift_divider, the clock frequency selector of Table 17;
+    // bits [8:6] are Clk_phaseShift_number, the phase selector clamped by
+    // that same table (see katherine_phase_t, config.h). 0x14 << 9 sets
+    // PLLOutConfig[13:9] = ShutterOut, routing the shutter signal to the
+    // PLL output pad.
     int32_t pll_setup = 0xE;
     pll_setup |= (0x7 & config->phase) << 6;
     pll_setup |= (0x3 & config->freq) << 4;
@@ -285,6 +294,16 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     cmd[6]      = CMD_TYPE_ACQUISITION_MODE_SETTING;
 
     cmd[0] |= acq_mode;
+
+    // The fast-VCO flag travels in byte 0 bit 7 here. Katherine manuals
+    // v0.008+ and the Gen2 readout firmware instead read it from CD[8] --
+    // byte 1 bit 0 -- so this is off by one byte against the documented
+    // wire format. Currently moot: the readout firmware only shadows this
+    // command into a register image it never flushes to the sensor, so
+    // neither placement reaches the chip either way. The correct-bit fix
+    // rides with the 2.0 GeneralConfig rework, which folds this flag into
+    // the sensor register write instead and removes the dependency on this
+    // command.
     cmd[0] |= fast_vco_enabled << 7;
 
     res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
@@ -407,6 +426,14 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     cmd[6]      = CMD_TYPE_ACQUISITION_SETUP;
     cmd[4]      = 0x05;
 
+    // This is the Gen1 trigger-word layout (manual sec. 1.2.19): a 3-bit
+    // channel, edge at bit 4, delayed-start at bit 5. The Gen2 FPGA decodes
+    // a different layout -- a 4-bit channel with edge and delayed-start each
+    // shifted up one bit -- and the Gen2 manual's own trigger-word table is
+    // wrong for its own hardware: it still describes this Gen1 layout. Do
+    // not "correct" the encoding below from either a Gen2 source or that
+    // table; it is right for the Gen1 wire format it targets.
+    //
     // The channel occupies three bits (1..3, manual sec. 1.2.19): the mask
     // keeps an out-of-range channel from bleeding into the edge and
     // delayed-start flags above it.

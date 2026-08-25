@@ -280,7 +280,13 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
 
     case CMD_TYPE_ACQUISITION_MODE_SETTING:
         /* The library packs the fast oscillator flag into the top bit of
-           byte 0, next to the mode. */
+           byte 0, next to the mode. This mirrors the client's own encoding
+           (katherine_set_acq_mode(), config.c) bit-for-bit, including its
+           byte-0-bit-7 placement, which is off by one byte against the
+           CD[8] the manuals (v0.008+) and the Gen2 readout firmware
+           document. Moot either way until the GeneralConfig rework config.c
+           documents: the real firmware only shadows this write into a
+           register it never flushes to the sensor. */
         emu->regs.acq_mode = (uint8_t) (cmd[0] & 0x3F);
         emu->regs.fast_vco = (cmd[0] & 0x80) != 0;
         queue_ack(emu, (uint8_t) opcode, 0);
@@ -463,6 +469,14 @@ katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
     if (emu == NULL) return EINVAL;
 
     memset(emu, 0, sizeof(*emu));
+
+    /* Every sensor register, including GeneralConfig, starts at zero here.
+       The real readout firmware instead boots with GeneralConfig = 0x0058
+       (Gray_count_en, AckCommand_en and Fast_lo_en all set) -- the
+       provenance of the historical preset katherine_general_config_word()
+       (command_interface.h) reproduces by pinning those same three bits on
+       every write. A client that always writes GeneralConfig before first
+       use, as katherine_configure() does, never observes the difference. */
 
     if (profile != NULL) {
         emu->profile = *profile;
