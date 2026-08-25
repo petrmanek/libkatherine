@@ -107,12 +107,15 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
         }
     }
 
-    // The readout answers every filler command above, so the flood leaves as many responses in flight as it sent
-    // datagrams. All of them have to be consumed here: a response left queued is read as the acknowledgement of some
-    // later command, and from then on every command of the session pairs with the response of an earlier one, so
-    // nothing can fail visibly again. Receiving therefore continues until it times out, i.e. until the socket has been
-    // quiet for a whole receive timeout, and is bounded regardless so that a peer talking without pause cannot hold
-    // this loop forever.
+    // The readout's command dispatcher has no default branch and answers nothing for an opcode it does not
+    // recognize, so the filler flood above provokes no responses of its own. The drain below is for whatever
+    // legitimate response may still be in flight regardless: most notably the upload acknowledgement this recovery
+    // was entered to replace, which the client gave up waiting for but the readout may yet deliver, or any other
+    // response still stale on the wire. A response left queued here is read as the acknowledgement of some later
+    // command, and from then on every command of the session pairs with the response of an earlier one, so nothing
+    // can fail visibly again. Receiving therefore continues until it times out, i.e. until the socket has been quiet
+    // for a whole receive timeout, and is bounded regardless so that a peer talking without pause cannot hold this
+    // loop forever.
     static const int max_drain = 512;
     size_t recv_size;
     int res = 0;

@@ -64,6 +64,7 @@ cdef extern from 'katherine/acquisition.h':
         double requested_frame_duration
         int completed_frames
         size_t dropped_measurement_data
+        uint64_t truncated_measurement_data
 
         time_t acq_start_time
         int report_timeout

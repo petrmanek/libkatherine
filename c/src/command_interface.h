@@ -186,29 +186,50 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_GET_BIAS_VOLTAGE              = 0x0C,
     CMD_TYPE_GET_ADC_VOLTAGE               = 0x0D,
     CMD_TYPE_GET_BACK_READ_REGISTER        = 0x0E,
-    CMD_TYPE_INTERNAL_DAC_SCAN             = 0x0F,
-    CMD_TYPE_SET_PIXEL_CONFIG              = 0x10,
-    CMD_TYPE_GET_PIXEL_CONFIG              = 0x11,
-    CMD_TYPE_SET_ALL_PIXEL_CONFIG          = 0x12,
-    CMD_TYPE_NUMBER_OF_FRAMES              = 0x13,
-    CMD_TYPE_GET_ALL_DAC_SCAN              = 0x14,
-    CMD_TYPE_GET_HW_READOUT_TEMPERATURE    = 0x15,
-    CMD_TYPE_LED_SETTINGS                  = 0x16,
-    CMD_TYPE_GET_READOUT_STATUS            = 0x17,
-    CMD_TYPE_GET_COMMUNICATION_STATUS      = 0x18,
-    CMD_TYPE_GET_SENSOR_TEMPERATURE        = 0x19,
-    CMD_TYPE_DIGITAL_TEST                  = 0x20,
-    CMD_TYPE_ACQUISITION_SETUP             = 0x21,
-    CMD_TYPE_GET_ACQUISITION_UNIT_DATA     = 0x22,
-    CMD_TYPE_INTERNAL_TRIGGER_GENERATOR    = 0x23,
-    CMD_TYPE_TEST_PULSE_SETTING            = 0x26,
-    CMD_TYPE_TOA_CALIBRATION_SETUP         = 0x28,
-    CMD_TYPE_NUMBER_OF_TOKENS_SETTING      = 0x29,
-    CMD_TYPE_GET_BIAS_CURRENT              = 0x30,
-    CMD_TYPE_INTERNAL_TDC_SETTINGS         = 0x32,
-    CMD_TYPE_INTERNAL_TDC_READ_COUNTS      = 0x33,
-    CMD_TYPE_INTERFACE_SELECTION           = 0x50,
-    CMD_TYPE_CHANGE_PORTS                  = 0xF0,
+
+    /* DAC-scan opcodes (this one and 0x14 below): the scan indexes chip DAC
+       codes 1-based, 1..18 for the named DACs plus 28..31 for BandGap /
+       BandGap_Temp / Ibias_dac / Ibias_dac_cas (Tpx3 manual Table 11) --
+       unlike CMD_TYPE_INTERNAL_DAC_SETTINGS above, which is 0-based 0..17.
+       An off-by-one trap for a future scan API that reuses katherine_dacs_t
+       indexing. */
+    CMD_TYPE_INTERNAL_DAC_SCAN = 0x0F,
+
+    CMD_TYPE_SET_PIXEL_CONFIG           = 0x10,
+    CMD_TYPE_GET_PIXEL_CONFIG           = 0x11,
+    CMD_TYPE_SET_ALL_PIXEL_CONFIG       = 0x12,
+    CMD_TYPE_NUMBER_OF_FRAMES           = 0x13,
+    CMD_TYPE_GET_ALL_DAC_SCAN           = 0x14, /* same 1-based DAC indexing as 0x0F above */
+    CMD_TYPE_GET_HW_READOUT_TEMPERATURE = 0x15,
+    CMD_TYPE_LED_SETTINGS               = 0x16,
+    CMD_TYPE_GET_READOUT_STATUS         = 0x17,
+    CMD_TYPE_GET_COMMUNICATION_STATUS   = 0x18,
+    CMD_TYPE_GET_SENSOR_TEMPERATURE     = 0x19,
+    CMD_TYPE_DIGITAL_TEST               = 0x20,
+    CMD_TYPE_ACQUISITION_SETUP          = 0x21,
+    CMD_TYPE_GET_ACQUISITION_UNIT_DATA  = 0x22,
+    CMD_TYPE_INTERNAL_TRIGGER_GENERATOR = 0x23,
+
+    /* The readout firmware answers this with response id 0x22
+       (GetAcquisitionUnitData), not 0x24 -- a firmware quirk, not a
+       transcription error, should a future caller key off the response id. */
+    CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ = 0x24,
+
+    CMD_TYPE_TEST_PULSE_SETTING       = 0x26,
+    CMD_TYPE_TOA_CALIBRATION_SETUP    = 0x28,
+    CMD_TYPE_NUMBER_OF_TOKENS_SETTING = 0x29,
+    CMD_TYPE_GET_BIAS_CURRENT         = 0x30,
+    CMD_TYPE_INTERNAL_TDC_SETTINGS    = 0x32,
+
+    /* The readout firmware sends five counter datagrams for this command,
+       not six: a reader waiting for a sixth would hang. */
+    CMD_TYPE_INTERNAL_TDC_READ_COUNTS = 0x33,
+
+    CMD_TYPE_INTERFACE_SELECTION = 0x50,
+
+    CMD_TYPE_USB_REDRIVER_SETTING = 0x98, /* Gen2 hardware only */
+
+    CMD_TYPE_CHANGE_PORTS = 0xF0,
 } katherine_cmd_type_t;
 
 // clang-format off

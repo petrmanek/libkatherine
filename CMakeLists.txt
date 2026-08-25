@@ -28,12 +28,24 @@ katherine_declare_feature(BUILD_BENCHMARKS "build benchmark suite"   DEFAULT ON)
 katherine_declare_feature(BUILD_EMULATOR   "build protocol emulator" DEFAULT ON)
 katherine_feature_summary()
 
-# The dialect this project's own binaries are built with (reproducible
-# across compilers with different defaults); the language floors required
-# by the libraries are declared on their targets with compile features.
-set(CMAKE_C_STANDARD            17)
+# The dialect this project's own binaries are built with. The guarded
+# defaults are the language floors themselves, so any newer standard can be
+# forced at configure time (-DCMAKE_C_STANDARD=23 and friends). A forced
+# standard below the floor is rejected here explicitly: the floors declared
+# on the library targets with compile features would otherwise re-raise it
+# silently, building something other than what was asked for. The standards
+# do not compare numerically (90 and 99 predate 11), hence the value tests.
+if(NOT DEFINED CMAKE_C_STANDARD)
+    set(CMAKE_C_STANDARD 11)
+elseif(CMAKE_C_STANDARD EQUAL 90 OR CMAKE_C_STANDARD EQUAL 99)
+    message(FATAL_ERROR "libkatherine requires C11 or newer; CMAKE_C_STANDARD=${CMAKE_C_STANDARD} was requested.")
+endif()
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 11)
+elseif(CMAKE_CXX_STANDARD EQUAL 98)
+    message(FATAL_ERROR "libkatherine requires C++11 or newer; CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD} was requested.")
+endif()
 set(CMAKE_C_STANDARD_REQUIRED   ON)
-set(CMAKE_CXX_STANDARD          17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Flatten build outputs into the build root for convenient in-tree use --

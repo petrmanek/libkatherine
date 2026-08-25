@@ -24,9 +24,9 @@ set(KATHERINEXX_DOCUMENTED_FILES "${KATHERINEXX_DOCUMENTED_FILES}" PARENT_SCOPE)
 
 add_library(katherinexx INTERFACE)
 add_library(katherine::katherinexx ALIAS katherinexx)
-# The headers are the product: the C++14 floor is a usage requirement that
+# The headers are the product: the C++11 floor is a usage requirement that
 # propagates to consumers and is recorded in the installed CMake package.
-target_compile_features(katherinexx INTERFACE cxx_std_14)
+target_compile_features(katherinexx INTERFACE cxx_std_11)
 target_link_libraries(katherinexx INTERFACE katherine)
 target_include_directories(katherinexx
     INTERFACE

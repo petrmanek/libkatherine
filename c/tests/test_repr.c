@@ -240,22 +240,23 @@ test_acquisition(void)
     katherine_acquisition_t v;
     memset(&v, 0, sizeof(v));
 
-    v.state                    = ACQUISITION_SUCCEEDED;
-    v.readout_mode             = READOUT_DATA_DRIVEN;
-    v.acq_mode                 = ACQUISITION_MODE_ONLY_TOA;
-    v.aborted                  = true;
-    v.requested_frames         = 5;
-    v.completed_frames         = 5;
-    v.dropped_measurement_data = 2;
-    v.md_buffer_size           = 4096;
-    v.pixel_buffer_size        = 8192;
+    v.state                      = ACQUISITION_SUCCEEDED;
+    v.readout_mode               = READOUT_DATA_DRIVEN;
+    v.acq_mode                   = ACQUISITION_MODE_ONLY_TOA;
+    v.aborted                    = true;
+    v.requested_frames           = 5;
+    v.completed_frames           = 5;
+    v.dropped_measurement_data   = 2;
+    v.truncated_measurement_data = 1;
+    v.md_buffer_size             = 4096;
+    v.pixel_buffer_size          = 8192;
 
     char buf[512];
     int n = katherine_acquisition_snprint(buf, sizeof(buf), &v);
     CHECK_GOLDEN(n, buf,
         "acquisition{state: succeeded, readout_mode: data_driven, acq_mode: only_toa, aborted: true, "
-        "requested_frames: 5, completed_frames: 5, dropped_measurement_data: 2, md_buffer_size: 4096, "
-        "pixel_buffer_size: 8192}");
+        "requested_frames: 5, completed_frames: 5, dropped_measurement_data: 2, truncated_measurement_data: 1, "
+        "md_buffer_size: 4096, pixel_buffer_size: 8192}");
 }
 
 static void

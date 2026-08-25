@@ -83,7 +83,9 @@ public:
     unsigned char bias_id() const { return conf_.bias_id; }
     void set_bias_id(unsigned char val) { conf_.bias_id = val; }
 
-    auto acq_time() const
+    // The trailing return type (rather than a C++14 deduced one) is what
+    // keeps this header valid C++11.
+    auto acq_time() const -> std::chrono::duration<decltype(conf_.acq_time), std::nano>
     {
         return std::chrono::duration<decltype(conf_.acq_time), std::nano>{conf_.acq_time};
     }

@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <functional>
 
@@ -182,6 +183,7 @@ public:
     int requested_frames() const { return acq_.requested_frames; }
     int completed_frames() const { return acq_.completed_frames; }
     std::size_t dropped_measurement_data() const { return acq_.dropped_measurement_data; }
+    std::uint64_t truncated_measurement_data() const { return acq_.truncated_measurement_data; }
 };
 
 

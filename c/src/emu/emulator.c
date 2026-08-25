@@ -403,10 +403,10 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     default:
-        /* The readout tolerates codes it does not implement; the
-           unhandled ones are acknowledged and counted. */
+        /* The readout's command dispatcher has no default branch: an
+           opcode it does not recognize gets no response at all. Only
+           counted here, so a caller can detect the condition. */
         ++emu->unknown_cmds;
-        queue_ack(emu, (uint8_t) opcode, 0);
         break;
     }
 }

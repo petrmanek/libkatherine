@@ -498,8 +498,9 @@ err:
 }
 
 /**
- * Stop acquisition. This command will wait for confirmation from the
- * the readout before ending the acquisition.
+ * Stop acquisition. No acknowledgement exists for this command; the
+ * readout signals the end of the current frame through the measurement
+ * data stream instead.
  * @param acq Acquisition
  * @return Error code.
  */

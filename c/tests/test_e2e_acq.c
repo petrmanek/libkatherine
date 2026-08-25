@@ -158,11 +158,12 @@
    proves the call did not hang. */
 #define TIMEOUT_BUDGET_S     2.0
 
-/* Acquisition buffers. The measurement data buffer only has to hold one
-   datagram (the daemon sends at most 226 data at a time) with room to spare;
-   the pixel buffer holds a whole frame, so that the hits of a frame reach
-   the handler in one call. */
-#define MD_BUFFER_SIZE       (KATHERINE_MD_SIZE * 4096)
+/* Acquisition buffers. ksim's own datagrams are far smaller than this (at
+   most 226 data at a time), but katherine_acquisition_init() documents 65536
+   bytes as the minimum for real hardware -- the readout sends one datagram
+   per SDRAM slot, up to about 65 kB -- so the test models that contract
+   instead of the daemon's actual traffic. */
+#define MD_BUFFER_SIZE       65536
 #define PIXEL_BUFFER_HITS    1024
 #define REPORT_TIMEOUT_MS    500
 #define FAIL_TIMEOUT_MS      10000

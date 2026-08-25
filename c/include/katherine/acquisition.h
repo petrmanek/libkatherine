@@ -75,6 +75,12 @@ typedef struct katherine_acquisition_handlers {
     void (*data_received)(void *, const char *, size_t);
 } katherine_acquisition_handlers_t;
 
+/* 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
+ * 1.2.17, the argument of CMD_TYPE_SEQ_READOUT_START): at least one mature
+ * client implementation of this protocol inverts its own internal enum
+ * (data-driven = 0) and compensates for it when encoding the command. Do
+ * not "fix" this enum to match such an implementation; its values already
+ * match the wire directly. */
 typedef enum katherine_readout_type {
     READOUT_SEQUENTIAL  = 0,
     READOUT_DATA_DRIVEN = 1
@@ -113,6 +119,13 @@ typedef struct katherine_acquisition {
     double requested_frame_duration; // s
     int completed_frames;
     size_t dropped_measurement_data;
+
+    /* Datagrams received that exactly filled md_buffer_size, the portable
+       heuristic for a receive that may have silently truncated a longer
+       datagram (see katherine_acquisition_init()). A datagram this size can
+       overcount, so this is a signal to raise md_buffer_size, not an exact
+       loss count. */
+    uint64_t truncated_measurement_data;
 
     time_t acq_start_time;
     int report_timeout;

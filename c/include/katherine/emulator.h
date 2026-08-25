@@ -124,10 +124,12 @@ typedef struct katherine_emu_log_entry {
 /** Internal: number of setup words of the trigger generator. */
 #define KATHERINE_EMU_TRIGGER_GEN_WORDS 8
 
-/** Internal: capacity of the response queue, in datagrams. Ample for the
- *  backlog a pixel configuration recovery flood leaves behind (a little
- *  under two hundred); a queue that does overflow drops the excess and
- *  counts it, as a datagram transport would. */
+/** Internal: capacity of the response queue, in datagrams. An unrecognized
+ *  opcode gets no response (the readout firmware's command dispatcher has
+ *  no default branch), so a pixel configuration recovery flood leaves no
+ *  backlog here; the margin instead covers a legitimate burst, such as an
+ *  all-DAC scan's several dozen replies. A queue that does overflow drops
+ *  the excess and counts it, as a datagram transport would. */
 #define KATHERINE_EMU_CRD_QUEUE_CAP     256
 
 /** Internal: capacity of the command log, in entries. Holds a full

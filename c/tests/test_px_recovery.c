@@ -10,9 +10,15 @@
  * on the recovery the firmware prescribes: a flood of filler commands long
  * enough to walk the readout out of any upload state, followed by a retry.
  *
- * Every filler of that flood is acknowledged in turn, which is the hazard
- * these cases pin down (issue #23, "config: drain stale responses after
- * px-config recovery"): a recovery that leaves those acknowledgements queued
+ * The readout's command dispatcher has no default branch, so the filler
+ * flood itself provokes no responses (the emulator matches this: an
+ * unrecognized opcode is only counted, never acknowledged). What the
+ * recovery drain still has to guard against is whatever legitimate response
+ * was already in flight when it started -- above all the very upload
+ * acknowledgement this recovery was entered to replace, which the readout
+ * may yet deliver after the client gave up waiting for it. This is the
+ * hazard these cases pin down (issue #23, "config: drain stale responses
+ * after px-config recovery"): a recovery that leaves such a response queued
  * at the client's control socket desynchronizes the session for good,
  * because from then on every command reads the response of an earlier one.
  * The two cases below are the two ways that shows:

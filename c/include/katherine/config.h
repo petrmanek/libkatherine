@@ -93,7 +93,30 @@ typedef union katherine_dacs {
 KATHERINE_EXPORTED int
 katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v);
 
+/**
+ * Validate DAC register values against the chip's per-DAC bit widths
+ * (Tpx3 manual Table 11: each of the 18 DACs is 4, 8 or 9 bits wide).
+ *
+ * This check is opt-in: katherine_set_dacs() transmits every value
+ * unchecked, and a value wider than its DAC's field is silently truncated
+ * by the chip rather than rejected there. Calling this function first is a
+ * caller's choice; it does not change katherine_set_dacs()'s own behavior.
+ *
+ * @param v DAC register values to validate.
+ * @return 0 if every value fits its DAC's range, EINVAL otherwise.
+ */
+KATHERINE_EXPORTED int
+katherine_dacs_validate(const katherine_dacs_t *v);
 
+
+// With DualEdgeClock = 1 (always the case, see config.c), Tpx3 manual Table
+// 17 clamps the achieved phase count by the clock divider: PHASE_16 yields
+// only 4 actual phases at FREQ_160, not 16, and less still at FREQ_80.
+//
+//            PHASE_1  PHASE_2  PHASE_4  PHASE_8  PHASE_16
+//  FREQ_40       1        2        4        8        16
+//  FREQ_80       1        1        2        4         8
+//  FREQ_160      1        1        1        2         4
 typedef enum katherine_phase {
     PHASE_1  = 0,
     PHASE_2  = 1,
@@ -110,6 +133,13 @@ typedef enum katherine_freq {
     // Frequency code 0 selects the 20 MHz base clock. The readout manual
     // documents only codes 1-3; code 0 is corroborated by mature client
     // implementations of this protocol.
+    //
+    // Fast timestamping (the ftoa field of katherine_px_f_toa_tot_t and its
+    // siblings, px.h) is only arithmetically coherent at FREQ_40: ftoa is a
+    // 4-bit binary counter at 640 MHz, spanning 16 x 1.5625 ns = 25 ns --
+    // exactly one ToA tick, but only when the ToA tick itself is 25 ns
+    // (Table 17), i.e. at FREQ_40. At FREQ_80/FREQ_160 the ToA tick is
+    // shorter and ftoa no longer spans a whole one.
     FREQ_20  = 0,
     FREQ_40  = 1,
     FREQ_80  = 2,
@@ -172,7 +202,12 @@ KATHERINE_EXPORTED int
 katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger);
 
 typedef enum katherine_tpx3_reg {
-    TPX3_REG_TEST_PULSE_METHOD     = 0,
+    TPX3_REG_TEST_PULSE_METHOD = 0,
+    // The readout firmware and Tpx3 manual Table 9 (header 0h0C) agree this
+    // register carries TP_period in bits 7:0 and TP_phase in bits 11:8, not
+    // a single "method" as the name above suggests. Kept as an alias rather
+    // than a rename: same value, correct name.
+    TPX3_REG_TEST_PULSE_PERIOD     = TPX3_REG_TEST_PULSE_METHOD,
     TPX3_REG_NUMBER_TEST_PULSES    = 1,
     TPX3_REG_OUT_BLOCK_CONFIG      = 2,
     TPX3_REG_PLL_CONFIG            = 3,

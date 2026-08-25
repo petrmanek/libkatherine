@@ -222,6 +222,13 @@ katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katheri
 /**
  * Set the mask bit of a single pixel.
  * Masked pixels do not report hits during acquisition.
+ *
+ * Polarity note: Tpx3 manual Table 23 describes this bit as "0: Disabled /
+ * 1: Enabled", which reads as 1 = hits pass. The readout manual and the
+ * vendor's own calibration tooling instead use 1 = masked, which is what
+ * this accessor's `masked` parameter follows. Do not "fix" this against
+ * Table 23; it would invert every caller's masking.
+ *
  * @param px_config Configuration matrix to modify.
  * @param coord Pixel coordinates.
  * @param masked New value of the mask bit.
@@ -247,6 +254,18 @@ katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katheri
 
 /**
  * Set the local threshold adjustment of a single pixel.
+ *
+ * Bit-order note: Tpx3 manual Table 23 stores the chip's Thr[3:0] nibble
+ * bit-reversed within PCR[4:1] (PCR[4] = Thr[0], ..., PCR[1] = Thr[3]). This
+ * accessor inserts loc_thl unreversed, so the value written here is in raw
+ * PCR order, not chip DAC-value order -- e.g. set_loc_thl(1) programs a trim
+ * of 8, not 1. The BPC loader (katherine_px_config_load_bpc_data() above)
+ * applies that reversal and is therefore the one of this pair in the right
+ * order; the two disagreeing with each other is an adjudicated defect,
+ * fixed in 2.0. Until then, callers of this function who want the
+ * DAC-value semantics must reverse the nibble themselves, e.g. with a
+ * bitreverse4(value) helper.
+ *
  * @param px_config Configuration matrix to modify.
  * @param coord Pixel coordinates.
  * @param loc_thl New threshold adjustment DAC value, 0 to 15.
@@ -262,6 +281,10 @@ katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coor
 
 /**
  * Get the local threshold adjustment of a single pixel.
+ *
+ * Returns the raw PCR nibble, unreversed; see the bit-order note on
+ * katherine_px_config_set_loc_thl() above.
+ *
  * @param px_config Configuration matrix to inspect.
  * @param coord Pixel coordinates.
  * @return Current threshold adjustment DAC value, 0 to 15.

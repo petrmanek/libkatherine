@@ -1153,6 +1153,10 @@ cdef class Acquisition:
        return self._c_acq.dropped_measurement_data
 
     @property
+    def truncated_measurement_data(self):
+       return self._c_acq.truncated_measurement_data
+
+    @property
     def readout_mode(self):
        return ReadoutType(self._c_acq.readout_mode)
 

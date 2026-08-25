@@ -6,6 +6,11 @@
 # Pure bitfield/wire-format vectors: no sockets or threads, builds everywhere.
 katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
 
+# DAC register range validation (katherine_dacs_validate(), config.c) against
+# the per-DAC maxima of Tpx3 manual Table 11. Plain, portable C, no sockets or
+# threads, builds everywhere -- same shape as test_bitfields above.
+katherine_add_test(NAME test_dacs_validate SOURCES test_dacs_validate.c LABELS unit)
+
 # Golden byte-vector tests for the command encoders. Sockets, but only
 # through the public katherine_udp_* API and on uncommon high ports of its
 # own (see the file for the exact pair), so it builds everywhere and claims
