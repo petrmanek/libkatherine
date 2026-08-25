@@ -90,10 +90,16 @@ local OPCODE_NAMES = {
     [0x19] = "Get sensor temperature",
     [0x20] = "Digital test",
     [0x21] = "Acquisition setup",
+    [0x22] = "Get acquisition unit data",
     [0x23] = "Internal trigger generator",
     [0x26] = "Test pulse setting",
     [0x28] = "ToA calibration setup",
+    [0x29] = "Number of tokens setting",
+    [0x30] = "Get bias current",
     [0x32] = "Internal TDC settings",
+    [0x33] = "Internal TDC read counts",
+    [0x50] = "Interface selection",
+    [0xF0] = "Change ports",
 }
 
 -- katherine_hw_cmd_type_t, c/src/command_interface.h (opcode 0x07, byte[0])
