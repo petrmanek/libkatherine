@@ -199,10 +199,16 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_GET_SENSOR_TEMPERATURE        = 0x19,
     CMD_TYPE_DIGITAL_TEST                  = 0x20,
     CMD_TYPE_ACQUISITION_SETUP             = 0x21,
+    CMD_TYPE_GET_ACQUISITION_UNIT_DATA     = 0x22,
     CMD_TYPE_INTERNAL_TRIGGER_GENERATOR    = 0x23,
     CMD_TYPE_TEST_PULSE_SETTING            = 0x26,
     CMD_TYPE_TOA_CALIBRATION_SETUP         = 0x28,
+    CMD_TYPE_NUMBER_OF_TOKENS_SETTING      = 0x29,
+    CMD_TYPE_GET_BIAS_CURRENT              = 0x30,
     CMD_TYPE_INTERNAL_TDC_SETTINGS         = 0x32,
+    CMD_TYPE_INTERNAL_TDC_READ_COUNTS      = 0x33,
+    CMD_TYPE_INTERFACE_SELECTION           = 0x50,
+    CMD_TYPE_CHANGE_PORTS                  = 0xF0,
 } katherine_cmd_type_t;
 
 // clang-format off

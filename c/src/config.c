@@ -404,13 +404,16 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     cmd[6]      = CMD_TYPE_ACQUISITION_SETUP;
     cmd[4]      = 0x05;
 
+    // The channel occupies three bits (1..3, manual sec. 1.2.19): the mask
+    // keeps an out-of-range channel from bleeding into the edge and
+    // delayed-start flags above it.
     cmd[0] |= start_trigger->enabled;
-    cmd[0] |= start_trigger->channel << 1;
+    cmd[0] |= (start_trigger->channel & 0x7) << 1;
     cmd[0] |= start_trigger->use_falling_edge << 4;
     cmd[0] |= delayed_start << 5;
 
     cmd[1] |= end_trigger->enabled;
-    cmd[1] |= end_trigger->channel << 1;
+    cmd[1] |= (end_trigger->channel & 0x7) << 1;
     cmd[1] |= end_trigger->use_falling_edge << 4;
 
     res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));

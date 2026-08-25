@@ -19,13 +19,11 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-/* Commands not listed in command_interface.h, but answered by the readout.
- * The names are prefixed so that they cannot collide with the enumerators
- * added there as the command sessions are backported. */
-#define EMU_CMD_TYPE_GET_BIAS_CURRENT      0x30
+/* The one command still not listed in command_interface.h: opcode 0x27's
+ * meaning differs between sources (this firmware lineage calls it ToA
+ * calibration start; other implementations assign 0x27 to later chip
+ * generations), so it keeps the emulator-local name until adjudicated. */
 #define EMU_CMD_TYPE_TOA_CALIBRATION_START 0x27
-#define EMU_CMD_TYPE_TOKENS_SETTING        0x29
-#define EMU_CMD_TYPE_INTERFACE_SELECTION   0x50
 
 /* Communication status the emulator reports: all eight data lines up, one
  * sensor chip attached. */
@@ -296,7 +294,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         queue_float(emu, (uint8_t) opcode, emu->regs.bias);
         break;
 
-    case EMU_CMD_TYPE_GET_BIAS_CURRENT:
+    case CMD_TYPE_GET_BIAS_CURRENT:
         /* No current model: the emulated bias supply is unloaded. */
         queue_float(emu, (uint8_t) opcode, 0.0f);
         break;
@@ -390,7 +388,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
-    case EMU_CMD_TYPE_TOKENS_SETTING:
+    case CMD_TYPE_NUMBER_OF_TOKENS_SETTING:
         emu->regs.tokens = cmd[0];
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
@@ -400,7 +398,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
-    case EMU_CMD_TYPE_INTERFACE_SELECTION:
+    case CMD_TYPE_INTERFACE_SELECTION:
         /* Switches the transport of the readout and answers nothing. */
         break;
 

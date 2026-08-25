@@ -107,6 +107,10 @@ katherine_str_phase(katherine_phase_t phase);
 
 
 typedef enum katherine_freq {
+    // Frequency code 0 selects the 20 MHz base clock. The readout manual
+    // documents only codes 1-3; code 0 is corroborated by mature client
+    // implementations of this protocol.
+    FREQ_20  = 0,
     FREQ_40  = 1,
     FREQ_80  = 2,
     FREQ_160 = 3,

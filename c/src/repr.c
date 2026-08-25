@@ -174,6 +174,7 @@ const char *
 katherine_str_freq(katherine_freq_t freq)
 {
     switch (freq) {
+    case FREQ_20:  return "freq_20";
     case FREQ_40:  return "freq_40";
     case FREQ_80:  return "freq_80";
     case FREQ_160: return "freq_160";

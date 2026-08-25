@@ -46,6 +46,7 @@
 #include <string.h>
 
 #include <katherine/config.h>
+#include <katherine/device.h>
 #include <katherine/udp.h>
 
 #include "command_interface.h"
@@ -442,6 +443,67 @@ test_general_config_word(void)
         0x70, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 }
 
+
+/* ------------------------------------------------------------------ */
+/* 6. The acquisition-setup (0x21/0x05) trigger word.                  */
+
+/* A self-contained sender/capture pair: katherine_acquisition_setup()
+   takes a whole device, so its control session is initialized in place
+   inside a device shell (never copied -- the embedded mutex must only be
+   initialized and finalized, not duplicated). The capture peer never
+   acknowledges, so the call is expected to come back with the receive
+   timeout after its datagram -- the datagram is what is under test. */
+#define PORT_SETUP_CAPTURE 42604
+#define PORT_SETUP_SENDER  42605
+
+static void
+check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const katherine_trigger_t *start,
+    bool delayed_start, const katherine_trigger_t *end, unsigned char b0, unsigned char b1)
+{
+    KT_CHECK_EQ(katherine_acquisition_setup(dev, start, delayed_start, end), EAGAIN);
+
+    unsigned char got[8];
+    size_t n = sizeof(got);
+    KT_CHECK_EQ(katherine_udp_recv(capture, got, &n), 0);
+    KT_CHECK_EQ(n, 8);
+
+    const unsigned char expected[8] = {b0, b1, 0, 0, 0x05, 0, CMD_TYPE_ACQUISITION_SETUP, 0};
+    KT_CHECK_MEM_EQ(got, expected, 8);
+}
+
+static void
+test_acquisition_setup_word(void)
+{
+    katherine_udp_t capture;
+    katherine_device_t dev;
+    KT_REQUIRE(katherine_udp_init_bound(
+                   &capture, "127.0.0.1", PORT_SETUP_CAPTURE, "127.0.0.1", PORT_SETUP_SENDER, CAPTURE_TIMEOUT_MS)
+        == 0);
+    katherine_udp_pin_remote(&capture);
+    if (katherine_udp_init_bound(
+            &dev.control_socket, "127.0.0.1", PORT_SETUP_SENDER, "127.0.0.1", PORT_SETUP_CAPTURE, CAPTURE_TIMEOUT_MS)
+        != 0) {
+        katherine_udp_fini(&capture);
+        KT_REQUIRE(false);
+    }
+
+    /* Every field at its maximum in-range value: channel 7 fills bits
+       1..3 exactly, so a mask regression (channel bleeding into the edge
+       or delayed-start flags) cannot hide. */
+    katherine_trigger_t start = {.enabled = true, .channel = 7, .use_falling_edge = true};
+    katherine_trigger_t end   = {.enabled = false, .channel = 0, .use_falling_edge = false};
+    check_setup_word(&dev, &capture, &start, true, &end, 0x3F, 0x00);
+
+    /* Out-of-range channels truncate to their low three bits instead of
+       corrupting the flags above the field: 9 -> 1, 10 -> 2. */
+    start = (katherine_trigger_t) {.enabled = false, .channel = 9, .use_falling_edge = false};
+    end   = (katherine_trigger_t) {.enabled = true, .channel = 10, .use_falling_edge = true};
+    check_setup_word(&dev, &capture, &start, false, &end, 0x02, 0x15);
+
+    katherine_udp_fini(&dev.control_socket);
+    katherine_udp_fini(&capture);
+}
+
 int
 main(void)
 {
@@ -462,6 +524,7 @@ main(void)
     KT_RUN(test_wrappers_dac);
     KT_RUN(test_i64_boundary);
     KT_RUN(test_general_config_word);
+    KT_RUN(test_acquisition_setup_word);
 
     fixture_fini();
     return kt_summary();
