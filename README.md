@@ -139,7 +139,7 @@ cache, by environment variables or using the `-D<option>=<value>` options.
 
 | Option                       | Default Value | Meaning                                               |
 | ---------------------------- | ------------- | ----------------------------------------------------- |
-| `KATHERINE_BUILD_CXX`        | `ON`          | Enables building C++ binaries (see requirements)      |
+| `KATHERINE_BUILD_CXX`        | `ON`          | Enables building C++ wrapper (see requirements)       |
 | `KATHERINE_BUILD_PYTHON`     | _detected_    | Enables building Python extension (see requirements)  |
 | `KATHERINE_BUILD_EXAMPLES`   | `ON`          | Enables building example programs                     |
 | `KATHERINE_BUILD_DOXYGEN`    | _detected_    | Enables building HTML documentation                   |
