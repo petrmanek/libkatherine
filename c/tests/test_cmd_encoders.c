@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Golden byte-vector tests for the command encoders in command_interface.h.
+ * @brief Golden byte-vector tests for the command encoders in cmd_interface.h.
  *
  * Wire format: every command is one 8-byte little-endian UDP datagram --
  * byte[6] carries the opcode, byte[4] a sub-index where the command has one,
@@ -22,7 +22,7 @@
  *   4. Boundary vectors for katherine_cmd_i64: values whose low 32 bits are
  *      all that ever reach the wire, and a negative value, which encodes
  *      via the two's complement bit pattern of those low 32 bits.
- *   5. katherine_general_config_word() (config.c, via command_interface.h):
+ *   5. katherine_general_config_word() (config.c, via cmd_interface.h):
  *      the GeneralConfig sensor register value built from named bits of
  *      katherine_config_t, encoded the same way katherine_configure()
  *      sends it.
@@ -54,7 +54,7 @@
 #include <katherine/udp.h>
 
 #include "protocol/cmd.h"
-#include "protocol/command_interface.h"
+#include "protocol/cmd_interface.h"
 #include "ktest.h"
 
 /* ------------------------------------------------------------------ */

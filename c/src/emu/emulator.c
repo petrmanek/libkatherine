@@ -13,13 +13,13 @@
 #include <string.h>
 #include <katherine/emulator.h>
 #include <katherine/error.h>
-#include "protocol/command_interface.h"
+#include "protocol/cmd_interface.h"
 #include "protocol/crd.h"
 #include "emu.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-/* The one command still not listed in command_interface.h: opcode 0x27's
+/* The one command still not listed in cmd_interface.h: opcode 0x27's
  * meaning differs between sources (this firmware lineage calls it ToA
  * calibration start; other implementations assign 0x27 to later chip
  * generations), so it keeps the emulator-local name until adjudicated. */
@@ -474,7 +474,7 @@ katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
        The real readout firmware instead boots with GeneralConfig = 0x0058
        (Gray_count_en, AckCommand_en and Fast_lo_en all set) -- the
        provenance of the historical preset katherine_general_config_word()
-       (command_interface.h) reproduces by pinning those same three bits on
+       (cmd_interface.h) reproduces by pinning those same three bits on
        every write. A client that always writes GeneralConfig before first
        use, as katherine_configure() does, never observes the difference. */
 

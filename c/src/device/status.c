@@ -16,7 +16,7 @@
 #include <katherine/error.h>
 #include <katherine/global.h>
 #include <katherine/device.h>
-#include "protocol/command_interface.h"
+#include "protocol/cmd_interface.h"
 #include "protocol/crd.h"
 
 /**

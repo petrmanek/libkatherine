@@ -17,7 +17,7 @@
 #include <errno.h>
 #include <katherine/error.h>
 #include <katherine/px_config.h>
-#include "acq/bitfields.h"
+#include "bitfields.h"
 
 /**
  * Maps the small subset of `<errno.h>` values fopen() can plausibly produce

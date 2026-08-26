@@ -1,6 +1,6 @@
 # Katherine Wireshark dissector
 
-`katherine.lua` decodes the Katherine Timepix3 readout UDP protocol: 8-byte control commands/responses on port 1555, and the 6-byte measurement-data (MD) word stream on port 1556. Layouts come from `c/src/command_interface.h`, `c/include/katherine/config.h`, `c/src/crd.h` and `c/src/md.h` in this repository.
+`katherine.lua` decodes the Katherine Timepix3 readout UDP protocol: 8-byte control commands/responses on port 1555, and the 6-byte measurement-data (MD) word stream on port 1556. Layouts come from `c/src/cmd_interface.h`, `c/include/katherine/config.h`, `c/src/crd.h` and `c/src/md.h` in this repository.
 
 Load with `wireshark -X lua_script:katherine.lua`, or drop the file into your personal Lua plugins folder (Wireshark: *Help -> About Wireshark -> Folders*) to load it automatically every run. The CMake install step also deposits it into the global Lua plugins folder (`lib/wireshark/plugins` under the install prefix; override with `KATHERINE_WIRESHARK_PLUGIN_DIR`), so a system-wide install of libkatherine makes the dissector load automatically for every user.
 

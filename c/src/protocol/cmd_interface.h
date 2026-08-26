@@ -16,6 +16,7 @@
 #include <katherine/config.h>
 #include <katherine/global.h>
 #include <katherine/udp.h>
+#include "bitfields.h"
 #include "cmd.h"
 
 /*
@@ -27,6 +28,12 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+/**
+ * Receive one command response datagram, keeping its contents.
+ * @param udp Session to receive on.
+ * @param ack Storage for the 8 response bytes.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd_wait_ack_crd(katherine_udp_t *udp, char *ack)
 {
@@ -42,6 +49,12 @@ err:
     return res;
 }
 
+/**
+ * Receive one command response datagram and discard it, for the commands
+ * whose acknowledgement carries no payload of interest.
+ * @param udp Session to receive on.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd_wait_ack(katherine_udp_t *udp)
 {
@@ -49,6 +62,13 @@ katherine_cmd_wait_ack(katherine_udp_t *udp)
     return katherine_cmd_wait_ack_crd(udp, ack);
 }
 
+/**
+ * Send a command, or any other exact-length buffer, to the readout.
+ * @param udp Session to send on.
+ * @param buffer Bytes to send.
+ * @param count Number of bytes to send.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd(katherine_udp_t *udp, const void *buffer, size_t count)
 {
@@ -63,6 +83,12 @@ err:
     return res;
 }
 
+/**
+ * Send a command that carries nothing but its opcode.
+ * @param udp Session to send on.
+ * @param val6 Command opcode.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd6(katherine_udp_t *udp, char val6)
 {
@@ -70,6 +96,14 @@ katherine_cmd6(katherine_udp_t *udp, char val6)
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
 
+/**
+ * Send a command whose only argument occupies the lowest payload byte, as
+ * the hardware-command dispatch does with its sub-command number.
+ * @param udp Session to send on.
+ * @param val6 Command opcode.
+ * @param val0 Argument byte.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd60(katherine_udp_t *udp, char val6, char val0)
 {
@@ -78,6 +112,14 @@ katherine_cmd60(katherine_udp_t *udp, char val6, char val0)
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
 
+/**
+ * Store a payload word into a caller-owned command buffer, for the two
+ * callers that assemble their datagram byte by byte rather than through
+ * katherine_cmd8_t.
+ * @param cmd Command buffer of at least four bytes.
+ * @param value Payload; see the note in the body on which bits reach the
+ *   wire and how a negative value is encoded.
+ */
 static inline void
 katherine_cmd_i64(char *cmd, int64_t value)
 {
@@ -93,6 +135,15 @@ katherine_cmd_i64(char *cmd, int64_t value)
     cmd[3]        = (char) ((bits >> 24) & 0xff);
 }
 
+/**
+ * Send a command with both a sub-index and a payload word, as the DAC
+ * setters and sensor-register writes use.
+ * @param udp Session to send on.
+ * @param val6 Command opcode.
+ * @param val4 Sub-index.
+ * @param value Payload; only its low 32 bits reach the wire.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd64_i64(katherine_udp_t *udp, char val6, char val4, int64_t value)
 {
@@ -102,6 +153,13 @@ katherine_cmd64_i64(katherine_udp_t *udp, char val6, char val4, int64_t value)
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
 
+/**
+ * Send a command with a payload word and no sub-index.
+ * @param udp Session to send on.
+ * @param val6 Command opcode.
+ * @param value Payload; only its low 32 bits reach the wire.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd6_i64(katherine_udp_t *udp, char val6, int64_t value)
 {
@@ -110,6 +168,13 @@ katherine_cmd6_i64(katherine_udp_t *udp, char val6, int64_t value)
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
 
+/**
+ * Send a command whose payload is a float rather than an integer.
+ * @param udp Session to send on.
+ * @param val6 Command opcode.
+ * @param value Payload, transmitted as its IEEE-754 bytes.
+ * @return Error code.
+ */
 static inline int
 katherine_cmd6_float(katherine_udp_t *udp, char val6, float value)
 {
@@ -119,47 +184,90 @@ katherine_cmd6_float(katherine_udp_t *udp, char val6, float value)
 }
 
 /*
- * GeneralConfig sensor register (Timepix3 manual v2, sec 4.2.5.4.1,
- * headers 0h30/0h31). Bit positions are named per the manual; the three
- * bits this word derives from katherine_config_t fields (Polarity,
- * Gray_count_en, TP_en) both set and clear with their field. The other
- * bits keep their historical fixed values: Op_mode [2:1] stays 0
- * (ToA_ToT), AckCommand_en and Fast_lo_en stay pinned enabled, and the
- * remaining test-pulse selectors stay 0 -- those travel in the dedicated
- * test-pulse command instead.
+ * GeneralConfig sensor register (Timepix3 manual v2, sec 4.2.5.4.1, headers
+ * 0h30/0h31), declared as a bitfield for INSERT(). Field names follow the
+ * manual. Only the fields this library writes are declared: polarity,
+ * gray_count_en and tp_en follow katherine_config_t, while ackcommand_en and
+ * fast_lo_en keep their historical pinned values. Op_mode [2:1] stays 0
+ * (ToA_ToT) and the remaining test-pulse selectors stay 0 -- those travel in
+ * the dedicated test-pulse command instead -- so neither is declared here.
  */
-typedef enum katherine_general_config_bit {
-    GENERAL_CONFIG_BIT_POLARITY      = 0,
-    GENERAL_CONFIG_BIT_GRAY_COUNT_EN = 3,
-    GENERAL_CONFIG_BIT_ACKCOMMAND_EN = 4,
-    GENERAL_CONFIG_BIT_TP_EN         = 5,
-    GENERAL_CONFIG_BIT_FAST_LO_EN    = 6,
-} katherine_general_config_bit_t;
+#define _BITS_general_config_polarity_start      0
+#define _BITS_general_config_polarity_mask       MASK(1)
+#define _BITS_general_config_polarity_type       uint8_t
 
+#define _BITS_general_config_gray_count_en_start 3
+#define _BITS_general_config_gray_count_en_mask  MASK(1)
+#define _BITS_general_config_gray_count_en_type  uint8_t
+
+#define _BITS_general_config_ackcommand_en_start 4
+#define _BITS_general_config_ackcommand_en_mask  MASK(1)
+#define _BITS_general_config_ackcommand_en_type  uint8_t
+
+#define _BITS_general_config_tp_en_start         5
+#define _BITS_general_config_tp_en_mask          MASK(1)
+#define _BITS_general_config_tp_en_type          uint8_t
+
+#define _BITS_general_config_fast_lo_en_start    6
+#define _BITS_general_config_fast_lo_en_mask     MASK(1)
+#define _BITS_general_config_fast_lo_en_type     uint8_t
+
+/**
+ * Compose the GeneralConfig register word from a device configuration.
+ *
+ * Polarity 0 selects electron collection and 1 hole collection;
+ * gray_count_en gray-codes the pixel counters; tp_en enables the test-pulse
+ * generator. ackcommand_en is pinned because this library depends on
+ * command acknowledgements, and fast_lo_en, the superpixel oscillator
+ * behind fast time stamping, is pinned as it has historically been.
+ *
+ * @param config Configuration to read the polarity, gray-coding and
+ *   test-pulse settings from.
+ * @return Register word, ready for a sensor-register write.
+ */
 static inline int32_t
 katherine_general_config_word(const katherine_config_t *config)
 {
-    int32_t word = 0;
-    word |= (!config->polarity_holes) << GENERAL_CONFIG_BIT_POLARITY;
-    word |= (!config->gray_disable) << GENERAL_CONFIG_BIT_GRAY_COUNT_EN;
-    word |= 1 << GENERAL_CONFIG_BIT_ACKCOMMAND_EN;
-    word |= (config->test_pulse_config.enabled ? 1 : 0) << GENERAL_CONFIG_BIT_TP_EN;
-    word |= 1 << GENERAL_CONFIG_BIT_FAST_LO_EN;
-    return word;
+    uint64_t word = 0;
+    word          = INSERT(word, general_config, polarity, !config->polarity_holes);
+    word          = INSERT(word, general_config, gray_count_en, !config->gray_disable);
+    word          = INSERT(word, general_config, ackcommand_en, 1);
+    word          = INSERT(word, general_config, tp_en, (config->test_pulse_config.enabled ? 1 : 0));
+    word          = INSERT(word, general_config, fast_lo_en, 1);
+    return (int32_t) word;
 }
 
+/**
+ * Define katherine_cmd_<CMD_NAME>(udp), sending a command whose arguments
+ * are all fixed at definition time.
+ * @param A Sender to build on, without the katherine_ prefix (e.g. cmd6).
+ * @param CMD_NAME Name of the generated function, without the
+ *   katherine_cmd_ prefix.
+ * @param ... Leading arguments of the sender, typically the opcode.
+ */
 #define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...) \
     static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp) \
     { \
         return katherine_##A(udp, __VA_ARGS__); \
     }
 
+/**
+ * Define katherine_cmd_<CMD_NAME>(udp, arg1), sending a command whose last
+ * argument the caller supplies.
+ * @param A Sender to build on, without the katherine_ prefix.
+ * @param CMD_NAME Name of the generated function, without the
+ *   katherine_cmd_ prefix.
+ * @param ARG1_TYPE Type of the caller-supplied argument.
+ * @param ... Leading arguments of the sender, which the caller's argument
+ *   follows.
+ */
 #define K_DEFINE_CMD_ARG1(A, CMD_NAME, ARG1_TYPE, ...) \
     static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp, ARG1_TYPE arg1) \
     { \
         return katherine_##A(udp, __VA_ARGS__, arg1); \
     }
 
+/** Command opcodes of the readout protocol, carried in byte 6 of a command. */
 typedef enum katherine_cmd_type {
     CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB = 0x01,
     CMD_TYPE_BIAS_SETTINGS                 = 0x02,
@@ -176,19 +284,21 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_GET_ADC_VOLTAGE               = 0x0D,
     CMD_TYPE_GET_BACK_READ_REGISTER        = 0x0E,
 
-    /* DAC-scan opcodes (this one and 0x14 below): the scan indexes chip DAC
-       codes 1-based, 1..18 for the named DACs plus 28..31 for BandGap /
-       BandGap_Temp / Ibias_dac / Ibias_dac_cas (Tpx3 manual Table 11) --
-       unlike CMD_TYPE_INTERNAL_DAC_SETTINGS above, which is 0-based 0..17.
-       An off-by-one trap for a future scan API that reuses katherine_dacs_t
-       indexing. */
+    /**
+     * DAC-scan opcodes (this one and 0x14 below): the scan indexes chip DAC
+     * codes 1-based, 1..18 for the named DACs plus 28..31 for BandGap /
+     * BandGap_Temp / Ibias_dac / Ibias_dac_cas (Tpx3 manual Table 11) --
+     * unlike CMD_TYPE_INTERNAL_DAC_SETTINGS above, which is 0-based 0..17.
+     * An off-by-one trap for a future scan API that reuses katherine_dacs_t
+     * indexing.
+     */
     CMD_TYPE_INTERNAL_DAC_SCAN = 0x0F,
 
     CMD_TYPE_SET_PIXEL_CONFIG           = 0x10,
     CMD_TYPE_GET_PIXEL_CONFIG           = 0x11,
     CMD_TYPE_SET_ALL_PIXEL_CONFIG       = 0x12,
     CMD_TYPE_NUMBER_OF_FRAMES           = 0x13,
-    CMD_TYPE_GET_ALL_DAC_SCAN           = 0x14, /* same 1-based DAC indexing as 0x0F above */
+    CMD_TYPE_GET_ALL_DAC_SCAN           = 0x14, ///< Same 1-based DAC indexing as 0x0F above
     CMD_TYPE_GET_HW_READOUT_TEMPERATURE = 0x15,
     CMD_TYPE_LED_SETTINGS               = 0x16,
     CMD_TYPE_GET_READOUT_STATUS         = 0x17,
@@ -199,9 +309,11 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_GET_ACQUISITION_UNIT_DATA  = 0x22,
     CMD_TYPE_INTERNAL_TRIGGER_GENERATOR = 0x23,
 
-    /* The readout firmware answers this with response id 0x22
-       (GetAcquisitionUnitData), not 0x24 -- a firmware quirk, not a
-       transcription error, should a future caller key off the response id. */
+    /**
+     * The readout firmware answers this with response id 0x22
+     * (GetAcquisitionUnitData), not 0x24 -- a firmware quirk, not a
+     * transcription error, should a future caller key off the response id.
+     */
     CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ = 0x24,
 
     CMD_TYPE_TEST_PULSE_SETTING       = 0x26,
@@ -210,13 +322,15 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_GET_BIAS_CURRENT         = 0x30,
     CMD_TYPE_INTERNAL_TDC_SETTINGS    = 0x32,
 
-    /* The readout firmware sends five counter datagrams for this command,
-       not six: a reader waiting for a sixth would hang. */
+    /**
+     * The readout firmware sends five counter datagrams for this command,
+     * not six: a reader waiting for a sixth would hang.
+     */
     CMD_TYPE_INTERNAL_TDC_READ_COUNTS = 0x33,
 
     CMD_TYPE_INTERFACE_SELECTION = 0x50,
 
-    CMD_TYPE_USB_REDRIVER_SETTING = 0x98, /* Gen2 hardware only */
+    CMD_TYPE_USB_REDRIVER_SETTING = 0x98, ///< Gen2 hardware only
 
     CMD_TYPE_CHANGE_PORTS = 0xF0,
 } katherine_cmd_type_t;
@@ -231,6 +345,10 @@ K_DEFINE_CMD_ARG0(cmd6,       get_comm_status,                          CMD_TYPE
 K_DEFINE_CMD_ARG0(cmd6,       digital_test,                             CMD_TYPE_DIGITAL_TEST)
 // clang-format on
 
+/**
+ * Sub-commands of CMD_TYPE_HW_COMMAND_START, dispatched by the readout to
+ * the sensor's own command interface.
+ */
 typedef enum katherine_hw_cmd_type {
     CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE        = 0,
     CMD_START_INTERNAL_DAC_UPDATE                   = 1,

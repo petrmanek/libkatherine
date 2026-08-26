@@ -21,8 +21,8 @@
 
 #include <katherine/acquisition.h>
 
-#include "acq/bitfields.h"
-#include "acq/md.h"
+#include "bitfields.h"
+#include "protocol/md.h"
 #include "ktest.h"
 
 #define MD_SIZE 6

@@ -15,12 +15,12 @@ set(KATHERINE_SOURCES
     "src/transport/udp_win.c"
     "src/version.c"
     "src/protocol/crd.h"
-    "src/acq/bitfields.h"
+    "src/bitfields.h"
     "src/protocol/cmd.h"
-    "src/protocol/command_interface.h"
+    "src/protocol/cmd_interface.h"
     "src/msleep.h"
     "src/monoclock.h"
-    "src/acq/md.h"
+    "src/protocol/md.h"
 )
 
 set(KATHERINE_HEADERS
