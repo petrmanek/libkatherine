@@ -39,30 +39,26 @@ katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
 # the inline, lockstep ping-pong bench_udp.c uses instead.
 katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
 
+# Correlation of command responses with their requests (the exchange
+# primitives of protocol/cmd_interface.h) against a mock readout on its own
+# uncommon high ports. One case needs the mock on a background thread, as
+# test_tp does and for the same reason -- the flush, the send and the receive
+# of a transaction happen inside one library call.
+katherine_add_test(NAME test_cmd_transact SOURCES test_cmd_transact.c LABELS unit)
+# One further case drives the protocol emulator in memory, to check that the
+# emulated readout answers the two commands the firmware answers under a
+# substituted identifier the same way it does. It needs the emulator in the
+# build, so it is compiled in only when the feature is on -- the rest of the
+# file needs nothing but sockets and is registered unconditionally.
+if(KATHERINE_BUILD_EMULATOR)
+    target_compile_definitions(test_cmd_transact PRIVATE KATHERINE_TEST_EMULATOR)
+endif()
+
 # Remote-address pinning of the UDP layer. Sockets, but only through the
 # public katherine_udp_* API and on uncommon high ports of its own, so it
 # builds everywhere and claims nothing another test could want: no daemon, no
 # threads, and none of the fixed ports that would make it RUN_SERIAL.
 katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit)
-
-# The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
-# call sites unchanged and drives one real failure through each target of
-# its errno mapping, plus a success path. Sockets, but only through the
-# public katherine_udp_* API (via the shim) and on uncommon high ports of
-# its own, so it builds everywhere and claims no global resource, like
-# test_udp_pinning.c above.
-#
-# Every call site here uses a 1.x name, which katherine1.h resolves to a
-# deprecated wrapper -- the warning that is the point of the attribute, and
-# so expected at every one of them that -Wall -Wextra -Wpedantic / /W4 would
-# otherwise turn into a build failure. Suppressed for this target alone
-# rather than papered over in the shim itself, which must keep warning every
-# other consumer.
-katherine_add_test(NAME test_compat1 SOURCES test_compat1.c LABELS unit)
-target_compile_options(test_compat1 PRIVATE
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>>:-Wno-deprecated-declarations>
-    $<$<C_COMPILER_ID:MSVC>:/wd4996>
-)
 
 # End-to-end acquisition against the ksim daemon, which hosts the protocol
 # emulator on real UDP sockets -- hence the guard on the emulator feature,

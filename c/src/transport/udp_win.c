@@ -107,34 +107,83 @@ from_pinned_remote(const katherine_udp_t *u, const SOCKADDR_IN *addr)
     return addr->sin_addr.s_addr == u->addr_remote.sin_addr.s_addr;
 }
 
+/* Reports whether a datagram is already queued on the socket of session u,
+   without waiting for one to arrive: 0 if the recvfrom() that follows will
+   not block, -KATHERINE_E_TIMEOUT if the socket is empty -- the same code the
+   EAGAIN of a MSG_DONTWAIT receive maps to on POSIX.
+
+   Winsock has no MSG_DONTWAIT, and switching the socket to non-blocking mode
+   around a receive would disturb the SO_RCVTIMEO every other call of this
+   file relies on, so the queue is inspected instead. FIONREAD in preference
+   to a zero-timeout select(): one call, no descriptor set, and no dependency
+   on the loop the platform's FD_SET macro expands to.
+
+   One blind spot follows from asking for a byte count: a zero-length
+   datagram is indistinguishable from an empty socket, so it is not drained
+   here. Only katherine_cmd_drain() reaches this path, and it is best-effort
+   by contract -- a datagram it leaves behind is read by the correlation that
+   follows, which rejects anything that is not a whole response. The readout
+   sends no empty datagrams at all. */
+static int
+recv_ready(katherine_udp_t *u)
+{
+    u_long available = 0;
+
+    if (ioctlsocket(u->sock, FIONREAD, &available) == SOCKET_ERROR) {
+        u->last_os_error = WSAGetLastError();
+        return -(int) map_syscall_error(u->last_os_error, KATHERINE_E_IO);
+    }
+
+    if (available == 0) {
+        u->last_os_error = 0;
+        return -KATHERINE_E_TIMEOUT;
+    }
+
+    return 0;
+}
+
 /* Receives one datagram from the pinned remote of session u, discarding up to
    KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
    Spending that budget is reported as -KATHERINE_E_TIMEOUT, the very code
    the expired receive timeout of an idle socket yields, so that no caller
    needs a separate path for it.
 
+   With nowait set, every receive is preceded by the queue check of
+   recv_ready() above, so the call never blocks; that is how
+   katherine_udp_recv_nowait() reaches this loop.
+
    The pinned address is read from addr_remote itself rather than from a copy
    taken when the pin was placed, which is what makes the pin follow
    katherine_udp_set_remote(). */
 static int
-recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received)
+recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, bool nowait)
 {
     char *cdata = (char *) data;
 
     for (uint32_t discarded = 0; discarded < KATHERINE_UDP_PIN_MAX_DISCARDS; ++discarded) {
         SOCKADDR_IN addr_from;
         socklen_t addr_len = sizeof(addr_from);
-        int res            = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &addr_from, &addr_len);
+
+        if (nowait) {
+            int ready = recv_ready(u);
+            if (ready != 0) return ready;
+        }
+
+        int res = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &addr_from, &addr_len);
         if (res == SOCKET_ERROR) {
-            // A datagram larger than the remaining buffer fails with
-            // WSAEMSGSIZE here, after being consumed and with the source
-            // address filled in -- where POSIX truncates the same datagram
-            // silently and lets the address check below deal with it. An
-            // oversized datagram from a foreign host is therefore a discard
-            // like any other; only one from the pinned remote itself is the
-            // caller's problem, as it always was.
-            if (WSAGetLastError() == WSAEMSGSIZE && !from_pinned_remote(u, &addr_from)) {
-                continue;
+            // A datagram larger than the buffer fails with WSAEMSGSIZE here,
+            // after being consumed and with the source address filled in,
+            // where POSIX instead truncates it silently and reports the
+            // buffer-full length. One from a foreign host is a discard like
+            // any other; one from the pinned remote is reported the way
+            // POSIX reports it, as a full buffer, so that a caller sizing a
+            // buffer to detect an overlong datagram -- as the command
+            // response path does -- sees the same thing on both platforms.
+            if (WSAGetLastError() == WSAEMSGSIZE) {
+                if (!from_pinned_remote(u, &addr_from)) continue;
+
+                *received = count;
+                return 0;
             }
 
             int raw          = recv_error_code();
@@ -161,17 +210,30 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received)
    its sender as the remote -- the server behavior of replying to whoever
    asked last. */
 static int
-recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received)
+recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bool nowait)
 {
     char *cdata = (char *) data;
 
     if (u->remote_pinned) {
-        return recv_pinned(u, cdata, count, received);
+        return recv_pinned(u, cdata, count, received, nowait);
+    }
+
+    if (nowait) {
+        int ready = recv_ready(u);
+        if (ready != 0) return ready;
     }
 
     socklen_t addr_len = sizeof(u->addr_remote);
     int res            = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
     if (res == SOCKET_ERROR) {
+        // Truncation is not a failure here either, for the same reason as in
+        // recv_pinned() above: the datagram is consumed and the buffer full,
+        // which is exactly what POSIX reports for the same wire event.
+        if (WSAGetLastError() == WSAEMSGSIZE) {
+            *received = count;
+            return 0;
+        }
+
         int raw          = recv_error_code();
         u->last_os_error = raw;
         return -(int) map_syscall_error(raw, KATHERINE_E_IO);
@@ -218,11 +280,15 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     int res = 0;
 
     // A session starts out tracking the sender of the datagram it last
-    // received (see katherine_udp_pin_remote()). Callers hand this function
-    // uninitialized storage, so the default cannot be left to the
+    // received (see katherine_udp_pin_remote()) and tolerating the response
+    // identifiers the readout firmware substitutes for its own (see
+    // katherine_udp_set_strict_ack()). Callers hand this function
+    // uninitialized storage, so the defaults cannot be left to the
     // allocation.
-    u->remote_pinned = false;
-    u->last_os_error = 0;
+    u->remote_pinned           = false;
+    u->strict_ack              = false;
+    u->stray_command_responses = 0;
+    u->last_os_error           = 0;
 
     // Create communication buffer.
     int wres = WSAStartup(MAKEWORD(2, 2), &u->wsa_data);
@@ -358,7 +424,7 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
     // A pinned session verifies every datagram of the message separately, and
     // the discard budget is spent per datagram rather than per message.
     while (total < count) {
-        int res = recv_datagram(u, cdata + total, count - total, &received);
+        int res = recv_datagram(u, cdata + total, count - total, &received, false);
         if (res != 0) {
             return res;
         }
@@ -384,7 +450,41 @@ int
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
 {
     size_t received;
-    int res = recv_datagram(u, data, *count, &received);
+    int res = recv_datagram(u, data, *count, &received, false);
+
+    if (res != 0) {
+        return res;
+    }
+
+#ifdef KATHERINE_DEBUG_UDP
+    dump_buffer("Received:", data, received);
+#endif /* KATHERINE_DEBUG_UDP */
+
+    *count = received;
+    return 0;
+}
+
+/**
+ * Receive a portion of a message without waiting for one.
+ *
+ * Identical to katherine_udp_recv(), except that a session with nothing
+ * already queued reports -KATHERINE_E_TIMEOUT at once instead of blocking
+ * for its receive timeout. That is what makes it usable to flush a session
+ * before a command exchange: the flush must cost nothing on the empty
+ * socket it finds in the ordinary case, which every command of the library
+ * would otherwise pay for.
+ *
+ * @param u UDP session
+ * @param data Inbound buffer start
+ * @param count Inbound buffer size in bytes on entry, bytes received on
+ *   success
+ * @return Error code. -KATHERINE_E_TIMEOUT if nothing was queued.
+ */
+int
+katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
+{
+    size_t received;
+    int res = recv_datagram(u, data, *count, &received, true);
 
     if (res != 0) {
         return res;
@@ -453,6 +553,35 @@ void
 katherine_udp_pin_remote(katherine_udp_t *u)
 {
     u->remote_pinned = true;
+}
+
+/**
+ * Require command responses to repeat the operation code of their request exactly.
+ *
+ * A session correlates every command response it receives with the request in flight, by the
+ * response identifier the readout puts in byte 6 of the eight-byte datagram, and discards -- and
+ * counts, in katherine_udp_t::stray_command_responses -- whatever belongs to no request of its own.
+ *
+ * By default the correlation also accepts the identifiers the readout firmware is known to
+ * substitute for the request's own operation code: it answers the trigger-generator read-back under
+ * the acquisition-unit read-back's identifier, and the all-DAC scan under the single-DAC scan's,
+ * many times over. Those are the peer's real behavior, so a session that rejected them would fail
+ * against the hardware this library exists to talk to.
+ *
+ * Strict mode drops those allowances and requires the identifier to be the request's operation code
+ * and nothing else. It is meant for a caller who has established on hardware that its readout
+ * echoes operation codes faithfully, and wants a mis-correlation reported rather than accepted; it
+ * is off until then. Nothing else changes: malformed responses and non-correlating ones are handled
+ * the same way in both modes.
+ *
+ * @param u UDP session
+ * @param strict True to require the request's own operation code, false (the default) to accept the
+ *   firmware's documented substitutions as well
+ */
+void
+katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict)
+{
+    u->strict_ack = strict;
 }
 
 /**

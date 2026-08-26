@@ -251,12 +251,27 @@ cdef class Udp:
          check_return_code(res)
          return data[:count]
 
+    def recv_nowait(self, size_t max_size):
+         cdef bytes data = PyBytes_FromStringAndSize(NULL, max_size)
+         cdef char *buf = data
+         cdef size_t count = max_size
+         res = cudp.katherine_udp_recv_nowait(self._c_udp, buf, &count)
+         check_return_code(res)
+         return data[:count]
+
     def set_remote(self, remote_addr, uint16_t remote_port):
          res = cudp.katherine_udp_set_remote(self._c_udp, remote_addr.encode(), remote_port)
          check_return_code(res)
 
     def pin_remote(self):
          cudp.katherine_udp_pin_remote(self._c_udp)
+
+    def set_strict_ack(self, bint strict):
+         cudp.katherine_udp_set_strict_ack(self._c_udp, strict)
+
+    @property
+    def stray_command_responses(self):
+         return self._c_udp.stray_command_responses
 
 
 cdef class ReadoutStatus:

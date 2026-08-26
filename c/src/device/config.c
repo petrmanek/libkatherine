@@ -127,18 +127,24 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
     // The readout's command dispatcher has no default branch and answers nothing for an opcode it does not
     // recognize, so the filler flood above provokes no responses of its own. The drain below is for whatever
     // legitimate response may still be in flight regardless: most notably the upload acknowledgement this recovery
-    // was entered to replace, which the client gave up waiting for but the readout may yet deliver, or any other
-    // response still stale on the wire. A response left queued here is read as the acknowledgement of some later
-    // command, and from then on every command of the session pairs with the response of an earlier one, so nothing
-    // can fail visibly again. Receiving therefore continues until it times out, i.e. until the socket has been quiet
-    // for a whole receive timeout, and is bounded regardless so that a peer talking without pause cannot hold this
-    // loop forever.
+    // was entered to replace, which the client gave up waiting for but the readout may yet deliver. Response
+    // correlation (katherine_cmd_wait_ack_crd(), protocol/cmd_interface.h) steps over anything identified as some
+    // other command's, but that acknowledgement carries the upload's own operation code and would therefore be read
+    // as the answer to the retry below -- leaving an upload that is still incomplete looking finished, from where the
+    // readout swallows the rest of the session as configuration data. Only a wait can tell the two apart, so
+    // receiving continues until it times out, i.e. until the socket has been quiet for a whole receive timeout. It is
+    // bounded regardless, so that a peer talking without pause cannot hold this loop forever.
     static const int max_drain = 512;
     size_t recv_size;
     int res = 0;
     for (int attempts = max_drain; attempts > 0 && !res; --attempts) {
         recv_size = 1024;
         res       = katherine_udp_recv(&device->control_socket, words, &recv_size);
+
+        // Counted in the same tally as everything katherine_cmd_drain()
+        // discards: what is thrown away here is a response belonging to no
+        // request in flight, which is exactly what that counter reports.
+        if (!res) ++device->control_socket.stray_command_responses;
     }
 
     free(words);
@@ -157,6 +163,16 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
+
+    /* This upload is the one exchange whose data travels between the command
+       and its acknowledgement, so it flushes and correlates by hand rather
+       than through katherine_cmd_transact(). The flush is placed here and not
+       per attempt: what a failed attempt leaves behind is cleared by the
+       recovery below, whose blocking drain is the only thing that can wait
+       out an acknowledgement still in flight -- and it has to be, because a
+       stale acknowledgement of *this* command correlates with a retry of it
+       perfectly. */
+    katherine_cmd_drain(&device->control_socket);
 
     // The following section sometimes cause issues, repeat it several times if need be.
     static const int max_attempts = 10;
@@ -199,7 +215,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
             int ack_attempts = max_ack_attempts;
             do {
                 --ack_attempts;
-                res = katherine_cmd_wait_ack(&device->control_socket);
+                res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_SET_ALL_PIXEL_CONFIG);
             } while (res == -KATHERINE_E_TIMEOUT && ack_attempts > 0);
         }
 
@@ -221,18 +237,21 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     // Here the result is either zero (pixel data trasmitted and acknowledged) or non-zero (all attempts exhausted).
     if (res) goto err;
 
-    // Execute HW command 5.
+    // Execute HW command 5. Every hardware command is acknowledged under the
+    // dispatch opcode, not under its sub-command number: the readout echoes
+    // the operation code of the request it answers, and the sub-command
+    // travels in the payload.
     res = katherine_cmd_hw_reset_matrix_sequential(&device->control_socket);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     // Execute HW command 9.
     res = katherine_cmd_hw_load_pixel_register_configuration(&device->control_socket);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -261,18 +280,20 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
     int64_t lsb  = (acqt & 0x00000000FFFFFFFF);
     int64_t msb  = (acqt & 0xFFFFFFFF00000000) >> 32;
 
+    katherine_cmd_drain(&device->control_socket);
+
     // Set LSB.
     res = katherine_cmd_set_acqtime_lsb(&device->control_socket, lsb);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
     if (res) goto err;
 
     // Set MSB.
     res = katherine_cmd_set_acqtime_msb(&device->control_socket, msb);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -314,10 +335,7 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     // command.
     cmd[0] |= fast_vco_enabled << 7;
 
-    res = katherine_cmd_send(&device->control_socket, &cmd, sizeof(cmd));
-    if (res) goto err;
-
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_transact(&device->control_socket, cmd, sizeof(cmd), NULL);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -347,10 +365,12 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
 
     // TODO use bias_id
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_set_bias_settings(&device->control_socket, bias_value);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_BIAS_SETTINGS);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -375,10 +395,12 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_set_number_of_frames(&device->control_socket, no_frames);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_NUMBER_OF_FRAMES);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -456,10 +478,7 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     cmd[1] |= (end_trigger->channel & 0x7) << 1;
     cmd[1] |= end_trigger->use_falling_edge << 4;
 
-    res = katherine_cmd_send(&device->control_socket, &cmd, sizeof(cmd));
-    if (res) goto err;
-
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_transact(&device->control_socket, cmd, sizeof(cmd), NULL);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -521,7 +540,12 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    res = katherine_cmd_send(&device->control_socket, &cmd, sizeof(cmd));
+    /* Sent and awaited by hand rather than through katherine_cmd_transact(),
+       whose single wait this command outlives: the retrying wait below has to
+       reissue the receive, never the command. */
+    katherine_cmd_drain(&device->control_socket);
+
+    res = katherine_cmd_send(&device->control_socket, cmd, sizeof(cmd));
     if (res) goto err;
 
     /* The readout applies this command before acknowledging it, and its
@@ -533,7 +557,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     int attempts                  = max_attempts;
     do {
         --attempts;
-        res = katherine_cmd_wait_ack(&device->control_socket);
+        res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_TEST_PULSE_SETTING);
     } while (res == -KATHERINE_E_TIMEOUT && attempts > 0);
     if (res) goto err;
 
@@ -560,11 +584,13 @@ katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_send64_i64(
         &device->control_socket, CMD_TYPE_SENSOR_REGISTER_SETTING, (uint8_t) reg_idx, reg_value);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_SENSOR_REGISTER_SETTING);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -588,10 +614,12 @@ katherine_update_sensor_registers(katherine_device_t *device)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_hw_sensor_config_registers_update(&device->control_socket);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -615,10 +643,12 @@ katherine_output_block_config_update(katherine_device_t *device)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_hw_output_block_config_update(&device->control_socket);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -642,10 +672,12 @@ katherine_timer_set(katherine_device_t *device)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_hw_timer_set(&device->control_socket);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -676,19 +708,24 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    /* Nineteen exchanges under one lock, flushed once: each of them
+       correlates its own response, so a flush before every send would only
+       repeat work the correlation already does. */
+    katherine_cmd_drain(&device->control_socket);
+
     for (int i = 0; i < 18; ++i) {
         res = katherine_cmd_send64_i64(
             &device->control_socket, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i]);
         if (res) goto err;
 
-        res = katherine_cmd_wait_ack(&device->control_socket);
+        res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_INTERNAL_DAC_SETTINGS);
         if (res) goto err;
     }
 
     res = katherine_cmd_hw_internal_dac_update(&device->control_socket);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket);
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);

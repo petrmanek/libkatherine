@@ -13,6 +13,17 @@ the deprecated `katherine/katherine1.h` shim header, planned for removal
 in 3.0. The 1.x line ends with 1.1.0; no further 1.x releases are
 planned.
 
+Command responses are now correlated with the request that provoked them,
+instead of the next datagram to arrive being taken as the answer: a
+session flushes what an earlier exchange left behind before it sends,
+steps over responses belonging to no request of its own — counting them
+in `katherine_udp_t::stray_command_responses`, and giving up with
+`KATHERINE_E_STRAY` rather than waiting forever — and reports a response
+of the wrong length as `KATHERINE_E_BAD_CRD`. The identifiers the readout
+firmware substitutes for a request's own operation code are accepted by
+default; `katherine_udp_set_strict_ack()` turns that tolerance off once a
+peer has been shown not to need it.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:

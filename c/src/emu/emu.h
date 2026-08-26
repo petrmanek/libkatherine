@@ -42,6 +42,14 @@
  * which takes about a second of its time. */
 #define KATHERINE_EMU_TP_APPLY_NS       1000000000ull
 
+/* Response datagrams the all-DAC scan answers with: one per scanned DAC,
+ * i.e. the chip's eighteen named DACs plus its four band-gap read-backs. */
+#define KATHERINE_EMU_DAC_SCAN_REPLIES  22
+
+/* Volts per register step of the emulated DAC scan. Synthetic, like the ADC
+ * ramp: the emulator models no analog front end, only the protocol. */
+#define KATHERINE_EMU_DAC_SCAN_VOLT     0.001f
+
 /* Data plane geometry. */
 #define KATHERINE_EMU_MATRIX_SIZE       256
 #define KATHERINE_EMU_TICK_NS           25 /* readout timer period at 40 MHz */

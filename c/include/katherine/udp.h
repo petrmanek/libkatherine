@@ -39,10 +39,12 @@ extern "C" {
 /**
  * Render a UDP session: its local and remote endpoints (dotted-quad IPv4
  * address and port, hand-formatted -- no inet_ntop(), so this needs no
- * platform-specific include beyond what this header already pulls in) and
- * whether its remote address is pinned (see katherine_udp_pin_remote()).
- * The socket handle and the mutex are omitted: neither is meaningful in a
- * log line, and the mutex additionally has no portable readable state.
+ * platform-specific include beyond what this header already pulls in),
+ * whether its remote address is pinned (see katherine_udp_pin_remote()) and
+ * its command-response correlation state (see
+ * katherine_udp_set_strict_ack()). The socket handle and the mutex are
+ * omitted: neither is meaningful in a log line, and the mutex additionally
+ * has no portable readable state.
  */
 KATHERINE_EXPORTED int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);
@@ -66,10 +68,16 @@ KATHERINE_EXPORTED int
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count);
 
 KATHERINE_EXPORTED int
+katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count);
+
+KATHERINE_EXPORTED int
 katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port);
 
 KATHERINE_EXPORTED void
 katherine_udp_pin_remote(katherine_udp_t *u);
+
+KATHERINE_EXPORTED void
+katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict);
 
 KATHERINE_EXPORTED int
 katherine_udp_mutex_lock(katherine_udp_t *u);

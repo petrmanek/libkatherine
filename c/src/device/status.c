@@ -33,11 +33,18 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    /* Every inquiry below opens the same way: the session is flushed before
+       the command goes out, so a response an earlier exchange left behind
+       cannot be read as this one's. Correlation catches a response
+       identified as some other command's; only the flush catches a stale
+       response of the *same* command, which would correlate perfectly. */
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_get_readout_status(&device->control_socket);
     if (res) goto err;
 
-    char crd[8];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_READOUT_STATUS, crd);
     if (res) goto err;
 
     const uint64_t *status_crd = (const uint64_t *) &crd;
@@ -68,11 +75,13 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_get_comm_status(&device->control_socket);
     if (res) goto err;
 
-    char crd[8];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_COMMUNICATION_STATUS, crd);
     if (res) goto err;
 
     const uint64_t *status_crd = (const uint64_t *) &crd;
@@ -102,11 +111,13 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_echo_chip_id(&device->control_socket);
     if (res) goto err;
 
-    char crd[8];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_ECHO_CHIP_ID, crd);
     if (res) goto err;
 
     int chip_id = *(int *) crd;
@@ -117,7 +128,10 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     // command echoed back at its sender -- a request sent to one of the
     // host's own addresses with no readout listening is delivered straight
     // back to the wildcard-bound control socket, and a command and its
-    // response differ only in the fields the readout fills in. This is a
+    // response differ only in the fields the readout fills in. Response
+    // correlation cannot help here for that very reason -- the echo carries
+    // the operation code of the request, because it *is* the request -- so
+    // this check remains the only thing that catches it. It is a
     // protocol-level condition, not a communication failure, so it is
     // reported as one.
     if (chip_id == 0) {
@@ -154,11 +168,13 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_get_readout_temperature(&device->control_socket);
     if (res) goto err;
 
-    char crd[8];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_HW_READOUT_TEMPERATURE, crd);
     if (res) goto err;
 
     *temperature = *(float *) crd;
@@ -185,11 +201,13 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_get_sensor_temperature(&device->control_socket);
     if (res) goto err;
 
-    char crd[8];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_SENSOR_TEMPERATURE, crd);
     if (res) goto err;
 
     *temperature = *(float *) crd;
@@ -215,15 +233,17 @@ katherine_perform_digital_test(katherine_device_t *device)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_digital_test(&device->control_socket);
     if (res) goto err;
 
-    char crd[8];
+    char crd[KATHERINE_CMD_CRD_SIZE];
     int attempts = 100; // 10 seconds
 
     do {
         // This can take a while, spin for a limited amount of attempts.
-        res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
+        res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_DIGITAL_TEST, crd);
         --attempts;
     } while (res && attempts);
 
@@ -259,11 +279,13 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     res = katherine_cmd_get_adc_voltage(&device->control_socket, channel_id);
     if (res) goto err;
 
-    char crd[8];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, crd);
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_ADC_VOLTAGE, crd);
     if (res) goto err;
 
     *voltage = *(float *) crd;

@@ -6,11 +6,14 @@
 #
 # SPDX-License-Identifier: MIT
 
-from libc.stdint cimport uint16_t, uint32_t
+from libc.stdint cimport uint16_t, uint32_t, uint64_t
 
 cdef extern from 'katherine/udp.h':
+    # Declared field by field rather than opaquely: the correlation counter
+    # is public state a caller reads, and Cython accepts a partial struct
+    # declaration as long as the storage is sized by sizeof() as here.
     ctypedef struct katherine_udp_t:
-        pass
+        uint64_t stray_command_responses
 
     int katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
 
@@ -19,5 +22,7 @@ cdef extern from 'katherine/udp.h':
     int katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
     int katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
     int katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
+    int katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
     int katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
     void katherine_udp_pin_remote(katherine_udp_t *u)
+    void katherine_udp_set_strict_ack(katherine_udp_t *u, bint strict)

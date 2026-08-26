@@ -12,8 +12,11 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <katherine/config.h>
+#include <katherine/error.h>
 #include <katherine/global.h>
 #include <katherine/udp.h>
 #include "bitfields.h"
@@ -29,38 +32,43 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 /**
- * Receive one command response datagram, keeping its contents.
- * @param udp Session to receive on.
- * @param ack Storage for the 8 response bytes.
- * @return Error code.
+ * Length of a command response datagram. The readout answers an
+ * acknowledged command with exactly this many bytes, all zero but for the
+ * operation-code byte, and fills in the leading bytes when the response
+ * carries data. Nothing else ever reaches the command socket, so a datagram
+ * of any other length is the peer violating the wire format.
  */
-static inline int
-katherine_cmd_wait_ack_crd(katherine_udp_t *udp, char *ack)
-{
-    int res;
-
-    res = katherine_udp_recv_exact(udp, ack, 8);
-    if (res) goto err;
-
-    // TODO: optionally check command response id
-    return 0;
-
-err:
-    return res;
-}
+#define KATHERINE_CMD_CRD_SIZE           8
 
 /**
- * Receive one command response datagram and discard it, for the commands
- * whose acknowledgement carries no payload of interest.
- * @param udp Session to receive on.
- * @return Error code.
+ * Byte carrying the operation code of a command, and the response
+ * identifier of a command response. Correlating the two is what pairs a
+ * response with the request that provoked it.
  */
-static inline int
-katherine_cmd_wait_ack(katherine_udp_t *udp)
-{
-    char ack[8];
-    return katherine_cmd_wait_ack_crd(udp, ack);
-}
+#define KATHERINE_CMD_OPCODE_BYTE        6
+
+/**
+ * Non-correlating response datagrams one katherine_cmd_wait_ack_crd() call
+ * discards before it gives up with -KATHERINE_E_STRAY.
+ *
+ * Every discard is a datagram that really arrived, so spending the budget
+ * costs no receive timeout and a quiet peer never reaches it; the bound is
+ * there so that a chatty or confused one cannot hold the caller forever.
+ * Kept above the longest answer the readout is documented to send for a
+ * single command -- the all-DAC scan replies twenty-two times -- so that the
+ * leftovers of one such answer cannot exhaust the budget of the next
+ * command even if nothing flushed them first.
+ */
+#define KATHERINE_CMD_MAX_STRAY_DISCARDS 32
+
+/**
+ * Stale datagrams katherine_cmd_drain() discards before it gives up.
+ *
+ * Generous because the drain never blocks: it stops at the first receive
+ * that finds the socket empty, so the bound only caps the work a peer
+ * flooding the socket can impose on one flush.
+ */
+#define KATHERINE_CMD_MAX_DRAIN          64
 
 /**
  * Send a command, or any other exact-length buffer, to the readout.
@@ -315,6 +323,229 @@ typedef enum katherine_cmd_type {
 
     CMD_TYPE_CHANGE_PORTS = 0xF0,
 } katherine_cmd_type_t;
+
+/**
+ * Response identifier the readout answers an operation code under.
+ *
+ * Almost every command is answered under its own operation code, repeated in
+ * byte 6 of the response. The two exceptions below are the readout
+ * firmware's, not this library's, and they are the reason the correlation
+ * has a tolerant mode at all: a client that insisted on the request's own
+ * code would reject the answers of a real readout. Both are also recorded at
+ * their enumerators above.
+ *
+ * @param opcode Operation code of the request.
+ * @return Identifier its response carries.
+ */
+static inline uint8_t
+katherine_cmd_reply_id(uint8_t opcode)
+{
+    switch (opcode) {
+    /* The trigger-generator read-back is answered under the acquisition-unit
+       read-back's identifier -- the firmware's own copy-paste, never
+       corrected. */
+    case CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ: return (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA;
+
+    /* The all-DAC scan is answered twenty-two times, every datagram carrying
+       the single-DAC scan's identifier and never its own. */
+    case CMD_TYPE_GET_ALL_DAC_SCAN: return (uint8_t) CMD_TYPE_INTERNAL_DAC_SCAN;
+
+    default: return opcode;
+    }
+}
+
+/**
+ * Whether the readout answers a command at all.
+ *
+ * The four below it acts on in silence, and a client that waited for an
+ * acknowledgement of any of them would stall until its receive timeout
+ * expired -- on the acquisition start and stop, once per acquisition. This
+ * is the readout's behavior and not a matter of degree: there is no
+ * acknowledgement to lose, so the wait must not be attempted. Every other
+ * operation code of the table above is answered, an unrecognized one is
+ * dropped without a reply (the firmware's dispatcher has no default branch),
+ * and this function speaks only of the ones the table names.
+ *
+ * @param opcode Operation code of the request.
+ * @return True if a response can be waited for.
+ */
+static inline bool
+katherine_cmd_is_acknowledged(uint8_t opcode)
+{
+    switch (opcode) {
+    /* The acquisition start arms the readout; the measurement data stream is
+       the only answer it gives. */
+    case CMD_TYPE_ACQUISITION_START:
+
+    /* The readout-chain selection is applied silently. */
+    case CMD_TYPE_SEQ_READOUT_START:
+
+    /* The stop is observed through the end of the data stream instead; the
+       firmware's handler is an empty function. */
+    case CMD_TYPE_ACQUISITION_STOP:
+
+    /* Documented as a handshake, but the firmware's acknowledgement is
+       commented out. Not sent by this library today; listed so that a future
+       caller does not wait on it. */
+    case CMD_TYPE_INTERFACE_SELECTION: return false;
+
+    default: return true;
+    }
+}
+
+/**
+ * Discard whatever a previous exchange left queued on a command session.
+ *
+ * The readout answers some commands more than once and the network may
+ * deliver a response the client had already given up on, so a session can
+ * hold datagrams belonging to no request in flight. Correlation recognizes
+ * those and steps over them, but a leftover response of the *same* command
+ * would correlate perfectly and be read as the answer to a later repetition
+ * of it, which is how a session ends up one command out of step for good.
+ * Flushing before a command closes that gap, and keeps the stray budget of
+ * the wait that follows for genuine surprises.
+ *
+ * Never blocks: it stops at the first receive that finds nothing queued,
+ * which is the ordinary case and must cost nothing, since every command of
+ * the library pays for it. Best-effort by design and therefore returning
+ * nothing -- a transport failure here resurfaces immediately at the send or
+ * receive that follows, where the caller is already prepared for it. What
+ * was discarded is counted in katherine_udp_t::stray_command_responses.
+ *
+ * @param udp Session to flush.
+ */
+static inline void
+katherine_cmd_drain(katherine_udp_t *udp)
+{
+    /* One byte of headroom, so that an oversized datagram is observed as
+       oversized rather than silently truncated to a plausible length. */
+    char crd[KATHERINE_CMD_CRD_SIZE + 1];
+
+    for (uint32_t discarded = 0; discarded < KATHERINE_CMD_MAX_DRAIN; ++discarded) {
+        size_t received = sizeof(crd);
+
+        if (katherine_udp_recv_nowait(udp, crd, &received) != 0) return;
+
+        ++udp->stray_command_responses;
+    }
+}
+
+/**
+ * Receive the command response belonging to one request, keeping its contents.
+ *
+ * Reads response datagrams until one correlates with the given operation
+ * code, discarding and counting the rest. Correlation compares the
+ * identifier in byte 6: the operation code itself always matches, and by
+ * default so does the identifier the firmware substitutes for it
+ * (katherine_cmd_reply_id()), unless the session is in strict mode
+ * (katherine_udp_set_strict_ack()).
+ *
+ * A command the readout never answers is refused outright rather than waited
+ * for; see katherine_cmd_is_acknowledged().
+ *
+ * @param udp Session to receive on.
+ * @param opcode Operation code of the request whose response this is.
+ * @param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
+ *   to discard them.
+ * @return Error code. -KATHERINE_E_INVAL if the readout does not answer this
+ *   command at all, -KATHERINE_E_BAD_CRD for a datagram whose length is not
+ *   KATHERINE_CMD_CRD_SIZE, -KATHERINE_E_STRAY once
+ *   KATHERINE_CMD_MAX_STRAY_DISCARDS non-correlating datagrams have been
+ *   discarded without the response arriving, or whatever the transport
+ *   reported -- notably -KATHERINE_E_TIMEOUT, which the retrying callers of
+ *   the slow commands depend on seeing unchanged.
+ */
+static inline int
+katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
+{
+    /* The second identifier this wait accepts. In strict mode there is no
+       second one, so it collapses onto the request's own operation code. */
+    const uint8_t substitute = udp->strict_ack ? opcode : katherine_cmd_reply_id(opcode);
+
+    /* One byte of headroom, so that an oversized datagram is observed as
+       oversized rather than silently truncated to a plausible length. */
+    char buf[KATHERINE_CMD_CRD_SIZE + 1];
+
+    if (!katherine_cmd_is_acknowledged(opcode)) return -KATHERINE_E_INVAL;
+
+    for (uint32_t discarded = 0; discarded < KATHERINE_CMD_MAX_STRAY_DISCARDS; ++discarded) {
+        size_t received = sizeof(buf);
+        uint8_t reply_id;
+
+        int res = katherine_udp_recv(udp, buf, &received);
+        if (res) return res;
+
+        /* Consumed either way, so reporting this does not leave the session
+           wedged behind the offending datagram. */
+        if (received != KATHERINE_CMD_CRD_SIZE) return -KATHERINE_E_BAD_CRD;
+
+        reply_id = (uint8_t) buf[KATHERINE_CMD_OPCODE_BYTE];
+        if (reply_id == opcode || reply_id == substitute) {
+            if (crd != NULL) memcpy(crd, buf, KATHERINE_CMD_CRD_SIZE);
+            return 0;
+        }
+
+        ++udp->stray_command_responses;
+    }
+
+    return -KATHERINE_E_STRAY;
+}
+
+/**
+ * Receive the command response belonging to one request and discard it, for
+ * the commands whose acknowledgement carries no payload of interest.
+ * @param udp Session to receive on.
+ * @param opcode Operation code of the request whose response this is.
+ * @return Error code; see katherine_cmd_wait_ack_crd().
+ */
+static inline int
+katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
+{
+    return katherine_cmd_wait_ack_crd(udp, opcode, NULL);
+}
+
+/**
+ * Exchange one command with the readout: flush, send, and receive the
+ * response that belongs to it.
+ *
+ * This is the whole of an acknowledged command whose request is a single
+ * datagram. The stateful uploads, whose data travels between the command and
+ * its acknowledgement, compose the three steps themselves instead.
+ *
+ * The operation code is read out of the buffer rather than passed
+ * separately, so the response cannot be correlated against a code the
+ * request did not carry.
+ *
+ * @param udp Session to exchange on.
+ * @param buffer Command datagram to send.
+ * @param count Its length; at least KATHERINE_CMD_CRD_SIZE, since a shorter
+ *   datagram carries no operation code.
+ * @param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
+ *   to discard them.
+ * @return Error code. -KATHERINE_E_INVAL for a command too short to carry an
+ *   operation code, or one the readout never answers -- reported before
+ *   anything is sent, so the readout is left untouched. Otherwise as
+ *   katherine_cmd_wait_ack_crd().
+ */
+static inline int
+katherine_cmd_transact(katherine_udp_t *udp, const void *buffer, size_t count, char *crd)
+{
+    const uint8_t *bytes = (const uint8_t *) buffer;
+    uint8_t opcode;
+    int res;
+
+    if (count < KATHERINE_CMD_CRD_SIZE) return -KATHERINE_E_INVAL;
+
+    opcode = bytes[KATHERINE_CMD_OPCODE_BYTE];
+    if (!katherine_cmd_is_acknowledged(opcode)) return -KATHERINE_E_INVAL;
+
+    katherine_cmd_drain(udp);
+
+    res = katherine_cmd_send(udp, buffer, count);
+    if (res) return res;
+
+    return katherine_cmd_wait_ack_crd(udp, opcode, crd);
+}
 
 // clang-format off
 K_DEFINE_CMD_ARG0(cmd_send6,      set_all_pixel_config,                     CMD_TYPE_SET_ALL_PIXEL_CONFIG)

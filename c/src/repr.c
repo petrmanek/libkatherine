@@ -414,8 +414,9 @@ katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status
 }
 
 /**
- * Render a UDP session's endpoints and pin state. The socket handle and the
- * mutex are omitted: neither is meaningful in a log line.
+ * Render a UDP session's endpoints, pin state and command-response
+ * correlation state. The socket handle and the mutex are omitted: neither is
+ * meaningful in a log line.
  * @copydetails katherine_coord_snprint
  */
 int
@@ -428,8 +429,10 @@ katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
     format_ipv4_port(local, sizeof(local), &v->addr_local);
     format_ipv4_port(remote, sizeof(remote), &v->addr_remote);
 
-    REPR_APPENDF(buf, cap, off, "udp{local: %s, remote: %s, pinned: %s, last_os_error: %d}", local, remote,
-        katherine_str_bool(v->remote_pinned), v->last_os_error);
+    REPR_APPENDF(buf, cap, off,
+        "udp{local: %s, remote: %s, pinned: %s, strict_ack: %s, stray_command_responses: %llu, last_os_error: %d}",
+        local, remote, katherine_str_bool(v->remote_pinned), katherine_str_bool(v->strict_ack),
+        (unsigned long long) v->stray_command_responses, v->last_os_error);
     return (int) off;
 }
 

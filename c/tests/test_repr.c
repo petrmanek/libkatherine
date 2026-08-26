@@ -289,21 +289,29 @@ test_comm_status(void)
 #define UDP_TEST_PORT3 43603
 #define UDP_TEST_PORT4 43604
 
+/* Pinned and in strict mode, with a nonzero stray count: all three of the
+   correlation fields rendered away from the value a fresh session has, so
+   that a stringifier reading the wrong one shows up here. */
 static void
 test_udp(void)
 {
     katherine_udp_t u;
     KT_REQUIRE(katherine_udp_init_bound(&u, UDP_HOST, UDP_TEST_PORT1, UDP_HOST, UDP_TEST_PORT2, 100) == 0);
     katherine_udp_pin_remote(&u);
+    katherine_udp_set_strict_ack(&u, true);
+    u.stray_command_responses = 3;
 
-    char buf[128];
+    char buf[192];
     int n = katherine_udp_snprint(buf, sizeof(buf), &u);
-    CHECK_GOLDEN(n, buf, "udp{local: 127.0.0.1:43601, remote: 127.0.0.1:43602, pinned: true, last_os_error: 0}");
+    CHECK_GOLDEN(n, buf,
+        "udp{local: 127.0.0.1:43601, remote: 127.0.0.1:43602, pinned: true, strict_ack: true, "
+        "stray_command_responses: 3, last_os_error: 0}");
 
     katherine_udp_fini(&u);
 }
 
-/* Unpinned, complementing test_udp()'s "pinned: true" with "pinned: false". */
+/* Unpinned and tolerant, complementing test_udp()'s "true" states with the
+   defaults a fresh session carries. */
 static void
 test_device(void)
 {
@@ -311,11 +319,13 @@ test_device(void)
     KT_REQUIRE(katherine_udp_init_bound(&dev.control_socket, UDP_HOST, UDP_TEST_PORT3, UDP_HOST, UDP_TEST_PORT4, 100) == 0);
     KT_REQUIRE(katherine_udp_init_bound(&dev.data_socket, UDP_HOST, UDP_TEST_PORT4, UDP_HOST, UDP_TEST_PORT3, 100) == 0);
 
-    char buf[256];
+    char buf[384];
     int n = katherine_device_snprint(buf, sizeof(buf), &dev);
     CHECK_GOLDEN(n, buf,
-        "device{control_socket: udp{local: 127.0.0.1:43603, remote: 127.0.0.1:43604, pinned: false, last_os_error: 0}, "
-        "data_socket: udp{local: 127.0.0.1:43604, remote: 127.0.0.1:43603, pinned: false, last_os_error: 0}}");
+        "device{control_socket: udp{local: 127.0.0.1:43603, remote: 127.0.0.1:43604, pinned: false, "
+        "strict_ack: false, stray_command_responses: 0, last_os_error: 0}, "
+        "data_socket: udp{local: 127.0.0.1:43604, remote: 127.0.0.1:43603, pinned: false, "
+        "strict_ack: false, stray_command_responses: 0, last_os_error: 0}}");
 
     katherine_device_fini(&dev);
 }

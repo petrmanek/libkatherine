@@ -378,6 +378,37 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
+    case CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ:
+        /* Reads back the register the command above wrote -- and answers
+           under the acquisition-unit read-back's identifier rather than its
+           own. That substitution is the readout firmware's, not a
+           transcription error, and it is reproduced here so that the
+           client's tolerance for it (katherine_cmd_reply_id(),
+           protocol/cmd_interface.h) is measured against a model of the peer
+           and not only against the same table read twice.
+
+           Which register is read is taken from byte 4, where the matching
+           write puts its index; the response carries the value alone, since
+           nothing establishes that the firmware echoes the index back. Both
+           are details of a command this library does not yet issue -- only
+           the identifier is load-bearing here. */
+        queue_word(emu, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, 0,
+            emu->regs.trigger_gen[subindex % KATHERINE_EMU_TRIGGER_GEN_WORDS]);
+        break;
+
+    case CMD_TYPE_GET_ALL_DAC_SCAN:
+        /* One response datagram per scanned DAC, every one of them carrying
+           the single-DAC scan's identifier and never this command's: both
+           the count and the identifier are the firmware's behaviour. The
+           voltages are synthetic, as the ADC ramp above is -- the register
+           code scaled into volts, and zero for the four band-gap read-backs
+           the emulator keeps no register for. */
+        for (uint8_t i = 0; i < KATHERINE_EMU_DAC_SCAN_REPLIES; ++i) {
+            float volts = i < KATHERINE_EMU_DAC_COUNT ? KATHERINE_EMU_DAC_SCAN_VOLT * (float) emu->regs.dac[i] : 0.0f;
+            queue_float(emu, (uint8_t) CMD_TYPE_INTERNAL_DAC_SCAN, volts);
+        }
+        break;
+
     case CMD_TYPE_TEST_PULSE_SETTING:
         emu->regs.tp_count       = (uint16_t) (cmd[0] | (cmd[1] << 8));
         emu->regs.tp_period_code = cmd[2];
