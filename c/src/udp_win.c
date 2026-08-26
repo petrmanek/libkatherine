@@ -272,7 +272,7 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
     const char *cdata = (const char *) data;
 
     do {
-        sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
+        sent = sendto(u->sock, cdata + total, (int) (count - total), 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
         if (sent == SOCKET_ERROR) {
             return WSAGetLastError();
         }

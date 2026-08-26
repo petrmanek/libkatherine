@@ -10,7 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <stdio.h>   // printf, sprintf
+#include <stdio.h>   // printf, snprintf
 #include <string.h>  // strchr
 #include <stdbool.h> // bool
 #include <stdlib.h>  // abort
@@ -26,16 +26,17 @@ static int n_found     = 0;
 static int n_attempted = 0;
 
 static void
-test_failed(const char *address)
+test_failed(const char *addr)
 {
+    (void) addr;
     /* Ignored */
 }
 
 static void
-test_succeeded(const char *address, const char *chip_id)
+test_succeeded(const char *addr, const char *chip_id)
 {
     ++n_found;
-    printf("Found device: %s,\t chip id: %s\n", address, chip_id);
+    printf("Found device: %s,\t chip id: %s\n", addr, chip_id);
 }
 
 static void
@@ -73,25 +74,25 @@ abort_parsing(char *argv[], const char *message)
 }
 
 static void
-parse_range(int *min, int *max, char *range)
+parse_range(int *out_min, int *out_max, char *range)
 {
     char *dash_pos = strchr(range, '-');
 
     if (dash_pos == NULL) {
         // Expecting single number.
-        *min = *max = atoi(range);
+        *out_min = *out_max = atoi(range);
     } else {
         // Expecting two numbers separated by a dash.
         *dash_pos = '\0';
-        *min      = atoi(range);
+        *out_min  = atoi(range);
 
         *dash_pos = '.';
-        *max      = atoi(dash_pos + 1);
+        *out_max  = atoi(dash_pos + 1);
     }
 }
 
 static void
-parse_args(int argc, char *argv[], int min[4], int max[4])
+parse_args(int argc, char *argv[], int out_min[4], int out_max[4])
 {
     if (argc < 2) {
         return;
@@ -120,15 +121,15 @@ parse_args(int argc, char *argv[], int min[4], int max[4])
     }
 
     *pos[0] = '\0';
-    parse_range(&min[0], &max[0], arg);
+    parse_range(&out_min[0], &out_max[0], arg);
 
     *pos[1] = '\0';
-    parse_range(&min[1], &max[1], pos[0] + 1);
+    parse_range(&out_min[1], &out_max[1], pos[0] + 1);
 
     *pos[2] = '\0';
-    parse_range(&min[2], &max[2], pos[1] + 1);
+    parse_range(&out_min[2], &out_max[2], pos[1] + 1);
 
-    parse_range(&min[3], &max[3], pos[2] + 1);
+    parse_range(&out_min[3], &out_max[3], pos[2] + 1);
 }
 
 static void
@@ -147,7 +148,7 @@ next_address(void)
     }
 
     if (have_address) {
-        sprintf(address, "%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
+        snprintf(address, sizeof(address), "%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
     }
 }
 
@@ -165,7 +166,7 @@ main(int argc, char *argv[])
         min[0], min[1], min[2], min[3], max[0], max[1], max[2], max[3]);
 
     memcpy(cur, min, sizeof(int) * 4);
-    sprintf(address, "%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
+    snprintf(address, sizeof(address), "%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
 
     while (have_address) {
         test_ip_address();

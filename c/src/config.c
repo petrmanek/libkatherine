@@ -338,6 +338,8 @@ err:
 int
 katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
 {
+    (void) bias_id;
+
     int res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);

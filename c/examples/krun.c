@@ -148,6 +148,8 @@ static uint64_t n_hits;
 void
 frame_started(void *user_ctx, int frame_idx)
 {
+    (void) user_ctx;
+
     n_hits = 0;
 
     printf("Started frame %d.\n", frame_idx);
@@ -157,7 +159,7 @@ frame_started(void *user_ctx, int frame_idx)
 void
 frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
 {
-    const double recv_perc = 100. * info->received_pixels / info->sent_pixels;
+    (void) user_ctx;
 
     printf("\n");
     printf("Ended frame %d.\n", frame_idx);
@@ -172,6 +174,8 @@ frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame
 void
 pixels_received(void *user_ctx, const void *px, size_t count)
 {
+    (void) user_ctx;
+
     n_hits += count;
 
     const px_t *dpx = (const px_t *) px;

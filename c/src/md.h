@@ -214,6 +214,8 @@ DEFINE_PMD_MAP(toa_only)
 
 DEFINE_PMD_MAP(f_event_itot)
 {
+    (void) acq;
+
     DEFINE_PMD_PAIR_COORD(pmd_f_event_itot);
     DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_f_event_itot);
     DEFINE_PMD_PAIR(event_count, uint16_t, pmd_f_event_itot);
@@ -238,6 +240,8 @@ DEFINE_PMD_MAP(f_event_itot)
 
 DEFINE_PMD_MAP(event_itot)
 {
+    (void) acq;
+
     DEFINE_PMD_PAIR_COORD(pmd_event_itot);
     DEFINE_PMD_PAIR(event_count, uint16_t, pmd_event_itot);
     DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_event_itot);

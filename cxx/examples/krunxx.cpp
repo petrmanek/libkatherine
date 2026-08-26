@@ -222,6 +222,9 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
 int
 main(int argc, char *argv[])
 {
+    (void) argc;
+    (void) argv;
+
     katherine::config c{};
     configure(c);
 

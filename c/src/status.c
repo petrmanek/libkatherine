@@ -129,7 +129,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     int w = (chip_id >> 8) & 0xFFF;
 
     memset(s_chip_id, '\0', KATHERINE_CHIP_ID_STR_SIZE);
-    sprintf(s_chip_id, "%c%d-W%04d", 65 + x, y, w);
+    snprintf(s_chip_id, KATHERINE_CHIP_ID_STR_SIZE, "%c%d-W%04d", 65 + x, y, w);
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;

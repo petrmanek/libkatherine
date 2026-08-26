@@ -21,6 +21,7 @@ int n_attempted = 0;
 void
 test_failed(const std::string& address)
 {
+    (void) address;
     /* Ignored */
 }
 

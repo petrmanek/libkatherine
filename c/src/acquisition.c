@@ -34,6 +34,8 @@ flush_buffer(katherine_acquisition_t *acq)
 static inline void
 handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
+    (void) data;
+
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
     acq->current_frame_info.start_time_observed = time(NULL);
     acq->current_frame_info.completed           = false;
@@ -126,6 +128,8 @@ handle_lost_pixel_count(katherine_acquisition_t *acq, const uint64_t *data)
 static inline void
 handle_aborted_measurement(katherine_acquisition_t *acq, const uint64_t *data)
 {
+    (void) data;
+
     acq->aborted = true;
 }
 
@@ -140,6 +144,8 @@ handle_trigger_info(katherine_acquisition_t *acq, const uint64_t *data)
 static inline void
 handle_unknown_msg(katherine_acquisition_t *acq, const uint64_t *data)
 {
+    (void) data;
+
     ++acq->dropped_measurement_data;
 }
 
@@ -295,8 +301,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     static inline void \
     handle_measurement_data_##SUFFIX(katherine_acquisition_t *acq, const uint64_t *md) \
     { \
-        static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
-        char hdr                    = EXTRACT(*md, md, header); \
+        char hdr = EXTRACT(*md, md, header); \
 \
         if (hdr == 0x4) { \
             if (acq->pixel_buffer_valid == acq->pixel_buffer_max_valid) { \
@@ -404,12 +409,12 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         } \
     }
 
-DEFINE_ACQ_IMPL(f_toa_tot);
-DEFINE_ACQ_IMPL(toa_tot);
-DEFINE_ACQ_IMPL(f_toa_only);
-DEFINE_ACQ_IMPL(toa_only);
-DEFINE_ACQ_IMPL(f_event_itot);
-DEFINE_ACQ_IMPL(event_itot);
+DEFINE_ACQ_IMPL(f_toa_tot)
+DEFINE_ACQ_IMPL(toa_tot)
+DEFINE_ACQ_IMPL(f_toa_only)
+DEFINE_ACQ_IMPL(toa_only)
+DEFINE_ACQ_IMPL(f_event_itot)
+DEFINE_ACQ_IMPL(event_itot)
 
 #undef DEFINE_ACQ_IMPL
 

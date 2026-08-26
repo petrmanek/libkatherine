@@ -67,6 +67,10 @@ if(KATHERINE_BUILD_EMULATOR)
     # generate time, by when it does. Without the dependency, building the
     # test target alone would leave the daemon it runs unbuilt.
     add_dependencies(test_e2e_acq ksim)
+    # strerror() has no portable replacement that is also safe under
+    # concurrent access from other threads of the same process; this test
+    # is single-threaded, so the CRT's objection does not apply.
+    target_compile_definitions(test_e2e_acq PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 
     # Recovery of a pixel-configuration upload whose acknowledgement the
     # daemon is told to drop. Same daemon, same fixed ports, hence the same
@@ -76,4 +80,6 @@ if(KATHERINE_BUILD_EMULATOR)
         LABELS e2e
         PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
     add_dependencies(test_px_recovery ksim)
+    # See test_e2e_acq above: same single-threaded strerror() usage.
+    target_compile_definitions(test_px_recovery PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 endif()
