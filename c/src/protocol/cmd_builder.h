@@ -212,4 +212,8 @@ katherine_cmd_payload_set_chip(katherine_cmd_t *cmd, uint8_t opcode, uint8_t chi
     return 0;
 }
 
+#undef KATHERINE_CHIP_SLOT
+#undef KATHERINE_CHIP_SLOT_BYTE
+#undef KATHERINE_CHIP_SLOT_NONE
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
