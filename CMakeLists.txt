@@ -62,6 +62,22 @@ if(PROJECT_IS_TOP_LEVEL)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif()
 
+# Compilation database, for editors and every clang-based tool that reads
+# one. Written by the Makefile and Ninja generators only; the IDE
+# generators carry the same information in their own project files, and
+# ignore this. Nothing points at it from the source directory on purpose:
+# clangd searches the ancestors of the file it is opening and the "build"
+# subdirectory of each, so a build directory named build/ is found
+# unaided. Anywhere else, name it to the editor -- the clangd flag is
+# --compile-commands-dir, or a CompilationDatabase entry in .clangd.
+#
+# An explicit ON or OFF from the caller is respected, but an empty value
+# is not an answer -- a cache written by an older configure can carry one
+# -- so it counts the same as no answer at all.
+if(PROJECT_IS_TOP_LEVEL AND "${CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "")
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
+
 include(GNUInstallDirs)
 
 # Directory spellings for the pkg-config templates in c/ and cxx/: keep the
