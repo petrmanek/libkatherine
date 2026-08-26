@@ -163,20 +163,20 @@ capture(unsigned char got[8])
 static void
 test_primitive_cmd6(void)
 {
-    CHECK_CMD(katherine_cmd6(&g_sender, (char) 0x5A), 0, 0, 0, 0, 0, 0, 0x5A, 0);
+    CHECK_CMD(katherine_cmd6(&g_sender, (uint8_t) 0x5A), 0, 0, 0, 0, 0, 0, 0x5A, 0);
 }
 
 static void
 test_primitive_cmd60(void)
 {
-    CHECK_CMD(katherine_cmd60(&g_sender, (char) 0x11, (char) 0x22), 0x22, 0, 0, 0, 0, 0, 0x11, 0);
+    CHECK_CMD(katherine_cmd60(&g_sender, (uint8_t) 0x11, (uint8_t) 0x22), 0x22, 0, 0, 0, 0, 0, 0x11, 0);
 }
 
 static void
 test_primitive_cmd6_i64(void)
 {
     /* value = 0x0A0B0C0D -> little-endian payload 0D 0C 0B 0A. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x0A0B0C0D), 0x0D, 0x0C, 0x0B, 0x0A, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x0A0B0C0D), 0x0D, 0x0C, 0x0B, 0x0A, 0, 0, 0x2A, 0);
 
     /* value = 0xFFFFFFFF: the payload store only ever writes cmd[0..3],
        so the top of the representable 32-bit range still leaves byte[4]
@@ -184,14 +184,14 @@ test_primitive_cmd6_i64(void)
        that test_i64_boundary() exercises from the other side, with values
        whose bits extend past bit 31. */
     CHECK_CMD(
-        katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0xFFFFFFFF), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+        katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0xFFFFFFFF), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
 static void
 test_primitive_cmd64_i64(void)
 {
     /* value = 0x0E0F1011 -> little-endian payload 11 10 0F 0E; sub-index 0x09. */
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) 0x04, (char) 0x09, (int64_t) 0x0E0F1011), 0x11, 0x10, 0x0F, 0x0E,
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x09, (int64_t) 0x0E0F1011), 0x11, 0x10, 0x0F, 0x0E,
         0x09, 0, 0x04, 0);
 
     /* value = 0: the payload store only ever writes cmd[0..3], so cmd[4]
@@ -201,17 +201,17 @@ test_primitive_cmd64_i64(void)
        on when a caller configures a DAC to value 0 -- the sub-index must
        survive so the datagram still addresses the right DAC instead of
        silently reading as DAC 0. */
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) 0x04, (char) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 }
 
 static void
 test_primitive_cmd6_float(void)
 {
     /* 5.0f -> IEEE-754 0x40A00000, little-endian bytes 00 00 A0 40. */
-    CHECK_CMD(katherine_cmd6_float(&g_sender, (char) 0x33, 5.0f), 0x00, 0x00, 0xA0, 0x40, 0, 0, 0x33, 0);
+    CHECK_CMD(katherine_cmd6_float(&g_sender, (uint8_t) 0x33, 5.0f), 0x00, 0x00, 0xA0, 0x40, 0, 0, 0x33, 0);
 
     /* -1.5f -> IEEE-754 0xBFC00000, little-endian bytes 00 00 C0 BF. */
-    CHECK_CMD(katherine_cmd6_float(&g_sender, (char) 0x44, -1.5f), 0x00, 0x00, 0xC0, 0xBF, 0, 0, 0x44, 0);
+    CHECK_CMD(katherine_cmd6_float(&g_sender, (uint8_t) 0x44, -1.5f), 0x00, 0x00, 0xC0, 0xBF, 0, 0, 0x44, 0);
 }
 
 /* ------------------------------------------------------------------ */
@@ -339,7 +339,7 @@ test_i64_boundary(void)
        bits are zero encodes as an all-zero payload regardless of any bits
        set above bit 31. byte[4] is not part of the payload store and
        stays at its zero-initialized value; opcode untouched at byte[6]. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
     /* katherine_cmd64_i64 with value = 2^32, taken via the set_dac_vfbk
        path (sub-index 4, the real DAC index for VFBK): byte[4] keeps the
@@ -351,20 +351,20 @@ test_i64_boundary(void)
     /* katherine_cmd6_i64 with value = 2^40: same boundary as 2^32, one
        nibble further up -- still only the low 32 bits reach the wire, so
        byte[4] and byte[5] both stay zero and the opcode is untouched. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
     /* katherine_cmd6_i64 with value = INT64_MAX (0x7FFFFFFFFFFFFFFF): the
        low 32 bits are all set, so the payload is 0xFFFFFFFF; the opcode
        at byte[6] is untouched since the store never reaches past
        byte[3]. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 
     /* katherine_cmd6_i64 with value = -1: the store reinterprets the
        value's low 32 bits as their two's complement bit pattern, so -1
        encodes identically to 0xFFFFFFFF instead of being silently dropped
        -- the wire field is a fixed-width word, not a signed quantity the
        encoder can decline to represent. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (char) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
 /* ------------------------------------------------------------------ */
@@ -385,8 +385,8 @@ test_general_config_word(void)
        false, and Polarity is high because polarity_holes is false
        (electrons) -- 0x59. This is the value the preexisting 0x58-preset
        code also produced for these inputs: no regression here. */
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x59, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     /* gray_disable = true: Gray_count_en (bit 3) must clear -- 0x51. The
@@ -395,8 +395,8 @@ test_general_config_word(void)
        producing 0x59 here regardless of this field; this is the
        newly-effective case. */
     config.gray_disable = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x51, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.gray_disable = false;
 
@@ -405,8 +405,8 @@ test_general_config_word(void)
        value started at 0; included to freeze every named bit, not only
        the one the fix changes. */
     config.polarity_holes = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x58, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.polarity_holes = false;
 
@@ -414,8 +414,8 @@ test_general_config_word(void)
        already correct under the preexisting code (same zero-base
        reasoning as Polarity). */
     config.test_pulse_config.enabled = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x79, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.test_pulse_config.enabled = false;
 
@@ -425,25 +425,25 @@ test_general_config_word(void)
        once under neither the old nor the new code until here. */
     config.gray_disable              = true;
     config.test_pulse_config.enabled = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x71, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.test_pulse_config.enabled = false;
     config.polarity_holes            = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x50, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.gray_disable              = false;
     config.test_pulse_config.enabled = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x78, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.gray_disable = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (char) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (char) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x70, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 }
 

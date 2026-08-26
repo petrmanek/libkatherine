@@ -90,9 +90,9 @@ err:
  * @return Error code.
  */
 static inline int
-katherine_cmd6(katherine_udp_t *udp, char val6)
+katherine_cmd6(katherine_udp_t *udp, uint8_t val6)
 {
-    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) val6);
+    katherine_cmd8_t cmd = katherine_cmd8(val6);
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
 
@@ -105,10 +105,10 @@ katherine_cmd6(katherine_udp_t *udp, char val6)
  * @return Error code.
  */
 static inline int
-katherine_cmd60(katherine_udp_t *udp, char val6, char val0)
+katherine_cmd60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
 {
-    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) val6);
-    cmd.b[0]             = (uint8_t) val0;
+    katherine_cmd8_t cmd = katherine_cmd8(val6);
+    cmd.b[0]             = val0;
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
 
@@ -145,10 +145,10 @@ katherine_cmd_i64(char *cmd, int64_t value)
  * @return Error code.
  */
 static inline int
-katherine_cmd64_i64(katherine_udp_t *udp, char val6, char val4, int64_t value)
+katherine_cmd64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64_t value)
 {
-    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) val6);
-    katherine_cmd8_subidx(&cmd, (uint8_t) val4);
+    katherine_cmd8_t cmd = katherine_cmd8(val6);
+    katherine_cmd8_subidx(&cmd, val4);
     katherine_cmd8_payload_u32(&cmd, (uint32_t) value);
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
@@ -161,9 +161,9 @@ katherine_cmd64_i64(katherine_udp_t *udp, char val6, char val4, int64_t value)
  * @return Error code.
  */
 static inline int
-katherine_cmd6_i64(katherine_udp_t *udp, char val6, int64_t value)
+katherine_cmd6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
 {
-    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) val6);
+    katherine_cmd8_t cmd = katherine_cmd8(val6);
     katherine_cmd8_payload_u32(&cmd, (uint32_t) value);
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
@@ -176,9 +176,9 @@ katherine_cmd6_i64(katherine_udp_t *udp, char val6, int64_t value)
  * @return Error code.
  */
 static inline int
-katherine_cmd6_float(katherine_udp_t *udp, char val6, float value)
+katherine_cmd6_float(katherine_udp_t *udp, uint8_t val6, float value)
 {
-    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) val6);
+    katherine_cmd8_t cmd = katherine_cmd8(val6);
     katherine_cmd8_payload_f32(&cmd, value);
     return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
 }
