@@ -12,14 +12,14 @@
  * expected array.
  *
  * Covers, in order:
- *   1. The five encoding primitives (katherine_cmd6, katherine_cmd60,
- *      katherine_cmd6_i64, katherine_cmd64_i64, katherine_cmd6_float), plus
+ *   1. The five encoding primitives (katherine_cmd_send6, katherine_cmd_send60,
+ *      katherine_cmd_send6_i64, katherine_cmd_send64_i64, katherine_cmd_send6_f32), plus
  *      a couple of boundary vectors that freeze correct edge-case behavior
- *      of the payload store in katherine_cmd_i64.
+ *      of the payload store in katherine_cmd_payload_set_i64.
  *   2. Every ARG0 wrapper (base commands and the 16 hw_* sub-commands).
  *   3. Every ARG1 wrapper (the plain settings, set_bias_settings, and the
  *      18 set_dac_* wrappers).
- *   4. Boundary vectors for katherine_cmd_i64: values whose low 32 bits are
+ *   4. Boundary vectors for katherine_cmd_payload_set_i64: values whose low 32 bits are
  *      all that ever reach the wire, and a negative value, which encodes
  *      via the two's complement bit pattern of those low 32 bits.
  *   5. katherine_general_config_word() (config.c, via cmd_interface.h):
@@ -27,7 +27,7 @@
  *      katherine_config_t, encoded the same way katherine_configure()
  *      sends it.
  *   6. The acquisition-setup (0x21/0x05) trigger word.
- *   7. Builder-level cases for katherine_cmd8_t (cmd.h): payload_u32 at its
+ *   7. Builder-level cases for katherine_cmd_t (cmd_builder.h): payload_u32 at its
  *      two boundary values, and chip-envelope placement for one opcode of
  *      each byte-5/1/0 family plus an opcode outside the table.
  *
@@ -53,7 +53,7 @@
 #include <katherine/error.h>
 #include <katherine/udp.h>
 
-#include "protocol/cmd.h"
+#include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
 #include "ktest.h"
 
@@ -163,20 +163,20 @@ capture(unsigned char got[8])
 static void
 test_primitive_cmd6(void)
 {
-    CHECK_CMD(katherine_cmd6(&g_sender, (uint8_t) 0x5A), 0, 0, 0, 0, 0, 0, 0x5A, 0);
+    CHECK_CMD(katherine_cmd_send6(&g_sender, (uint8_t) 0x5A), 0, 0, 0, 0, 0, 0, 0x5A, 0);
 }
 
 static void
 test_primitive_cmd60(void)
 {
-    CHECK_CMD(katherine_cmd60(&g_sender, (uint8_t) 0x11, (uint8_t) 0x22), 0x22, 0, 0, 0, 0, 0, 0x11, 0);
+    CHECK_CMD(katherine_cmd_send60(&g_sender, (uint8_t) 0x11, (uint8_t) 0x22), 0x22, 0, 0, 0, 0, 0, 0x11, 0);
 }
 
 static void
 test_primitive_cmd6_i64(void)
 {
     /* value = 0x0A0B0C0D -> little-endian payload 0D 0C 0B 0A. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x0A0B0C0D), 0x0D, 0x0C, 0x0B, 0x0A, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x0A0B0C0D), 0x0D, 0x0C, 0x0B, 0x0A, 0, 0, 0x2A, 0);
 
     /* value = 0xFFFFFFFF: the payload store only ever writes cmd[0..3],
        so the top of the representable 32-bit range still leaves byte[4]
@@ -184,38 +184,38 @@ test_primitive_cmd6_i64(void)
        that test_i64_boundary() exercises from the other side, with values
        whose bits extend past bit 31. */
     CHECK_CMD(
-        katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0xFFFFFFFF), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+        katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0xFFFFFFFF), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
 static void
 test_primitive_cmd64_i64(void)
 {
     /* value = 0x0E0F1011 -> little-endian payload 11 10 0F 0E; sub-index 0x09. */
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x09, (int64_t) 0x0E0F1011), 0x11, 0x10, 0x0F, 0x0E,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x09, (int64_t) 0x0E0F1011), 0x11, 0x10, 0x0F, 0x0E,
         0x09, 0, 0x04, 0);
 
     /* value = 0: the payload store only ever writes cmd[0..3], so cmd[4]
-       keeps the sub-index that katherine_cmd64_i64 had already written
+       keeps the sub-index that katherine_cmd_send64_i64 had already written
        before calling into it. This is correct behavior worth freezing on
        its own: it is exactly what katherine_set_dacs() (config.c) relies
        on when a caller configures a DAC to value 0 -- the sub-index must
        survive so the datagram still addresses the right DAC instead of
        silently reading as DAC 0. */
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 }
 
 static void
 test_primitive_cmd6_float(void)
 {
     /* 5.0f -> IEEE-754 0x40A00000, little-endian bytes 00 00 A0 40. */
-    CHECK_CMD(katherine_cmd6_float(&g_sender, (uint8_t) 0x33, 5.0f), 0x00, 0x00, 0xA0, 0x40, 0, 0, 0x33, 0);
+    CHECK_CMD(katherine_cmd_send6_f32(&g_sender, (uint8_t) 0x33, 5.0f), 0x00, 0x00, 0xA0, 0x40, 0, 0, 0x33, 0);
 
     /* -1.5f -> IEEE-754 0xBFC00000, little-endian bytes 00 00 C0 BF. */
-    CHECK_CMD(katherine_cmd6_float(&g_sender, (uint8_t) 0x44, -1.5f), 0x00, 0x00, 0xC0, 0xBF, 0, 0, 0x44, 0);
+    CHECK_CMD(katherine_cmd_send6_f32(&g_sender, (uint8_t) 0x44, -1.5f), 0x00, 0x00, 0xC0, 0xBF, 0, 0, 0x44, 0);
 }
 
 /* ------------------------------------------------------------------ */
-/* 2a. ARG0 wrappers: base commands (katherine_cmd6, opcode at byte[6]) */
+/* 2a. ARG0 wrappers: base commands (katherine_cmd_send6, opcode at byte[6]) */
 
 static void
 test_wrappers_arg0_base(void)
@@ -230,7 +230,7 @@ test_wrappers_arg0_base(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* 2b. ARG0 wrappers: hw_* sub-commands (katherine_cmd60, opcode 0x07,  */
+/* 2b. ARG0 wrappers: hw_* sub-commands (katherine_cmd_send60, opcode 0x07,  */
 /* sub-command at byte[0])                                             */
 
 static void
@@ -255,7 +255,7 @@ test_wrappers_hw(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* 3a. ARG1 wrappers built on katherine_cmd6_i64 (payload at [0..3],   */
+/* 3a. ARG1 wrappers built on katherine_cmd_send6_i64 (payload at [0..3],   */
 /* opcode at [6])                                                      */
 
 static void
@@ -277,7 +277,7 @@ test_wrappers_arg1_i64(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* 3b. ARG1 wrapper built on katherine_cmd6_float                      */
+/* 3b. ARG1 wrapper built on katherine_cmd_send6_f32                      */
 
 static void
 test_wrappers_set_bias_settings(void)
@@ -287,7 +287,7 @@ test_wrappers_set_bias_settings(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* 3c. ARG1 wrappers built on katherine_cmd64_i64: 18 DAC setters      */
+/* 3c. ARG1 wrappers built on katherine_cmd_send64_i64: 18 DAC setters      */
 /* (opcode 0x04, sub-index at byte[4] in declaration order 0..17).     */
 /* Each uses value = 0x1050 + <sub-index>, so the payload's low byte   */
 /* (0x50..0x61) never collides with the sub-index (0x00..0x11) and the */
@@ -329,48 +329,48 @@ test_wrappers_dac(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. Boundary vectors for katherine_cmd_i64                           */
+/* 4. Boundary vectors for katherine_cmd_payload_set_i64                           */
 
 static void
 test_i64_boundary(void)
 {
-    /* katherine_cmd6_i64 with value = 2^32: the payload is a fixed 4-byte
+    /* katherine_cmd_send6_i64 with value = 2^32: the payload is a fixed 4-byte
        little-endian store of the low 32 bits, so a value whose low 32
        bits are zero encodes as an all-zero payload regardless of any bits
        set above bit 31. byte[4] is not part of the payload store and
        stays at its zero-initialized value; opcode untouched at byte[6]. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
-    /* katherine_cmd64_i64 with value = 2^32, taken via the set_dac_vfbk
+    /* katherine_cmd_send64_i64 with value = 2^32, taken via the set_dac_vfbk
        path (sub-index 4, the real DAC index for VFBK): byte[4] keeps the
-       sub-index katherine_cmd64_i64 had already written before calling
+       sub-index katherine_cmd_send64_i64 had already written before calling
        into the payload store, since the store never reaches past
        byte[3]. The datagram still addresses VFBK, not some other DAC. */
     CHECK_CMD(katherine_cmd_set_dac_vfbk(&g_sender, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 
-    /* katherine_cmd6_i64 with value = 2^40: same boundary as 2^32, one
+    /* katherine_cmd_send6_i64 with value = 2^40: same boundary as 2^32, one
        nibble further up -- still only the low 32 bits reach the wire, so
        byte[4] and byte[5] both stay zero and the opcode is untouched. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
-    /* katherine_cmd6_i64 with value = INT64_MAX (0x7FFFFFFFFFFFFFFF): the
+    /* katherine_cmd_send6_i64 with value = INT64_MAX (0x7FFFFFFFFFFFFFFF): the
        low 32 bits are all set, so the payload is 0xFFFFFFFF; the opcode
        at byte[6] is untouched since the store never reaches past
        byte[3]. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 
-    /* katherine_cmd6_i64 with value = -1: the store reinterprets the
+    /* katherine_cmd_send6_i64 with value = -1: the store reinterprets the
        value's low 32 bits as their two's complement bit pattern, so -1
        encodes identically to 0xFFFFFFFF instead of being silently dropped
        -- the wire field is a fixed-width word, not a signed quantity the
        encoder can decline to represent. */
-    CHECK_CMD(katherine_cmd6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
 /* ------------------------------------------------------------------ */
 /* 5. katherine_general_config_word(): the GeneralConfig sensor register */
 /* built from named bits of katherine_config_t, encoded via            */
-/* katherine_cmd64_i64 exactly as katherine_configure() (config.c)     */
+/* katherine_cmd_send64_i64 exactly as katherine_configure() (config.c)     */
 /* sends it: opcode CMD_TYPE_SENSOR_REGISTER_SETTING, sub-index         */
 /* TPX3_REG_GENERAL_CONFIG.                                             */
 
@@ -385,7 +385,7 @@ test_general_config_word(void)
        false, and Polarity is high because polarity_holes is false
        (electrons) -- 0x59. This is the value the preexisting 0x58-preset
        code also produced for these inputs: no regression here. */
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x59, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
@@ -395,7 +395,7 @@ test_general_config_word(void)
        producing 0x59 here regardless of this field; this is the
        newly-effective case. */
     config.gray_disable = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x51, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.gray_disable = false;
@@ -405,7 +405,7 @@ test_general_config_word(void)
        value started at 0; included to freeze every named bit, not only
        the one the fix changes. */
     config.polarity_holes = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x58, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.polarity_holes = false;
@@ -414,7 +414,7 @@ test_general_config_word(void)
        already correct under the preexisting code (same zero-base
        reasoning as Polarity). */
     config.test_pulse_config.enabled = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x79, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.test_pulse_config.enabled = false;
@@ -425,24 +425,24 @@ test_general_config_word(void)
        once under neither the old nor the new code until here. */
     config.gray_disable              = true;
     config.test_pulse_config.enabled = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x71, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.test_pulse_config.enabled = false;
     config.polarity_holes            = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x50, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.gray_disable              = false;
     config.test_pulse_config.enabled = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x78, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.gray_disable = true;
-    CHECK_CMD(katherine_cmd64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x70, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 }
@@ -509,23 +509,23 @@ test_acquisition_setup_word(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* 7. Builder-level cases for katherine_cmd8_t (cmd.h).                */
+/* 7. Builder-level cases for katherine_cmd_t (cmd_builder.h).                */
 
 static void
-test_cmd8_payload_u32_boundary(void)
+test_cmd_payload_u32_boundary(void)
 {
-    /* value = 0: every payload byte is already zero from katherine_cmd8(),
+    /* value = 0: every payload byte is already zero from katherine_cmd_create(),
        so this pins down that the store does not disturb that -- nor
        anything outside b[0..3], most notably the opcode at b[6]. */
-    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) 0x2A);
-    katherine_cmd8_payload_u32(&cmd, 0);
+    katherine_cmd_t cmd = katherine_cmd_create((uint8_t) 0x2A);
+    katherine_cmd_payload_set_u32(&cmd, 0);
     const unsigned char expected_zero[8] = {0, 0, 0, 0, 0, 0, 0x2A, 0};
     KT_CHECK_MEM_EQ(cmd.b, expected_zero, 8);
 
     /* value = 0xFFFFFFFF: every payload byte saturates; b[4..7] stay at
        their zero-initialized values. */
-    cmd = katherine_cmd8((uint8_t) 0x2A);
-    katherine_cmd8_payload_u32(&cmd, 0xFFFFFFFFU);
+    cmd = katherine_cmd_create((uint8_t) 0x2A);
+    katherine_cmd_payload_set_u32(&cmd, 0xFFFFFFFFU);
     const unsigned char expected_max[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0};
     KT_CHECK_MEM_EQ(cmd.b, expected_max, 8);
 }
@@ -534,62 +534,62 @@ test_cmd8_payload_u32_boundary(void)
    nonzero chip is exercised here even though every current caller of this
    library sends 0, since the table is otherwise untested code. */
 static void
-test_cmd8_chip_envelope(void)
+test_cmd_chip_envelope(void)
 {
     /* byte-5 family: internal DAC settings (0x04). */
-    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) 0x04);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x04, 0), 0);
+    katherine_cmd_t cmd = katherine_cmd_create((uint8_t) 0x04);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x04, 0), 0);
     const unsigned char expect_b5_chip0[8] = {0, 0, 0, 0, 0, 0, 0x04, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_b5_chip0, 8);
 
-    cmd = katherine_cmd8((uint8_t) 0x04);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x04, 3), 0);
+    cmd = katherine_cmd_create((uint8_t) 0x04);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x04, 3), 0);
     const unsigned char expect_b5_chip3[8] = {0, 0, 0, 0, 0, 3, 0x04, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_b5_chip3, 8);
 
     /* byte-1 family: HW command dispatch (0x07). */
-    cmd = katherine_cmd8((uint8_t) 0x07);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x07, 0), 0);
+    cmd = katherine_cmd_create((uint8_t) 0x07);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x07, 0), 0);
     const unsigned char expect_b1_chip0[8] = {0, 0, 0, 0, 0, 0, 0x07, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_b1_chip0, 8);
 
-    cmd = katherine_cmd8((uint8_t) 0x07);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x07, 2), 0);
+    cmd = katherine_cmd_create((uint8_t) 0x07);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x07, 2), 0);
     const unsigned char expect_b1_chip2[8] = {0, 2, 0, 0, 0, 0, 0x07, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_b1_chip2, 8);
 
     /* byte-0 family: set-all-pixel-config (0x12). */
-    cmd = katherine_cmd8((uint8_t) 0x12);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x12, 0), 0);
+    cmd = katherine_cmd_create((uint8_t) 0x12);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x12, 0), 0);
     const unsigned char expect_b0_chip0[8] = {0, 0, 0, 0, 0, 0, 0x12, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_b0_chip0, 8);
 
-    cmd = katherine_cmd8((uint8_t) 0x12);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x12, 1), 0);
+    cmd = katherine_cmd_create((uint8_t) 0x12);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x12, 1), 0);
     const unsigned char expect_b0_chip1[8] = {1, 0, 0, 0, 0, 0, 0x12, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_b0_chip1, 8);
 
     /* An opcode absent from the table (0x99, unused by this protocol)
        accepts chip 0 -- nothing to place -- but rejects a nonzero chip
        instead of silently dropping it. */
-    cmd = katherine_cmd8((uint8_t) 0x99);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x99, 0), 0);
+    cmd = katherine_cmd_create((uint8_t) 0x99);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x99, 0), 0);
     const unsigned char expect_unknown_chip0[8] = {0, 0, 0, 0, 0, 0, 0x99, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_unknown_chip0, 8);
 
-    cmd = katherine_cmd8((uint8_t) 0x99);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x99, 1), -KATHERINE_E_BAD_CHIP);
+    cmd = katherine_cmd_create((uint8_t) 0x99);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x99, 1), -KATHERINE_E_BAD_CHIP);
 
     /* The highest opcode there is, answered from the same table without a
        range test: it holds an entry for every value a uint8_t opcode can
        take, and 0xFF's is the "no slot" zero like any other unlisted one. */
-    cmd = katherine_cmd8((uint8_t) 0xFF);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0xFF, 0), 0);
+    cmd = katherine_cmd_create((uint8_t) 0xFF);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0xFF, 0), 0);
     const unsigned char expect_top_chip0[8] = {0, 0, 0, 0, 0, 0, 0xFF, 0};
     KT_CHECK_MEM_EQ(cmd.b, expect_top_chip0, 8);
 
-    cmd = katherine_cmd8((uint8_t) 0xFF);
-    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0xFF, 1), -KATHERINE_E_BAD_CHIP);
+    cmd = katherine_cmd_create((uint8_t) 0xFF);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0xFF, 1), -KATHERINE_E_BAD_CHIP);
 }
 
 int
@@ -613,8 +613,8 @@ main(void)
     KT_RUN(test_i64_boundary);
     KT_RUN(test_general_config_word);
     KT_RUN(test_acquisition_setup_word);
-    KT_RUN(test_cmd8_payload_u32_boundary);
-    KT_RUN(test_cmd8_chip_envelope);
+    KT_RUN(test_cmd_payload_u32_boundary);
+    KT_RUN(test_cmd_chip_envelope);
 
     fixture_fini();
     return kt_summary();

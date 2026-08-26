@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Bounded 8-byte command builder and chip-envelope table.
+ * @brief Command datagram builder and chip-envelope table.
  * @author Petr Mánek
  * @date 25.8.26
  *
@@ -32,20 +32,20 @@
  * remaining bytes carry a sub-index, a chip index and/or a payload word,
  * each placed by one of the setters below rather than written directly.
  */
-typedef struct katherine_cmd8 {
+typedef struct katherine_cmd {
     uint8_t b[8]; ///< Wire bytes, in transmission order
-} katherine_cmd8_t;
+} katherine_cmd_t;
 
 /**
  * Begin a command.
  * @param opcode Command opcode, placed at b[6].
  * @return A command with the given opcode and every other byte zero.
  */
-static inline katherine_cmd8_t
-katherine_cmd8(uint8_t opcode)
+static inline katherine_cmd_t
+katherine_cmd_create(uint8_t opcode)
 {
-    katherine_cmd8_t cmd = {0};
-    cmd.b[6]             = opcode;
+    katherine_cmd_t cmd = {0};
+    cmd.b[6]            = opcode;
     return cmd;
 }
 
@@ -57,7 +57,7 @@ katherine_cmd8(uint8_t opcode)
  * @param subidx Sub-index, placed at b[4].
  */
 static inline void
-katherine_cmd8_subidx(katherine_cmd8_t *cmd, uint8_t subidx)
+katherine_cmd_payload_set_subidx(katherine_cmd_t *cmd, uint8_t subidx)
 {
     cmd->b[4] = subidx;
 }
@@ -65,21 +65,40 @@ katherine_cmd8_subidx(katherine_cmd8_t *cmd, uint8_t subidx)
 /**
  * Set the payload word of a command.
  *
- * Bounded by construction: the parameter is already 32 bits wide, so unlike
- * the int64_t-typed payload stores this builder replaces, there is no wider
- * value to truncate and no byte past b[3] the store could reach.
+ * Bounded by construction: the parameter is exactly as wide as the field, so
+ * there is no value to truncate and no byte past b[3] the store could reach.
+ * Callers holding a wider integer go through
+ * katherine_cmd_payload_set_i64(), which documents what it drops.
  *
  * @param cmd Command to modify.
  * @param value Payload, stored little-endian into b[0..3]. Every other byte
  *   of the command is left untouched.
  */
 static inline void
-katherine_cmd8_payload_u32(katherine_cmd8_t *cmd, uint32_t value)
+katherine_cmd_payload_set_u32(katherine_cmd_t *cmd, uint32_t value)
 {
     cmd->b[0] = (uint8_t) (value & 0xffU);
     cmd->b[1] = (uint8_t) ((value >> 8) & 0xffU);
     cmd->b[2] = (uint8_t) ((value >> 16) & 0xffU);
     cmd->b[3] = (uint8_t) ((value >> 24) & 0xffU);
+}
+
+/**
+ * Set the payload word of a command from a signed value wider than the
+ * field, as the settings and DAC commands carry.
+ *
+ * The payload is a fixed 4-byte field, so only the low 32 bits of value
+ * ever reach the wire. A negative value contributes the two's complement
+ * bit pattern of those low 32 bits, matching the plain 32-bit word the
+ * receiving hardware register takes with no sign extension.
+ *
+ * @param cmd Command to modify.
+ * @param value Payload, truncated to its low 32 bits.
+ */
+static inline void
+katherine_cmd_payload_set_i64(katherine_cmd_t *cmd, int64_t value)
+{
+    katherine_cmd_payload_set_u32(cmd, (uint32_t) value);
 }
 
 /**
@@ -93,18 +112,18 @@ katherine_cmd8_payload_u32(katherine_cmd8_t *cmd, uint32_t value)
  *
  * @param cmd Command to modify.
  * @param value Payload, stored into the same field
- *   katherine_cmd8_payload_u32() writes.
+ *   katherine_cmd_payload_set_u32() writes.
  */
 static inline void
-katherine_cmd8_payload_f32(katherine_cmd8_t *cmd, float value)
+katherine_cmd_payload_set_f32(katherine_cmd_t *cmd, float value)
 {
     uint32_t bits;
     memcpy(&bits, &value, sizeof(bits));
-    katherine_cmd8_payload_u32(cmd, bits);
+    katherine_cmd_payload_set_u32(cmd, bits);
 }
 
 /**
- * Chip-index slot of an opcode: the byte position within a katherine_cmd8_t
+ * Chip-index slot of an opcode: the byte position within a katherine_cmd_t
  * that holds its chip index, biased by one so that zero -- the value every
  * opcode absent from KATHERINE_CHIP_ENVELOPE is left with -- means "this
  * opcode has no chip-index slot". Byte 0 is itself a valid position and so
@@ -140,7 +159,7 @@ katherine_cmd8_payload_f32(katherine_cmd8_t *cmd, float value)
  * confirming against hardware before a per-chip API relies on them.
  *
  * An opcode absent from this table has no known chip-index position on the
- * wire; katherine_cmd8_chip() below rejects a nonzero chip for it instead of
+ * wire; katherine_cmd_payload_set_chip() below rejects a nonzero chip for it instead of
  * guessing where to place one. Every current caller of this library passes
  * chip 0, for which the question does not arise -- this table is the seam a
  * future per-chip API builds on, not something any command needs yet.
@@ -174,13 +193,13 @@ static const uint8_t KATHERINE_CHIP_ENVELOPE[256] = {
  * which would be a wire-format error invisible to the caller.
  *
  * @param cmd Command to modify.
- * @param opcode Opcode of the command, as passed to katherine_cmd8().
+ * @param opcode Opcode of the command, as passed to katherine_cmd_create().
  * @param chip Chip index to place.
  * @return 0 on success, -KATHERINE_E_BAD_CHIP for a nonzero chip index on an
  *   opcode that has no slot for one.
  */
 static inline int
-katherine_cmd8_chip(katherine_cmd8_t *cmd, uint8_t opcode, uint8_t chip)
+katherine_cmd_payload_set_chip(katherine_cmd_t *cmd, uint8_t opcode, uint8_t chip)
 {
     const uint8_t slot = KATHERINE_CHIP_ENVELOPE[opcode];
 

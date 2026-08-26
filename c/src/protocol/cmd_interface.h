@@ -17,7 +17,7 @@
 #include <katherine/global.h>
 #include <katherine/udp.h>
 #include "bitfields.h"
-#include "cmd.h"
+#include "cmd_builder.h"
 
 /*
  * IMPORTANT NOTICE:
@@ -70,7 +70,7 @@ katherine_cmd_wait_ack(katherine_udp_t *udp)
  * @return Error code.
  */
 static inline int
-katherine_cmd(katherine_udp_t *udp, const void *buffer, size_t count)
+katherine_cmd_send(katherine_udp_t *udp, const void *buffer, size_t count)
 {
     int res;
 
@@ -90,10 +90,10 @@ err:
  * @return Error code.
  */
 static inline int
-katherine_cmd6(katherine_udp_t *udp, uint8_t val6)
+katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
 {
-    katherine_cmd8_t cmd = katherine_cmd8(val6);
-    return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -105,34 +105,11 @@ katherine_cmd6(katherine_udp_t *udp, uint8_t val6)
  * @return Error code.
  */
 static inline int
-katherine_cmd60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
+katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
 {
-    katherine_cmd8_t cmd = katherine_cmd8(val6);
-    cmd.b[0]             = val0;
-    return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
-}
-
-/**
- * Store a payload word into a caller-owned command buffer, for the two
- * callers that assemble their datagram byte by byte rather than through
- * katherine_cmd8_t.
- * @param cmd Command buffer of at least four bytes.
- * @param value Payload; see the note in the body on which bits reach the
- *   wire and how a negative value is encoded.
- */
-static inline void
-katherine_cmd_i64(char *cmd, int64_t value)
-{
-    /* Payload is a fixed 4-byte little-endian field: only the low 32 bits
-       of value ever reach the wire. A negative value contributes the
-       two's complement bit pattern of those low 32 bits, matching the
-       plain 32-bit word the receiving hardware register takes with no
-       sign extension. */
-    uint32_t bits = (uint32_t) value;
-    cmd[0]        = (char) (bits & 0xff);
-    cmd[1]        = (char) ((bits >> 8) & 0xff);
-    cmd[2]        = (char) ((bits >> 16) & 0xff);
-    cmd[3]        = (char) ((bits >> 24) & 0xff);
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+    cmd.b[0]            = val0;
+    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -145,12 +122,12 @@ katherine_cmd_i64(char *cmd, int64_t value)
  * @return Error code.
  */
 static inline int
-katherine_cmd64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64_t value)
+katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64_t value)
 {
-    katherine_cmd8_t cmd = katherine_cmd8(val6);
-    katherine_cmd8_subidx(&cmd, val4);
-    katherine_cmd8_payload_u32(&cmd, (uint32_t) value);
-    return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+    katherine_cmd_payload_set_subidx(&cmd, val4);
+    katherine_cmd_payload_set_i64(&cmd, value);
+    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -161,11 +138,11 @@ katherine_cmd64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64_t va
  * @return Error code.
  */
 static inline int
-katherine_cmd6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
+katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
 {
-    katherine_cmd8_t cmd = katherine_cmd8(val6);
-    katherine_cmd8_payload_u32(&cmd, (uint32_t) value);
-    return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+    katherine_cmd_payload_set_i64(&cmd, value);
+    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -176,11 +153,11 @@ katherine_cmd6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
  * @return Error code.
  */
 static inline int
-katherine_cmd6_float(katherine_udp_t *udp, uint8_t val6, float value)
+katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
 {
-    katherine_cmd8_t cmd = katherine_cmd8(val6);
-    katherine_cmd8_payload_f32(&cmd, value);
-    return katherine_cmd(udp, cmd.b, sizeof(cmd.b));
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+    katherine_cmd_payload_set_f32(&cmd, value);
+    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
 }
 
 /*
@@ -236,6 +213,10 @@ katherine_general_config_word(const katherine_config_t *config)
     word          = INSERT(word, general_config, fast_lo_en, 1);
     return (int32_t) word;
 }
+
+
+// ----------------------------------------------------------------------------
+// From this point onward we define the instruction set supported by Katherine.
 
 /**
  * Define katherine_cmd_<CMD_NAME>(udp), sending a command whose arguments
@@ -336,13 +317,13 @@ typedef enum katherine_cmd_type {
 } katherine_cmd_type_t;
 
 // clang-format off
-K_DEFINE_CMD_ARG0(cmd6,       set_all_pixel_config,                     CMD_TYPE_SET_ALL_PIXEL_CONFIG)
-K_DEFINE_CMD_ARG0(cmd6,       echo_chip_id,                             CMD_TYPE_ECHO_CHIP_ID)
-K_DEFINE_CMD_ARG0(cmd6,       get_readout_temperature,                  CMD_TYPE_GET_HW_READOUT_TEMPERATURE)
-K_DEFINE_CMD_ARG0(cmd6,       get_sensor_temperature,                   CMD_TYPE_GET_SENSOR_TEMPERATURE)
-K_DEFINE_CMD_ARG0(cmd6,       get_readout_status,                       CMD_TYPE_GET_READOUT_STATUS)
-K_DEFINE_CMD_ARG0(cmd6,       get_comm_status,                          CMD_TYPE_GET_COMMUNICATION_STATUS)
-K_DEFINE_CMD_ARG0(cmd6,       digital_test,                             CMD_TYPE_DIGITAL_TEST)
+K_DEFINE_CMD_ARG0(cmd_send6,      set_all_pixel_config,                     CMD_TYPE_SET_ALL_PIXEL_CONFIG)
+K_DEFINE_CMD_ARG0(cmd_send6,      echo_chip_id,                             CMD_TYPE_ECHO_CHIP_ID)
+K_DEFINE_CMD_ARG0(cmd_send6,      get_readout_temperature,                  CMD_TYPE_GET_HW_READOUT_TEMPERATURE)
+K_DEFINE_CMD_ARG0(cmd_send6,      get_sensor_temperature,                   CMD_TYPE_GET_SENSOR_TEMPERATURE)
+K_DEFINE_CMD_ARG0(cmd_send6,      get_readout_status,                       CMD_TYPE_GET_READOUT_STATUS)
+K_DEFINE_CMD_ARG0(cmd_send6,      get_comm_status,                          CMD_TYPE_GET_COMMUNICATION_STATUS)
+K_DEFINE_CMD_ARG0(cmd_send6,      digital_test,                             CMD_TYPE_DIGITAL_TEST)
 // clang-format on
 
 /**
@@ -369,50 +350,50 @@ typedef enum katherine_hw_cmd_type {
 } katherine_hw_cmd_type_t;
 
 // clang-format off
-K_DEFINE_CMD_ARG0(cmd60,      hw_sensor_config_registers_update,        CMD_TYPE_HW_COMMAND_START, CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE)
-K_DEFINE_CMD_ARG0(cmd60,      hw_internal_dac_update,                   CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_UPDATE)
-K_DEFINE_CMD_ARG0(cmd60,      hw_internal_dac_back_read,                CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_BACK_READ)
-K_DEFINE_CMD_ARG0(cmd60,      hw_timer_read,                            CMD_TYPE_HW_COMMAND_START, CMD_START_TIMER_READ)
-K_DEFINE_CMD_ARG0(cmd60,      hw_timer_set,                             CMD_TYPE_HW_COMMAND_START, CMD_START_TIMER_SET)
-K_DEFINE_CMD_ARG0(cmd60,      hw_reset_matrix_sequential,               CMD_TYPE_HW_COMMAND_START, CMD_START_RESET_MATRIX_SEQUENTIAL)
-K_DEFINE_CMD_ARG0(cmd60,      hw_stop_matrix_command,                   CMD_TYPE_HW_COMMAND_START, CMD_START_STOP_MATRIX_COMMAND)
-K_DEFINE_CMD_ARG0(cmd60,      hw_load_column_test_pulse_register,       CMD_TYPE_HW_COMMAND_START, CMD_START_LOAD_COLUMN_TEST_PULSE_REGISTER)
-K_DEFINE_CMD_ARG0(cmd60,      hw_read_column_test_pulse_register,       CMD_TYPE_HW_COMMAND_START, CMD_START_READ_COLUMN_TEST_PULSE_REGISTER)
-K_DEFINE_CMD_ARG0(cmd60,      hw_load_pixel_register_configuration,     CMD_TYPE_HW_COMMAND_START, CMD_START_LOAD_PIXEL_REGISTER_CONFIGURATION)
-K_DEFINE_CMD_ARG0(cmd60,      hw_read_pixel_register_configuration,     CMD_TYPE_HW_COMMAND_START, CMD_START_READ_PIXEL_REGISTER_CONFIGURATION)
-K_DEFINE_CMD_ARG0(cmd60,      hw_read_pixel_matrix_sequential_setting,  CMD_TYPE_HW_COMMAND_START, CMD_START_READ_PIXEL_MATRIX_SEQUENTIAL)
-K_DEFINE_CMD_ARG0(cmd60,      hw_read_pixel_matrix_data_driven_setting, CMD_TYPE_HW_COMMAND_START, CMD_START_READ_PIXEL_MATRIX_DATA_DRIVEN_SETTING)
-K_DEFINE_CMD_ARG0(cmd60,      hw_chip_id_read,                          CMD_TYPE_HW_COMMAND_START, CMD_START_CHIP_ID_READ)
-K_DEFINE_CMD_ARG0(cmd60,      hw_output_block_config_update,            CMD_TYPE_HW_COMMAND_START, CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE)
-K_DEFINE_CMD_ARG0(cmd60,      hw_digital_test,                          CMD_TYPE_HW_COMMAND_START, CMD_START_DIGITAL_TEST)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_sensor_config_registers_update,        CMD_TYPE_HW_COMMAND_START, CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_internal_dac_update,                   CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_UPDATE)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_internal_dac_back_read,                CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_BACK_READ)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_timer_read,                            CMD_TYPE_HW_COMMAND_START, CMD_START_TIMER_READ)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_timer_set,                             CMD_TYPE_HW_COMMAND_START, CMD_START_TIMER_SET)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_reset_matrix_sequential,               CMD_TYPE_HW_COMMAND_START, CMD_START_RESET_MATRIX_SEQUENTIAL)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_stop_matrix_command,                   CMD_TYPE_HW_COMMAND_START, CMD_START_STOP_MATRIX_COMMAND)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_load_column_test_pulse_register,       CMD_TYPE_HW_COMMAND_START, CMD_START_LOAD_COLUMN_TEST_PULSE_REGISTER)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_read_column_test_pulse_register,       CMD_TYPE_HW_COMMAND_START, CMD_START_READ_COLUMN_TEST_PULSE_REGISTER)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_load_pixel_register_configuration,     CMD_TYPE_HW_COMMAND_START, CMD_START_LOAD_PIXEL_REGISTER_CONFIGURATION)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_read_pixel_register_configuration,     CMD_TYPE_HW_COMMAND_START, CMD_START_READ_PIXEL_REGISTER_CONFIGURATION)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_read_pixel_matrix_sequential_setting,  CMD_TYPE_HW_COMMAND_START, CMD_START_READ_PIXEL_MATRIX_SEQUENTIAL)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_read_pixel_matrix_data_driven_setting, CMD_TYPE_HW_COMMAND_START, CMD_START_READ_PIXEL_MATRIX_DATA_DRIVEN_SETTING)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_chip_id_read,                          CMD_TYPE_HW_COMMAND_START, CMD_START_CHIP_ID_READ)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_output_block_config_update,            CMD_TYPE_HW_COMMAND_START, CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE)
+K_DEFINE_CMD_ARG0(cmd_send60,     hw_digital_test,                          CMD_TYPE_HW_COMMAND_START, CMD_START_DIGITAL_TEST)
 
-K_DEFINE_CMD_ARG1(cmd6_i64,   set_acqtime_lsb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB)
-K_DEFINE_CMD_ARG1(cmd6_i64,   set_acqtime_msb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB)
-K_DEFINE_CMD_ARG1(cmd6_i64,   set_number_of_frames,                     int64_t, CMD_TYPE_NUMBER_OF_FRAMES)
-K_DEFINE_CMD_ARG1(cmd6_i64,   set_seq_readout_start,                    int64_t, CMD_TYPE_SEQ_READOUT_START)
-K_DEFINE_CMD_ARG1(cmd6_i64,   start_acquisition,                        uint8_t, CMD_TYPE_ACQUISITION_START)
-K_DEFINE_CMD_ARG1(cmd6_i64,   stop_acquisition,                         uint8_t, CMD_TYPE_ACQUISITION_STOP)
-K_DEFINE_CMD_ARG1(cmd6_i64,   get_adc_voltage,                          uint8_t, CMD_TYPE_GET_ADC_VOLTAGE)
-K_DEFINE_CMD_ARG1(cmd6_float, set_bias_settings,                        float, CMD_TYPE_BIAS_SETTINGS)
+K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_acqtime_lsb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB)
+K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_acqtime_msb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB)
+K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_number_of_frames,                     int64_t, CMD_TYPE_NUMBER_OF_FRAMES)
+K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_seq_readout_start,                    int64_t, CMD_TYPE_SEQ_READOUT_START)
+K_DEFINE_CMD_ARG1(cmd_send6_i64,  start_acquisition,                        uint8_t, CMD_TYPE_ACQUISITION_START)
+K_DEFINE_CMD_ARG1(cmd_send6_i64,  stop_acquisition,                         uint8_t, CMD_TYPE_ACQUISITION_STOP)
+K_DEFINE_CMD_ARG1(cmd_send6_i64,  get_adc_voltage,                          uint8_t, CMD_TYPE_GET_ADC_VOLTAGE)
+K_DEFINE_CMD_ARG1(cmd_send6_f32,  set_bias_settings,                        float, CMD_TYPE_BIAS_SETTINGS)
 
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_preamp_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 0)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_preamp_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 1)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vpreamp_ncas,                     int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 2)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_ikrum,                      int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 3)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vfbk,                             int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 4)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vthreshold_fine,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 5)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vthreshold_coarse,                int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 6)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs1_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 7)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs1_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 8)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs2_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 9)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_discs2_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 10)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_pixeldac,                   int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 11)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_tpbufferin,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 12)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_tpbufferout,                int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 13)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vtp_coarse,                       int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 14)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_vtp_fine,                         int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 15)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_ibias_cp_pll,                     int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 16)
-K_DEFINE_CMD_ARG1(cmd64_i64,  set_dac_pll_vcntrl,                       int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 17)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_preamp_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 0)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_preamp_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 1)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_vpreamp_ncas,                     int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 2)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_ikrum,                      int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 3)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_vfbk,                             int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 4)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_vthreshold_fine,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 5)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_vthreshold_coarse,                int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 6)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_discs1_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 7)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_discs1_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 8)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_discs2_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 9)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_discs2_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 10)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_pixeldac,                   int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 11)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_tpbufferin,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 12)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_tpbufferout,                int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 13)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_vtp_coarse,                       int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 14)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_vtp_fine,                         int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 15)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_cp_pll,                     int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 16)
+K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 17)
 // clang-format on
 
 #undef K_DEFINE_CMD_ARG0

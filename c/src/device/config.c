@@ -116,7 +116,7 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
     // Transmit the contents of the buffer three times (assuming lossy UDP).
     for (int i = 0; i < 3 * 64; ++i) {
         // NOTE: ignoring error code below
-        (void) katherine_cmd(&device->control_socket, words, 1024);
+        (void) katherine_cmd_send(&device->control_socket, words, 1024);
 
         if (i % 16 == 15) {
             // Same pacing as the upload itself: the flood must not outrun the readout either.
@@ -180,7 +180,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
         // Send pixel configuration data.
         const char *config = (const char *) px_config->words;
         for (int i = 0; i < 64; ++i) {
-            res = katherine_cmd(&device->control_socket, config + 1024 * i, 1024);
+            res = katherine_cmd_send(&device->control_socket, config + 1024 * i, 1024);
             if (res) break;
 
             if (i % 16 == 15) {
@@ -314,7 +314,7 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     // command.
     cmd[0] |= fast_vco_enabled << 7;
 
-    res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
+    res = katherine_cmd_send(&device->control_socket, &cmd, sizeof(cmd));
     if (res) goto err;
 
     res = katherine_cmd_wait_ack(&device->control_socket);
@@ -456,7 +456,7 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     cmd[1] |= (end_trigger->channel & 0x7) << 1;
     cmd[1] |= end_trigger->use_falling_edge << 4;
 
-    res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
+    res = katherine_cmd_send(&device->control_socket, &cmd, sizeof(cmd));
     if (res) goto err;
 
     res = katherine_cmd_wait_ack(&device->control_socket);
@@ -521,7 +521,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
+    res = katherine_cmd_send(&device->control_socket, &cmd, sizeof(cmd));
     if (res) goto err;
 
     /* The readout applies this command before acknowledging it, and its
@@ -560,12 +560,8 @@ katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    char cmd[8] = {0};
-    cmd[6]      = CMD_TYPE_SENSOR_REGISTER_SETTING;
-    cmd[4]      = reg_idx;
-    katherine_cmd_i64(cmd, reg_value);
-
-    res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
+    res = katherine_cmd_send64_i64(
+        &device->control_socket, CMD_TYPE_SENSOR_REGISTER_SETTING, (uint8_t) reg_idx, reg_value);
     if (res) goto err;
 
     res = katherine_cmd_wait_ack(&device->control_socket);
@@ -681,12 +677,8 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     if (res) return res;
 
     for (int i = 0; i < 18; ++i) {
-        char cmd[8] = {0};
-        cmd[6]      = CMD_TYPE_INTERNAL_DAC_SETTINGS;
-        cmd[4]      = (char) i;
-        katherine_cmd_i64(cmd, dacs->array[i]);
-
-        res = katherine_cmd(&device->control_socket, &cmd, sizeof(cmd));
+        res = katherine_cmd_send64_i64(
+            &device->control_socket, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i]);
         if (res) goto err;
 
         res = katherine_cmd_wait_ack(&device->control_socket);
