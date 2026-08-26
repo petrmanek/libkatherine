@@ -292,7 +292,8 @@ in the development of this library:
  - Stephan Lachnit, Deutsches Elektronen-Synchrotron (DESY),
  - Simon Spannagel, Deutsches Elektronen-Synchrotron (DESY),
  - Stephine Yearley, University of Alberta,
- - Paul Schütze, Deutsches Elektronen-Synchrotron (DESY).
+ - Paul Schütze, Deutsches Elektronen-Synchrotron (DESY),
+ - Antonio Bartalesi, Freelance Automation Engineer.
 
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
