@@ -10,10 +10,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <stdlib.h> // exit
-#include <stdio.h>  // printf
-#include <time.h>   // time, difftime
-#include <string.h> // strerror
+#include <inttypes.h> // PRIu64
+#include <stdlib.h>   // exit
+#include <stdio.h>    // printf
+#include <time.h>     // time, difftime
+#include <string.h>   // strerror
 
 #include <katherine/katherine.h>
 
@@ -160,12 +161,12 @@ frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame
 
     printf("\n");
     printf("Ended frame %d.\n", frame_idx);
-    printf(" - tpx3->katherine lost %lu pixels\n", info->lost_pixels);
-    printf(" - katherine->pc sent %lu pixels\n", info->sent_pixels);
-    printf(" - katherine->pc received %lu pixels\n", info->received_pixels);
+    printf(" - tpx3->katherine lost %" PRIu64 " pixels\n", info->lost_pixels);
+    printf(" - katherine->pc sent %" PRIu64 " pixels\n", info->sent_pixels);
+    printf(" - katherine->pc received %" PRIu64 " pixels\n", info->received_pixels);
     printf(" - state: %s\n", (completed ? "completed" : "not completed"));
-    printf(" - start time: %lu\n", info->start_time.d);
-    printf(" - end time: %lu\n", info->end_time.d);
+    printf(" - start time: %" PRIu64 "\n", info->start_time.d);
+    printf(" - end time: %" PRIu64 "\n", info->end_time.d);
 }
 
 void
@@ -175,7 +176,7 @@ pixels_received(void *user_ctx, const void *px, size_t count)
 
     const px_t *dpx = (const px_t *) px;
     for (size_t i = 0; i < count; ++i) {
-        printf("%d\t%d\t%lu\t%d\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].toa, dpx[i].ftoa, dpx[i].tot);
+        printf("%d\t%d\t%" PRIu64 "\t%d\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].toa, dpx[i].ftoa, dpx[i].tot);
     }
 }
 
@@ -235,7 +236,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     printf(" - state: %s\n", katherine_str_acquisition_status(acq.state));
     printf(" - received %d complete frames\n", acq.completed_frames);
     printf(" - dropped %zu measurement data\n", acq.dropped_measurement_data);
-    printf(" - total hits: %lu\n", n_hits);
+    printf(" - total hits: %" PRIu64 "\n", n_hits);
     printf(" - total duration: %f s\n", duration);
     printf(" - throughput: %f hits/s\n", (n_hits / duration));
 

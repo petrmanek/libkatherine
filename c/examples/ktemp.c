@@ -160,7 +160,4 @@ main(int argc, char *argv[])
 
         sleep_seconds(args.period);
     }
-
-    katherine_device_fini(&device);
-    return 0;
 }

@@ -244,9 +244,10 @@ int
 katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
 {
     ssize_t sent;
-    size_t total = 0;
+    size_t total      = 0;
+    const char *cdata = (const char *) data;
     do {
-        sent = sendto(u->sock, data + total, count - total, 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
+        sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
         if (sent == -1) {
             return errno;
         }
@@ -273,11 +274,12 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
 {
     size_t received = 0;
     size_t total    = 0;
+    char *cdata     = (char *) data;
 
     // A pinned session verifies every datagram of the message separately, and
     // the discard budget is spent per datagram rather than per message.
     while (total < count) {
-        int res = recv_datagram(u, data + total, count - total, &received);
+        int res = recv_datagram(u, cdata + total, count - total, &received);
         if (res != 0) {
             return res;
         }
@@ -302,8 +304,8 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
 int
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
 {
-    size_t received;
-    int res = recv_datagram(u, data, *count, &received);
+    size_t received = 0;
+    int res         = recv_datagram(u, data, *count, &received);
 
     if (res != 0) {
         return res;

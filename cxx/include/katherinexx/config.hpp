@@ -94,7 +94,7 @@ public:
     void set_acq_time(std::chrono::duration<Rep, Period> val)
     {
         using namespace std::chrono;
-        conf_.acq_time = duration_cast<nanoseconds>(val).count();
+        conf_.acq_time = static_cast<double>(duration_cast<nanoseconds>(val).count());
     }
 
     int no_frames() const { return conf_.no_frames; }

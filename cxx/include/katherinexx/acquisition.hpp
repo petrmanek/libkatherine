@@ -100,7 +100,7 @@ public:
     {
         using namespace std::chrono;
 
-        int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void *>(this), md_buffer_size, pixel_buffer_size, duration_cast<milliseconds>(report_timeout).count(), duration_cast<milliseconds>(fail_timeout).count());
+        int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void *>(this), md_buffer_size, pixel_buffer_size, static_cast<int>(duration_cast<milliseconds>(report_timeout).count()), static_cast<int>(duration_cast<milliseconds>(fail_timeout).count()));
         if (res != 0) {
             throw katherine::system_error{res};
         }

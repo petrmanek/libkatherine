@@ -143,7 +143,7 @@ run_cmd_roundtrips(void)
     static char cmd[CMD_DGRAM_BYTES];
     static char reply[CMD_DGRAM_BYTES];
     uint64_t roundtrips = 0;
-    double t0, dt;
+    double t0, dt = 0;
     int failed = 0;
 
     if (katherine_udp_init_bound(&a, LOOPBACK_ADDR, PORT_CMD_A, LOOPBACK_ADDR, PORT_CMD_B, UDP_TIMEOUT_MS)) {

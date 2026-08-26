@@ -507,7 +507,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
 
             cmd[0] = tp_config->count & 0xFF;
             cmd[1] = (tp_config->count >> 8) & 0xFF;
-            cmd[2] = (tp_config->period - 1) / 64;
+            cmd[2] = ((tp_config->period - 1) / 64) & 0xFF;
             cmd[3] = tp_config->phase;
         }
 
