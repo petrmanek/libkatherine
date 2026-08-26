@@ -43,14 +43,14 @@ extern "C" {
  * @return Version in the same composed form as `KATHERINE_VERSION_HEX`.
  */
 KATHERINE_EXPORTED uint64_t
-katherine_version();
+katherine_version(void);
 
 /**
  * Query the version of libkatherine loaded at runtime.
  * @return Version string in the same form as `KATHERINE_VERSION_STRING`.
  */
 KATHERINE_EXPORTED const char *
-katherine_version_string();
+katherine_version_string(void);
 
 #ifdef __cplusplus
 }

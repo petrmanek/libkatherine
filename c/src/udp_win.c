@@ -13,7 +13,7 @@
 #include <katherine/global.h>
 
 void
-empty_method()
+empty_method(void)
 { }
 
 #ifdef KATHERINE_WIN

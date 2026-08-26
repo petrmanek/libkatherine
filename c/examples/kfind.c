@@ -39,7 +39,7 @@ test_succeeded(const char *address, const char *chip_id)
 }
 
 static void
-test_ip_address()
+test_ip_address(void)
 {
     ++n_attempted;
 
@@ -132,7 +132,7 @@ parse_args(int argc, char *argv[], int min[4], int max[4])
 }
 
 static void
-next_address()
+next_address(void)
 {
     int i = 3;
 

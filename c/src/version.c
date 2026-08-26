@@ -17,7 +17,7 @@
  * @return Version in the same composed form as `KATHERINE_VERSION_HEX`.
  */
 uint64_t
-katherine_version()
+katherine_version(void)
 {
     return KATHERINE_VERSION_HEX;
 }
@@ -27,7 +27,7 @@ katherine_version()
  * @return Version string in the same form as `KATHERINE_VERSION_STRING`.
  */
 const char *
-katherine_version_string()
+katherine_version_string(void)
 {
     return KATHERINE_VERSION_STRING;
 }
