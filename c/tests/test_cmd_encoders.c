@@ -26,6 +26,10 @@
  *      the GeneralConfig sensor register value built from named bits of
  *      katherine_config_t, encoded the same way katherine_configure()
  *      sends it.
+ *   6. The acquisition-setup (0x21/0x05) trigger word.
+ *   7. Builder-level cases for katherine_cmd8_t (cmd.h): payload_u32 at its
+ *      two boundary values, and chip-envelope placement for one opcode of
+ *      each byte-5/1/0 family plus an opcode outside the table.
  *
  * The 0x26 test-pulse datagram already has byte-exact coverage in
  * test_tp.c and is not repeated here.
@@ -49,6 +53,7 @@
 #include <katherine/error.h>
 #include <katherine/udp.h>
 
+#include "protocol/cmd.h"
 #include "protocol/command_interface.h"
 #include "ktest.h"
 
@@ -503,6 +508,90 @@ test_acquisition_setup_word(void)
     katherine_udp_fini(&capture);
 }
 
+/* ------------------------------------------------------------------ */
+/* 7. Builder-level cases for katherine_cmd8_t (cmd.h).                */
+
+static void
+test_cmd8_payload_u32_boundary(void)
+{
+    /* value = 0: every payload byte is already zero from katherine_cmd8(),
+       so this pins down that the store does not disturb that -- nor
+       anything outside b[0..3], most notably the opcode at b[6]. */
+    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) 0x2A);
+    katherine_cmd8_payload_u32(&cmd, 0);
+    const unsigned char expected_zero[8] = {0, 0, 0, 0, 0, 0, 0x2A, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expected_zero, 8);
+
+    /* value = 0xFFFFFFFF: every payload byte saturates; b[4..7] stay at
+       their zero-initialized values. */
+    cmd = katherine_cmd8((uint8_t) 0x2A);
+    katherine_cmd8_payload_u32(&cmd, 0xFFFFFFFFU);
+    const unsigned char expected_max[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expected_max, 8);
+}
+
+/* One opcode per envelope family, chip=0 and one nonzero chip apiece --
+   nonzero chip is exercised here even though every current caller of this
+   library sends 0, since the table is otherwise untested code. */
+static void
+test_cmd8_chip_envelope(void)
+{
+    /* byte-5 family: internal DAC settings (0x04). */
+    katherine_cmd8_t cmd = katherine_cmd8((uint8_t) 0x04);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x04, 0), 0);
+    const unsigned char expect_b5_chip0[8] = {0, 0, 0, 0, 0, 0, 0x04, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_b5_chip0, 8);
+
+    cmd = katherine_cmd8((uint8_t) 0x04);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x04, 3), 0);
+    const unsigned char expect_b5_chip3[8] = {0, 0, 0, 0, 0, 3, 0x04, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_b5_chip3, 8);
+
+    /* byte-1 family: HW command dispatch (0x07). */
+    cmd = katherine_cmd8((uint8_t) 0x07);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x07, 0), 0);
+    const unsigned char expect_b1_chip0[8] = {0, 0, 0, 0, 0, 0, 0x07, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_b1_chip0, 8);
+
+    cmd = katherine_cmd8((uint8_t) 0x07);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x07, 2), 0);
+    const unsigned char expect_b1_chip2[8] = {0, 2, 0, 0, 0, 0, 0x07, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_b1_chip2, 8);
+
+    /* byte-0 family: set-all-pixel-config (0x12). */
+    cmd = katherine_cmd8((uint8_t) 0x12);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x12, 0), 0);
+    const unsigned char expect_b0_chip0[8] = {0, 0, 0, 0, 0, 0, 0x12, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_b0_chip0, 8);
+
+    cmd = katherine_cmd8((uint8_t) 0x12);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x12, 1), 0);
+    const unsigned char expect_b0_chip1[8] = {1, 0, 0, 0, 0, 0, 0x12, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_b0_chip1, 8);
+
+    /* An opcode absent from the table (0x99, unused by this protocol)
+       accepts chip 0 -- nothing to place -- but rejects a nonzero chip
+       instead of silently dropping it. */
+    cmd = katherine_cmd8((uint8_t) 0x99);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x99, 0), 0);
+    const unsigned char expect_unknown_chip0[8] = {0, 0, 0, 0, 0, 0, 0x99, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_unknown_chip0, 8);
+
+    cmd = katherine_cmd8((uint8_t) 0x99);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0x99, 1), -KATHERINE_E_BAD_CHIP);
+
+    /* The highest opcode there is, answered from the same table without a
+       range test: it holds an entry for every value a uint8_t opcode can
+       take, and 0xFF's is the "no slot" zero like any other unlisted one. */
+    cmd = katherine_cmd8((uint8_t) 0xFF);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0xFF, 0), 0);
+    const unsigned char expect_top_chip0[8] = {0, 0, 0, 0, 0, 0, 0xFF, 0};
+    KT_CHECK_MEM_EQ(cmd.b, expect_top_chip0, 8);
+
+    cmd = katherine_cmd8((uint8_t) 0xFF);
+    KT_CHECK_EQ(katherine_cmd8_chip(&cmd, 0xFF, 1), -KATHERINE_E_BAD_CHIP);
+}
+
 int
 main(void)
 {
@@ -524,6 +613,8 @@ main(void)
     KT_RUN(test_i64_boundary);
     KT_RUN(test_general_config_word);
     KT_RUN(test_acquisition_setup_word);
+    KT_RUN(test_cmd8_payload_u32_boundary);
+    KT_RUN(test_cmd8_chip_envelope);
 
     fixture_fini();
     return kt_summary();

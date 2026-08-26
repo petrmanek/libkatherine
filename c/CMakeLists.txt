@@ -16,6 +16,7 @@ set(KATHERINE_SOURCES
     "src/version.c"
     "src/protocol/crd.h"
     "src/acq/bitfields.h"
+    "src/protocol/cmd.h"
     "src/protocol/command_interface.h"
     "src/msleep.h"
     "src/monoclock.h"
