@@ -45,6 +45,25 @@ katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
 # threads, and none of the fixed ports that would make it RUN_SERIAL.
 katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit)
 
+# The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
+# call sites unchanged and drives one real failure through each target of
+# its errno mapping, plus a success path. Sockets, but only through the
+# public katherine_udp_* API (via the shim) and on uncommon high ports of
+# its own, so it builds everywhere and claims no global resource, like
+# test_udp_pinning.c above.
+#
+# Every call site here uses a 1.x name, which katherine1.h resolves to a
+# deprecated wrapper -- the warning that is the point of the attribute, and
+# so expected at every one of them that -Wall -Wextra -Wpedantic / /W4 would
+# otherwise turn into a build failure. Suppressed for this target alone
+# rather than papered over in the shim itself, which must keep warning every
+# other consumer.
+katherine_add_test(NAME test_compat1 SOURCES test_compat1.c LABELS unit)
+target_compile_options(test_compat1 PRIVATE
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>>:-Wno-deprecated-declarations>
+    $<$<C_COMPILER_ID:MSVC>:/wd4996>
+)
+
 # End-to-end acquisition against the ksim daemon, which hosts the protocol
 # emulator on real UDP sockets -- hence the guard on the emulator feature,
 # which is what brings the ksim target into the build. The test drives only

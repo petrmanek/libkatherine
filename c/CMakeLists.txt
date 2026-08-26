@@ -30,6 +30,7 @@ set(KATHERINE_HEADERS
     "include/katherine/error.h"
     "include/katherine/global.h"
     "include/katherine/katherine.h"
+    "include/katherine/katherine1.h"
     "include/katherine/px_config.h"
     "include/katherine/px.h"
     "include/katherine/status.h"
