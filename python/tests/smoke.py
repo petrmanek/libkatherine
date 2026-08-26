@@ -166,9 +166,12 @@ def wait_ready(ksim, katherine):
 def find_project_version(script_path):
     """Best-effort lookup of the CMake project() version, read from the
     repository's top-level CMakeLists.txt two directories up from this
-    script (python/tests/smoke.py). Returns None if that file cannot be
-    found or parsed, e.g. when this script has been copied out of a source
-    checkout -- in which case __version__ is checked for shape only."""
+    script (python/tests/smoke.py), with the KATHERINE_VERSION_SUFFIX cache
+    variable (e.g. "-dev" during a development cycle) appended when the
+    file sets one, exactly as version.h.in composes KATHERINE_VERSION_STRING
+    and __version__ follows it. Returns None if that file cannot be found or
+    parsed, e.g. when this script has been copied out of a source checkout
+    -- in which case __version__ is checked for shape only."""
     repo_root = os.path.abspath(os.path.join(os.path.dirname(script_path), os.pardir, os.pardir))
     path = os.path.join(repo_root, 'CMakeLists.txt')
 
@@ -179,7 +182,16 @@ def find_project_version(script_path):
         return None
 
     m = re.search(r'project\(katherine\s+VERSION\s+([0-9.]+)', text)
-    return m.group(1) if m else None
+    if m is None:
+        return None
+
+    version = m.group(1)
+
+    suffix = re.search(r'set\(KATHERINE_VERSION_SUFFIX\s+"([^"]*)"\)', text)
+    if suffix is not None:
+        version += suffix.group(1)
+
+    return version
 
 
 def build_config(katherine):

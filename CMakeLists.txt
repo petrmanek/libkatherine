@@ -6,7 +6,12 @@
 cmake_minimum_required(VERSION 3.21)
 # C++ is enabled by the cxx/ directory, so that KATHERINE_BUILD_CXX=OFF
 # builds do not require a C++ compiler.
-project(katherine VERSION 1.1.0 LANGUAGES C)
+project(katherine VERSION 2.0.0 LANGUAGES C)
+
+# Suffix appended to the version string reported at runtime and baked into
+# version.h -- marks development builds between releases. Cleared by the
+# release commit and restored by the next development-cycle bump.
+set(KATHERINE_VERSION_SUFFIX "-dev")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(KatherineFeatures)
