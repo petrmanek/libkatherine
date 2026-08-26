@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <katherine/px_config.h>
-#include "bitfields.h"
+#include "acq/bitfields.h"
 
 /* Fields of the per-pixel configuration byte. The packed matrix stores one
    such byte per pixel in the BMC bit layout (see the katherine_bmc_px

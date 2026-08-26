@@ -51,7 +51,7 @@
    see the file comment. md.h pulls in "bitfields.h" (EXTRACT/INSERT)
    itself, the same way it does for c/src/acquisition.c; monoclock.h wraps
    the platform monotonic clock. */
-#include "md.h"
+#include "acq/md.h"
 #include "monoclock.h"
 
 /* Size of the canned buffer, in whole six-byte words: several MB, comfortably

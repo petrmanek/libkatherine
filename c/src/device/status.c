@@ -16,8 +16,8 @@
 #include <katherine/status.h>
 #include <katherine/global.h>
 #include <katherine/device.h>
-#include "command_interface.h"
-#include "crd.h"
+#include "protocol/command_interface.h"
+#include "protocol/crd.h"
 
 /**
  * Inquire the status of the readout.

@@ -15,7 +15,7 @@
 #include <string.h>
 #include <katherine/global.h>
 #include <katherine/acquisition.h>
-#include "command_interface.h"
+#include "protocol/command_interface.h"
 #include "md.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

@@ -49,7 +49,7 @@
 #include <katherine/device.h>
 #include <katherine/udp.h>
 
-#include "command_interface.h"
+#include "protocol/command_interface.h"
 #include "ktest.h"
 
 /* ------------------------------------------------------------------ */

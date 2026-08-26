@@ -16,7 +16,7 @@
 /* The pixel mapping functions of md.h are written against the acquisition,
  * so its declaration has to precede them. */
 #include <katherine/acquisition.h>
-#include "../md.h"
+#include "acq/md.h"
 #include "emu.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

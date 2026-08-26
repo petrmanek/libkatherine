@@ -4,21 +4,21 @@
 # SPDX-License-Identifier: MIT
 
 set(KATHERINE_SOURCES
-    "src/acquisition.c"
-    "src/px_config.c"
-    "src/config.c"
-    "src/device.c"
+    "src/acq/acquisition.c"
+    "src/device/px_config.c"
+    "src/device/config.c"
+    "src/device/device.c"
     "src/repr.c"
-    "src/status.c"
-    "src/udp_nix.c"
-    "src/udp_win.c"
+    "src/device/status.c"
+    "src/transport/udp_nix.c"
+    "src/transport/udp_win.c"
     "src/version.c"
-    "src/crd.h"
-    "src/bitfields.h"
-    "src/command_interface.h"
+    "src/protocol/crd.h"
+    "src/acq/bitfields.h"
+    "src/protocol/command_interface.h"
     "src/msleep.h"
     "src/monoclock.h"
-    "src/md.h"
+    "src/acq/md.h"
 )
 
 set(KATHERINE_HEADERS

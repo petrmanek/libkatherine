@@ -21,7 +21,7 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#include "bitfields.h"
+#include "acq/bitfields.h"
 
 // Define bitfield: readout_status_crd
 

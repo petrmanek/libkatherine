@@ -32,7 +32,7 @@
 
 /* The pixel mapping functions of md.h are written against the acquisition,
    so its declaration has to precede them. */
-#include "md.h"
+#include "acq/md.h"
 
 #include "ktest.h"
 

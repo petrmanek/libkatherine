@@ -13,8 +13,8 @@
 #include <errno.h>
 #include <string.h>
 #include <katherine/emulator.h>
-#include "../command_interface.h"
-#include "../crd.h"
+#include "protocol/command_interface.h"
+#include "protocol/crd.h"
 #include "emu.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <katherine/config.h>
 #include <katherine/device.h>
-#include "command_interface.h"
+#include "protocol/command_interface.h"
 #include "msleep.h"
 
 /**
