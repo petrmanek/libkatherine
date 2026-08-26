@@ -36,10 +36,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <errno.h>
 #include <stdint.h>
 
 #include <katherine/config.h>
+#include <katherine/error.h>
 
 #include "ktest.h"
 
@@ -89,7 +89,7 @@ test_each_dac_max_plus_one_fails(void)
         katherine_dacs_t dacs;
         fill_at_max(&dacs);
         dacs.array[i] = (uint16_t) (DAC_MAX[i] + 1);
-        KT_CHECK_EQ(katherine_dacs_validate(&dacs), EINVAL);
+        KT_CHECK_EQ(katherine_dacs_validate(&dacs), -KATHERINE_E_INVAL);
     }
 }
 

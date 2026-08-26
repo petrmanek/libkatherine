@@ -21,6 +21,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <katherine/error.h>
 #include <katherine/udp.h>
 
 #ifdef KATHERINE_DEBUG_UDP
@@ -60,11 +61,42 @@ from_pinned_remote(const katherine_udp_t *u, const struct sockaddr_in *addr)
     return addr->sin_addr.s_addr == u->addr_remote.sin_addr.s_addr;
 }
 
+/**
+ * Maps a POSIX `<errno.h>` value from one of this file's syscalls to the
+ * library's own error domain: the three cases every public function agrees
+ * on (EAGAIN/EWOULDBLOCK/ETIMEDOUT as a timeout, EINVAL, ENOMEM) apply
+ * wherever they turn up, not only at the syscall each was first observed
+ * at; anything else falls back to the group the caller names, since the
+ * OS-level detail is preserved separately, in
+ * katherine_udp_t::last_os_error.
+ * @param err Raw `<errno.h>` value
+ * @param fallback Group to report if err does not match a specific case
+ * @return The mapped enumerator
+ */
+static katherine_error_t
+map_syscall_error(int err, katherine_error_t fallback)
+{
+    switch (err) {
+    case EAGAIN:
+#if EWOULDBLOCK != EAGAIN
+    case EWOULDBLOCK:
+#endif
+    case ETIMEDOUT:
+        return KATHERINE_E_TIMEOUT;
+    case EINVAL:
+        return KATHERINE_E_INVAL;
+    case ENOMEM:
+        return KATHERINE_E_NOMEM;
+    default:
+        return fallback;
+    }
+}
+
 /* Receives one datagram from the pinned remote of session u, discarding up to
    KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
-   Spending that budget is reported as EAGAIN, the very code the expired
-   receive timeout of an idle socket yields, so that no caller needs a
-   separate path for it.
+   Spending that budget is reported as -KATHERINE_E_TIMEOUT, the very code
+   the expired receive timeout of an idle socket yields, so that no caller
+   needs a separate path for it.
 
    The pinned address is read from addr_remote itself rather than from a copy
    taken when the pin was placed, which is what makes the pin follow
@@ -77,7 +109,8 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received)
         socklen_t addr_len = sizeof(addr_from);
         ssize_t res        = recvfrom(u->sock, data, count, 0, (struct sockaddr *) &addr_from, &addr_len);
         if (res == -1) {
-            return errno;
+            u->last_os_error = errno;
+            return -(int) map_syscall_error(errno, KATHERINE_E_IO);
         }
 
         if (from_pinned_remote(u, &addr_from)) {
@@ -86,7 +119,11 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received)
         }
     }
 
-    return EAGAIN;
+    /* The discard budget is spent, not an OS-level failure -- reported
+       exactly like an expired receive timeout (see KATHERINE_UDP_PIN_MAX_DISCARDS
+       above), so no caller needs a separate path for it. */
+    u->last_os_error = 0;
+    return -KATHERINE_E_TIMEOUT;
 }
 
 /* Receives one datagram into data, honoring the pin of session u: a pinned
@@ -104,7 +141,8 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received)
     socklen_t addr_len = sizeof(u->addr_remote);
     ssize_t res        = recvfrom(u->sock, data, count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
     if (res == -1) {
-        return errno;
+        u->last_os_error = errno;
+        return -(int) map_syscall_error(errno, KATHERINE_E_IO);
     }
 
     *received = (size_t) res;
@@ -152,10 +190,12 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     // uninitialized storage, so the default cannot be left to the
     // allocation.
     u->remote_pinned = false;
+    u->last_os_error = 0;
 
     // Create socket.
     if ((u->sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-        res = errno;
+        u->last_os_error = errno;
+        res              = -(int) map_syscall_error(errno, KATHERINE_E_IO);
         goto err_socket;
     }
 
@@ -165,7 +205,8 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     // though the addresses differ.
     int reuseaddr = 1;
     if (setsockopt(u->sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
-        res = errno;
+        u->last_os_error = errno;
+        res              = -(int) map_syscall_error(errno, KATHERINE_E_IO);
         goto err_reuseaddr;
     }
 
@@ -175,12 +216,15 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     if (local_addr == NULL) {
         u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
     } else if (inet_pton(AF_INET, local_addr, &u->addr_local.sin_addr) <= 0) {
-        res = EINVAL;
+        // inet_pton() rejecting the string is not an OS-level failure, so
+        // last_os_error is left at the 0 it was reset to above.
+        res = -KATHERINE_E_ADDR;
         goto err_local_addr;
     }
 
     if (bind(u->sock, (struct sockaddr *) &u->addr_local, sizeof(u->addr_local)) == -1) {
-        res = errno;
+        u->last_os_error = errno;
+        res              = -KATHERINE_E_ADDR;
         goto err_bind;
     }
 
@@ -190,7 +234,8 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
         timeout.tv_sec  = timeout_ms / 1000;
         timeout.tv_usec = 1000 * (timeout_ms % 1000);
         if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
-            res = errno;
+            u->last_os_error = errno;
+            res              = -(int) map_syscall_error(errno, KATHERINE_E_IO);
             goto err_timeout;
         }
     }
@@ -199,15 +244,18 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     u->addr_remote.sin_family = AF_INET;
     u->addr_remote.sin_port   = htons(remote_port);
     if (inet_pton(AF_INET, remote_addr, &u->addr_remote.sin_addr) <= 0) {
-        res = EINVAL;
+        res = -KATHERINE_E_ADDR;
         goto err_remote;
     }
 
-    if ((res = pthread_mutex_init(&u->mutex, NULL)) != 0) {
+    int mres = pthread_mutex_init(&u->mutex, NULL);
+    if (mres != 0) {
+        u->last_os_error = mres;
+        res              = -(int) map_syscall_error(mres, KATHERINE_E_SYSTEM);
         goto err_mutex;
     }
 
-    return res;
+    return 0;
 
 err_mutex:
 err_remote:
@@ -249,7 +297,8 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
     do {
         sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
         if (sent == -1) {
-            return errno;
+            u->last_os_error = errno;
+            return -(int) map_syscall_error(errno, KATHERINE_E_IO);
         }
 
         total += sent;
@@ -343,7 +392,10 @@ katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t r
     addr_remote.sin_family = AF_INET;
     addr_remote.sin_port   = htons(remote_port);
     if (inet_pton(AF_INET, remote_addr, &addr_remote.sin_addr) <= 0) {
-        return EINVAL;
+        // Same address-resolution failure as katherine_udp_init_bound(), and
+        // not an OS-level one either.
+        u->last_os_error = 0;
+        return -KATHERINE_E_ADDR;
     }
 
     u->addr_remote = addr_remote;
@@ -359,7 +411,8 @@ katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t r
  * retargets for good (issue #23, "net: stop stray datagrams retargeting remote addr"). A pinned
  * session keeps sending where it was told to by katherine_udp_init() or
  * katherine_udp_set_remote(), and silently discards inbound datagrams from any other host, up to
- * KATHERINE_UDP_PIN_MAX_DISCARDS of them per receive call before reporting EAGAIN.
+ * KATHERINE_UDP_PIN_MAX_DISCARDS of them per receive call before reporting
+ * -KATHERINE_E_TIMEOUT.
  *
  * Only the remote host is pinned, not its port, because a readout answers commands from its
  * command port but streams measurement data from another. Pinning cannot be undone.
@@ -380,7 +433,13 @@ katherine_udp_pin_remote(katherine_udp_t *u)
 int
 katherine_udp_mutex_lock(katherine_udp_t *u)
 {
-    return pthread_mutex_lock(&u->mutex);
+    int err = pthread_mutex_lock(&u->mutex);
+    if (err != 0) {
+        u->last_os_error = err;
+        return -(int) map_syscall_error(err, KATHERINE_E_SYSTEM);
+    }
+
+    return 0;
 }
 
 /**
@@ -391,7 +450,25 @@ katherine_udp_mutex_lock(katherine_udp_t *u)
 int
 katherine_udp_mutex_unlock(katherine_udp_t *u)
 {
-    return pthread_mutex_unlock(&u->mutex);
+    int err = pthread_mutex_unlock(&u->mutex);
+    if (err != 0) {
+        u->last_os_error = err;
+        return -(int) map_syscall_error(err, KATHERINE_E_SYSTEM);
+    }
+
+    return 0;
+}
+
+/**
+ * Read the OS-level detail of a UDP session's most recent transport failure.
+ * @param u UDP session
+ * @return The raw OS error code behind the session's last failure, or 0 if
+ *   it succeeded, or failed without one (e.g. a malformed address argument).
+ */
+int
+katherine_udp_last_os_error(const katherine_udp_t *u)
+{
+    return u->last_os_error;
 }
 
 #endif /* KATHERINE_NIX */

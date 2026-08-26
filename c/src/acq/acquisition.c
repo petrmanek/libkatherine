@@ -10,11 +10,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <katherine/global.h>
 #include <katherine/acquisition.h>
+#include <katherine/error.h>
 #include "protocol/command_interface.h"
 #include "md.h"
 
@@ -263,7 +263,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // requested size, including multiples of 8.
     acq->md_buffer = (char *) malloc(md_buffer_size + sizeof(uint64_t));
     if (acq->md_buffer == NULL) {
-        res = ENOMEM;
+        res = -KATHERINE_E_NOMEM;
         goto err_datagram_buffer;
     }
 
@@ -271,7 +271,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->pixel_buffer       = (char *) malloc(acq->pixel_buffer_size);
     acq->pixel_buffer_valid = 0;
     if (acq->pixel_buffer == NULL) {
-        res = ENOMEM;
+        res = -KATHERINE_E_NOMEM;
         goto err_pixel_buffer;
     }
 
@@ -333,7 +333,8 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     { \
         static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
 \
-        if (katherine_udp_mutex_lock(&acq->device->data_socket) != 0) return 1; \
+        int lock_res = katherine_udp_mutex_lock(&acq->device->data_socket); \
+        if (lock_res != 0) return lock_res; \
 \
         time_t last_data_received = time(NULL); \
         double duration; \
@@ -404,8 +405,12 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         (void) katherine_udp_mutex_unlock(&acq->device->data_socket); \
         switch (acq->state) { \
         case ACQUISITION_SUCCEEDED: return 0; \
-        case ACQUISITION_TIMED_OUT: return ETIMEDOUT; \
-        default:                    return EAGAIN; \
+        case ACQUISITION_TIMED_OUT: return -KATHERINE_E_TIMEOUT; \
+        /* Reachable only if the read loop above never ran at all, i.e. \
+           katherine_acquisition_read() was called on an acquisition that \
+           katherine_acquisition_begin() never brought to ACQUISITION_RUNNING: \
+           the two other terminal states are the explicit cases above. */ \
+        default: return -KATHERINE_E_STATE; \
         } \
     }
 
@@ -449,7 +454,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
         }
 
     default:
-        return EINVAL;
+        return -KATHERINE_E_INVAL;
     }
 }
 
@@ -477,7 +482,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 #endif /* KATHERINE_DEBUG_ACQ */
 
     if (readout_mode == READOUT_DATA_DRIVEN && config->no_frames > 1) {
-        res = EINVAL;
+        res = -KATHERINE_E_INVAL;
         goto err;
     }
 

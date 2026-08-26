@@ -38,6 +38,12 @@ KSIM_SEED = 12345
 HITS_PER_FRAME = 40
 LOST_PER_FRAME = 3
 
+# The katherine C extension raises one of these for a device call that
+# failed with a library error code (see katherine.pyx's check_return_code());
+# each is constructed from katherine_strerror(), so str(e) is already the
+# message a caller wants to show.
+KATHERINE_ERRORS = (TimeoutError, ValueError, MemoryError, RuntimeError)
+
 # Readiness polling: the device's control timeout is 100 ms, so one failed
 # attempt costs roughly that much plus the sleep below -- 80 attempts bound
 # the wait at roughly ten seconds.
@@ -139,12 +145,12 @@ def wait_ready(ksim, katherine):
     for _ in range(READY_ATTEMPTS):
         try:
             device = katherine.Device(KSIM_LISTEN_ADDR)
-        except OSError as e:
-            return None, 'cannot bind the local control/data ports 1555/1556: %s' % os.strerror(e.errno)
+        except KATHERINE_ERRORS as e:
+            return None, 'cannot bind the local control/data ports 1555/1556: %s' % e
 
         try:
             chip_id = device.get_chip_id()
-        except OSError:
+        except KATHERINE_ERRORS:
             chip_id = None
 
         if chip_id == EXPECTED_CHIP_ID:
@@ -338,7 +344,7 @@ def run_checks(tap, katherine, device):
     try:
         device.perform_digital_test()
         digital_test_ok = True
-    except OSError:
+    except KATHERINE_ERRORS:
         digital_test_ok = False
     tap.check('digital test passes', digital_test_ok)
 

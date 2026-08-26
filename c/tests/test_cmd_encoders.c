@@ -39,7 +39,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -47,6 +46,7 @@
 
 #include <katherine/config.h>
 #include <katherine/device.h>
+#include <katherine/error.h>
 #include <katherine/udp.h>
 
 #include "protocol/command_interface.h"
@@ -104,14 +104,13 @@ fixture_fini(void)
     katherine_udp_fini(&g_capture);
 }
 
-/* True if res is the code an expired receive timeout yields -- EAGAIN, which
-   is also what a pinned receive reports once its discard budget is spent
-   (see katherine_udp_pin_remote()). The other two are what a Winsock timeout
-   can surface as. */
+/* True if res is the code an expired receive timeout yields, which is also
+   what a pinned receive reports once its discard budget is spent (see
+   katherine_udp_pin_remote()). */
 static bool
 is_timeout(int res)
 {
-    return res == EAGAIN || res == EWOULDBLOCK || res == ETIMEDOUT;
+    return res == -KATHERINE_E_TIMEOUT;
 }
 
 /* Captures the next datagram sent by g_sender into got[8]. The recv buffer
@@ -119,10 +118,10 @@ is_timeout(int res)
    exactly 8, so an encoder that emits a short or long datagram fails here
    instead of being silently truncated or padded into a false match. Once
    the datagram is read, the endpoint must be empty: a second recv is
-   required to time out (a short-timeout recv returning EAGAIN proving
-   emptiness, in place of the MSG_DONTWAIT drain-check a raw socket would
-   use), so a future two-datagram encoder is caught at its own CHECK_CMD
-   instead of desynchronizing every case that runs after it. */
+   required to time out (a short-timeout recv reporting -KATHERINE_E_TIMEOUT
+   proving emptiness, in place of the MSG_DONTWAIT drain-check a raw socket
+   would use), so a future two-datagram encoder is caught at its own
+   CHECK_CMD instead of desynchronizing every case that runs after it. */
 static void
 capture(unsigned char got[8])
 {
@@ -460,7 +459,7 @@ static void
 check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const katherine_trigger_t *start,
     bool delayed_start, const katherine_trigger_t *end, unsigned char b0, unsigned char b1)
 {
-    KT_CHECK_EQ(katherine_acquisition_setup(dev, start, delayed_start, end), EAGAIN);
+    KT_CHECK_EQ(katherine_acquisition_setup(dev, start, delayed_start, end), -KATHERINE_E_TIMEOUT);
 
     unsigned char got[8];
     size_t n = sizeof(got);

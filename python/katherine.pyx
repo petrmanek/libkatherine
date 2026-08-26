@@ -13,7 +13,6 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, int32_t
 from libc.string cimport memcpy
 from libcpp cimport bool
-from os import strerror
 from enum import Enum, unique
 import array
 
@@ -25,13 +24,23 @@ cimport cpx_config
 cimport cacquisition
 cimport cudp
 cimport cversion
+cimport cerror
 
 
 def check_return_code(int res):
     if res == 0:
-         return
+        return
 
-    raise OSError(res, strerror(res))
+    message = cerror.katherine_strerror(res).decode('UTF-8')
+
+    if res == -cerror.KATHERINE_E_TIMEOUT:
+        raise TimeoutError(message)
+    elif res == -cerror.KATHERINE_E_INVAL:
+        raise ValueError(message)
+    elif res == -cerror.KATHERINE_E_NOMEM:
+        raise MemoryError()
+    else:
+        raise RuntimeError(message)
 
 
 # Function pointer type shared by every katherine_*_snprint() declared in

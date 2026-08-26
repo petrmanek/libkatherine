@@ -36,13 +36,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
+#include <katherine/error.h>
 #include <katherine/udp.h>
 
 #include "ktest.h"
@@ -149,13 +149,12 @@ host_other_available(void)
     return true;
 }
 
-/* True if res is the code an expired receive timeout yields -- EAGAIN, which
-   is also what a pinned receive reports once its discard budget is spent.
-   The other two are what a Winsock timeout can surface as. */
+/* True if res is the code an expired receive timeout yields, which is also
+   what a pinned receive reports once its discard budget is spent. */
 static bool
 is_timeout(int res)
 {
-    return res == EAGAIN || res == EWOULDBLOCK || res == ETIMEDOUT;
+    return res == -KATHERINE_E_TIMEOUT;
 }
 
 static void

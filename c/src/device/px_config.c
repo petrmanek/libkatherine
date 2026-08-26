@@ -15,8 +15,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <katherine/error.h>
 #include <katherine/px_config.h>
 #include "acq/bitfields.h"
+
+/**
+ * Maps the small subset of `<errno.h>` values fopen() can plausibly produce
+ * that this library's own domain also names explicitly; anything else is a
+ * generic I/O failure, exactly like a short read below.
+ * @param err Raw `<errno.h>` value from fopen()
+ * @return The mapped enumerator
+ */
+static katherine_error_t
+map_fopen_errno(int err)
+{
+    switch (err) {
+    case EINVAL: return KATHERINE_E_INVAL;
+    case ENOMEM: return KATHERINE_E_NOMEM;
+    default:     return KATHERINE_E_IO;
+    }
+}
 
 /* Fields of the per-pixel configuration byte. The packed matrix stores one
    such byte per pixel in the BMC bit layout (see the katherine_bmc_px
@@ -48,19 +66,19 @@ katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *
     const size_t expected_size = sizeof(katherine_bmc_t);
     FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
-        res = errno;
+        res = -(int) map_fopen_errno(errno);
         goto err_fopen;
     }
 
     katherine_bmc_t *buffer = (katherine_bmc_t *) malloc(expected_size);
     if (buffer == NULL) {
-        res = ENOMEM;
+        res = -KATHERINE_E_NOMEM;
         goto err_buffer;
     }
 
     const size_t actual_size = fread(buffer, 1, expected_size, file);
     if (expected_size != actual_size) {
-        res = EIO;
+        res = -KATHERINE_E_IO;
         goto err_fread;
     }
 
@@ -114,19 +132,19 @@ katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *
     const size_t expected_size = sizeof(katherine_bpc_t);
     FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
-        res = errno;
+        res = -(int) map_fopen_errno(errno);
         goto err_fopen;
     }
 
     katherine_bpc_t *buffer = (katherine_bpc_t *) malloc(expected_size);
     if (buffer == NULL) {
-        res = ENOMEM;
+        res = -KATHERINE_E_NOMEM;
         goto err_buffer;
     }
 
     const size_t actual_size = fread(buffer, 1, expected_size, file);
     if (expected_size != actual_size) {
-        res = EIO;
+        res = -KATHERINE_E_IO;
         goto err_fread;
     }
 

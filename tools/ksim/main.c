@@ -36,6 +36,7 @@
 // the legacy Winsock 1.1 header unless Winsock 2 was already established
 // first, so the reverse order does not compile under the Windows SDK.
 #include <katherine/emulator.h>
+#include <katherine/error.h>
 #include <katherine/udp.h>
 
 #include "args.h"
@@ -456,7 +457,7 @@ track_client(katherine_udp_t *data_udp, const katherine_udp_t *ctl_udp, uint16_t
     if (res != 0) {
         if (!quiet) {
             fprintf(stderr, "ksim: failed to repoint the data socket to %s:%u: %s\n", ip_str,
-                (unsigned) client_data_port, strerror(res));
+                (unsigned) client_data_port, katherine_strerror(res));
         }
         return;
     }
@@ -519,7 +520,7 @@ send_stray_crd(katherine_udp_t *ctl_udp, bool quiet)
 
     if (quiet) return;
     if (res != 0) {
-        fprintf(stderr, "ksim: failed to send the stray CRD: %s\n", strerror(res));
+        fprintf(stderr, "ksim: failed to send the stray CRD: %s\n", katherine_strerror(res));
     } else {
         fprintf(stderr, "ksim: sent an unsolicited response datagram to the client\n");
     }
@@ -551,7 +552,7 @@ main(int argc, char *argv[])
     int res = katherine_udp_init_bound(&ctl_udp, options.listen_addr, options.ctl_port, "0.0.0.0", 0, CTL_RECV_TIMEOUT_MS);
     if (res != 0) {
         fprintf(stderr, "ksim: cannot bind control socket on %s:%u: %s\n", options.listen_addr,
-            (unsigned) options.ctl_port, strerror(res));
+            (unsigned) options.ctl_port, katherine_strerror(res));
         katherine_emu_fini(&emu);
         return EXIT_FAILURE;
     }
@@ -560,7 +561,7 @@ main(int argc, char *argv[])
     res = katherine_udp_init_bound(&data_udp, options.listen_addr, options.data_port, "0.0.0.0", 0, 0);
     if (res != 0) {
         fprintf(stderr, "ksim: cannot bind data socket on %s:%u: %s\n", options.listen_addr,
-            (unsigned) options.data_port, strerror(res));
+            (unsigned) options.data_port, katherine_strerror(res));
         katherine_udp_fini(&ctl_udp);
         katherine_emu_fini(&emu);
         return EXIT_FAILURE;
@@ -626,9 +627,14 @@ main(int argc, char *argv[])
             int rres = katherine_udp_recv(&ctl_udp, buf, &n);
 
             if (rres != 0) {
-                if (rres == EAGAIN || rres == EWOULDBLOCK || rres == ETIMEDOUT) break;
-                if (rres == EINTR) continue;
-                fprintf(stderr, "ksim: recvfrom failed: %s\n", strerror(rres));
+                if (rres == -KATHERINE_E_TIMEOUT) break;
+                // A signal-interrupted recv (the stop handler unwinding it
+                // promptly, see stopsig.h) collapses into the generic
+                // -KATHERINE_E_IO above; the OS-level detail survives
+                // separately, in katherine_udp_last_os_error(), which is the
+                // only way left to tell it apart from a real I/O failure.
+                if (rres == -KATHERINE_E_IO && katherine_udp_last_os_error(&ctl_udp) == EINTR) continue;
+                fprintf(stderr, "ksim: recvfrom failed: %s\n", katherine_strerror(rres));
                 break;
             }
 
@@ -712,11 +718,10 @@ main(int argc, char *argv[])
 
                 // A failed send silently discards measurement data the
                 // emulator already considers delivered, which is invisible
-                // from the client side; report the first failure with the
-                // raw code (Winsock codes have no strerror() text) and keep
-                // a count for the exit summary.
+                // from the client side; report the first failure and keep a
+                // count for the exit summary.
                 if (md_send_errors == 0) {
-                    fprintf(stderr, "ksim: data send failed: %d (%s)\n", sres, strerror(sres));
+                    fprintf(stderr, "ksim: data send failed: %s\n", katherine_strerror(sres));
                 }
                 ++md_send_errors;
             }

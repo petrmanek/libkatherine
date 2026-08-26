@@ -20,7 +20,7 @@
 #include <stdbool.h> // bool
 #include <stdio.h>   // printf, fprintf, fflush
 #include <stdlib.h>  // strtod, exit
-#include <string.h>  // strcmp, strerror
+#include <string.h>  // strcmp
 
 // katherine/katherine.h must precede <windows.h> below: it transitively
 // pulls in <winsock2.h> (via udp_win.h), and windows.h internally drags in
@@ -154,7 +154,7 @@ main(int argc, char *argv[])
             katherine_device_fini(&device);
             fail(args.address);
         } else {
-            printf("ktemp: no response from %s: %s\n", args.address, strerror(err));
+            printf("ktemp: no response from %s: %s\n", args.address, katherine_strerror(err));
             fflush(stdout);
         }
 

@@ -428,7 +428,8 @@ katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
     format_ipv4_port(local, sizeof(local), &v->addr_local);
     format_ipv4_port(remote, sizeof(remote), &v->addr_remote);
 
-    REPR_APPENDF(buf, cap, off, "udp{local: %s, remote: %s, pinned: %s}", local, remote, katherine_str_bool(v->remote_pinned));
+    REPR_APPENDF(buf, cap, off, "udp{local: %s, remote: %s, pinned: %s, last_os_error: %d}", local, remote,
+        katherine_str_bool(v->remote_pinned), v->last_os_error);
     return (int) off;
 }
 

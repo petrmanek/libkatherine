@@ -6,10 +6,15 @@
 #
 # SPDX-License-Identifier: MIT
 
-import os
 import sys
 import time
 from katherine import Device
+
+# The katherine C extension raises one of these for a device call that
+# failed with a library error code (see katherine.pyx's check_return_code());
+# each is constructed from katherine_strerror(), so str(e) is already the
+# message a caller wants to show.
+KATHERINE_ERRORS = (TimeoutError, ValueError, MemoryError, RuntimeError)
 
 
 def parse_args(argv):
@@ -63,8 +68,8 @@ def poll_temperatures(device, show_readout, show_chip):
 
         if show_chip:
             chip_temp = device.get_sensor_temperature()
-    except OSError as e:
-        return False, os.strerror(e.errno)
+    except KATHERINE_ERRORS as e:
+        return False, str(e)
 
     if show_readout and show_chip:
         print('readout: %.1f C, chip: %.1f C' % (readout_temp, chip_temp))
@@ -87,7 +92,7 @@ def main():
 
     try:
         device = Device(address)
-    except OSError:
+    except KATHERINE_ERRORS:
         print('ktemp: no response from %s' % address, file=sys.stderr)
         sys.exit(1)
 

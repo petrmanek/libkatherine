@@ -10,10 +10,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <katherine/status.h>
+#include <katherine/error.h>
 #include <katherine/global.h>
 #include <katherine/device.h>
 #include "protocol/command_interface.h"
@@ -117,10 +117,11 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     // command echoed back at its sender -- a request sent to one of the
     // host's own addresses with no readout listening is delivered straight
     // back to the wildcard-bound control socket, and a command and its
-    // response differ only in the fields the readout fills in. Fail exactly
-    // like a receive timeout, as if nobody had answered.
+    // response differ only in the fields the readout fills in. This is a
+    // protocol-level condition, not a communication failure, so it is
+    // reported as one.
     if (chip_id == 0) {
-        res = EAGAIN;
+        res = -KATHERINE_E_PROTO;
         goto err;
     }
 
@@ -229,8 +230,9 @@ katherine_perform_digital_test(katherine_device_t *device)
     if (res) goto err;
 
     if (crd[0] != 64) {
-        // The test did not go well.
-        res = 1;
+        // The test did not go well: the sensor answered, but not with the
+        // expected result, and no enumerator names the specific failure.
+        res = -KATHERINE_E_HW_UNKNOWN;
         goto err;
     }
 

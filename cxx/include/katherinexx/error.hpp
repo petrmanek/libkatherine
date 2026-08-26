@@ -14,9 +14,8 @@
 
 #include <stdexcept>
 #include <string>
-#include <cstring>
 
-#include <katherine/acquisition.h>
+#include <katherine/error.h>
 
 namespace katherine {
 
@@ -32,7 +31,7 @@ public:
 
 class system_error: public error {
 public:
-    system_error(int rc) : error{std::strerror(rc)} { }
+    system_error(int rc) : error{katherine_strerror(rc)} { }
 };
 
 /** @} */

@@ -298,7 +298,7 @@ test_udp(void)
 
     char buf[128];
     int n = katherine_udp_snprint(buf, sizeof(buf), &u);
-    CHECK_GOLDEN(n, buf, "udp{local: 127.0.0.1:43601, remote: 127.0.0.1:43602, pinned: true}");
+    CHECK_GOLDEN(n, buf, "udp{local: 127.0.0.1:43601, remote: 127.0.0.1:43602, pinned: true, last_os_error: 0}");
 
     katherine_udp_fini(&u);
 }
@@ -314,8 +314,8 @@ test_device(void)
     char buf[256];
     int n = katherine_device_snprint(buf, sizeof(buf), &dev);
     CHECK_GOLDEN(n, buf,
-        "device{control_socket: udp{local: 127.0.0.1:43603, remote: 127.0.0.1:43604, pinned: false}, "
-        "data_socket: udp{local: 127.0.0.1:43604, remote: 127.0.0.1:43603, pinned: false}}");
+        "device{control_socket: udp{local: 127.0.0.1:43603, remote: 127.0.0.1:43604, pinned: false, last_os_error: 0}, "
+        "data_socket: udp{local: 127.0.0.1:43604, remote: 127.0.0.1:43603, pinned: false, last_os_error: 0}}");
 
     katherine_device_fini(&dev);
 }

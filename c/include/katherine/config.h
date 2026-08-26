@@ -103,7 +103,7 @@ katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v);
  * caller's choice; it does not change katherine_set_dacs()'s own behavior.
  *
  * @param v DAC register values to validate.
- * @return 0 if every value fits its DAC's range, EINVAL otherwise.
+ * @return 0 if every value fits its DAC's range, -KATHERINE_E_INVAL otherwise.
  */
 KATHERINE_EXPORTED int
 katherine_dacs_validate(const katherine_dacs_t *v);

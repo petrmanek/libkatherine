@@ -19,6 +19,7 @@
 
 #include <katherine/version.h>
 #include <katherine/global.h>
+#include <katherine/error.h>
 #include <katherine/acquisition.h>
 #include <katherine/px_config.h>
 #include <katherine/config.h>

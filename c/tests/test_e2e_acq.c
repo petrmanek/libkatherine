@@ -225,7 +225,7 @@ fixture_init(const char *ksim_path)
         res = katherine_device_init(&g_device, KSIM_LISTEN_ADDR);
         if (res != 0) {
             snprintf(g_skip_reason, sizeof(g_skip_reason),
-                "cannot bind the local control/data ports 1555/1556: %s", strerror(res));
+                "cannot bind the local control/data ports 1555/1556: %s", katherine_strerror(res));
             return g_skip_reason;
         }
 
@@ -525,8 +525,8 @@ test_data_driven_frame(void)
     acq_probe_t probe;
 
     /* One frame only: katherine_acquisition_begin() rejects a data-driven
-       acquisition of more than one frame outright (EINVAL), which is what
-       bounds this case. */
+       acquisition of more than one frame outright (-KATHERINE_E_INVAL), which
+       is what bounds this case. */
     KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
 
     KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);

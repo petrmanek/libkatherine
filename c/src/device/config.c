@@ -18,10 +18,10 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 
-#include <errno.h>
 #include <stdlib.h>
 #include <katherine/config.h>
 #include <katherine/device.h>
+#include <katherine/error.h>
 #include "protocol/command_interface.h"
 #include "msleep.h"
 
@@ -200,7 +200,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
             do {
                 --ack_attempts;
                 res = katherine_cmd_wait_ack(&device->control_socket);
-            } while (res == EAGAIN && ack_attempts > 0);
+            } while (res == -KATHERINE_E_TIMEOUT && ack_attempts > 0);
         }
 
         if (!res) {
@@ -504,7 +504,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
             if (tp_config->count == 0
                 || tp_config->period < 65 || tp_config->period > 16321
                 || tp_config->phase > 15) {
-                return EINVAL;
+                return -KATHERINE_E_INVAL;
             }
 
             cmd[0] = tp_config->count & 0xFF;
@@ -534,7 +534,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     do {
         --attempts;
         res = katherine_cmd_wait_ack(&device->control_socket);
-    } while (res == EAGAIN && attempts > 0);
+    } while (res == -KATHERINE_E_TIMEOUT && attempts > 0);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -733,13 +733,13 @@ static const uint16_t KATHERINE_DAC_MAX[18] = {
 /**
  * Validate DAC register values against the chip's per-DAC bit widths.
  * @param v DAC register values to validate.
- * @return 0 if every value fits its DAC's range, EINVAL otherwise.
+ * @return 0 if every value fits its DAC's range, -KATHERINE_E_INVAL otherwise.
  */
 int
 katherine_dacs_validate(const katherine_dacs_t *v)
 {
     for (int i = 0; i < 18; ++i) {
-        if (v->array[i] > KATHERINE_DAC_MAX[i]) return EINVAL;
+        if (v->array[i] > KATHERINE_DAC_MAX[i]) return -KATHERINE_E_INVAL;
     }
 
     return 0;

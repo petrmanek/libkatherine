@@ -10,9 +10,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <errno.h>
 #include <string.h>
 #include <katherine/emulator.h>
+#include <katherine/error.h>
 /* The pixel mapping functions of md.h are written against the acquisition,
  * so its declaration has to precede them. */
 #include <katherine/acquisition.h>
@@ -422,7 +422,7 @@ katherine_emu_stream_advance(katherine_emu_t *emu, uint64_t ns)
  * @param buf Start of the destination buffer
  * @param cap Capacity of the destination buffer in bytes
  * @param len Number of bytes written (optional)
- * @return Error code, or EAGAIN if no data are available.
+ * @return Error code, or -KATHERINE_E_TIMEOUT if no data are available yet.
  */
 int
 katherine_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len)
@@ -430,7 +430,7 @@ katherine_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len)
     katherine_emu_stream_t *stream;
     size_t count;
 
-    if (emu == NULL || buf == NULL) return EINVAL;
+    if (emu == NULL || buf == NULL) return -KATHERINE_E_INVAL;
 
     stream = &emu->stream;
     pump(emu);
@@ -444,7 +444,7 @@ katherine_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len)
 
     /* Truncate to whole measurement data. */
     count -= count % KATHERINE_EMU_MD_SIZE;
-    if (count == 0) return EAGAIN;
+    if (count == 0) return -KATHERINE_E_TIMEOUT;
 
     memcpy(buf, stream->buf + stream->buf_pos, count);
     stream->buf_pos += count;

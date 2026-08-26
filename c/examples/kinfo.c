@@ -12,7 +12,6 @@
 
 #include <stdbool.h> // bool
 #include <stdio.h>   // printf, fprintf
-#include <string.h>  // strerror
 
 #include <katherine/katherine.h>
 
@@ -39,7 +38,7 @@ parse_args(int argc, char *argv[], kinfo_args_t *args)
 static void
 report_failure(const char *step, int err)
 {
-    fprintf(stderr, "kinfo: %s failed: %s\n", step, strerror(err));
+    fprintf(stderr, "kinfo: %s failed: %s\n", step, katherine_strerror(err));
 }
 
 static bool

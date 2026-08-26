@@ -14,7 +14,6 @@
 #include <stdlib.h>   // exit
 #include <stdio.h>    // printf
 #include <time.h>     // time, difftime
-#include <string.h>   // strerror
 
 #include <katherine/katherine.h>
 
@@ -119,7 +118,7 @@ configure(katherine_config_t *config)
     int res = katherine_px_config_load_bmc_file(&config->pixel_config, "chipconfig.bmc");
     if (res != 0) {
         printf("Cannot load pixel configuration. Does the file exist?\n");
-        printf("Reason: %s\n", strerror(res));
+        printf("Reason: %s\n", katherine_strerror(res));
         exit(1);
     }
 
@@ -191,7 +190,7 @@ print_chip_id(katherine_device_t *device)
     int res = katherine_get_chip_id(device, chip_id);
     if (res != 0) {
         printf("Cannot get chip ID. Is Timepix3 connected to the readout?\n");
-        printf("Reason: %s\n", strerror(res));
+        printf("Reason: %s\n", katherine_strerror(res));
         exit(2);
     }
 
@@ -207,7 +206,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     res = katherine_acquisition_init(&acq, dev, NULL, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 65536, 500, 10000);
     if (res != 0) {
         printf("Cannot initialize acquisition. Is the configuration valid?\n");
-        printf("Reason: %s\n", strerror(res));
+        printf("Reason: %s\n", katherine_strerror(res));
         exit(3);
     }
 
@@ -218,7 +217,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     res = katherine_acquisition_begin(&acq, c, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true);
     if (res != 0) {
         printf("Cannot begin acquisition.\n");
-        printf("Reason: %s\n", strerror(res));
+        printf("Reason: %s\n", katherine_strerror(res));
         exit(4);
     }
 
@@ -228,7 +227,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     res        = katherine_acquisition_read(&acq);
     if (res != 0) {
         printf("Cannot read acquisition data.\n");
-        printf("Reason: %s\n", strerror(res));
+        printf("Reason: %s\n", katherine_strerror(res));
         exit(5);
     }
     time_t toc = time(NULL);
@@ -264,7 +263,7 @@ main(int argc, char *argv[])
     res = katherine_device_init(&device, remote_addr);
     if (res != 0) {
         printf("Cannot initialize device. Is the address correct?\n");
-        printf("Reason: %s\n", strerror(res));
+        printf("Reason: %s\n", katherine_strerror(res));
         exit(6);
     }
 

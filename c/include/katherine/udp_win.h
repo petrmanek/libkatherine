@@ -39,6 +39,8 @@ typedef struct katherine_udp {
     WSADATA wsa_data;
 
     bool remote_pinned;
+
+    int last_os_error; ///< 0 unless the last transport operation failed with an OS-level error code; read through katherine_udp_last_os_error().
 } katherine_udp_t;
 
 #ifdef __cplusplus
