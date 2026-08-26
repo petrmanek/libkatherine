@@ -6,6 +6,7 @@
 add_executable(ksim main.c)
 target_link_libraries(ksim PRIVATE katherine katherine::private)
 target_compile_features(ksim PRIVATE c_std_11)
+katherine_target_warnings(ksim)
 # ksim's strerror()/fopen() calls have no portable replacement that is also
 # safe under concurrent access from other threads of the same process or
 # distrusts a caller-controlled path; ksim is single-threaded and its

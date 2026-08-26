@@ -13,6 +13,7 @@ target_compile_options(kfindxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 # that has no portable replacement safe under concurrent access from other
 # threads of the same process, and every example here is single-threaded.
 target_compile_definitions(kfindxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+katherine_target_warnings(kfindxx)
 
 add_executable(krunxx krunxx.cpp)
 target_link_libraries(krunxx PRIVATE katherinexx)
@@ -24,6 +25,7 @@ target_compile_features(krunxx PRIVATE cxx_std_14)
 # katherine::error requirements.
 target_compile_options(krunxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(krunxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+katherine_target_warnings(krunxx)
 
 add_executable(ktempxx ktempxx.cpp)
 target_link_libraries(ktempxx PRIVATE katherinexx)
@@ -31,6 +33,7 @@ target_link_libraries(ktempxx PRIVATE katherinexx)
 # katherine::error requirements.
 target_compile_options(ktempxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(ktempxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+katherine_target_warnings(ktempxx)
 
 add_executable(kinfoxx kinfoxx.cpp)
 target_link_libraries(kinfoxx PRIVATE katherinexx)
@@ -38,3 +41,4 @@ target_link_libraries(kinfoxx PRIVATE katherinexx)
 # katherine::error requirements.
 target_compile_options(kinfoxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(kinfoxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+katherine_target_warnings(kinfoxx)

@@ -10,6 +10,7 @@ project(katherine VERSION 1.1.0 LANGUAGES C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(KatherineFeatures)
+include(KatherineWarnings)
 
 # Oldest Doxygen able to process docs/Doxyfile (the file's format version).
 set(KATHERINE_DOXYGEN_MINIMUM_VERSION 1.8.13)

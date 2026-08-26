@@ -18,9 +18,10 @@ katherine_add_test(NAME <name>
   Builds an executable called <name> from <source>... and registers it
   with CTest via add_test(). The executable is linked against the
   katherine library and Threads::Threads (some tests drive a mock UDP
-  readout on a background thread), and privately includes c/src so
-  tests may reach the library's internal headers alongside its public
-  API. LABELS is recorded as the test's CTest LABELS property, so e.g.
+  readout on a background thread), privately includes c/src so tests
+  may reach the library's internal headers alongside its public API,
+  and carries the project's pedantic warnings (see KatherineWarnings).
+  LABELS is recorded as the test's CTest LABELS property, so e.g.
   `ctest -L unit` can select a subset of the registered tests.
 
   ARGS is appended to the add_test() command line, which is how a test
@@ -52,6 +53,7 @@ function(katherine_add_test)
 
     add_executable(${ARG_NAME} ${ARG_SOURCES})
     target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private Threads::Threads)
+    katherine_target_warnings(${ARG_NAME})
 
     add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME} ${ARG_ARGS})
     if(ARG_LABELS)

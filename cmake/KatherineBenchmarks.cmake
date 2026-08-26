@@ -16,11 +16,12 @@ katherine_add_bench(NAME <name>
 
   Builds an executable called <name> from <source>... and registers it
   with CTest via add_test(), exactly like katherine_add_test(): linked
-  against the katherine library and privately including c/src, so a
+  against the katherine library, privately including c/src so a
   benchmark may reach the library's internal headers alongside its
-  public API. Every benchmark carries the "bench" CTest label in
-  addition to whatever LABELS supplies, so `ctest -L bench` selects the
-  whole suite.
+  public API, and carrying the project's pedantic warnings (see
+  KatherineWarnings). Every benchmark carries the "bench" CTest label
+  in addition to whatever LABELS supplies, so `ctest -L bench` selects
+  the whole suite.
 
   A benchmark reports numbers on stdout; it does not itself decide
   pass or fail on their account, so add_test() is expected to see a
@@ -46,6 +47,7 @@ function(katherine_add_bench)
 
     add_executable(${ARG_NAME} ${ARG_SOURCES})
     target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private)
+    katherine_target_warnings(${ARG_NAME})
 
     add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME})
     # The CTest entry is a smoke test -- does the benchmark run and emit its
