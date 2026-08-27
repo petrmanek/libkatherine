@@ -34,6 +34,16 @@ behind: ToA+ToT with the fast oscillator on, whatever was requested.
 Reading the register back on a Gen1 readout now shows the requested mode
 and flag in all six combinations.
 
+Per-pixel threshold adjustments are now in the chip's DAC-value order.
+`katherine_px_config_set_loc_thl()` wrote the nibble unreversed, but Timepix3
+manual Table 23 stores `Thr[3:0]` with its least significant bit in `PCR[4]`
+and its most significant in `PCR[1]`, so an argument of 1 programmed a trim of
+8 and only 0, 6, 9 and 15 meant what they said. The getter had the same skew.
+The BPC loader always had the order right, so the two halves of this library
+disagreed with each other. Callers who compensated for the old behaviour must
+stop doing so; those who took the documented meaning at face value are
+correct for the first time.
+
 `katherine_comm_status_t::data_rate` is now scaled correctly and
 documented as Mb/s. The register field counts megabytes per second, so it
 scales by eight, not by the five the readout manual specifies: a Gen1

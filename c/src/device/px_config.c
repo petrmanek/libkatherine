@@ -53,6 +53,27 @@ map_fopen_errno(int err)
 #define _BITS_bmc_px_test_type     bool
 
 /**
+ * Reverse a four-bit nibble.
+ *
+ * The threshold nibble is stored MSB-at-the-bottom: Tpx3 manual Table 23 puts
+ * Thr[0], the least significant bit, in PCR[4] and Thr[3] in PCR[1]. Reading
+ * PCR[4:1] as an ordinary integer therefore yields the DAC value bit-reversed,
+ * and writing one needs the same permutation applied first. The BPC format
+ * carries the nibble in DAC order and needs it too, on load.
+ *
+ * Self-inverse, so one table serves reading and writing alike.
+ *
+ * @param nibble Value to reverse; only the low four bits are considered.
+ * @return The four bits in the opposite order.
+ */
+static inline uint8_t
+reverse_nibble(uint8_t nibble)
+{
+    static const uint8_t REVERSED[16] = {0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15};
+    return REVERSED[nibble & 0xF];
+}
+
+/**
  * Load pixel configuration from a BMC file (in BurdaMan format).
  * @param px_config Target configuration matrix.
  * @param file_path BMC file path.
@@ -171,15 +192,14 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
     memset(&px_config->words, 0, 65536);
 
     int x, y;
-    uint32_t *dest                       = (uint32_t *) px_config->words;
-    const unsigned char *src             = (const unsigned char *) bpc->px_config;
-    static unsigned char reverse_array[] = {0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15};
+    uint32_t *dest           = (uint32_t *) px_config->words;
+    const unsigned char *src = (const unsigned char *) bpc->px_config;
     unsigned char val;
 
     for (int i = 0; i < 65536; ++i) {
         y   = i / 256;
         x   = i % 256;
-        val = (unsigned char) ((src[i] & 0x21) | (reverse_array[((src[i] & 0x1E) >> 1)] << 1));
+        val = (unsigned char) ((src[i] & 0x21) | (reverse_nibble((uint8_t) ((src[i] & 0x1E) >> 1)) << 1));
 
         y = 255 - y;
         dest[(64 * x) + (y >> 2)] |= (uint32_t) (val << (8 * (3 - (y % 4))));
@@ -273,16 +293,11 @@ katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katheri
 /**
  * Set the local threshold adjustment of a single pixel.
  *
- * Bit-order note: Tpx3 manual Table 23 stores the chip's Thr[3:0] nibble
- * bit-reversed within PCR[4:1] (PCR[4] = Thr[0], ..., PCR[1] = Thr[3]). This
- * accessor inserts loc_thl unreversed, so the value written here is in raw
- * PCR order, not chip DAC-value order -- e.g. set_loc_thl(1) programs a trim
- * of 8, not 1. The BPC loader (katherine_px_config_load_bpc_data() above)
- * applies that reversal and is therefore the one of this pair in the right
- * order; the two disagreeing with each other is an adjudicated defect,
- * fixed in 2.0. Until then, callers of this function who want the
- * DAC-value semantics must reverse the nibble themselves, e.g. with a
- * bitreverse4(value) helper.
+ * The value is the chip's threshold DAC tuning value, so it is reversed on the
+ * way into the configuration byte -- Table 23 stores Thr[3:0] with its least
+ * significant bit in PCR[4] and its most significant in PCR[1]. Before 2.0
+ * this accessor wrote the nibble unreversed and so programmed a trim of 8 for
+ * an argument of 1, disagreeing with the BPC loader, which had the order right.
  *
  * @param px_config Configuration matrix to modify.
  * @param coord Pixel coordinates.
@@ -294,14 +309,14 @@ katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coor
     assert(loc_thl <= 15);
 
     const uint8_t byte = _px_config_get_byte(px_config, coord);
-    _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, loc_thl, loc_thl));
+    _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, loc_thl, reverse_nibble(loc_thl)));
 }
 
 /**
  * Get the local threshold adjustment of a single pixel.
  *
- * Returns the raw PCR nibble, unreversed; see the bit-order note on
- * katherine_px_config_set_loc_thl() above.
+ * Returns the chip's threshold DAC tuning value, reversed back out of the
+ * storage order described on katherine_px_config_set_loc_thl().
  *
  * @param px_config Configuration matrix to inspect.
  * @param coord Pixel coordinates.
@@ -310,7 +325,7 @@ katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coor
 uint8_t
 katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_coord_t coord)
 {
-    return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, loc_thl);
+    return reverse_nibble(EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, loc_thl));
 }
 
 #undef _BITS_bmc_px_mask_start

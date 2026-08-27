@@ -64,13 +64,16 @@ test_px_helpers(void)
     };
 
     /* Cross-validate against the BMC loader: a BMC byte at file index
-       y*256 + x carries mask (bit 0), loc_thl (bits 1-4), test (bit 5). */
+       y*256 + x carries mask (bit 0), the threshold nibble (bits 1-4) and test
+       (bit 5). That nibble is a raw register image, so it holds Thr[3:0] in
+       storage order -- reversed against the DAC value the accessors take, per
+       Tpx3 manual Table 23. */
     katherine_bmc_t *bmc = calloc(1, sizeof(katherine_bmc_t));
     KT_REQUIRE(bmc != NULL);
     for (int i = 0; i < n_coords; ++i) {
         const unsigned char loc_thl = (unsigned char) (i + 9) & 0xF;
         bmc->px_config[coords[i][1] * 256 + coords[i][0]] =
-            (unsigned char) (0x20 | (loc_thl << 1) | 0x01);
+            (unsigned char) (0x20 | (reverse4[loc_thl] << 1) | 0x01);
     }
 
     katherine_px_config_t loaded;
@@ -87,14 +90,18 @@ test_px_helpers(void)
     }
     KT_CHECK(memcmp(&loaded, &manual, sizeof(loaded)) == 0);
 
-    /* The BPC loader stores loc_thl in reversed bit order; mask and test
-       bits are format-invariant. */
+    /* The BPC format carries the threshold nibble in DAC order, the same order
+       the accessors now use, so its bytes need no permutation here -- the
+       loader applies the one the storage order requires. Mask and test bits
+       are format-invariant. Note this is the mirror image of the BMC bytes
+       above: before 2.0 the two were written the other way round, because the
+       setter stored the nibble unreversed. */
     katherine_bpc_t *bpc = calloc(1, sizeof(katherine_bpc_t));
     KT_REQUIRE(bpc != NULL);
     for (int i = 0; i < n_coords; ++i) {
         const unsigned char loc_thl = (unsigned char) (i + 9) & 0xF;
         bpc->px_config[coords[i][1] * 256 + coords[i][0]] =
-            (unsigned char) (0x20 | (reverse4[loc_thl] << 1) | 0x01);
+            (unsigned char) (0x20 | (loc_thl << 1) | 0x01);
     }
     katherine_px_config_t loaded_bpc;
     KT_CHECK(katherine_px_config_load_bpc_data(&loaded_bpc, bpc) == 0);
@@ -141,6 +148,29 @@ test_px_helpers(void)
     KT_CHECK(katherine_px_config_get_mask_bit(&nonzero, CO(42, 17)));
     katherine_px_config_set_loc_thl(&nonzero, CO(42, 17), 15);
     KT_CHECK(memcmp(&nonzero, &all_ff, sizeof(nonzero)) == 0);
+
+    /* Every round trip above is self-inverse, so it would hold with or without
+       the reversal. These are the asymmetric values -- 1 stores as 8, 2 as 4 --
+       checked against a BMC image, which is the only way to see the stored
+       nibble through the public interface. The fixed points 0, 6, 9 and 15
+       cannot distinguish the two orders at all. */
+    static const unsigned char asymmetric[][2] = {{1, 8}, {2, 4}, {3, 12}, {7, 14}, {8, 1}, {14, 7}};
+    for (size_t i = 0; i < sizeof(asymmetric) / sizeof(asymmetric[0]); ++i) {
+        const unsigned char dac = asymmetric[i][0], stored = asymmetric[i][1];
+
+        katherine_bmc_t *one = calloc(1, sizeof(katherine_bmc_t));
+        KT_REQUIRE(one != NULL);
+        one->px_config[0] = (unsigned char) (stored << 1);
+
+        katherine_px_config_t from_bmc, from_setter;
+        KT_CHECK(katherine_px_config_load_bmc_data(&from_bmc, one) == 0);
+        memset(&from_setter, 0, sizeof(from_setter));
+        katherine_px_config_set_loc_thl(&from_setter, CO(0, 0), dac);
+
+        KT_CHECK_MEM_EQ(&from_setter, &from_bmc, sizeof(from_setter));
+        KT_CHECK(katherine_px_config_get_loc_thl(&from_bmc, CO(0, 0)) == dac);
+        free(one);
+    }
 
     free(bmc);
     free(bpc);
