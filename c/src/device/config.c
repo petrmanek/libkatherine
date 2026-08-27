@@ -322,20 +322,26 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     char cmd[8] = {0};
     cmd[6]      = CMD_TYPE_ACQUISITION_MODE_SETTING;
 
+    // This command is a GeneralConfig accessor: the readout merges byte 0
+    // into Op_mode [2:1] and byte 1 into Fast_lo_en [6] of its own register
+    // image. Reading that image back with GET_BACK_READ_REGISTER on the
+    // GeneralConfig index shows exactly that -- 0x58, 0x5a and 0x5c as the
+    // mode is swept, and bit 6 clearing when byte 1 goes to zero.
     cmd[0] |= acq_mode;
-
-    // The fast-VCO flag travels in byte 0 bit 7 here. Katherine manuals
-    // v0.008+ and the Gen2 readout firmware instead read it from CD[8] --
-    // byte 1 bit 0 -- so this is off by one byte against the documented
-    // wire format. Currently moot: the readout firmware only shadows this
-    // command into a register image it never flushes to the sensor, so
-    // neither placement reaches the chip either way. The correct-bit fix
-    // rides with the 2.0 GeneralConfig rework, which folds this flag into
-    // the sensor register write instead and removes the dependency on this
-    // command.
-    cmd[0] |= fast_vco_enabled << 7;
+    cmd[1] |= fast_vco_enabled;
 
     res = katherine_cmd_transact(&device->control_socket, cmd, sizeof(cmd), NULL);
+    if (res) goto err;
+
+    // The merge above only touches the readout's image; the sensor needs the
+    // image flushed to it. Skipping the flush leaves the chip in whatever
+    // state katherine_configure() last pushed -- Op_mode 0 with the fast
+    // oscillator on -- so every acquisition silently yielded ToA+ToT data
+    // regardless of the mode asked for.
+    res = katherine_cmd_hw_sensor_config_registers_update(&device->control_socket);
+    if (res) goto err;
+
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);

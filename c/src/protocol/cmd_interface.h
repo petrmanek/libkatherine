@@ -172,10 +172,12 @@ katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
  * GeneralConfig sensor register (Timepix3 manual v2, sec 4.2.5.4.1, headers
  * 0h30/0h31), declared as a bitfield for INSERT(). Field names follow the
  * manual. Only the fields this library writes are declared: polarity,
- * gray_count_en and tp_en follow katherine_config_t, while ackcommand_en and
- * fast_lo_en keep their historical pinned values. Op_mode [2:1] stays 0
- * (ToA_ToT) and the remaining test-pulse selectors stay 0 -- those travel in
- * the dedicated test-pulse command instead -- so neither is declared here.
+ * gray_count_en and tp_en follow katherine_config_t, while ackcommand_en is
+ * pinned. Op_mode [2:1] and Fast_lo_en [6] belong to the acquisition-mode
+ * command, which merges them into the readout's register image after this
+ * word is written, so the values given here for them do not survive; the
+ * remaining test-pulse selectors stay 0, travelling in the dedicated
+ * test-pulse command instead.
  */
 #define _BITS_general_config_polarity_start      0
 #define _BITS_general_config_polarity_mask       MASK(1)
@@ -202,9 +204,11 @@ katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
  *
  * Polarity 0 selects electron collection and 1 hole collection;
  * gray_count_en gray-codes the pixel counters; tp_en enables the test-pulse
- * generator. ackcommand_en is pinned because this library depends on
- * command acknowledgements, and fast_lo_en, the superpixel oscillator
- * behind fast time stamping, is pinned as it has historically been.
+ * generator. ackcommand_en is pinned because this library depends on command
+ * acknowledgements. fast_lo_en, the superpixel oscillator behind fast time
+ * stamping, is set here only so the register starts in a defined state:
+ * katherine_set_acq_mode() rewrites it, together with Op_mode, on every
+ * acquisition.
  *
  * @param config Configuration to read the polarity, gray-coding and
  *   test-pulse settings from.

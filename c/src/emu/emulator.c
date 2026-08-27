@@ -268,6 +268,11 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         /* The sub-command number travels in byte 0. All of them,
            including the matrix reset (5) and the pixel register load (9)
            that follow a configuration upload, are acknowledged. */
+        if ((uint8_t) cmd[0] == CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE) {
+            /* The flush is what carries the register image to the sensor. */
+            emu->regs.acq_mode = emu->regs.shadow_acq_mode;
+            emu->regs.fast_vco = emu->regs.shadow_fast_vco;
+        }
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
@@ -279,16 +284,15 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_ACQUISITION_MODE_SETTING:
-        /* The library packs the fast oscillator flag into the top bit of
-           byte 0, next to the mode. This mirrors the client's own encoding
-           (katherine_set_acq_mode(), config.c) bit-for-bit, including its
-           byte-0-bit-7 placement, which is off by one byte against the
-           CD[8] the manuals (v0.008+) and the Gen2 readout firmware
-           document. Moot either way until the GeneralConfig rework config.c
-           documents: the real firmware only shadows this write into a
-           register it never flushes to the sensor. */
-        emu->regs.acq_mode = (uint8_t) (cmd[0] & 0x3F);
-        emu->regs.fast_vco = (cmd[0] & 0x80) != 0;
+        /* A GeneralConfig accessor: byte 0 supplies Op_mode and byte 1 the
+           fast oscillator flag. Both land in the readout's register image
+           only, which is why they are held aside here until a
+           sensor-config-registers flush picks them up. Captured readouts
+           behave exactly so -- reading the image back after this command
+           shows the new mode, while the sensor keeps the old one until the
+           flush. */
+        emu->regs.shadow_acq_mode = (uint8_t) (cmd[0] & 0x3F);
+        emu->regs.shadow_fast_vco = (cmd[1] & 0x01) != 0;
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 

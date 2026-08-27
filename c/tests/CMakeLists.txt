@@ -39,6 +39,11 @@ katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
 # the inline, lockstep ping-pong bench_udp.c uses instead.
 katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
 
+# The acquisition-mode command and the sensor-register flush that carries it to
+# the sensor, as byte-exact vectors taken from vendor-tool captures. Same
+# threaded mock readout as test_tp, serving the two datagrams one call sends.
+katherine_add_test(NAME test_acq_mode SOURCES test_acq_mode.c LABELS unit)
+
 # Correlation of command responses with their requests (the exchange
 # primitives of protocol/cmd_interface.h) against a mock readout on its own
 # uncommon high ports. One case needs the mock on a background thread, as

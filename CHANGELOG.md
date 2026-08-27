@@ -24,6 +24,16 @@ firmware substitutes for a request's own operation code are accepted by
 default; `katherine_udp_set_strict_ack()` turns that tolerance off once a
 peer has been shown not to need it.
 
+Acquisition modes now actually reach the sensor. The acquisition-mode
+command is a GeneralConfig accessor — the readout merges the pixel mode
+and the fast-oscillator flag into its own register image — and the image
+only reaches the chip once the sensor registers are flushed. libkatherine
+never flushed, and put the oscillator flag one byte off, so every
+acquisition ran in whichever mode the preceding configuration had left
+behind: ToA+ToT with the fast oscillator on, whatever was requested.
+Reading the register back on a Gen1 readout now shows the requested mode
+and flag in all six combinations.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:

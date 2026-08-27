@@ -159,9 +159,12 @@ typedef struct katherine_emu_regs {
     uint32_t acq_time_msb; ///< Internal
     uint32_t no_frames;    ///< Internal
 
-    uint8_t acq_mode;     ///< Internal
-    bool fast_vco;        ///< Internal
+    uint8_t acq_mode;     ///< Internal: reaches the sensor only once flushed
+    bool fast_vco;        ///< Internal: reaches the sensor only once flushed
     uint8_t readout_mode; ///< Internal
+
+    uint8_t shadow_acq_mode; ///< Internal: written by the acquisition-mode command, pending a flush
+    bool shadow_fast_vco;    ///< Internal
 
     uint32_t tokens;    ///< Internal
     uint32_t tdc_setup; ///< Internal
