@@ -522,6 +522,11 @@ test_acquisition_setup_word(void)
 {
     katherine_udp_t capture;
     katherine_device_t dev;
+    /* Zeroed whole: this device is built by hand rather than by
+       katherine_device_init(), and katherine_device_t carries fields beyond
+       the two sessions -- the borrowed acquisition among them, which
+       katherine_device_fini() acts on. */
+    memset(&dev, 0, sizeof(dev));
     KT_REQUIRE(katherine_udp_init_bound(
                    &capture, "127.0.0.1", PORT_SETUP_CAPTURE, "127.0.0.1", PORT_SETUP_SENDER, CAPTURE_TIMEOUT_MS)
         == 0);

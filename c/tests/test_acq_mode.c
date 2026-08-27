@@ -117,6 +117,11 @@ test_datagrams(void)
        never constructed on that path -- so bail out rather than destroy it
        later, exactly as test_tp.c does. */
     katherine_device_t device;
+    /* Zeroed whole: this device is built by hand rather than by
+       katherine_device_init(), and katherine_device_t carries fields beyond
+       the two sessions -- the borrowed acquisition among them, which
+       katherine_device_fini() acts on. */
+    memset(&device, 0, sizeof(device));
     KT_REQUIRE(katherine_udp_init(&device.control_socket, LOCAL_PORT, "127.0.0.1", MOCK_PORT, 2000) == 0);
 
     /* Mode in byte 0, oscillator flag in byte 1. The three mode vectors are

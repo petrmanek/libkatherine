@@ -316,6 +316,11 @@ static void
 test_device(void)
 {
     katherine_device_t dev;
+    /* Zeroed whole: this device is built by hand rather than by
+       katherine_device_init(), and katherine_device_t carries fields beyond
+       the two sessions -- the borrowed acquisition among them, which
+       katherine_device_fini() acts on. */
+    memset(&dev, 0, sizeof(dev));
     KT_REQUIRE(katherine_udp_init_bound(&dev.control_socket, UDP_HOST, UDP_TEST_PORT3, UDP_HOST, UDP_TEST_PORT4, 100) == 0);
     KT_REQUIRE(katherine_udp_init_bound(&dev.data_socket, UDP_HOST, UDP_TEST_PORT4, UDP_HOST, UDP_TEST_PORT3, 100) == 0);
 

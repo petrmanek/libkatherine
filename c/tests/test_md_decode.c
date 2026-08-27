@@ -176,6 +176,11 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     decode_probe_t *probe)
 {
     katherine_device_t dev;
+    /* Zeroed whole: this device is built by hand rather than by
+       katherine_device_init(), and katherine_device_t carries fields beyond
+       the two sessions -- the borrowed acquisition among them, which
+       katherine_device_fini() acts on. */
+    memset(&dev, 0, sizeof(dev));
     memset(&dev, 0, sizeof(dev));
     memset(probe, 0, sizeof(*probe));
 

@@ -293,6 +293,9 @@ err_datagram_buffer:
 void
 katherine_acquisition_fini(katherine_acquisition_t *acq)
 {
+    // Prevent a dangling pointer to invalid memory.
+    acq->device->acquisition = NULL;
+
     free(acq->md_buffer);
     free(acq->pixel_buffer);
 }
@@ -425,37 +428,55 @@ DEFINE_ACQ_IMPL(event_itot)
 
 /**
  * Read measurement data from acquisition.
+ *
+ * Returns once the acquisition leaves the running state, whether it finished,
+ * timed out or was aborted. The device stops reporting a measurement in flight
+ * at that point, so inquiries that a running acquisition refuses -- the sensor
+ * temperature among them -- become available again.
+ *
  * @param acq Acquisition
  * @return Error code.
  */
 int
 katherine_acquisition_read(katherine_acquisition_t *acq)
 {
+    int res;
+
     switch (acq->acq_mode) {
     case ACQUISITION_MODE_TOA_TOT:
         if (acq->fast_vco_enabled) {
-            return acquisition_read_f_toa_tot(acq);
+            res = acquisition_read_f_toa_tot(acq);
         } else {
-            return acquisition_read_toa_tot(acq);
+            res = acquisition_read_toa_tot(acq);
         }
+        break;
 
     case ACQUISITION_MODE_ONLY_TOA:
         if (acq->fast_vco_enabled) {
-            return acquisition_read_f_toa_only(acq);
+            res = acquisition_read_f_toa_only(acq);
         } else {
-            return acquisition_read_toa_only(acq);
+            res = acquisition_read_toa_only(acq);
         }
+        break;
 
     case ACQUISITION_MODE_EVENT_ITOT:
         if (acq->fast_vco_enabled) {
-            return acquisition_read_f_event_itot(acq);
+            res = acquisition_read_f_event_itot(acq);
         } else {
-            return acquisition_read_event_itot(acq);
+            res = acquisition_read_event_itot(acq);
         }
+        break;
 
     default:
-        return -KATHERINE_E_INVAL;
+        res = -KATHERINE_E_INVAL;
+        break;
     }
+
+    /* One exit for every mode and every outcome, the aborted and timed-out
+       ones included, so the device stops reporting a measurement in flight
+       exactly once and in one place. */
+    acq->device->acquisition = NULL;
+    return res;
 }
 
 /**
@@ -517,6 +538,9 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     if (res) goto err_cmd;
 
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+
+    // This creates user obligation to either stop or read the data.
+    acq->device->acquisition = acq;
     return 0;
 
 err_cmd:

@@ -509,10 +509,26 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     acq->handlers.pixels_received = on_pixels_received;
     acq->handlers.data_received   = on_data_received;
 
+    /* Idle before we start: after katherine_device_init() because it says so,
+       and after any earlier acquisition because read() cleared it. */
+    KT_CHECK(g_device.acquisition == NULL);
+
     res = katherine_acquisition_begin(acq, &config, readout_mode, ACQUISITION_MODE_TOA_TOT, true, decode_data);
     if (res != 0) return res;
 
-    return katherine_acquisition_read(acq);
+    /* The device reports a measurement in flight for exactly the span between
+       these two calls, which is what makes the sensor temperature refuse in
+       between. Asserted around a real acquisition because the guard's unit
+       test can only reach the refusal itself, not the bookkeeping that arms
+       it. */
+    KT_CHECK(g_device.acquisition == acq);
+    float refused = 0.0f;
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, &refused), -KATHERINE_E_STATE);
+
+    res = katherine_acquisition_read(acq);
+
+    KT_CHECK(g_device.acquisition == NULL);
+    return res;
 }
 
 /* ------------------------------------------------------------------ */

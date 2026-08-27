@@ -253,6 +253,11 @@ test_datagram(void)
        constructed on this path), so bail out of the whole suite rather
        than risk destroying it later via katherine_udp_fini. */
     katherine_device_t device;
+    /* Zeroed whole: this device is built by hand rather than by
+       katherine_device_init(), and katherine_device_t carries fields beyond
+       the two sessions -- the borrowed acquisition among them, which
+       katherine_device_fini() acts on. */
+    memset(&device, 0, sizeof(device));
     KT_REQUIRE(katherine_udp_init(&device.control_socket, LOCAL_PORT, "127.0.0.1", MOCK_PORT, 2000) == 0);
 
     /* Reference case from the vendor C# TPSetting implementation:

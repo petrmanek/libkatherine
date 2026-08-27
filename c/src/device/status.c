@@ -162,6 +162,11 @@ err:
 
 /**
  * Measure the temperature of the readout.
+ *
+ * Reads a sensor on the readout board and never reaches the sensor chip, so
+ * unlike katherine_get_sensor_temperature() this remains available while an
+ * acquisition is running and is the one to poll during a measurement.
+ *
  * @param device Katherine device
  * @param temperature Measured temperature in Celsius.
  * @return Error code.
@@ -195,6 +200,17 @@ err:
 
 /**
  * Measure the temperature of the sensor chip.
+ *
+ * Refused with KATHERINE_E_STATE while an acquisition is running, because the
+ * readout measures this by way of the DAC scan: it reloads all of the sensor
+ * registers from its own image, points the sense-DAC selector at the two
+ * temperature DACs, and flushes the lot to the sensor. Mid-acquisition that
+ * pushes whatever registers the caller has written since the last flush --
+ * the pixel mode and the fast-oscillator flag among them -- so the sensor can
+ * change pixel format in the middle of the stream, and the selector is left
+ * pointing elsewhere. Poll katherine_get_readout_temperature() instead, which
+ * reads a readout-side sensor and never touches the chip.
+ *
  * @param device Katherine device
  * @param temperature Measured temperature in Celsius.
  * @return Error code.
@@ -203,6 +219,10 @@ int
 katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 {
     int res;
+
+    /* Before the lock and before any I/O: nothing about this call is safe to
+       begin while a measurement is in flight. */
+    if (device->acquisition != NULL) return -KATHERINE_E_STATE;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;

@@ -12,6 +12,7 @@
 
 #include <stdint.h>
 #include <katherine/device.h>
+#include <katherine/acquisition.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -34,6 +35,9 @@ int
 katherine_device_init(katherine_device_t *device, const char *addr)
 {
     int res;
+
+    // Ensure the pointer is zeroed and not garbage.
+    device->acquisition = NULL;
 
     if ((res = katherine_udp_init(&device->control_socket, CONTROL_PORT, addr, REMOTE_PORT, CONTROL_TIMEOUT)) != 0) {
         goto err_control;
@@ -70,6 +74,13 @@ err_control:
 void
 katherine_device_fini(katherine_device_t *device)
 {
+    // Last-ditch failsafe: if an acquisition has been started by this point and forgotten, abort and disown it.
+    if (device->acquisition != NULL) {
+        katherine_acquisition_t *acq = (katherine_acquisition_t *) device->acquisition;
+        (void) katherine_acquisition_abort(acq);
+        device->acquisition = NULL;
+    }
+
     katherine_udp_fini(&device->data_socket);
     katherine_udp_fini(&device->control_socket);
 }
