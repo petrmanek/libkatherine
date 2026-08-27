@@ -408,7 +408,7 @@ int
 katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "comm_status{comm_lines_mask: 0x%02x, data_rate: %u, chip_detected: %s}",
+    REPR_APPENDF(buf, cap, off, "comm_status{comm_lines_mask: 0x%02x, data_rate: %u Mb/s, chip_detected: %s}",
         (unsigned) v->comm_lines_mask, (unsigned) v->data_rate, katherine_str_bool(v->chip_detected));
     return (int) off;
 }

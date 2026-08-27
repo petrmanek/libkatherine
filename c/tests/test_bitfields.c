@@ -22,6 +22,7 @@
 #include <katherine/acquisition.h>
 
 #include "bitfields.h"
+#include "protocol/crd.h"
 #include "protocol/md.h"
 #include "ktest.h"
 
@@ -336,6 +337,24 @@ test_insert_extract_roundtrip(void)
     KT_CHECK_EQ(w, (uint64_t) DEMO_Y << 36);
 }
 
+/* A communication-status response captured from a Gen1 readout with a
+   Timepix3 attached, byte for byte. The device's output-block register read
+   0x0981 in the same session: channel mask 0x81, so two links, at 320 MHz
+   dual-edge, so 640 Mb/s each -- 1280 Mb/s aggregate, which is eight times
+   the 160 this field carries. */
+static void
+test_comm_status_crd_extract(void)
+{
+    static const uint8_t reply[8] = {0x81, 0xa0, 0x01, 0x00, 0x00, 0x00, 0x18, 0x00};
+
+    uint64_t w = 0;
+    for (int i = 7; i >= 0; --i) w = (w << 8) | reply[i];
+
+    KT_CHECK_EQ(EXTRACT(w, comm_status_crd, comm_lines_mask), 0x81u);
+    KT_CHECK_EQ(EXTRACT(w, comm_status_crd, total_data_rate), 160u);
+    KT_CHECK_EQ(EXTRACT(w, comm_status_crd, chip_detected_flag), 1u);
+}
+
 int
 main(void)
 {
@@ -348,5 +367,6 @@ main(void)
     KT_RUN(test_pmd_f_event_itot_extract);
     KT_RUN(test_pmd_event_itot_extract);
     KT_RUN(test_insert_extract_roundtrip);
+    KT_RUN(test_comm_status_crd_extract);
     return kt_summary();
 }

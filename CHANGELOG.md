@@ -34,6 +34,12 @@ behind: ToA+ToT with the fast oscillator on, whatever was requested.
 Reading the register back on a Gen1 readout now shows the requested mode
 and flag in all six combinations.
 
+`katherine_comm_status_t::data_rate` is now scaled correctly and
+documented as Mb/s. The register field counts megabytes per second, so it
+scales by eight, not by the five the readout manual specifies: a Gen1
+readout reporting 160 has two links active at 640 Mb/s each, which is the
+1280 Mb/s the vendor tool displays and not 800.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:

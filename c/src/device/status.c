@@ -86,8 +86,14 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
 
     const uint64_t *status_crd = (const uint64_t *) &crd;
     status->comm_lines_mask    = EXTRACT(*status_crd, comm_status_crd, comm_lines_mask);
-    status->data_rate          = 5u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
-    status->chip_detected      = EXTRACT(*status_crd, comm_status_crd, chip_detected_flag);
+    // The register counts megabytes per second, so eight bits per byte give
+    // the megabits the field is documented in. The readout manual says to
+    // scale by five instead, which cannot be right: a Gen1 readout reporting
+    // 160 here has an output-block register of 0x0981, i.e. two active links
+    // at 320 MHz dual-edge, and two links of 640 Mb/s are 1280 Mb/s, not 800.
+    // Nor can 1280 be reached by fives from any 8-bit value at all.
+    status->data_rate     = 8u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
+    status->chip_detected = EXTRACT(*status_crd, comm_status_crd, chip_detected_flag);
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;

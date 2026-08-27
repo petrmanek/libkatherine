@@ -178,11 +178,11 @@ queue_comm_status(katherine_emu_t *emu)
     uint64_t val                        = 0;
     uint64_t rate;
 
-    /* The library scales the reported rate by five, so the field counts
-       five-byte units per second. The emulator has no line telemetry of
-       its own and reports the configured shaping rate, which is what
-       limits its stream; an unshaped stream reports zero. */
-    rate = emu->profile.shape_bytes_per_s / 5;
+    /* The field counts megabytes per second, which the reported rate scales
+       by eight into megabits. The emulator has no line telemetry of its own
+       and reports the configured shaping rate, which is what limits its
+       stream; an unshaped stream reports zero. */
+    rate = emu->profile.shape_bytes_per_s / 1000000u;
     if (rate > 0xFF) rate = 0xFF;
 
     val = INSERT(val, comm_status_crd, comm_lines_mask, (uint64_t) KATHERINE_EMU_COMM_LINES_MASK);

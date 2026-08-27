@@ -41,9 +41,14 @@ katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_
 KATHERINE_EXPORTED int
 katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status);
 
+/** Link status between the readout and the sensor chip. */
 typedef struct katherine_comm_status {
+    /** Active sensor output links, one bit per link, as the sensor's own
+     *  output-block channel mask reports them. */
     uint8_t comm_lines_mask;
+    /** Aggregate rate carried by those links, in Mb/s. */
     uint32_t data_rate;
+    /** Whether a sensor chip answers at all. */
     bool chip_detected;
 } katherine_comm_status_t;
 

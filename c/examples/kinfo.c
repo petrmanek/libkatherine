@@ -77,7 +77,7 @@ print_info(katherine_device_t *device)
     printf("\n");
     printf("Comm status\n");
     printf("  %-13s: 0x%02x\n", "Comm lines", (unsigned) comm_status.comm_lines_mask);
-    printf("  %-13s: %u\n", "Data rate", (unsigned) comm_status.data_rate);
+    printf("  %-13s: %u Mb/s\n", "Data rate", (unsigned) comm_status.data_rate);
     printf("  %-13s: %s\n", "Chip detected", comm_status.chip_detected ? "yes" : "no");
 
     return true;
