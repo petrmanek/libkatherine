@@ -226,6 +226,70 @@ katherine_general_config_word(const katherine_config_t *config)
     return (int32_t) word;
 }
 
+/*
+ * PLLConfig sensor register (Timepix3 manual Table 16, sensor register 3),
+ * declared as a bitfield for INSERT(). The four one-bit fields at [3:0] are
+ * pinned: the PLL is switched on, held out of reset, sourced from its own
+ * Vcntrl DAC, and clocked on both edges. pll_out_config selects what leaves
+ * the PLL output pad.
+ */
+#define _BITS_pll_config_bypass_pll_start             0
+#define _BITS_pll_config_bypass_pll_mask              MASK(1)
+#define _BITS_pll_config_bypass_pll_type              uint8_t
+
+#define _BITS_pll_config_reset_pll_start              1
+#define _BITS_pll_config_reset_pll_mask               MASK(1)
+#define _BITS_pll_config_reset_pll_type               uint8_t
+
+#define _BITS_pll_config_select_vcntrl_pll_dac_start  2
+#define _BITS_pll_config_select_vcntrl_pll_dac_mask   MASK(1)
+#define _BITS_pll_config_select_vcntrl_pll_dac_type   uint8_t
+
+#define _BITS_pll_config_dual_edge_clock_start        3
+#define _BITS_pll_config_dual_edge_clock_mask         MASK(1)
+#define _BITS_pll_config_dual_edge_clock_type         uint8_t
+
+#define _BITS_pll_config_clk_phaseshift_divider_start 4
+#define _BITS_pll_config_clk_phaseshift_divider_mask  MASK(2)
+#define _BITS_pll_config_clk_phaseshift_divider_type  uint8_t
+
+#define _BITS_pll_config_clk_phaseshift_number_start  6
+#define _BITS_pll_config_clk_phaseshift_number_mask   MASK(3)
+#define _BITS_pll_config_clk_phaseshift_number_type   uint8_t
+
+#define _BITS_pll_config_pll_out_config_start         9
+#define _BITS_pll_config_pll_out_config_mask          MASK(5)
+#define _BITS_pll_config_pll_out_config_type          uint8_t
+
+/** pll_out_config value routing the shutter signal to the PLL output pad. */
+#define KATHERINE_PLL_OUT_SHUTTER_OUT                 0x14
+
+/**
+ * Compose the PLLConfig register word from a device configuration.
+ *
+ * clk_phaseshift_divider is the clock frequency selector of Timepix3 manual
+ * Table 17 and follows katherine_freq_t; clk_phaseshift_number is the phase
+ * selector that same table clamps, and follows katherine_phase_t. Both are
+ * masked to their field widths rather than validated, matching how the DAC
+ * setters transmit unchecked values.
+ *
+ * @param config Configuration to read the phase and frequency from.
+ * @return Register word, ready for a sensor-register write.
+ */
+static inline int32_t
+katherine_pll_config_word(const katherine_config_t *config)
+{
+    uint64_t word = 0;
+    word          = INSERT(word, pll_config, bypass_pll, 0);
+    word          = INSERT(word, pll_config, reset_pll, 1);
+    word          = INSERT(word, pll_config, select_vcntrl_pll_dac, 1);
+    word          = INSERT(word, pll_config, dual_edge_clock, 1);
+    word          = INSERT(word, pll_config, clk_phaseshift_divider, (uint8_t) config->freq);
+    word          = INSERT(word, pll_config, clk_phaseshift_number, (uint8_t) config->phase);
+    word          = INSERT(word, pll_config, pll_out_config, KATHERINE_PLL_OUT_SHUTTER_OUT);
+    return (int32_t) word;
+}
+
 
 // ----------------------------------------------------------------------------
 // From this point onward we define the instruction set supported by Katherine.

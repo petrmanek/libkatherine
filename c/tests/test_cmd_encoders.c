@@ -475,6 +475,47 @@ check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const kather
     KT_CHECK_MEM_EQ(got, expected, 8);
 }
 
+/* PLLConfig, register 3. The reference value is device-attested: every vendor
+   capture we hold writes 0x291E, and a Gen1 readout reads it back unchanged.
+   That word decodes as the four pinned low bits (PLL on, out of reset, own
+   Vcntrl DAC, dual-edge), FREQ_40 in the divider at [5:4], PHASE_16 in the
+   number at [8:6], and ShutterOut in pll_out_config at [13:9]. FREQ_40 is
+   also the only setting at which ftoa is arithmetically coherent, so the
+   vendor's choice and our own documented constraint agree. */
+static void
+test_pll_config_word(void)
+{
+    katherine_config_t config;
+    memset(&config, 0, sizeof(config));
+
+    /* All-zero config: FREQ_20 and PHASE_1 are both encoded as 0, leaving
+       only the pinned bits and the output selector -- 0x280E. */
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x0E, 0x28, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+
+    /* The vendor's word, and the one case that matters most. */
+    config.freq  = FREQ_40;
+    config.phase = PHASE_16;
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x1E, 0x29, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+
+    /* Each selector isolated, so neither can silently borrow the other's
+       bits: FREQ_160 fills the divider, PHASE_1 empties the number. */
+    config.freq  = FREQ_160;
+    config.phase = PHASE_1;
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x3E, 0x28, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+
+    config.freq  = FREQ_20;
+    config.phase = PHASE_16;
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x0E, 0x29, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+}
+
 static void
 test_acquisition_setup_word(void)
 {
@@ -612,6 +653,7 @@ main(void)
     KT_RUN(test_wrappers_dac);
     KT_RUN(test_i64_boundary);
     KT_RUN(test_general_config_word);
+    KT_RUN(test_pll_config_word);
     KT_RUN(test_acquisition_setup_word);
     KT_RUN(test_cmd_payload_u32_boundary);
     KT_RUN(test_cmd_chip_envelope);

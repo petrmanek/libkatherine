@@ -54,20 +54,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_sensor_register(device, TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
     if (res) goto err;
 
-    // PLL configuration word (Tpx3 manual Table 16, sensor register 3). The
-    // 0xE sets four fixed one-bit fields at [3:0]: ByPassPLL = 0 (bit 0, PLL
-    // on), ResetPLL = 1 (bit 1, running), SelectVcntrl_PLL_DAC = 1 (bit 2,
-    // Vcntrl sourced from the PLL), DualEdgeClock = 1 (bit 3). Bits [5:4]
-    // are Clk_phaseShift_divider, the clock frequency selector of Table 17;
-    // bits [8:6] are Clk_phaseShift_number, the phase selector clamped by
-    // that same table (see katherine_phase_t, config.h). 0x14 << 9 sets
-    // PLLOutConfig[13:9] = ShutterOut, routing the shutter signal to the
-    // PLL output pad.
-    int32_t pll_setup = 0xE;
-    pll_setup |= (0x7 & config->phase) << 6;
-    pll_setup |= (0x3 & config->freq) << 4;
-    pll_setup |= 0x14 << 9;
-    res = katherine_set_sensor_register(device, TPX3_REG_PLL_CONFIG, pll_setup);
+    res = katherine_set_sensor_register(device, TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
     if (res) goto err;
 
     // Commits the output block's own configuration, which this library never
