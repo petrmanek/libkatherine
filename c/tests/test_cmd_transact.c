@@ -55,6 +55,7 @@
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
 #include "kthread.h"
+#include "msleep.h"
 #include "ktest.h"
 
 /* ------------------------------------------------------------------ */
@@ -87,6 +88,12 @@
    tell apart from returning at once. */
 #define SLOW_TIMEOUT_MS   3000
 #define NONBLOCKING_S     1.0
+
+/* Retries allowed while waiting for two datagrams to reach the socket, and
+   the pause between them. Ten attempts of 20 ms bound the wait at 0.2 s,
+   far above any loopback delivery and far below the test's own timeout. */
+#define FLUSH_ATTEMPTS    10
+#define FLUSH_ATTEMPT_MS  20
 
 /* The stray budget is spent on datagrams that are already queued, so
    spending all of it costs no receive timeout at all; this bound catches a
@@ -400,9 +407,21 @@ test_flush_consumes_without_blocking(void)
     mock_reply(&g_slow_mock, (uint8_t) CMD_TYPE_GET_HW_READOUT_TEMPERATURE, 1);
     mock_reply(&g_slow_mock, (uint8_t) CMD_TYPE_GET_HW_READOUT_TEMPERATURE, 2);
 
+    /* A send returning is not a delivery: the loopback of some platforms
+       queues the datagram a moment later, and a flush that cannot block is
+       entitled to find the socket still empty. So the flush is repeated
+       until both have been accounted for, with every single call required
+       to return at once -- which is the property under test -- and the
+       whole wait bounded so a flush that consumes nothing still fails. */
     time_t started = time(NULL);
-    katherine_cmd_drain(&g_slow_client);
-    KT_CHECK(difftime(time(NULL), started) <= NONBLOCKING_S);
+    for (int attempt = 0; attempt < FLUSH_ATTEMPTS; ++attempt) {
+        time_t call = time(NULL);
+        katherine_cmd_drain(&g_slow_client);
+        KT_CHECK(difftime(time(NULL), call) <= NONBLOCKING_S);
+        if (g_slow_client.stray_command_responses - before >= 2) break;
+        katherine_msleep(FLUSH_ATTEMPT_MS);
+    }
+    KT_CHECK(difftime(time(NULL), started) <= NONBLOCKING_S * FLUSH_ATTEMPTS);
     KT_CHECK_EQ(g_slow_client.stray_command_responses - before, 2);
 
     /* Again, on the socket it has just emptied. */
