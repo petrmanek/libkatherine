@@ -70,9 +70,17 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_sensor_register(device, TPX3_REG_PLL_CONFIG, pll_setup);
     if (res) goto err;
 
+    // Commits the output block's own configuration, which this library never
+    // writes: the readout firmware owns the channel mask and the link clock
+    // selector, and reports the mask it settled on through the communication
+    // status. So this is a commit for a register nobody here sets, kept
+    // because the sensor still needs the trigger to latch what the firmware
+    // put there.
     res = katherine_output_block_config_update(device);
     if (res) goto err;
 
+    // Carries the register writes above to the sensor. Without it they sit in
+    // the readout's register image and never reach the chip.
     res = katherine_update_sensor_registers(device);
     if (res) goto err;
 
@@ -577,10 +585,18 @@ err:
 
 /**
  * Set value of a sensor register.
+ *
+ * The write lands in a register image held by the readout, not in the sensor.
+ * It reaches the chip only once katherine_update_sensor_registers() flushes
+ * that image, and a caller who omits the flush gets no error and no effect --
+ * the sensor simply goes on using whatever a previous flush left there.
+ * Several registers may be written before one flush commits them together.
+ *
  * @param device Katherine device
  * @param reg_idx Index of the register
  * @param reg_value Value to assign to the register
  * @return Error code.
+ * @see katherine_update_sensor_registers
  */
 int
 katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
@@ -608,9 +624,17 @@ err:
 }
 
 /**
- * Update sensor registers.
+ * Carry the readout's sensor register image to the sensor.
+ *
+ * This is the commit half of every sensor register write: values set by
+ * katherine_set_sensor_register(), and the pixel mode and fast-oscillator
+ * flag set by katherine_set_acq_mode(), all sit in the readout's image until
+ * this flushes them. Registers written and never flushed have no effect
+ * whatsoever, silently, so treat the pairing as mandatory.
+ *
  * @param device Katherine device
  * @return Error code.
+ * @see katherine_set_sensor_register
  */
 int
 katherine_update_sensor_registers(katherine_device_t *device)
