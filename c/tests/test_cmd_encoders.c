@@ -410,13 +410,14 @@ test_general_config_word(void)
         0x58, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.polarity_holes = false;
 
-    /* test_pulse_config.enabled = true: TP_en (bit 5) sets -- 0x79. Also
-       already correct under the preexisting code (same zero-base
-       reasoning as Polarity). */
+    /* test_pulse_config.enabled no longer reaches this word at all: Tp_en
+       stays clear and the test-pulse command carries the enable, so the
+       value is unchanged at 0x59. Hardware A/B confirms pulses fire either
+       way, for analog and digital alike. */
     config.test_pulse_config.enabled = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x79, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+        0x59, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.test_pulse_config.enabled = false;
 
     /* The remaining flag combinations, freezing the whole 2^3 space the
@@ -427,7 +428,7 @@ test_general_config_word(void)
     config.test_pulse_config.enabled = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x71, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+        0x51, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.test_pulse_config.enabled = false;
     config.polarity_holes            = true;
@@ -439,12 +440,12 @@ test_general_config_word(void)
     config.test_pulse_config.enabled = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x78, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+        0x58, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.gray_disable = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x70, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+        0x50, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 }
 
 

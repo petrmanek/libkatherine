@@ -77,14 +77,15 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_dacs(device, &config->dacs);
     if (res) goto err;
 
-    /* Note: the test pulse enable flag travels twice. The TP_en bit of the
-       general configuration register above follows the sensor register
-       update, actively switching test pulses on or off through documented
-       commands. The remaining pulse parameters are then communicated by the
-       dedicated command below; it is issued last so that the register
-       updates above cannot override its effects, and skipped when test
-       pulses are disabled, keeping the wire traffic identical to
-       configurations that predate test pulse support. */
+    /* The test-pulse command carries the enable flag as well as the pulse
+       parameters, and it is the only thing that needs to: GeneralConfig's
+       Tp_en bit is not load-bearing. Forcing that bit to zero and repeating
+       this configuration on hardware fires exactly the 256 pixels of a
+       painted 16x16 patch, for analog and digital pulses alike, which is
+       also how the vendor tool and the reference implementation drive it.
+       Issued last so the register updates above cannot override it, and
+       skipped when pulses are disabled, keeping the wire traffic identical
+       to configurations that predate test pulse support. */
     if (config->test_pulse_config.enabled) {
         res = katherine_set_test_pulses(device, &config->test_pulse_config);
         if (res) goto err;
