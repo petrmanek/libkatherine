@@ -92,6 +92,26 @@ map_syscall_error(int err, katherine_error_t fallback)
     }
 }
 
+/**
+ * Reports a failed receive, recording the OS-level detail only when there is
+ * any: an empty non-blocking socket and an expired receive timeout are
+ * ordinary outcomes rather than faults, so neither leaves an errno behind for
+ * katherine_udp_last_os_error() to hand out. The Windows readiness check
+ * clears it for the same reason.
+ *
+ * @param u UDP session
+ * @param err errno of the failed syscall
+ * @return Error code.
+ */
+static int
+recv_failure(katherine_udp_t *u, int err)
+{
+    katherine_error_t mapped = map_syscall_error(err, KATHERINE_E_IO);
+
+    u->last_os_error = (mapped == KATHERINE_E_TIMEOUT) ? 0 : err;
+    return -(int) mapped;
+}
+
 /* Receives one datagram from the pinned remote of session u, discarding up to
    KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
    Spending that budget is reported as -KATHERINE_E_TIMEOUT, the very code
@@ -113,8 +133,7 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, int 
         socklen_t addr_len = sizeof(addr_from);
         ssize_t res        = recvfrom(u->sock, data, count, flags, (struct sockaddr *) &addr_from, &addr_len);
         if (res == -1) {
-            u->last_os_error = errno;
-            return -(int) map_syscall_error(errno, KATHERINE_E_IO);
+            return recv_failure(u, errno);
         }
 
         if (from_pinned_remote(u, &addr_from)) {
@@ -145,8 +164,7 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, in
     socklen_t addr_len = sizeof(u->addr_remote);
     ssize_t res        = recvfrom(u->sock, data, count, flags, (struct sockaddr *) &u->addr_remote, &addr_len);
     if (res == -1) {
-        u->last_os_error = errno;
-        return -(int) map_syscall_error(errno, KATHERINE_E_IO);
+        return recv_failure(u, errno);
     }
 
     *received = (size_t) res;
