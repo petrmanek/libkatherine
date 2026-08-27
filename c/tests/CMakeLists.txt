@@ -11,6 +11,11 @@ katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
 # threads, builds everywhere -- same shape as test_bitfields above.
 katherine_add_test(NAME test_dacs_validate SOURCES test_dacs_validate.c LABELS unit)
 
+# Timepix3 manual Table 17: the phase count the clock divider actually grants,
+# and the one frequency at which fine time stamping means anything. Vectors
+# come from the manual page rather than from the implementation.
+katherine_add_test(NAME test_clock_phases SOURCES test_clock_phases.c LABELS unit)
+
 # Golden byte-vector tests for the command encoders. Sockets, but only
 # through the public katherine_udp_* API and on uncommon high ports of its
 # own (see the file for the exact pair), so it builds everywhere and claims

@@ -778,7 +778,83 @@ static const uint16_t KATHERINE_DAC_MAX[18] = {
 };
 
 /**
- * Validate DAC register values against the chip's per-DAC bit widths.
+ * Pixel-clock phase counts, Tpx3 manual Table 17 (p39), for DualEdgeClock = 1
+ * -- the value katherine_pll_config_word() pins. Rows are the clock divider
+ * in katherine_freq_t order, columns the requested phase count in
+ * katherine_phase_t order.
+ *
+ * The manual's other half, DualEdgeClock = 0, is one column further clamped
+ * throughout: {1,2,4,8,16}, {1,1,2,4,8}, {1,1,1,2,4}, {1,1,1,1,2}. It is not
+ * tabulated here because nothing in this library clears that bit; were it
+ * ever exposed, this table gains a dimension rather than changing shape.
+ */
+static const uint8_t KATHERINE_ACTUAL_PHASES[4][5] = {
+    /*              PHASE_1 PHASE_2 PHASE_4 PHASE_8 PHASE_16 */
+    /* FREQ_20  */ {1, 2, 4, 8, 16},
+    /* FREQ_40  */ {1, 2, 4, 8, 16},
+    /* FREQ_80  */ {1, 1, 2, 4, 8},
+    /* FREQ_160 */ {1, 1, 1, 2, 4},
+};
+
+/**
+ * Number of pixel-clock phases a frequency and phase setting actually yield.
+ *
+ * The phase enumerators name what they request, not what they get: the clock
+ * divider clamps the count, so PHASE_16 yields 16 phases at FREQ_40 but only
+ * 4 at FREQ_160 (Tpx3 manual Table 17). Anything dividing a coarse tick by
+ * the number of phases -- per-double-column timestamp correction above all --
+ * has to divide by this, not by the enumerator's name.
+ *
+ * @param freq Pixel-clock frequency selector.
+ * @param phase Requested phase count.
+ * @return Phases actually generated, or 0 if either argument is out of range.
+ */
+uint8_t
+katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
+{
+    /* Signed comparison on purpose: both parameters are enumerations, and a
+       caller passing a negative value would otherwise index far outside the
+       table after conversion to an unsigned index. */
+    if ((int) freq < 0 || (int) freq > FREQ_160) return 0;
+    if ((int) phase < 0 || (int) phase > PHASE_16) return 0;
+
+    return KATHERINE_ACTUAL_PHASES[freq][phase];
+}
+
+/**
+ * Whether fast time stamping is coherent at a given pixel-clock frequency.
+ *
+ * True for FREQ_40 alone. The fine-ToA field is a 4-bit counter at 640 MHz,
+ * so it spans 16 x 1.5625 ns = 25 ns, which is one whole ToA tick only while
+ * the pixel clock runs at 40 MHz; at FREQ_80 the field covers two ticks and
+ * at FREQ_160 four, leaving the documented Timestamp = ToA - fToA without a
+ * meaning. Tpx3 manual Table 17 says the same in its own terms, answering
+ * "Fast Time Stamping" Yes for the Fin/8 divider and No for every other.
+ *
+ * The check is the caller's to make: katherine_acquisition_begin() accepts
+ * fast_vco_enabled together with any frequency today, and a later release
+ * will refuse the incoherent combination outright.
+ *
+ * @param freq Pixel-clock frequency selector.
+ * @return true if fast time stamping is coherent at this frequency.
+ */
+bool
+katherine_freq_is_fast_vco_supported(katherine_freq_t freq)
+{
+    /* Table 17 answers "Fast Time Stamping" Yes for the Fin/8 divider alone,
+       in both DualEdgeClock rows. */
+    return freq == FREQ_40;
+}
+
+/**
+ * Validate DAC register values against the chip's per-DAC bit widths
+ * (Tpx3 manual Table 11: each of the 18 DACs is 4, 8 or 9 bits wide).
+ *
+ * This check is opt-in: katherine_set_dacs() transmits every value unchecked,
+ * and a value wider than its DAC's field is silently truncated by the chip
+ * rather than rejected there. Calling this function first is a caller's
+ * choice; it does not change katherine_set_dacs()'s own behavior.
+ *
  * @param v DAC register values to validate.
  * @return 0 if every value fits its DAC's range, -KATHERINE_E_INVAL otherwise.
  */

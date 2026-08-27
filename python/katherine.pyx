@@ -661,6 +661,7 @@ class Phase(Enum):
 
 @unique
 class Freq(Enum):
+    FREQ_20          = cconfig.katherine_freq_t.FREQ_20
     FREQ_40          = cconfig.katherine_freq_t.FREQ_40
     FREQ_80          = cconfig.katherine_freq_t.FREQ_80
     FREQ_160         = cconfig.katherine_freq_t.FREQ_160

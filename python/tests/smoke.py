@@ -323,7 +323,26 @@ def check_reprs(tap, katherine, device):
         device_repr.startswith('device{') and device_repr.endswith('}') and len(device_repr) > len('device{}'))
 
 
+def check_enums(tap, katherine):
+    """Every enumerator of the C headers reaches Python.
+
+    Guards one specific way the bindings rot: the C enum grows and this layer
+    does not follow, leaving a setting nameless from Python while everything
+    still compiles and every other test passes. Freq lost FREQ_20 that way.
+    Spelled out as names and values rather than counted, so a member that is
+    renamed or given the wrong value fails too.
+    """
+    tap.check_eq('Freq enumerates every frequency',
+                 [(m.name, m.value) for m in katherine.Freq],
+                 [('FREQ_20', 0), ('FREQ_40', 1), ('FREQ_80', 2), ('FREQ_160', 3)])
+    tap.check_eq('Phase enumerates every phase count',
+                 [(m.name, m.value) for m in katherine.Phase],
+                 [('PHASE_1', 0), ('PHASE_2', 1), ('PHASE_4', 2), ('PHASE_8', 3), ('PHASE_16', 4)])
+
+
 def run_checks(tap, katherine, device):
+    check_enums(tap, katherine)
+
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
 
     readout = device.get_readout_status()

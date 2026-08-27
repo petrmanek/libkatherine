@@ -47,6 +47,7 @@ enum class phase : int {
 };
 
 enum class freq : int {
+    f20  = FREQ_20,
     f40  = FREQ_40,
     f80  = FREQ_80,
     f160 = FREQ_160

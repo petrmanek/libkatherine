@@ -68,6 +68,7 @@ cdef extern from 'katherine/config.h':
         PHASE_16   
 
     ctypedef enum katherine_freq_t:
+        FREQ_20
         FREQ_40
         FREQ_80
         FREQ_160        

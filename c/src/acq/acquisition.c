@@ -481,6 +481,16 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 
 /**
  * Set detector configuration and begin acquisition.
+ *
+ * fast_vco_enabled and config->freq are accepted independently, and only one
+ * of their combinations is arithmetically sound: fine time stamping means
+ * anything at FREQ_40 alone, since the fine-ToA counter spans exactly one ToA
+ * tick only there. Enabling it at another frequency is not refused here, and a
+ * later release will refuse it; katherine_freq_is_fast_vco_supported() is the
+ * check to make in the meantime. Callers deriving times from the phase count
+ * want katherine_actual_phases() for the same reason -- the phase enumerators
+ * name what is asked for, not what the divider grants.
+ *
  * @param acq Acquisition
  * @param config Configuration
  * @param readout_mode Readout mode

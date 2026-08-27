@@ -93,61 +93,43 @@ typedef union katherine_dacs {
 KATHERINE_EXPORTED int
 katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v);
 
-/**
- * Validate DAC register values against the chip's per-DAC bit widths
- * (Tpx3 manual Table 11: each of the 18 DACs is 4, 8 or 9 bits wide).
- *
- * This check is opt-in: katherine_set_dacs() transmits every value
- * unchecked, and a value wider than its DAC's field is silently truncated
- * by the chip rather than rejected there. Calling this function first is a
- * caller's choice; it does not change katherine_set_dacs()'s own behavior.
- *
- * @param v DAC register values to validate.
- * @return 0 if every value fits its DAC's range, -KATHERINE_E_INVAL otherwise.
- */
 KATHERINE_EXPORTED int
 katherine_dacs_validate(const katherine_dacs_t *v);
 
 
-// With DualEdgeClock = 1 (always the case, see config.c), Tpx3 manual Table
-// 17 clamps the achieved phase count by the clock divider: PHASE_16 yields
-// only 4 actual phases at FREQ_160, not 16, and less still at FREQ_80.
-//
-//            PHASE_1  PHASE_2  PHASE_4  PHASE_8  PHASE_16
-//  FREQ_40       1        2        4        8        16
-//  FREQ_80       1        1        2        4         8
-//  FREQ_160      1        1        1        2         4
+/// Phase distribution of the main Timepix3 clock across the pixel matrix.
+/// Having more phases helps spread the load in data-intensive measurements and make the ASIC more stable.
+/// Any value other than PHASE_1, however, requires a ToA correction (either by software or readout, if supported).
+/// This setting is a request only: katherine_actual_phases() gives the phases actually generated.
 typedef enum katherine_phase {
-    PHASE_1  = 0,
-    PHASE_2  = 1,
-    PHASE_4  = 2,
-    PHASE_8  = 3,
-    PHASE_16 = 4,
+    PHASE_1  = 0, ///< All clocks measure with the same phase, no ToA phase correction is required.
+    PHASE_2  = 1, ///< 2  clock phases, ToA phase correction is required.
+    PHASE_4  = 2, ///< 4  clock phases, ToA phase correction is required.
+    PHASE_8  = 3, ///< 8  clock phases, ToA phase correction is required.
+    PHASE_16 = 4, ///< 16 clock phases, ToA phase correction is required.
 } katherine_phase_t;
+
+
+/// Frequency of the main Timepix3 clock (for ToT and ToA, but not fToA).
+/// Whether fast-VCO (for fToA) may be enabled is given by katherine_freq_is_fast_vco_supported().
+typedef enum katherine_freq {
+    FREQ_20  = 0, ///< f =  20 MHz. Undocumented by the readout manual; corroborated by other client implementations.
+    FREQ_40  = 1, ///< f =  40 MHz. Most frequently used value.
+    FREQ_80  = 2, ///< f =  80 MHz.
+    FREQ_160 = 3, ///< f = 160 MHz.
+} katherine_freq_t;
 
 KATHERINE_EXPORTED const char *
 katherine_str_phase(katherine_phase_t phase);
 
-
-typedef enum katherine_freq {
-    // Frequency code 0 selects the 20 MHz base clock. The readout manual
-    // documents only codes 1-3; code 0 is corroborated by mature client
-    // implementations of this protocol.
-    //
-    // Fast timestamping (the ftoa field of katherine_px_f_toa_tot_t and its
-    // siblings, px.h) is only arithmetically coherent at FREQ_40: ftoa is a
-    // 4-bit binary counter at 640 MHz, spanning 16 x 1.5625 ns = 25 ns --
-    // exactly one ToA tick, but only when the ToA tick itself is 25 ns
-    // (Table 17), i.e. at FREQ_40. At FREQ_80/FREQ_160 the ToA tick is
-    // shorter and ftoa no longer spans a whole one.
-    FREQ_20  = 0,
-    FREQ_40  = 1,
-    FREQ_80  = 2,
-    FREQ_160 = 3,
-} katherine_freq_t;
+KATHERINE_EXPORTED uint8_t
+katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase);
 
 KATHERINE_EXPORTED const char *
 katherine_str_freq(katherine_freq_t freq);
+
+KATHERINE_EXPORTED bool
+katherine_freq_is_fast_vco_supported(katherine_freq_t freq);
 
 
 typedef struct katherine_config {
