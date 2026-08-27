@@ -47,7 +47,6 @@ cdef extern from 'katherine/px.h':
 
     ctypedef struct katherine_px_f_event_itot_t:
         katherine_coord_t coord
-        uint8_t hit_count
         uint16_t event_count
         uint16_t integral_tot
 
@@ -55,6 +54,7 @@ cdef extern from 'katherine/px.h':
 
     ctypedef struct katherine_px_event_itot_t:
         katherine_coord_t coord
+        uint8_t hit_count
         uint16_t event_count
         uint16_t integral_tot
 

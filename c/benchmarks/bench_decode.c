@@ -175,8 +175,8 @@ DEFINE_BENCH_DECODE(f_toa_tot,    (uint64_t) dst->coord.x + dst->coord.y + dst->
 DEFINE_BENCH_DECODE(toa_tot,      (uint64_t) dst->coord.x + dst->coord.y + dst->toa + dst->hit_count + dst->tot)
 DEFINE_BENCH_DECODE(f_toa_only,   (uint64_t) dst->coord.x + dst->coord.y + dst->ftoa + dst->toa)
 DEFINE_BENCH_DECODE(toa_only,     (uint64_t) dst->coord.x + dst->coord.y + dst->toa + dst->hit_count)
-DEFINE_BENCH_DECODE(f_event_itot, (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
-DEFINE_BENCH_DECODE(event_itot,   (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
+DEFINE_BENCH_DECODE(f_event_itot, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
+DEFINE_BENCH_DECODE(event_itot,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
 /* clang-format on */
 
 #undef DEFINE_BENCH_DECODE

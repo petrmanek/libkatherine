@@ -145,13 +145,16 @@ build_hit_md(const katherine_emu_stream_t *stream, const emu_hit_t *hit)
         break;
 
     case ACQUISITION_MODE_EVENT_ITOT:
+        /* Bits [3:0] are the hit counter only with the oscillator off; with it
+           on they are dummy and are left clear, which is what a readout puts
+           on the wire. */
         if (stream->fast_vco) {
             EMU_MD_COORD(md, pmd_f_event_itot, hit);
-            md = INSERT(md, pmd_f_event_itot, hit_count, (uint64_t) hit->hit_count);
             md = INSERT(md, pmd_f_event_itot, event_count, (uint64_t) hit->event_count);
             md = INSERT(md, pmd_f_event_itot, integral_tot, (uint64_t) hit->integral_tot);
         } else {
             EMU_MD_COORD(md, pmd_event_itot, hit);
+            md = INSERT(md, pmd_event_itot, hit_count, (uint64_t) hit->hit_count);
             md = INSERT(md, pmd_event_itot, event_count, (uint64_t) hit->event_count);
             md = INSERT(md, pmd_event_itot, integral_tot, (uint64_t) hit->integral_tot);
         }

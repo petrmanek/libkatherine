@@ -40,11 +40,16 @@ extern "C" {
  * wraps every 16384 ticks despite the 64-bit field.
  *
  * tot, hit_count, event_count, integral_tot: chip counters, encoded on the
- * sensor as LFSR states (Table 3) the same way toa is Gray-coded. Whether
- * the readout firmware decodes these before the value reaches the host is
- * believed true but not yet confirmed on hardware -- treat them as raw
- * counter states until it is. Saturation values (Table 4): tot and
- * integral_tot at 1022, ftoa at 15, the 4-bit hit_count at 14 (not 15).
+ * sensor as LFSR states (Table 3) the same way toa is Gray-coded. Whether the
+ * readout firmware decodes these before the value reaches the host has been
+ * settled for two of them and not for the others. Measured on a Gen1 readout
+ * with test pulses of a chosen count N, in Event+iToT with the fast
+ * oscillator off: event_count reads exactly N (1, 3, 7, 20, 100 all
+ * reproduced) and the 4-bit hit_count reads N up to its saturation, so both
+ * arrive DECODED and may be read as counts. tot and integral_tot have not had
+ * the same treatment -- treat those two as raw counter states until they do.
+ * Saturation values (Table 4): tot and integral_tot at 1022, ftoa at 15, the
+ * 4-bit hit_count at 14 (not 15).
  */
 
 typedef struct katherine_coord {
@@ -93,10 +98,14 @@ typedef struct katherine_px_toa_only {
 KATHERINE_EXPORTED int
 katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v);
 
+/* No hit counter: with the fast oscillator on, bits [3:0] of an Event+iToT
+   word are dummy (Tpx3 manual Figure 1, p8) -- this is the one mode where the
+   fast variant carries less than the slow one, there being no fine ToA to
+   report. Confirmed on a Gen1 readout: over 3012 pixels at high occupancy the
+   field read zero throughout while the event counter saturated. */
 typedef struct katherine_px_f_event_itot {
     katherine_coord_t coord;
-    uint8_t hit_count;     ///< Chip LFSR counter state; see the file header
-    uint16_t event_count;  ///< Chip LFSR counter state; see the file header
+    uint16_t event_count;  ///< Decoded event count; see the file header
     uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
 } katherine_px_f_event_itot_t;
 
@@ -105,7 +114,8 @@ katherine_px_f_event_itot_snprint(char *buf, size_t cap, const katherine_px_f_ev
 
 typedef struct katherine_px_event_itot {
     katherine_coord_t coord;
-    uint16_t event_count;  ///< Chip LFSR counter state; see the file header
+    uint8_t hit_count;     ///< Decoded pixel hit counter, saturating at 14 (Table 4)
+    uint16_t event_count;  ///< Decoded event count; see the file header
     uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
 } katherine_px_event_itot_t;
 

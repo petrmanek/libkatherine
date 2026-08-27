@@ -34,6 +34,25 @@ behind: ToA+ToT with the fast oscillator on, whatever was requested.
 Reading the register back on a Gen1 readout now shows the requested mode
 and flag in all six combinations.
 
+The Event+iToT hit counter moves to the variant that actually carries it.
+Timepix3 manual Figure 1 gives bits [3:0] of an Event+iToT word as dummy with
+the fast oscillator on and as the pixel hit counter with it off -- the one mode
+whose fast variant carries less than its slow one, there being no fine ToA to
+report. `katherine_px_f_event_itot_t` exposed a `hit_count` that read the dummy
+field, and `katherine_px_event_itot_t` omitted one and discarded a real counter.
+The field swaps between them, so both structs change size.
+
+Measured on a Gen1 readout rather than taken from the figure. With the
+oscillator on, 3012 pixels at high occupancy read zero throughout while the
+event counter saturated. With it off, a patch given N test pulses reads exactly
+N for N up to 14 and saturates at 14 -- Table 4's limit for this counter, and
+what distinguishes it from the fine-ToA field, which saturates at 15.
+
+The same measurement settles a longer-standing question for two fields: the
+readout does decode the chip's counter encoding, since `event_count` reads
+exactly the pulse count. `tot` and `integral_tot` have not been measured and
+are still documented as raw counter states.
+
 Per-pixel threshold adjustments are now in the chip's DAC-value order.
 `katherine_px_config_set_loc_thl()` wrote the nibble unreversed, but Timepix3
 manual Table 23 stores `Thr[3:0]` with its least significant bit in `PCR[4]`

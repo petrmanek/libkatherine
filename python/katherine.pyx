@@ -1056,10 +1056,6 @@ cdef class PxFastEventItot:
        return self._c_px.coord.y
 
     @property
-    def hit_count(self):
-       return self._c_px.hit_count
-
-    @property
     def event_count(self):
        return self._c_px.event_count
 
@@ -1089,6 +1085,10 @@ cdef class PxEventItot:
     @property
     def y(self):
        return self._c_px.coord.y
+
+    @property
+    def hit_count(self):
+       return self._c_px.hit_count
 
     @property
     def event_count(self):

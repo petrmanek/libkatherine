@@ -86,19 +86,19 @@ test_px_toa_only(void)
 static void
 test_px_f_event_itot(void)
 {
-    katherine_px_f_event_itot_t v = {{9, 10}, 4, 11, 222};
+    katherine_px_f_event_itot_t v = {{9, 10}, 11, 222};
     char buf[128];
     int n = katherine_px_f_event_itot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_f_event_itot{coord: coord{x: 9, y: 10}, hit_count: 4, event_count: 11, integral_tot: 222}");
+    CHECK_GOLDEN(n, buf, "px_f_event_itot{coord: coord{x: 9, y: 10}, event_count: 11, integral_tot: 222}");
 }
 
 static void
 test_px_event_itot(void)
 {
-    katherine_px_event_itot_t v = {{11, 12}, 33, 444};
+    katherine_px_event_itot_t v = {{11, 12}, 5, 33, 444};
     char buf[128];
     int n = katherine_px_event_itot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_event_itot{coord: coord{x: 11, y: 12}, event_count: 33, integral_tot: 444}");
+    CHECK_GOLDEN(n, buf, "px_event_itot{coord: coord{x: 11, y: 12}, hit_count: 5, event_count: 33, integral_tot: 444}");
 }
 
 /* Both bool states, across the two triggers used again in test_config(). */

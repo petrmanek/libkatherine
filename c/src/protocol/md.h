@@ -192,10 +192,6 @@ DEFINE_PMD_MAP(toa_only)
     DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_only);
 }
 
-#define _BITS_pmd_f_event_itot_hit_count_start    0
-#define _BITS_pmd_f_event_itot_hit_count_mask     MASK(4)
-#define _BITS_pmd_f_event_itot_hit_count_type     uint16_t
-
 #define _BITS_pmd_f_event_itot_event_count_start  4
 #define _BITS_pmd_f_event_itot_event_count_mask   MASK(10)
 #define _BITS_pmd_f_event_itot_event_count_type   uint16_t
@@ -217,10 +213,19 @@ DEFINE_PMD_MAP(f_event_itot)
     (void) acq;
 
     DEFINE_PMD_PAIR_COORD(pmd_f_event_itot);
-    DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_f_event_itot);
     DEFINE_PMD_PAIR(event_count, uint16_t, pmd_f_event_itot);
     DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_f_event_itot);
 }
+
+/* Bits [3:0] carry the pixel hit counter only while the fast oscillator is
+   OFF; with it on they are dummy and the fast variant below has no field for
+   them (Tpx3 manual Figure 1, p8). Measured on a Gen1 readout: with the
+   oscillator off, a patch given N test pulses reads N here for N up to 14 and
+   saturates at 14 -- Table 4's limit for this counter, and what distinguishes
+   it from the fine-ToA field, which saturates at 15. */
+#define _BITS_pmd_event_itot_hit_count_start    0
+#define _BITS_pmd_event_itot_hit_count_mask     MASK(4)
+#define _BITS_pmd_event_itot_hit_count_type     uint16_t
 
 #define _BITS_pmd_event_itot_event_count_start  4
 #define _BITS_pmd_event_itot_event_count_mask   MASK(10)
@@ -243,6 +248,7 @@ DEFINE_PMD_MAP(event_itot)
     (void) acq;
 
     DEFINE_PMD_PAIR_COORD(pmd_event_itot);
+    DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_event_itot);
     DEFINE_PMD_PAIR(event_count, uint16_t, pmd_event_itot);
     DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_event_itot);
 }

@@ -250,8 +250,8 @@ katherine_px_f_event_itot_snprint(char *buf, size_t cap, const katherine_px_f_ev
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_event_itot{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
-    REPR_APPENDF(buf, cap, off, ", hit_count: %u, event_count: %u, integral_tot: %u}", (unsigned) v->hit_count,
-        (unsigned) v->event_count, (unsigned) v->integral_tot);
+    REPR_APPENDF(buf, cap, off, ", event_count: %u, integral_tot: %u}", (unsigned) v->event_count,
+        (unsigned) v->integral_tot);
     return (int) off;
 }
 
@@ -262,7 +262,8 @@ katherine_px_event_itot_snprint(char *buf, size_t cap, const katherine_px_event_
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_event_itot{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
-    REPR_APPENDF(buf, cap, off, ", event_count: %u, integral_tot: %u}", (unsigned) v->event_count, (unsigned) v->integral_tot);
+    REPR_APPENDF(buf, cap, off, ", hit_count: %u, event_count: %u, integral_tot: %u}", (unsigned) v->hit_count,
+        (unsigned) v->event_count, (unsigned) v->integral_tot);
     return (int) off;
 }
 
