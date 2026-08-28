@@ -434,6 +434,13 @@ DEFINE_ACQ_IMPL(event_itot)
  * at that point, so inquiries that a running acquisition refuses -- the sensor
  * temperature among them -- become available again.
  *
+ * What ends it differs by path. Decoding, it is the frame-finished datum for
+ * the last requested frame. Not decoding, that datum is never examined, so
+ * only an abort or this call's own timeout ends it. It is worth noting that
+ * any such timeout may be either genuine, leaving the readout measuring, or
+ * simply a consequence of receiving no further data past the frame-finished
+ * datum (which we do not know arrived because we are not decoding).
+ *
  * @param acq Acquisition
  * @return Error code.
  */
@@ -481,6 +488,10 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 
 /**
  * Set detector configuration and begin acquisition.
+ *
+ * With decode_data false the caller takes on the obligation of ending the
+ * acquisition, because nothing in the read loop will: see the field's
+ * description in acquisition.h. katherine_acquisition_abort() is how.
  *
  * fast_vco_enabled and config->freq are accepted independently, and only one
  * of their combinations is arithmetically sound: fine time stamping means
@@ -589,6 +600,16 @@ err:
 /**
  * Abort acquisition. This command does not wait for confirmation from
  * the readout and will cause the current frame to end upon receiving.
+ *
+ * For acquisitions with decode_data == false, this is the only way to achieve
+ * orderly termination: it raises the flag that katherine_acquisition_read()
+ * acts on once the stream dries up, which is the only thing that will end the
+ * read short of its timeout.
+ *
+ * Note the flag it raises is shared with the readout's own aborted-measurement
+ * datum, so an acquisition the hardware abandoned and one the caller stopped
+ * both finish as ACQUISITION_SUCCEEDED and cannot be told apart afterwards.
+ *
  * @param acq Acquisition
  * @return Error code.
  */

@@ -68,11 +68,25 @@ typedef struct katherine_frame_info {
 KATHERINE_EXPORTED int
 katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t *v);
 
+/**
+ * Callbacks an acquisition may invoke. Each is optional: unset handlers are
+ * cleared by katherine_acquisition_init() and skipped when they would be
+ * called, so a caller registers only what it wants.
+ *
+ * Which ones can fire is decided by katherine_acquisition_t::decode_data, and
+ * the two sets are disjoint -- the first three belong to the decoded path and
+ * the last to the raw one.
+ */
 typedef struct katherine_acquisition_handlers {
-    void (*pixels_received)(void *, const void *, size_t);
-    void (*frame_started)(void *, int);
-    void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *);
-    void (*data_received)(void *, const char *, size_t);
+    // If katherine_acquisition_t::decode_data == true, you may register
+    // handlers for the following callbacks:
+    void (*pixels_received)(void *, const void *, size_t);                  ///< Decoded pixels, in batches
+    void (*frame_started)(void *, int);                                     ///< New frame opened
+    void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *); ///< Current frame closed, with its info
+
+    // If katherine_acquisition_t::decode_data == false, you may register
+    // handlers for the following callbacks:
+    void (*data_received)(void *, const char *, size_t); ///< Raw, undecoded measurement data as received
 } katherine_acquisition_handlers_t;
 
 /* 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
@@ -109,6 +123,25 @@ typedef struct katherine_acquisition {
     char *md_buffer;
     size_t md_buffer_size;
 
+    /**
+     * Whether measurement data is decoded into pixels, chosen at
+     * katherine_acquisition_begin().
+     *
+     * True is the ordinary path: data is decoded, the frame lifecycle is
+     * tracked, and pixels_received, frame_started and frame_ended are the
+     * callbacks that fire. The acquisition ends by itself once all the
+     * requested frames have arrived (or an error such as a communications
+     * timeout is detected).
+     *
+     * False hands the raw binary measurement data to data_received and
+     * interprets none of it. Nothing is decoded, so the other three callbacks
+     * never fire, frame_info is never populated with valid data, and nothing
+     * ends the acquisition on its own (other than timeout). The frame-finished
+     * datum, which would normally stop it, is not decoded nor acted upon. This
+     * shifts the responsibility to the user, who needs to call
+     * katherine_acquisition_abort() to end the acquisition in an orderly
+     * manner.
+     */
     bool decode_data;
     char *pixel_buffer;
     size_t pixel_buffer_size;
@@ -116,7 +149,7 @@ typedef struct katherine_acquisition {
     size_t pixel_buffer_max_valid;
 
     int requested_frames;
-    double requested_frame_duration; // s
+    double requested_frame_duration; ///< Requested duration of a single frame, in seconds
     int completed_frames;
     size_t dropped_measurement_data;
 
