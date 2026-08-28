@@ -40,14 +40,18 @@ extern "C" {
  * wraps every 16384 ticks despite the 64-bit field.
  *
  * tot, hit_count, event_count, integral_tot: chip counters, encoded on the
- * sensor as LFSR states (Table 3) the same way toa is Gray-coded. Whether the
- * readout firmware decodes these before the value reaches the host has been
- * settled for two of them and not for the others. Measured on a Gen1 readout
- * with test pulses of a chosen count N, in Event+iToT with the fast
- * oscillator off: event_count reads exactly N (1, 3, 7, 20, 100 all
- * reproduced) and the 4-bit hit_count reads N up to its saturation, so both
- * arrive DECODED and may be read as counts. tot and integral_tot have not had
- * the same treatment -- treat those two as raw counter states until they do.
+ * sensor as LFSR states (Table 3) the same way toa is Gray-coded. The readout
+ * DECODES all four before they reach the host, so every one may be read as the
+ * quantity it names rather than as a counter state. Measured on a Gen1 readout
+ * with test pulses, where the injected charge and the number of pulses are both
+ * chosen:
+ *   event_count reads exactly the pulse count (1, 3, 7, 20 and 100 reproduced);
+ *   hit_count likewise, up to its saturation;
+ *   integral_tot is linear in the pulse count at fixed amplitude, 17.0 per
+ *     pulse across a twentyfold range;
+ *   tot is linear in amplitude, about 0.050 per mV from 110 mV to 610 mV.
+ * The last two agree with each other, integral_tot for a single pulse matching
+ * tot for the same pulse, which is what an integral of ToT should do.
  * Saturation values (Table 4): tot and integral_tot at 1022, ftoa at 15, the
  * 4-bit hit_count at 14 (not 15).
  */
@@ -64,7 +68,7 @@ typedef struct katherine_px_f_toa_tot {
     katherine_coord_t coord;
     uint8_t ftoa; ///< Fast ToA, binary counter (Table 3); saturates at 15 (Table 4)
     uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint16_t tot; ///< Chip LFSR counter state; see the file header
+    uint16_t tot; ///< Decoded time over threshold; see the file header
 } katherine_px_f_toa_tot_t;
 
 KATHERINE_EXPORTED int
@@ -73,8 +77,8 @@ katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_t
 typedef struct katherine_px_toa_tot {
     katherine_coord_t coord;
     uint64_t toa;      ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint8_t hit_count; ///< Chip LFSR counter state; see the file header
-    uint16_t tot;      ///< Chip LFSR counter state; see the file header
+    uint8_t hit_count; ///< Decoded pixel hit counter, saturating at 14 (Table 4)
+    uint16_t tot;      ///< Decoded time over threshold; see the file header
 } katherine_px_toa_tot_t;
 
 KATHERINE_EXPORTED int
@@ -92,7 +96,7 @@ katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_
 typedef struct katherine_px_toa_only {
     katherine_coord_t coord;
     uint64_t toa;      ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint8_t hit_count; ///< Chip LFSR counter state; see the file header
+    uint8_t hit_count; ///< Decoded pixel hit counter, saturating at 14 (Table 4)
 } katherine_px_toa_only_t;
 
 KATHERINE_EXPORTED int
@@ -106,7 +110,7 @@ katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only
 typedef struct katherine_px_f_event_itot {
     katherine_coord_t coord;
     uint16_t event_count;  ///< Decoded event count; see the file header
-    uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
+    uint16_t integral_tot; ///< Decoded integral of time over threshold; see the file header
 } katherine_px_f_event_itot_t;
 
 KATHERINE_EXPORTED int
@@ -116,7 +120,7 @@ typedef struct katherine_px_event_itot {
     katherine_coord_t coord;
     uint8_t hit_count;     ///< Decoded pixel hit counter, saturating at 14 (Table 4)
     uint16_t event_count;  ///< Decoded event count; see the file header
-    uint16_t integral_tot; ///< Chip LFSR counter state; see the file header
+    uint16_t integral_tot; ///< Decoded integral of time over threshold; see the file header
 } katherine_px_event_itot_t;
 
 KATHERINE_EXPORTED int
