@@ -824,16 +824,24 @@ katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
 /**
  * Whether fast time stamping is coherent at a given pixel-clock frequency.
  *
- * True for FREQ_40 alone. The fine-ToA field is a 4-bit counter at 640 MHz,
- * so it spans 16 x 1.5625 ns = 25 ns, which is one whole ToA tick only while
- * the pixel clock runs at 40 MHz; at FREQ_80 the field covers two ticks and
- * at FREQ_160 four, leaving the documented Timestamp = ToA - fToA without a
- * meaning. Tpx3 manual Table 17 says the same in its own terms, answering
- * "Fast Time Stamping" Yes for the Fin/8 divider and No for every other.
+ * Fine time stamping subtracts a 4-bit counter running at 640 MHz from the
+ * coarse ToA, so the documented Timestamp = ToA - fToA holds only where those
+ * 16 fine ticks are exactly one ToA tick. The condition is bounded on both
+ * sides, which is easy to miss: where the ToA tick is shorter, the fine field
+ * reaches past the tick it belongs to; where it is longer, the field cannot
+ * close the gap. Tpx3 manual Table 17 answers the same question in its own
+ * terms, under "Fast Time Stamping".
  *
- * The check is the caller's to make: katherine_acquisition_begin() accepts
- * fast_vco_enabled together with any frequency today, and a later release
- * will refuse the incoherent combination outright.
+ * Ask this function rather than testing a frequency against one chosen in
+ * advance. Which settings satisfy the condition follows from the sensor and
+ * the readout rather than from this API, so a caller that hard-codes today's
+ * answer inherits a silent breakage the day a generation answers differently.
+ *
+ * Both failure directions were observed with test pulses into one pixel per
+ * column: where the fine field matches the tick, the per-double-column clock
+ * stagger resolves cleanly; where it does not, the measurement is noise.
+ *
+ * @see katherine_acquisition_begin
  *
  * @param freq Pixel-clock frequency selector.
  * @return true if fast time stamping is coherent at this frequency.

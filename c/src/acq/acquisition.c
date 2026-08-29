@@ -493,14 +493,19 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  * acquisition, because nothing in the read loop will: see the field's
  * description in acquisition.h. katherine_acquisition_abort() is how.
  *
- * fast_vco_enabled and config->freq are accepted independently, and only one
- * of their combinations is arithmetically sound: fine time stamping means
- * anything at FREQ_40 alone, since the fine-ToA counter spans exactly one ToA
- * tick only there. Enabling it at another frequency is not refused here, and a
- * later release will refuse it; katherine_freq_is_fast_vco_supported() is the
- * check to make in the meantime. Callers deriving times from the phase count
- * want katherine_actual_phases() for the same reason -- the phase enumerators
- * name what is asked for, not what the divider grants.
+ * fast_vco_enabled is refused with -KATHERINE_E_INVAL at any config->freq
+ * where fine time stamping is not coherent, since the resulting stream would
+ * carry a fine field that cannot be subtracted from its coarse one.
+ * katherine_freq_is_fast_vco_supported reports which frequencies qualify, and
+ * answers without starting an acquisition. Callers deriving times from the
+ * phase count want katherine_actual_phases for a related reason -- the phase
+ * enumerators name what is asked for, not what the divider grants.
+ *
+ * Both refusals here, this one and the data-driven frame count, precede every
+ * socket, so a failed begin() has sent nothing and left the device idle.
+ *
+ * @see katherine_freq_is_fast_vco_supported
+ * @see katherine_actual_phases
  *
  * @param acq Acquisition
  * @param config Configuration
@@ -524,6 +529,15 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 #endif /* KATHERINE_DEBUG_ACQ */
 
     if (readout_mode == READOUT_DATA_DRIVEN && config->no_frames > 1) {
+        res = -KATHERINE_E_INVAL;
+        goto err;
+    }
+
+    /* Fine time stamping is not coherent at every frequency; the predicate
+       owns the criterion. Refused here rather than passed to the sensor,
+       which would answer with a stream whose fine field cannot be subtracted
+       from its coarse one. */
+    if (fast_vco_enabled && !katherine_freq_is_fast_vco_supported(config->freq)) {
         res = -KATHERINE_E_INVAL;
         goto err;
     }

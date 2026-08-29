@@ -99,11 +99,67 @@ test_failed_begin_leaves_the_device_idle(void)
        that has none. */
     config.no_frames = 2;
 
-    KT_CHECK_EQ(
-        katherine_acquisition_begin(&acq, &config, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true),
+    /* Fast time stamping is left off deliberately. A zeroed config selects
+       whichever frequency is enumerated first, which need not be one where
+       fine time stamping is coherent; asking for it could then trip that guard
+       instead, and this test would pass while exercising something other than
+       the frame-count check it names. Switching it off decouples the two
+       without pinning a frequency here. */
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_DATA_DRIVEN,
+                    ACQUISITION_MODE_TOA_TOT, false, true),
         -KATHERINE_E_INVAL);
     KT_CHECK(device.acquisition == NULL);
 }
+
+/* Asking for fine time stamping where it is not coherent is a configuration
+   error, refused rather than turned into a stream whose Timestamp = ToA - fToA
+   has no meaning. Reachable without a readout for the same reason as the checks
+   above: the guard precedes every socket.
+
+   The expectation is derived from katherine_freq_is_fast_vco_supported rather
+   than from a list of frequencies written out here, so this keeps testing that
+   the guard agrees with the predicate instead of testing a frozen copy of the
+   predicate's current answer. */
+static void
+test_fast_vco_refused_where_incoherent(void)
+{
+    katherine_device_t device;
+    katherine_acquisition_t acq;
+    katherine_config_t config;
+
+    const katherine_freq_t all[] = {FREQ_20, FREQ_40, FREQ_80, FREQ_160};
+    unsigned refused             = 0;
+
+    for (size_t i = 0; i < sizeof(all) / sizeof(all[0]); ++i) {
+        /* Coherent frequencies are skipped rather than asserted: with the
+           guard passed, begin() would go on to sockets a zeroed device does
+           not have. */
+        if (katherine_freq_is_fast_vco_supported(all[i])) continue;
+
+        memset(&device, 0, sizeof(device));
+        memset(&acq, 0, sizeof(acq));
+        memset(&config, 0, sizeof(config));
+        acq.device       = &device;
+        config.no_frames = 1;
+        config.freq      = all[i];
+
+        KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_SEQUENTIAL,
+                        ACQUISITION_MODE_TOA_TOT, true, true),
+            -KATHERINE_E_INVAL);
+        KT_CHECK(device.acquisition == NULL);
+        ++refused;
+    }
+
+    /* A derived loop can pass by running zero times. If every frequency ever
+       becomes coherent, this test has nothing left to say and should fail
+       loudly rather than go green in silence. */
+    KT_CHECK(refused > 0);
+}
+
+/* The mirror case -- that slow time stamping is accepted at every frequency --
+   is not testable here: with the guard passed, begin() goes on to the sockets
+   a zeroed device does not have. The predicate itself is covered by
+   test_clock_phases.c. */
 
 int
 main(void)
@@ -111,5 +167,6 @@ main(void)
     KT_RUN(test_sensor_temperature_refused_while_running);
     KT_RUN(test_guard_is_the_first_thing_the_call_does);
     KT_RUN(test_failed_begin_leaves_the_device_idle);
+    KT_RUN(test_fast_vco_refused_where_incoherent);
     return kt_summary();
 }
