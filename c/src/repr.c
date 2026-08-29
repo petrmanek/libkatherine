@@ -205,7 +205,7 @@ katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_t
     REPR_APPENDF(buf, cap, off, "px_f_toa_tot{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
     REPR_APPENDF(
-        buf, cap, off, ", ftoa: %u, toa: %llu, tot: %u}", (unsigned) v->ftoa, (unsigned long long) v->toa, (unsigned) v->tot);
+        buf, cap, off, ", timestamp: %llu, tot: %u}", (unsigned long long) v->timestamp, (unsigned) v->tot);
     return (int) off;
 }
 
@@ -217,7 +217,8 @@ katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t
     REPR_APPENDF(buf, cap, off, "px_toa_tot{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
     REPR_APPENDF(
-        buf, cap, off, ", toa: %llu, hit_count: %u, tot: %u}", (unsigned long long) v->toa, (unsigned) v->hit_count, (unsigned) v->tot);
+        buf, cap, off, ", timestamp: %llu, hit_count: %u, tot: %u}", (unsigned long long) v->timestamp, (unsigned) v->hit_count,
+        (unsigned) v->tot);
     return (int) off;
 }
 
@@ -228,7 +229,7 @@ katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_toa_only{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
-    REPR_APPENDF(buf, cap, off, ", ftoa: %u, toa: %llu}", (unsigned) v->ftoa, (unsigned long long) v->toa);
+    REPR_APPENDF(buf, cap, off, ", timestamp: %llu}", (unsigned long long) v->timestamp);
     return (int) off;
 }
 
@@ -239,7 +240,7 @@ katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_toa_only{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
-    REPR_APPENDF(buf, cap, off, ", toa: %llu, hit_count: %u}", (unsigned long long) v->toa, (unsigned) v->hit_count);
+    REPR_APPENDF(buf, cap, off, ", timestamp: %llu, hit_count: %u}", (unsigned long long) v->timestamp, (unsigned) v->hit_count);
     return (int) off;
 }
 

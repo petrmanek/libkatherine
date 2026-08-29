@@ -179,7 +179,7 @@ pixels_received(void *user_ctx, const void *px, size_t count)
 
     const px_t *dpx = (const px_t *) px;
     for (size_t i = 0; i < count; ++i) {
-        printf("%d\t%d\t%" PRIu64 "\t%d\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].toa, dpx[i].ftoa, dpx[i].tot);
+        printf("%d\t%d\t%" PRIu64 "\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].timestamp, dpx[i].tot);
     }
 }
 

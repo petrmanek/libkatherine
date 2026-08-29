@@ -29,15 +29,43 @@ extern "C" {
  * Units and encoding of the counter fields below (Timepix3 manual v2.0
  * unless noted).
  *
- * toa: pixel-clock ticks, not a fixed 25 ns -- the clock divider (Table 17)
- * makes it 25/12.5/6.25 ns at 40/80/160 MHz (Select_ToA_Clk[11] = 0, Table
- * 18: the counter runs off the phase-shifted pixel-matrix clock, not the
- * system clock). katherine_frame_info_t.start_time/end_time (acquisition.h)
- * tick at a fixed 25 ns Clk40 instead (sec. 4.2.5.5), so the two compare
- * directly only at 40 MHz. The chip's counter is 14 bits and unambiguous
- * only within 16384 ticks; in sequential readout, the timestamp-offset datum
- * that extends it is never sent (sec. 2.1.4; readout manual sec. 2.4), so toa
- * wraps every 16384 ticks despite the 64-bit field.
+ * timestamp: fine-oscillator ticks of 1/640 MHz = 1.5625 ns, counted from an
+ * arbitrary epoch. Not the chip's ToA field: the chip reports a coarse counter
+ * running off the phase-shifted pixel-matrix clock (25/12.5/6.25 ns by the
+ * divider of Table 17; Select_ToA_Clk[11] = 0, Table 18) and, where fine time
+ * stamping is coherent, a 4-bit fine counter that measures how far the hit
+ * preceded its coarse tick. Both are combined into this one field at decode,
+ * which is why it is named for the quantity rather than for either counter.
+ * The fine oscillator is fixed at 640 MHz while the pixel clock is the same
+ * PLL divided down, so a coarse tick is always a whole number of fine ticks
+ * and nothing is rounded; katherine_tpx3_toa_coarse_tick_to_fine_ticks (toa.h)
+ * gives the ratio.
+ *
+ * One field rather than two so that the value is monotonic in arrival time on
+ * its own: ordering, differencing and clustering need no further arithmetic
+ * and cannot forget any. The chip's own quantities remain recoverable from it.
+ *
+ * The epoch is offset by exactly one coarse tick -- one whole
+ * katherine_tpx3_toa_coarse_tick_to_fine_ticks(), so 50/25/12.5/6.25 ns by the
+ * frequency. This is deliberate and must not be removed: the fine counter is
+ * subtracted from the coarse one, which would underflow for a hit in the very
+ * first coarse tick after an offset reset, and an unsigned wrap there produces
+ * a timestamp some 914 years in the future rather than a slightly early one.
+ * Biasing the epoch makes that unrepresentable at no per-hit cost.
+ *
+ * Differences between timestamps are therefore exact, and every absolute value
+ * carries the same constant offset. Two consequences worth knowing:
+ * katherine_tpx3_timestamp_to_toa_ftoa() removes the bias, so the chip's own
+ * counters come back exactly; and a timestamp converted to seconds sits one
+ * coarse tick later than katherine_frame_info_t.start_time would suggest,
+ * which at 40 MHz is exactly one of that field's own 25 ns ticks.
+ *
+ * katherine_frame_info_t.start_time/end_time (acquisition.h) tick at a fixed
+ * 25 ns Clk40 instead (sec. 4.2.5.5), so they are not in these units. The
+ * chip's coarse counter is 14 bits and unambiguous only within 16384 of its
+ * own ticks; in sequential readout the timestamp-offset datum that extends it
+ * is never sent (sec. 2.1.4; readout manual sec. 2.4), so the timestamp wraps
+ * on that period despite the 64-bit field.
  *
  * tot, hit_count, event_count, integral_tot: chip counters, encoded on the
  * sensor as LFSR states (Table 3) the same way toa is Gray-coded. The readout
@@ -52,8 +80,9 @@ extern "C" {
  *   tot is linear in amplitude, about 0.050 per mV from 110 mV to 610 mV.
  * The last two agree with each other, integral_tot for a single pulse matching
  * tot for the same pulse, which is what an integral of ToT should do.
- * Saturation values (Table 4): tot and integral_tot at 1022, ftoa at 15, the
- * 4-bit hit_count at 14 (not 15).
+ * Saturation values (Table 4): tot and integral_tot at 1022, the 4-bit
+ * hit_count at 14 (not 15). The chip's fine counter saturates at 15, which
+ * the combination above consumes rather than reports.
  */
 
 typedef struct katherine_coord {
@@ -66,9 +95,8 @@ katherine_coord_snprint(char *buf, size_t cap, const katherine_coord_t *v);
 
 typedef struct katherine_px_f_toa_tot {
     katherine_coord_t coord;
-    uint8_t ftoa; ///< Fast ToA, binary counter (Table 3); saturates at 15 (Table 4)
-    uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint16_t tot; ///< Decoded time over threshold; see the file header
+    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
+    uint16_t tot;       ///< Decoded time over threshold; see the file header
 } katherine_px_f_toa_tot_t;
 
 KATHERINE_EXPORTED int
@@ -76,9 +104,9 @@ katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_t
 
 typedef struct katherine_px_toa_tot {
     katherine_coord_t coord;
-    uint64_t toa;      ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint8_t hit_count; ///< Decoded pixel hit counter, saturating at 14 (Table 4)
-    uint16_t tot;      ///< Decoded time over threshold; see the file header
+    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
+    uint8_t hit_count;  ///< Decoded pixel hit counter, saturating at 14 (Table 4)
+    uint16_t tot;       ///< Decoded time over threshold; see the file header
 } katherine_px_toa_tot_t;
 
 KATHERINE_EXPORTED int
@@ -86,8 +114,7 @@ katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t
 
 typedef struct katherine_px_f_toa_only {
     katherine_coord_t coord;
-    uint8_t ftoa; ///< Fast ToA, binary counter (Table 3); saturates at 15 (Table 4)
-    uint64_t toa; ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
+    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
 } katherine_px_f_toa_only_t;
 
 KATHERINE_EXPORTED int
@@ -95,8 +122,8 @@ katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_
 
 typedef struct katherine_px_toa_only {
     katherine_coord_t coord;
-    uint64_t toa;      ///< Pixel-clock ticks, Gray-coded on the chip; see the file header for units and wrap behavior
-    uint8_t hit_count; ///< Decoded pixel hit counter, saturating at 14 (Table 4)
+    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
+    uint8_t hit_count;  ///< Decoded pixel hit counter, saturating at 14 (Table 4)
 } katherine_px_toa_only_t;
 
 KATHERINE_EXPORTED int

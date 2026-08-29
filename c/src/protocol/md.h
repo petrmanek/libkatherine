@@ -78,11 +78,45 @@
     static inline void \
     pmd_##SUFFIX##_map(katherine_px_##SUFFIX##_t *dst, const uint64_t *src, const katherine_acquisition_t *acq)
 
+/* Timestamp-bearing decoders are instantiated once per pixel-clock divider, so
+   the coarse-to-fine scale is a constant the compiler can see. Reading it from
+   the acquisition instead costs a variable shift, and reading a ratio rather
+   than a shift costs a multiply; both measured, both material at the rates this
+   loop is built for. The four dividers are the only ones the chip offers, so
+   the set is closed. */
+#define DEFINE_PMD_MAP_S(SUFFIX, SHIFT) \
+    static inline void \
+    pmd_##SUFFIX##_s##SHIFT##_map( \
+        katherine_px_##SUFFIX##_t *dst, const uint64_t *src, const katherine_acquisition_t *acq)
+
+#define DEFINE_PMD_MAP_EVERY_SHIFT(M) \
+    M(2) \
+    M(3) \
+    M(4) \
+    M(5)
+
 #define DEFINE_PMD_PAIR(NAME, TYPE, BASE_TYPE) \
     dst->NAME = (TYPE) EXTRACT(*src, BASE_TYPE, NAME)
 
-#define DEFINE_PMD_PAIR_TOA(BASE_TYPE) \
-    dst->toa = (uint64_t) EXTRACT(*src, BASE_TYPE, toa) + acq->last_toa_offset
+/* Combine the chip's coarse and fine counters into one timestamp in fine ticks.
+
+   FTOA is the fine term as an expression rather than a field name, because the
+   coarse-only wire formats have no ftoa bit triad and a macro that extracted
+   one unconditionally would not compile against them; they pass 0 and the
+   compiler folds it away.
+
+   The fine counter measures how far the hit preceded its coarse tick, so it is
+   subtracted. That cannot underflow: katherine_acquisition_begin() biases the
+   epoch by one whole coarse tick, which is at least the largest fine term, so
+   the difference stays representable without a per-hit test. See the timestamp
+   notes in px.h -- the bias is visible to callers and must not be removed
+   here without removing it there.
+
+   acq->last_toa_offset carries that bias and is kept in fine ticks, so no
+   scaling happens per hit. */
+#define DEFINE_PMD_PAIR_TIMESTAMP(BASE_TYPE, SHIFT, FTOA) \
+    dst->timestamp = (((uint64_t) EXTRACT(*src, BASE_TYPE, toa) << (SHIFT)) + acq->last_toa_offset) \
+        - (uint64_t) (FTOA)
 
 #define DEFINE_PMD_PAIR_COORD(BASE_TYPE) \
     { \
@@ -110,13 +144,14 @@
 #define _BITS_pmd_f_toa_tot_coord_y_mask  MASK(8)
 #define _BITS_pmd_f_toa_tot_coord_y_type  uint16_t
 
-DEFINE_PMD_MAP(f_toa_tot)
-{
-    DEFINE_PMD_PAIR_COORD(pmd_f_toa_tot);
-    DEFINE_PMD_PAIR_TOA(pmd_f_toa_tot);
-    DEFINE_PMD_PAIR(ftoa, uint8_t, pmd_f_toa_tot);
-    DEFINE_PMD_PAIR(tot, uint16_t, pmd_f_toa_tot);
-}
+#define DEFINE_PMD_MAP_F_TOA_TOT(SHIFT) \
+    DEFINE_PMD_MAP_S(f_toa_tot, SHIFT) \
+    { \
+        DEFINE_PMD_PAIR_COORD(pmd_f_toa_tot); \
+        DEFINE_PMD_PAIR_TIMESTAMP(pmd_f_toa_tot, SHIFT, EXTRACT(*src, pmd_f_toa_tot, ftoa)); \
+        DEFINE_PMD_PAIR(tot, uint16_t, pmd_f_toa_tot); \
+    }
+DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_TOT)
 
 #define _BITS_pmd_toa_tot_hit_count_start 0
 #define _BITS_pmd_toa_tot_hit_count_mask  MASK(4)
@@ -138,13 +173,15 @@ DEFINE_PMD_MAP(f_toa_tot)
 #define _BITS_pmd_toa_tot_coord_y_mask    MASK(8)
 #define _BITS_pmd_toa_tot_coord_y_type    uint16_t
 
-DEFINE_PMD_MAP(toa_tot)
-{
-    DEFINE_PMD_PAIR_COORD(pmd_toa_tot);
-    DEFINE_PMD_PAIR_TOA(pmd_toa_tot);
-    DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_tot);
-    DEFINE_PMD_PAIR(tot, uint16_t, pmd_toa_tot);
-}
+#define DEFINE_PMD_MAP_TOA_TOT(SHIFT) \
+    DEFINE_PMD_MAP_S(toa_tot, SHIFT) \
+    { \
+        DEFINE_PMD_PAIR_COORD(pmd_toa_tot); \
+        DEFINE_PMD_PAIR_TIMESTAMP(pmd_toa_tot, SHIFT, 0); \
+        DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_tot); \
+        DEFINE_PMD_PAIR(tot, uint16_t, pmd_toa_tot); \
+    }
+DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_TOA_TOT)
 
 #define _BITS_pmd_f_toa_only_ftoa_start    0
 #define _BITS_pmd_f_toa_only_ftoa_mask     MASK(4)
@@ -162,12 +199,13 @@ DEFINE_PMD_MAP(toa_tot)
 #define _BITS_pmd_f_toa_only_coord_y_mask  MASK(8)
 #define _BITS_pmd_f_toa_only_coord_y_type  uint16_t
 
-DEFINE_PMD_MAP(f_toa_only)
-{
-    DEFINE_PMD_PAIR_COORD(pmd_f_toa_only);
-    DEFINE_PMD_PAIR_TOA(pmd_f_toa_only);
-    DEFINE_PMD_PAIR(ftoa, uint8_t, pmd_f_toa_only);
-}
+#define DEFINE_PMD_MAP_F_TOA_ONLY(SHIFT) \
+    DEFINE_PMD_MAP_S(f_toa_only, SHIFT) \
+    { \
+        DEFINE_PMD_PAIR_COORD(pmd_f_toa_only); \
+        DEFINE_PMD_PAIR_TIMESTAMP(pmd_f_toa_only, SHIFT, EXTRACT(*src, pmd_f_toa_only, ftoa)); \
+    }
+DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
 
 #define _BITS_pmd_toa_only_hit_count_start 0
 #define _BITS_pmd_toa_only_hit_count_mask  MASK(4)
@@ -185,12 +223,14 @@ DEFINE_PMD_MAP(f_toa_only)
 #define _BITS_pmd_toa_only_coord_y_mask    MASK(8)
 #define _BITS_pmd_toa_only_coord_y_type    uint16_t
 
-DEFINE_PMD_MAP(toa_only)
-{
-    DEFINE_PMD_PAIR_COORD(pmd_toa_only);
-    DEFINE_PMD_PAIR_TOA(pmd_toa_only);
-    DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_only);
-}
+#define DEFINE_PMD_MAP_TOA_ONLY(SHIFT) \
+    DEFINE_PMD_MAP_S(toa_only, SHIFT) \
+    { \
+        DEFINE_PMD_PAIR_COORD(pmd_toa_only); \
+        DEFINE_PMD_PAIR_TIMESTAMP(pmd_toa_only, SHIFT, 0); \
+        DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_only); \
+    }
+DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_TOA_ONLY)
 
 #define _BITS_pmd_f_event_itot_event_count_start  4
 #define _BITS_pmd_f_event_itot_event_count_mask   MASK(10)
@@ -254,8 +294,9 @@ DEFINE_PMD_MAP(event_itot)
 }
 
 #undef DEFINE_PMD_MAP
+#undef DEFINE_PMD_MAP_S
 #undef DEFINE_PMD_PAIR
 #undef DEFINE_PMD_PAIR_COORD
-#undef DEFINE_PMD_PAIR_TOA
+#undef DEFINE_PMD_PAIR_TIMESTAMP
 
 #endif

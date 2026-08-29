@@ -17,15 +17,14 @@ cdef extern from 'katherine/px.h':
 
     ctypedef struct katherine_px_f_toa_tot_t:
         katherine_coord_t coord
-        uint8_t ftoa
-        uint64_t toa
+        uint64_t timestamp
         uint16_t tot
 
     int katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v)
 
     ctypedef struct katherine_px_toa_tot_t:
         katherine_coord_t coord
-        uint64_t toa
+        uint64_t timestamp
         uint8_t hit_count
         uint16_t tot
 
@@ -33,14 +32,13 @@ cdef extern from 'katherine/px.h':
 
     ctypedef struct katherine_px_f_toa_only_t:
         katherine_coord_t coord
-        uint8_t ftoa
-        uint64_t toa
+        uint64_t timestamp
 
     int katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v)
 
     ctypedef struct katherine_px_toa_only_t:
         katherine_coord_t coord
-        uint64_t toa
+        uint64_t timestamp
         uint8_t hit_count
 
     int katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v)

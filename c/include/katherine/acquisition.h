@@ -168,7 +168,14 @@ typedef struct katherine_acquisition {
     katherine_acquisition_handlers_t handlers;
     katherine_frame_info_t current_frame_info;
 
+    /// Timestamp offset in effect, in fine-oscillator ticks. Carries the epoch
+    /// bias described at katherine_px_f_toa_tot_t::timestamp, so it is never
+    /// zero during an acquisition and is not the offset the stream delivered.
     uint64_t last_toa_offset;
+
+    /// Shift taking a coarse tick to the fine ticks that make it up, resolved
+    /// by katherine_acquisition_begin(). The ratio itself is 1 << this.
+    uint8_t toa_coarse_tick_to_fine_shift;
 
     bool frame_active;
 } katherine_acquisition_t;

@@ -134,7 +134,7 @@ class MyObserver(k.AcquisitionObserver):
         self.n_hits += len(pixels)
 
         for px in pixels:
-            print('%d\t%d\t%d\t%d\t%d' % (px.x, px.y, px.toa, px.ftoa, px.tot))
+            print('%d\t%d\t%d\t%d' % (px.x, px.y, px.timestamp, px.tot))
 
 
 def print_chip_id(device):

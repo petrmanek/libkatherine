@@ -50,10 +50,10 @@ test_coord(void)
 static void
 test_px_f_toa_tot(void)
 {
-    katherine_px_f_toa_tot_t v = {{1, 2}, 5, 123456789012ULL, 300};
+    katherine_px_f_toa_tot_t v = {{1, 2}, 123456789012ULL, 300};
     char buf[128];
     int n = katherine_px_f_toa_tot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_f_toa_tot{coord: coord{x: 1, y: 2}, ftoa: 5, toa: 123456789012, tot: 300}");
+    CHECK_GOLDEN(n, buf, "px_f_toa_tot{coord: coord{x: 1, y: 2}, timestamp: 123456789012, tot: 300}");
 }
 
 static void
@@ -62,16 +62,16 @@ test_px_toa_tot(void)
     katherine_px_toa_tot_t v = {{3, 4}, 999999999999ULL, 9, 65000};
     char buf[128];
     int n = katherine_px_toa_tot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_toa_tot{coord: coord{x: 3, y: 4}, toa: 999999999999, hit_count: 9, tot: 65000}");
+    CHECK_GOLDEN(n, buf, "px_toa_tot{coord: coord{x: 3, y: 4}, timestamp: 999999999999, hit_count: 9, tot: 65000}");
 }
 
 static void
 test_px_f_toa_only(void)
 {
-    katherine_px_f_toa_only_t v = {{5, 6}, 2, 42};
+    katherine_px_f_toa_only_t v = {{5, 6}, 42};
     char buf[128];
     int n = katherine_px_f_toa_only_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_f_toa_only{coord: coord{x: 5, y: 6}, ftoa: 2, toa: 42}");
+    CHECK_GOLDEN(n, buf, "px_f_toa_only{coord: coord{x: 5, y: 6}, timestamp: 42}");
 }
 
 static void
@@ -80,7 +80,7 @@ test_px_toa_only(void)
     katherine_px_toa_only_t v = {{7, 8}, 84, 3};
     char buf[128];
     int n = katherine_px_toa_only_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_toa_only{coord: coord{x: 7, y: 8}, toa: 84, hit_count: 3}");
+    CHECK_GOLDEN(n, buf, "px_toa_only{coord: coord{x: 7, y: 8}, timestamp: 84, hit_count: 3}");
 }
 
 static void

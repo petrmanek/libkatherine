@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include <katherine/acquisition.h>
+#include <katherine/toa.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
 #include <katherine/udp.h>
@@ -114,13 +115,17 @@ run_case(bool send_frame_finished, struct stats *s)
     acq.handlers.frame_ended     = frame_ended;
 
     /* Stand in for katherine_acquisition_begin (which needs hardware). */
-    acq.state                    = ACQUISITION_RUNNING;
-    acq.acq_mode                 = ACQUISITION_MODE_TOA_TOT;
-    acq.fast_vco_enabled         = false;
-    acq.decode_data              = true;
-    acq.requested_frames         = 1;
-    acq.requested_frame_duration = 0.0;
-    acq.acq_start_time           = time(NULL);
+    acq.state = ACQUISITION_RUNNING;
+    /* Resolved by katherine_acquisition_begin() in a real run; the decoder is
+       instantiated per pixel-clock divider and refuses to guess one. */
+    acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(FREQ_40);
+    acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40);
+    acq.acq_mode                      = ACQUISITION_MODE_TOA_TOT;
+    acq.fast_vco_enabled              = false;
+    acq.decode_data                   = true;
+    acq.requested_frames              = 1;
+    acq.requested_frame_duration      = 0.0;
+    acq.acq_start_time                = time(NULL);
 
     /* Craft the stream: frame start, 5 pixels, optionally frame finished. */
     unsigned char packet[7 * MD_SIZE];

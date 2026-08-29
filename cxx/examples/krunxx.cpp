@@ -176,8 +176,7 @@ pixels_received(const mode::pixel_type *px, size_t count)
     for (size_t i = 0; i < count; ++i) {
         std::cerr << (unsigned) px[i].coord.x << '\t'
                   << (unsigned) px[i].coord.y << '\t'
-                  << (unsigned) px[i].toa << '\t'
-                  << (unsigned) px[i].ftoa << '\t'
+                  << (unsigned long long) px[i].timestamp << '\t'
                   << (unsigned) px[i].tot << std::endl;
     }
 }

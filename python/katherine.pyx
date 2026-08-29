@@ -924,12 +924,8 @@ cdef class PxFastToaTot:
        return self._c_px.coord.y
 
     @property
-    def ftoa(self):
-       return self._c_px.ftoa
-
-    @property
-    def toa(self):
-       return self._c_px.toa
+    def timestamp(self):
+       return self._c_px.timestamp
 
     @property
     def tot(self):
@@ -963,8 +959,8 @@ cdef class PxToaTot:
        return self._c_px.hit_count
 
     @property
-    def toa(self):
-       return self._c_px.toa
+    def timestamp(self):
+       return self._c_px.timestamp
 
     @property
     def tot(self):
@@ -994,12 +990,8 @@ cdef class PxFastToaOnly:
        return self._c_px.coord.y
 
     @property
-    def ftoa(self):
-       return self._c_px.ftoa
-
-    @property
-    def toa(self):
-       return self._c_px.toa
+    def timestamp(self):
+       return self._c_px.timestamp
 
 
 cdef class PxToaOnly:
@@ -1029,8 +1021,8 @@ cdef class PxToaOnly:
        return self._c_px.hit_count
 
     @property
-    def toa(self):
-       return self._c_px.toa
+    def timestamp(self):
+       return self._c_px.timestamp
 
 
 cdef class PxFastEventItot:

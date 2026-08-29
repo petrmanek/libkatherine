@@ -125,6 +125,11 @@
    pixel layouts of c/src/md.h alike. */
 #define TOA_LIMIT            (1u << 14)
 
+/* Timestamps arrive in fine-oscillator ticks, so the chip's coarse field maps
+   onto TOA_LIMIT * FINE_TICKS of them. Pinned rather than derived per hit; the
+   test asserts it against the library's own ratio before relying on it. */
+#define FINE_TICKS           16u
+
 /* Shutter short enough that the coarse ToA cannot wrap within a frame: 0.4 ms
    is 16000 readout ticks, just inside the 16384 the field holds. That keeps
    the arrival times of a frame strictly increasing and leaves the timestamp
@@ -294,6 +299,16 @@ test_slow_control(void)
 }
 
 /* ------------------------------------------------------------------ */
+/* The probe above converts between coarse and fine ticks with a constant.
+   If the library's ratio for this configuration ever changes, that constant
+   is silently wrong and every derived check goes quietly green, so pin the
+   two together rather than trusting the comment. */
+static void
+test_fine_ticks_pin(void)
+{
+    KT_CHECK_EQ(katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40), FINE_TICKS);
+}
+
 /* Acquisition fixture shared by the remaining cases.                  */
 
 typedef struct acq_probe {
@@ -315,7 +330,7 @@ typedef struct acq_probe {
     uint32_t bad_row;    /* the ground truth of the pattern; counted rather */
     uint32_t bad_toa;    /* than reported per hit, so one broken frame */
     uint32_t bad_tot;    /* cannot bury the summary in output */
-    uint32_t bad_ftoa;
+    uint32_t bad_fold;
     uint64_t prev_toa;
 
     uint32_t data_callbacks; /* undecoded mode only */
@@ -377,13 +392,24 @@ on_pixels_received(void *ctx, const void *px, size_t count)
            the arrival times are spread evenly over a shutter chosen short
            enough not to wrap the field, so any offset misapplied on top of
            them shows up here. */
-        if (hits[i].toa >= TOA_LIMIT) ++probe->bad_toa;
-        if (probe->hits_in_frame > 0 && hits[i].toa <= probe->prev_toa) ++probe->bad_toa;
+        if (hits[i].timestamp >= (uint64_t) TOA_LIMIT * FINE_TICKS) ++probe->bad_toa;
+        if (probe->hits_in_frame > 0 && hits[i].timestamp <= probe->prev_toa) ++probe->bad_toa;
 
         if (hits[i].tot > 1023) ++probe->bad_tot;
-        if (hits[i].ftoa > 15) ++probe->bad_ftoa;
 
-        probe->prev_toa = hits[i].toa;
+        /* Combining is invertible, so the chip's own counters come back out of
+           the timestamp by division and both must land inside their fields.
+           This says more than the range check on the fine field it replaces:
+           it exercises the arithmetic rather than the storage, and would catch
+           a ratio applied in the wrong direction, which a range check would
+           not. */
+        {
+            const uint64_t fine   = (FINE_TICKS - hits[i].timestamp % FINE_TICKS) % FINE_TICKS;
+            const uint64_t coarse = (hits[i].timestamp + fine) / FINE_TICKS;
+            if (fine > 15 || coarse >= TOA_LIMIT) ++probe->bad_fold;
+        }
+
+        probe->prev_toa = hits[i].timestamp;
         ++probe->hits_in_frame;
     }
 }
@@ -560,7 +586,7 @@ test_data_driven_frame(void)
     KT_CHECK_EQ(probe.bad_row, 0);
     KT_CHECK_EQ(probe.bad_toa, 0);
     KT_CHECK_EQ(probe.bad_tot, 0);
-    KT_CHECK_EQ(probe.bad_ftoa, 0);
+    KT_CHECK_EQ(probe.bad_fold, 0);
 
     katherine_acquisition_fini(&acq);
 }
@@ -592,7 +618,7 @@ test_sequential_frames(void)
     KT_CHECK_EQ(probe.bad_row, 0);
     KT_CHECK_EQ(probe.bad_toa, 0);
     KT_CHECK_EQ(probe.bad_tot, 0);
-    KT_CHECK_EQ(probe.bad_ftoa, 0);
+    KT_CHECK_EQ(probe.bad_fold, 0);
 
     katherine_acquisition_fini(&acq);
 }
@@ -727,6 +753,7 @@ main(int argc, char *argv[])
     /* No KT_* macro ever exits the process -- KT_REQUIRE returns from the
        current test at most -- so the daemon is stopped and reaped on every
        path out of this function. */
+    KT_RUN(test_fine_ticks_pin);
     KT_RUN(test_slow_control);
     KT_RUN(test_data_driven_frame);
     KT_RUN(test_sequential_frames);

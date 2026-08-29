@@ -28,6 +28,7 @@
 
 #include <katherine/acquisition.h>
 #include <katherine/device.h>
+#include <katherine/toa.h>
 #include <katherine/udp.h>
 
 /* The pixel mapping functions of md.h are written against the acquisition,
@@ -54,6 +55,13 @@
 /* The timestamp offset counts whole coarse time-of-arrival windows, i.e.
    multiples of the 1 << 14 ticks the coarse field holds. */
 #define TOA_WINDOW            (1ull << 14)
+
+/* Timestamps are decoded into fine-oscillator ticks, so every coarse quantity
+   below is compared after scaling by the ratio for the configured frequency.
+   Named once here and asserted against the library in test_fine_ticks_pin. */
+#define TOA_FREQ              FREQ_40
+#define TOA_FINE              16ull
+#define TOA_FINE_SHIFT        4u
 
 /* Recv timeout of the acquisition's data socket. Reached once per run, after
    the last datagram, so it also bounds how long a run lingers. */
@@ -160,7 +168,7 @@ on_pixels_received(void *ctx, const void *px, size_t count)
     const px_t *hits      = (const px_t *) px;
 
     for (size_t i = 0; i < count; ++i) {
-        if (probe->hits + i < PIXEL_BUFFER_HITS) probe->toa[probe->hits + i] = hits[i].toa;
+        if (probe->hits + i < PIXEL_BUFFER_HITS) probe->toa[probe->hits + i] = hits[i].timestamp;
     }
 
     probe->hits += count;
@@ -208,15 +216,20 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     acq.handlers.pixels_received = on_pixels_received;
 
     /* Stand in for katherine_acquisition_begin (which needs hardware). The
-       memset above leaves the decoding state it initializes -- the pixel
-       buffer counters and the timestamp offset -- zeroed, as it does. */
-    acq.state                    = ACQUISITION_RUNNING;
-    acq.acq_mode                 = ACQUISITION_MODE_TOA_TOT;
-    acq.fast_vco_enabled         = false;
-    acq.decode_data              = true;
-    acq.requested_frames         = frames;
-    acq.requested_frame_duration = 0.0;
-    acq.acq_start_time           = time(NULL);
+       memset above leaves most of the decoding state it initializes -- the
+       pixel buffer counters and the timestamp offset -- zeroed, as it does.
+       The divider shift and the biased offset are the exceptions and must be
+       set: begin() resolves them from the configured frequency, and the read
+       loop refuses a divider it was not built for rather than guessing one. */
+    acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(TOA_FREQ);
+    acq.last_toa_offset               = TOA_FINE;
+    acq.state                         = ACQUISITION_RUNNING;
+    acq.acq_mode                      = ACQUISITION_MODE_TOA_TOT;
+    acq.fast_vco_enabled              = false;
+    acq.decode_data                   = true;
+    acq.requested_frames              = frames;
+    acq.requested_frame_duration      = 0.0;
+    acq.acq_start_time                = time(NULL);
 
     katherine_udp_t sender;
     KT_CHECK(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_DATA, 0) == 0);
@@ -236,6 +249,135 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     katherine_acquisition_fini(&acq);
     katherine_udp_fini(&dev.data_socket);
     return res;
+}
+
+/* TOA_FINE is written out above so the expectations stay readable. If the
+   library's ratio for TOA_FREQ ever differs, every scaled expectation here is
+   wrong in the same direction and would still agree with a decoder that had
+   drifted the same way, so pin the constant to its source. */
+static void
+test_fine_ticks_pin(void)
+{
+    KT_CHECK_EQ(katherine_tpx3_toa_coarse_tick_to_fine_ticks(TOA_FREQ), TOA_FINE);
+    KT_CHECK_EQ(katherine_tpx3_toa_coarse_tick_to_fine_shift(TOA_FREQ), TOA_FINE_SHIFT);
+
+    /* The two accessors describe the same ratio, so the shift must reproduce
+       it exactly -- at every frequency, not only the one used here. */
+    const katherine_freq_t every[] = {FREQ_20, FREQ_40, FREQ_80, FREQ_160};
+    for (size_t i = 0; i < sizeof(every) / sizeof(every[0]); ++i) {
+        KT_CHECK_EQ(1u << katherine_tpx3_toa_coarse_tick_to_fine_shift(every[i]),
+            katherine_tpx3_toa_coarse_tick_to_fine_ticks(every[i]));
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Combining itself: coarse and fine counters into one timestamp.      */
+
+/* The decoders are static inline in md.h, so the arithmetic can be exercised
+   directly on a hand-built word. That is worth doing separately from the
+   stream tests, which run one format at one divider and would not notice the
+   fine term at all.
+
+   Each divider has its own instantiation, so the switch here is not incidental
+   -- it is how the test reaches all four, and a mis-wired table would show up
+   as one arm disagreeing with the rest. */
+static uint64_t
+combine_f_toa_tot(uint16_t coarse, uint8_t ftoa, uint64_t offset, uint8_t fine_shift)
+{
+    uint64_t md = 0;
+    md          = INSERT(md, pmd_f_toa_tot, coord_x, (uint64_t) 1);
+    md          = INSERT(md, pmd_f_toa_tot, coord_y, (uint64_t) 2);
+    md          = INSERT(md, pmd_f_toa_tot, toa, (uint64_t) coarse);
+    md          = INSERT(md, pmd_f_toa_tot, ftoa, (uint64_t) ftoa);
+    md          = INSERT(md, pmd_f_toa_tot, tot, (uint64_t) 100);
+
+    /* Mirroring katherine_acquisition_begin(): the epoch carries one whole
+       coarse tick of bias, on top of whatever offset the stream delivered. */
+    const uint64_t fine_ticks = (uint64_t) 1u << fine_shift;
+    const uint64_t bias       = fine_ticks > 16 ? fine_ticks : 16;
+
+    katherine_acquisition_t acq;
+    memset(&acq, 0, sizeof(acq));
+    acq.toa_coarse_tick_to_fine_shift = fine_shift;
+    acq.last_toa_offset               = bias + offset;
+
+    katherine_px_f_toa_tot_t dst;
+    memset(&dst, 0, sizeof(dst));
+    switch (fine_shift) {
+    case 2:  pmd_f_toa_tot_s2_map(&dst, &md, &acq); break;
+    case 3:  pmd_f_toa_tot_s3_map(&dst, &md, &acq); break;
+    case 4:  pmd_f_toa_tot_s4_map(&dst, &md, &acq); break;
+    case 5:  pmd_f_toa_tot_s5_map(&dst, &md, &acq); break;
+    default: KT_CHECK(false); return 0;
+    }
+    return dst.timestamp;
+}
+
+/* What the combined value is: the coarse count scaled into fine ticks, plus
+   the epoch bias, less the fine term. */
+static void
+test_combine_fine_term(void)
+{
+    KT_CHECK_EQ(combine_f_toa_tot(100, 0, 0, TOA_FINE_SHIFT), 100ull * TOA_FINE + 16);
+    KT_CHECK_EQ(combine_f_toa_tot(100, 5, 0, TOA_FINE_SHIFT), 100ull * TOA_FINE + 16 - 5);
+    KT_CHECK_EQ(combine_f_toa_tot(100, 15, 0, TOA_FINE_SHIFT), 100ull * TOA_FINE + 16 - 15);
+
+    /* The stream's offset is already in fine ticks, so it adds without scaling. */
+    KT_CHECK_EQ(combine_f_toa_tot(100, 5, 640, TOA_FINE_SHIFT), 100ull * TOA_FINE + 16 - 5 + 640);
+
+    /* Every divider has its own instantiation; a wrong one would scale here. */
+    KT_CHECK_EQ(combine_f_toa_tot(7, 3, 0, 5), 7ull * 32 + 32 - 3);
+    KT_CHECK_EQ(combine_f_toa_tot(7, 3, 0, 4), 7ull * 16 + 16 - 3);
+    KT_CHECK_EQ(combine_f_toa_tot(7, 3, 0, 3), 7ull * 8 + 16 - 3);
+    KT_CHECK_EQ(combine_f_toa_tot(7, 3, 0, 2), 7ull * 4 + 16 - 3);
+}
+
+/* The property the epoch bias exists for. The worst case is the first coarse
+   tick of a window carrying the largest fine term: without the bias that
+   subtraction goes below zero and wraps to about 1.8e19, a hit apparently 914
+   years in the future. With it, the value stays positive and no per-hit test
+   is needed. */
+static void
+test_bias_makes_underflow_unrepresentable(void)
+{
+    for (uint8_t shift = 2; shift <= 5; ++shift) {
+        const uint64_t fine_ticks = (uint64_t) 1u << shift;
+        const uint64_t bias       = fine_ticks > 16 ? fine_ticks : 16;
+
+        /* The worst case: the largest fine term the field can hold, in the
+           earliest coarse tick of a window. One coarse tick of bias would not
+           cover this at the shorter dividers, where a coarse tick is only 4 or
+           8 fine ticks against a fine field spanning 16. */
+        const uint64_t worst = combine_f_toa_tot(0, 15, 0, shift);
+
+        KT_CHECK_EQ(worst, bias - 15);
+        KT_CHECK(worst > 0);
+        KT_CHECK(worst < (uint64_t) 1 << 32); /* nowhere near a wrap */
+
+        /* And the bias stays a whole multiple of the coarse tick, or it would
+           corrupt the residue the fine term is recovered from. */
+        KT_CHECK_EQ(bias % fine_ticks, 0u);
+    }
+}
+
+static void
+test_combine_is_injective(void)
+{
+    /* The property the single field exists for: distinct (coarse, fine) pairs
+       must give distinct timestamps, and ordering must follow arrival time.
+       Coarse k spans [16k-15, 16k] and k+1 spans [16k+1, 16k+16] -- adjacent
+       and disjoint, so a sweep over both counters is strictly decreasing in
+       the fine term and strictly increasing across coarse ticks. */
+    uint64_t prev = 0;
+    bool first    = true;
+    for (uint16_t coarse = 1; coarse < 64; ++coarse) {
+        for (int f = 15; f >= 0; --f) {
+            const uint64_t t = combine_f_toa_tot(coarse, (uint8_t) f, 0, TOA_FINE_SHIFT);
+            if (!first) KT_CHECK(t > prev);
+            prev  = t;
+            first = false;
+        }
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -276,8 +418,8 @@ test_toa_offset_reset(void)
     KT_CHECK_EQ(probe.frames_ended, 2);
 
     KT_REQUIRE(probe.hits == 2);
-    KT_CHECK_EQ(probe.toa[0], FRAME1_TOA + FRAME1_OFFSET * TOA_WINDOW);
-    KT_CHECK_EQ(probe.toa[1], FRAME2_TOA);
+    KT_CHECK_EQ(probe.toa[0], (FRAME1_TOA + FRAME1_OFFSET * TOA_WINDOW) * TOA_FINE + TOA_FINE);
+    KT_CHECK_EQ(probe.toa[1], FRAME2_TOA * TOA_FINE + TOA_FINE);
 }
 
 /* ------------------------------------------------------------------ */
@@ -333,7 +475,7 @@ test_partial_datum_ignored(void)
     /* Four data carried four hits: the fragment is not a fifth. */
     KT_CHECK_EQ(probe.hits, 4);
     for (size_t i = 0; i < 4 && i < probe.hits; ++i) {
-        KT_CHECK_EQ(probe.toa[i], HIT_TOA(i));
+        KT_CHECK_EQ(probe.toa[i], HIT_TOA(i) * TOA_FINE + TOA_FINE);
     }
 }
 
@@ -342,6 +484,10 @@ test_partial_datum_ignored(void)
 int
 main(void)
 {
+    KT_RUN(test_fine_ticks_pin);
+    KT_RUN(test_combine_fine_term);
+    KT_RUN(test_bias_makes_underflow_unrepresentable);
+    KT_RUN(test_combine_is_injective);
     KT_RUN(test_toa_offset_reset);
     KT_RUN(test_partial_datum_ignored);
     return kt_summary();

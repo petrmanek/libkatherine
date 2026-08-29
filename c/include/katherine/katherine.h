@@ -25,4 +25,5 @@
 #include <katherine/config.h>
 #include <katherine/device.h>
 #include <katherine/status.h>
+#include <katherine/toa.h>
 #include <katherine/udp.h>

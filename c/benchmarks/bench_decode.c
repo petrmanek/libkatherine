@@ -46,6 +46,7 @@
 #include <string.h>
 
 #include <katherine/acquisition.h>
+#include <katherine/toa.h>
 
 /* Internal headers, provided by the katherine_private interface target --
    see the file comment. md.h pulls in "bitfields.h" (EXTRACT/INSERT)
@@ -134,7 +135,7 @@ build_canned_buffer(uint8_t *buf, size_t words)
    dead one; the running total is folded into the volatile g_sink exactly
    once per pass rather than per hit, so the sink itself never becomes the
    bottleneck it exists to prevent. */
-#define DEFINE_BENCH_DECODE(SUFFIX, CHECKSUM) \
+#define DEFINE_BENCH_DECODE(SUFFIX, MAP, CHECKSUM) \
     static void \
     bench_decode_##SUFFIX(const uint8_t *buf, size_t words, uint64_t *out_checksum) \
     { \
@@ -142,8 +143,12 @@ build_canned_buffer(uint8_t *buf, size_t words)
         const size_t max_valid      = sizeof(slot) / sizeof(slot[0]); \
         size_t valid                = 0; \
         katherine_acquisition_t acq = {0}; \
-        uint64_t acc                = 0; \
-        const uint8_t *p            = buf; \
+        /* Zero would let the compiler fold the coarse-tick multiply away and \
+           measure a decoder that does less work than the real one. */ \
+        acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(FREQ_40); \
+        acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40); \
+        uint64_t acc                      = 0; \
+        const uint8_t *p                  = buf; \
         for (size_t i = 0; i < words; ++i, p += KATHERINE_MD_SIZE) { \
             uint64_t word; \
             /* A fixed-size memcpy is the strict-aliasing-safe spelling of \
@@ -156,7 +161,7 @@ build_canned_buffer(uint8_t *buf, size_t words)
             if (hdr == 0x4) { \
                 if (valid == max_valid) valid = 0; \
                 katherine_px_##SUFFIX##_t *dst = &slot[valid]; \
-                pmd_##SUFFIX##_map(dst, &word, &acq); \
+                MAP(dst, &word, &acq); \
                 acc += (CHECKSUM); \
                 ++valid; \
             } else { \
@@ -171,12 +176,12 @@ build_canned_buffer(uint8_t *buf, size_t words)
     }
 
 /* clang-format off */
-DEFINE_BENCH_DECODE(f_toa_tot,    (uint64_t) dst->coord.x + dst->coord.y + dst->ftoa + dst->tot + dst->toa)
-DEFINE_BENCH_DECODE(toa_tot,      (uint64_t) dst->coord.x + dst->coord.y + dst->toa + dst->hit_count + dst->tot)
-DEFINE_BENCH_DECODE(f_toa_only,   (uint64_t) dst->coord.x + dst->coord.y + dst->ftoa + dst->toa)
-DEFINE_BENCH_DECODE(toa_only,     (uint64_t) dst->coord.x + dst->coord.y + dst->toa + dst->hit_count)
-DEFINE_BENCH_DECODE(f_event_itot, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
-DEFINE_BENCH_DECODE(event_itot,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
+DEFINE_BENCH_DECODE(f_toa_tot, pmd_f_toa_tot_s4_map,    (uint64_t) dst->coord.x + dst->coord.y + dst->tot + dst->timestamp)
+DEFINE_BENCH_DECODE(toa_tot, pmd_toa_tot_s4_map,      (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot)
+DEFINE_BENCH_DECODE(f_toa_only, pmd_f_toa_only_s4_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp)
+DEFINE_BENCH_DECODE(toa_only, pmd_toa_only_s4_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count)
+DEFINE_BENCH_DECODE(f_event_itot, pmd_f_event_itot_map, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
+DEFINE_BENCH_DECODE(event_itot, pmd_event_itot_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
 /* clang-format on */
 
 #undef DEFINE_BENCH_DECODE

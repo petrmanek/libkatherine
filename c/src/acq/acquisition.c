@@ -15,6 +15,7 @@
 #include <katherine/global.h>
 #include <katherine/acquisition.h>
 #include <katherine/error.h>
+#include <katherine/toa.h>
 #include "protocol/cmd_interface.h"
 #include "protocol/md.h"
 
@@ -31,6 +32,28 @@ flush_buffer(katherine_acquisition_t *acq)
     acq->pixel_buffer_valid = 0;
 }
 
+/* The timestamp epoch sits ahead of the true start of the window, so that the
+   decoder's subtraction of the fine counter cannot go below zero. This spares
+   the decode loop a per-hit test, measured to cost 10-25% of its throughput,
+   and an unsigned wrap there would put a hit some 914 years in the future
+   rather than merely early.
+
+   Two constraints fix the size. It must cover the fine field's full span, 16
+   ticks, which one coarse tick does NOT at the shorter dividers -- there a
+   coarse tick is only 4 or 8 fine ticks. And it must stay a whole multiple of
+   the coarse tick, or it would disturb the residue that carries the fine term
+   and katherine_tpx3_timestamp_to_toa_ftoa() could no longer recover it. Both
+   hold for the larger of one coarse tick and the fine span, since both are
+   powers of two.
+
+   Callers see the bias; it is documented at katherine_px_*_t::timestamp. */
+#define KATHERINE_TOA_FINE_SPAN_SHIFT 4u
+
+#define KATHERINE_TOA_EPOCH_BIAS(acq) \
+    ((uint64_t) 1 << ((acq)->toa_coarse_tick_to_fine_shift > KATHERINE_TOA_FINE_SPAN_SHIFT \
+             ? (acq)->toa_coarse_tick_to_fine_shift \
+             : KATHERINE_TOA_FINE_SPAN_SHIFT))
+
 static inline void
 handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
@@ -43,18 +66,26 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 
     // The coarse time of arrival restarts with the frame, so the offset the
     // previous frame delivered no longer applies: the hits arriving before
-    // the first offset of this frame belong to its first window.
-    acq->last_toa_offset = 0;
+    // the first offset of this frame belong to its first window. Reset to the
+    // epoch bias rather than to zero -- see katherine_acquisition_begin().
+    acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq);
 
     if (acq->handlers.frame_started != NULL) {
         acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
     }
 }
 
+
 static inline void
 handle_timestamp_offset_driven_mode(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    acq->last_toa_offset = ((uint64_t) EXTRACT(*data, md_time_offset, offset) << 14);
+    /* The datum counts wraps of the chip's 14-bit coarse counter; scaling by
+       the coarse tick puts the offset in the fine ticks the timestamp uses, so
+       the decoder adds it without scaling anything per hit. The product stays a
+       whole multiple of the coarse tick, which is what lets the chip's own
+       counters be recovered from a timestamp later. */
+    acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq)
+        + ((uint64_t) EXTRACT(*data, md_time_offset, offset) << (14 + acq->toa_coarse_tick_to_fine_shift));
 }
 
 static inline void
@@ -300,9 +331,9 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     free(acq->pixel_buffer);
 }
 
-#define DEFINE_ACQ_IMPL(SUFFIX) \
+#define DEFINE_ACQ_IMPL(SUFFIX, TAG, MAP) \
     static inline void \
-    handle_measurement_data_##SUFFIX(katherine_acquisition_t *acq, const uint64_t *md) \
+    handle_measurement_data_##SUFFIX##TAG(katherine_acquisition_t *acq, const uint64_t *md) \
     { \
         char hdr = EXTRACT(*md, md, header); \
 \
@@ -311,7 +342,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 flush_buffer(acq); \
             } \
 \
-            pmd_##SUFFIX##_map((katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid, md, acq); \
+            MAP((katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid, md, acq); \
             ++acq->pixel_buffer_valid; \
         } else { \
             switch (hdr) { \
@@ -332,7 +363,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     } \
 \
     static int \
-    acquisition_read_##SUFFIX(katherine_acquisition_t *acq) \
+    acquisition_read_##SUFFIX##TAG(katherine_acquisition_t *acq) \
     { \
         static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
 \
@@ -392,7 +423,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                    short is not a datum, and decoding it would decode the \
                    bytes that happen to follow it in the buffer. */ \
                 for (i = 0; i + KATHERINE_MD_SIZE <= received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
-                    handle_measurement_data_##SUFFIX(acq, (const uint64_t *) it); \
+                    handle_measurement_data_##SUFFIX##TAG(acq, (const uint64_t *) it); \
                 } \
             } else if (acq->handlers.data_received != NULL) { \
                 acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received); \
@@ -417,13 +448,27 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         } \
     }
 
-DEFINE_ACQ_IMPL(f_toa_tot)
-DEFINE_ACQ_IMPL(toa_tot)
-DEFINE_ACQ_IMPL(f_toa_only)
-DEFINE_ACQ_IMPL(toa_only)
-DEFINE_ACQ_IMPL(f_event_itot)
-DEFINE_ACQ_IMPL(event_itot)
+/* Timestamp-bearing modes are instantiated once per pixel-clock divider so the
+   coarse-to-fine scale is a constant in the decode loop; see md.h. The two
+   Event+iToT modes carry no timestamp and so need only one instance each. */
+#define DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, SHIFT) DEFINE_ACQ_IMPL(SUFFIX, _s##SHIFT, pmd_##SUFFIX##_s##SHIFT##_map)
 
+#define DEFINE_ACQ_IMPL_EVERY_SHIFT(SUFFIX) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 2) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 3) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 4) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 5)
+
+DEFINE_ACQ_IMPL_EVERY_SHIFT(f_toa_tot)
+DEFINE_ACQ_IMPL_EVERY_SHIFT(toa_tot)
+DEFINE_ACQ_IMPL_EVERY_SHIFT(f_toa_only)
+DEFINE_ACQ_IMPL_EVERY_SHIFT(toa_only)
+
+DEFINE_ACQ_IMPL(f_event_itot, , pmd_f_event_itot_map)
+DEFINE_ACQ_IMPL(event_itot, , pmd_event_itot_map)
+
+#undef DEFINE_ACQ_IMPL_EVERY_SHIFT
+#undef DEFINE_ACQ_IMPL_SHIFTED
 #undef DEFINE_ACQ_IMPL
 
 /**
@@ -449,20 +494,49 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 {
     int res;
 
+    /* Two dimensions here, not one: the pixel format, and the pixel-clock
+       divider the timestamp decoders are instantiated over. A divider outside
+       the set means the acquisition never went through
+       katherine_acquisition_begin(), and is refused rather than guessed --
+       guessing would misscale every timestamp in the run. */
     switch (acq->acq_mode) {
     case ACQUISITION_MODE_TOA_TOT:
         if (acq->fast_vco_enabled) {
-            res = acquisition_read_f_toa_tot(acq);
+            switch (acq->toa_coarse_tick_to_fine_shift) {
+            case 2:  res = acquisition_read_f_toa_tot_s2(acq); break;
+            case 3:  res = acquisition_read_f_toa_tot_s3(acq); break;
+            case 4:  res = acquisition_read_f_toa_tot_s4(acq); break;
+            case 5:  res = acquisition_read_f_toa_tot_s5(acq); break;
+            default: res = -KATHERINE_E_INVAL; break;
+            }
         } else {
-            res = acquisition_read_toa_tot(acq);
+            switch (acq->toa_coarse_tick_to_fine_shift) {
+            case 2:  res = acquisition_read_toa_tot_s2(acq); break;
+            case 3:  res = acquisition_read_toa_tot_s3(acq); break;
+            case 4:  res = acquisition_read_toa_tot_s4(acq); break;
+            case 5:  res = acquisition_read_toa_tot_s5(acq); break;
+            default: res = -KATHERINE_E_INVAL; break;
+            }
         }
         break;
 
     case ACQUISITION_MODE_ONLY_TOA:
         if (acq->fast_vco_enabled) {
-            res = acquisition_read_f_toa_only(acq);
+            switch (acq->toa_coarse_tick_to_fine_shift) {
+            case 2:  res = acquisition_read_f_toa_only_s2(acq); break;
+            case 3:  res = acquisition_read_f_toa_only_s3(acq); break;
+            case 4:  res = acquisition_read_f_toa_only_s4(acq); break;
+            case 5:  res = acquisition_read_f_toa_only_s5(acq); break;
+            default: res = -KATHERINE_E_INVAL; break;
+            }
         } else {
-            res = acquisition_read_toa_only(acq);
+            switch (acq->toa_coarse_tick_to_fine_shift) {
+            case 2:  res = acquisition_read_toa_only_s2(acq); break;
+            case 3:  res = acquisition_read_toa_only_s3(acq); break;
+            case 4:  res = acquisition_read_toa_only_s4(acq); break;
+            case 5:  res = acquisition_read_toa_only_s5(acq); break;
+            default: res = -KATHERINE_E_INVAL; break;
+            }
         }
         break;
 
@@ -559,10 +633,11 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->dropped_measurement_data   = 0;
     acq->truncated_measurement_data = 0;
 
-    acq->pixel_buffer_valid     = 0;
-    acq->pixel_buffer_max_valid = 0;
-    acq->last_toa_offset        = 0;
-    acq->frame_active           = false;
+    acq->pixel_buffer_valid            = 0;
+    acq->pixel_buffer_max_valid        = 0;
+    acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(config->freq);
+    acq->last_toa_offset               = KATHERINE_TOA_EPOCH_BIAS(acq);
+    acq->frame_active                  = false;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
     if (res) goto err;
