@@ -32,27 +32,11 @@ flush_buffer(katherine_acquisition_t *acq)
     acq->pixel_buffer_valid = 0;
 }
 
-/* The timestamp epoch sits ahead of the true start of the window, so that the
-   decoder's subtraction of the fine counter cannot go below zero. This spares
-   the decode loop a per-hit test, measured to cost 10-25% of its throughput,
-   and an unsigned wrap there would put a hit some 914 years in the future
-   rather than merely early.
-
-   Two constraints fix the size. It must cover the fine field's full span, 16
-   ticks, which one coarse tick does NOT at the shorter dividers -- there a
-   coarse tick is only 4 or 8 fine ticks. And it must stay a whole multiple of
-   the coarse tick, or it would disturb the residue that carries the fine term
-   and katherine_tpx3_timestamp_to_toa_ftoa() could no longer recover it. Both
-   hold for the larger of one coarse tick and the fine span, since both are
-   powers of two.
-
-   Callers see the bias; it is documented at katherine_px_*_t::timestamp. */
-#define KATHERINE_TOA_FINE_SPAN_SHIFT 4u
-
+/* The epoch bias, resolved once per acquisition rather than per use. Its size
+   and the reasons for it live with katherine_tpx3_toa_epoch_bias(); this is
+   only the spelling the cold paths below use. */
 #define KATHERINE_TOA_EPOCH_BIAS(acq) \
-    ((uint64_t) 1 << ((acq)->toa_coarse_tick_to_fine_shift > KATHERINE_TOA_FINE_SPAN_SHIFT \
-             ? (acq)->toa_coarse_tick_to_fine_shift \
-             : KATHERINE_TOA_FINE_SPAN_SHIFT))
+    katherine_tpx3_toa_epoch_bias((acq)->toa_coarse_tick_to_fine_shift)
 
 static inline void
 handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
@@ -470,6 +454,37 @@ DEFINE_ACQ_IMPL(event_itot, , pmd_event_itot_map)
 #undef DEFINE_ACQ_IMPL_EVERY_SHIFT
 #undef DEFINE_ACQ_IMPL_SHIFTED
 #undef DEFINE_ACQ_IMPL
+
+/**
+ * Phase offset applied to a pixel's double column, in fine-oscillator ticks.
+ *
+ * The pixel clock reaches the double columns in staggered phases, so hits in
+ * different columns are timed against edges that do not coincide. Correcting
+ * for that means knowing the offset applied to the column a hit came from --
+ * and undoing it again is what lets
+ * katherine_tpx3_timestamp_to_toa_ftoa() recover the chip's own counters,
+ * since a phase offset is not a whole coarse tick and would otherwise corrupt
+ * the residue the fine term is read from.
+ *
+ * This reports what was actually applied, so callers need not track whether
+ * correction is in effect: with none, every column reports zero and the
+ * arithmetic downstream is unchanged. Reading it rather than assuming zero is
+ * what keeps such code correct if correction is later switched on.
+ *
+ * @param acq Acquisition the pixel was decoded by.
+ * @param coord Pixel coordinates.
+ * @return Offset applied to this pixel's column, in fine-oscillator ticks.
+ */
+uint8_t
+katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
+{
+    (void) acq;
+    (void) coord;
+
+    /* No phase correction is applied yet, so nothing has been added to undo. */
+    return 0;
+}
+
 
 /**
  * Read measurement data from acquisition.

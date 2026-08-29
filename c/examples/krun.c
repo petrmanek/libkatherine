@@ -24,6 +24,16 @@ typedef katherine_px_f_toa_tot_t px_t;
 // pixels during the acquisition.
 static const bool test_pulse = false;
 
+/* How the hit lines below report time. Each costs a little more than the last
+   and says a little more; see the three handlers for what that buys. */
+typedef enum krun_toa_format {
+    KRUN_TOA_TIMESTAMP, /* the decoded value as stored */
+    KRUN_TOA_SECONDS,   /* whole seconds and nanoseconds within them */
+    KRUN_TOA_COUNTERS,  /* the sensor's own ToA and fToA */
+} krun_toa_format_t;
+
+static const krun_toa_format_t print_toa = KRUN_TOA_SECONDS;
+
 void
 paint_test_pixels(katherine_px_config_t *px_config)
 {
@@ -152,7 +162,17 @@ frame_started(void *user_ctx, int frame_idx)
     n_hits = 0;
 
     printf("Started frame %d.\n", frame_idx);
-    printf("X\tY\tToA\tfToA\tToT\n");
+
+    /* Column labels have to follow the format actually printed, or a reader
+       silently misreads the wrong quantity. Not performance-critical: this
+       runs once per frame, not once per hit. */
+    if (print_toa == KRUN_TOA_TIMESTAMP) {
+        printf("X\tY\tTimestamp\tToT\n");
+    } else if (print_toa == KRUN_TOA_SECONDS) {
+        printf("X\tY\tSeconds\tNanoseconds\tToT\n");
+    } else {
+        printf("X\tY\tToA\tfToA\tToT\n");
+    }
 }
 
 void
@@ -170,8 +190,14 @@ frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame
     printf(" - end time: %" PRIu64 "\n", info->end_time.d);
 }
 
+/* The timestamp as the decoder produced it: fine-oscillator ticks, already
+   combined from the sensor's two counters. Nothing to call and nothing to get
+   wrong -- and because it is one monotonic integer, hits compare and subtract
+   directly, which is what ordering and clustering need. The unit is arbitrary
+   but uniform, so differences are meaningful even though absolute values are
+   not a physical time. */
 void
-pixels_received(void *user_ctx, const void *px, size_t count)
+pixels_received_timestamp(void *user_ctx, const void *px, size_t count)
 {
     (void) user_ctx;
 
@@ -180,6 +206,56 @@ pixels_received(void *user_ctx, const void *px, size_t count)
     const px_t *dpx = (const px_t *) px;
     for (size_t i = 0; i < count; ++i) {
         printf("%d\t%d\t%" PRIu64 "\t%d\n", dpx[i].coord.x, dpx[i].coord.y, dpx[i].timestamp, dpx[i].tot);
+    }
+}
+
+/* Physical time, which is what most consumers actually want. One call per hit
+   buys it, and the split into whole seconds and nanoseconds within them is
+   what keeps the result exact: a single double cannot hold the range a long
+   acquisition covers at this resolution. Summing the two parts back together
+   throws that away again. */
+void
+pixels_received_seconds(void *user_ctx, const void *px, size_t count)
+{
+    (void) user_ctx;
+
+    n_hits += count;
+
+    const px_t *dpx = (const px_t *) px;
+    for (size_t i = 0; i < count; ++i) {
+        uint64_t sec = 0;
+        double nsec  = 0.0;
+        katherine_tpx3_timestamp_to_seconds(dpx[i].timestamp, &sec, &nsec);
+
+        printf("%d\t%d\t%" PRIu64 "\t%.4f\t%d\n", dpx[i].coord.x, dpx[i].coord.y, sec, nsec, dpx[i].tot);
+    }
+}
+
+/* The sensor's own counters, for comparing against a raw capture or against
+   what libkatherine reported before timestamps existed. The decoder combined
+   them, so this undoes that -- including the offset applied to this pixel's
+   double column, which is read rather than assumed zero so the code stays
+   right if phase correction is switched on. Needs the acquisition, both for
+   the divider it resolved and for that offset. */
+void
+pixels_received_counters(void *user_ctx, const void *px, size_t count)
+{
+    const katherine_acquisition_t *acq = (const katherine_acquisition_t *) user_ctx;
+
+    n_hits += count;
+
+    /* Fixed for the acquisition, so it is read once rather than per hit. */
+    const uint8_t shift = acq->toa_coarse_tick_to_fine_shift;
+
+    const px_t *dpx = (const px_t *) px;
+    for (size_t i = 0; i < count; ++i) {
+        const uint8_t phase = katherine_acquisition_timestamp_phase_offset(acq, dpx[i].coord);
+
+        uint64_t toa = 0;
+        uint8_t ftoa = 0;
+        katherine_tpx3_timestamp_to_toa_ftoa(shift, phase, dpx[i].timestamp, &toa, &ftoa);
+
+        printf("%d\t%d\t%" PRIu64 "\t%d\t%d\n", dpx[i].coord.x, dpx[i].coord.y, toa, ftoa, dpx[i].tot);
     }
 }
 
@@ -203,16 +279,25 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     int res;
     katherine_acquisition_t acq;
 
-    res = katherine_acquisition_init(&acq, dev, NULL, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 65536, 500, 10000);
+    /* The handlers are given the acquisition itself: they need the divider it
+       resolved in order to interpret the timestamps it produces. */
+    res = katherine_acquisition_init(
+        &acq, dev, &acq, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 65536, 500, 10000);
     if (res != 0) {
         printf("Cannot initialize acquisition. Is the configuration valid?\n");
         printf("Reason: %s\n", katherine_strerror(res));
         exit(3);
     }
 
-    acq.handlers.frame_started   = frame_started;
-    acq.handlers.frame_ended     = frame_ended;
-    acq.handlers.pixels_received = pixels_received;
+    acq.handlers.frame_started = frame_started;
+    acq.handlers.frame_ended   = frame_ended;
+    if (print_toa == KRUN_TOA_TIMESTAMP) {
+        acq.handlers.pixels_received = pixels_received_timestamp;
+    } else if (print_toa == KRUN_TOA_SECONDS) {
+        acq.handlers.pixels_received = pixels_received_seconds;
+    } else {
+        acq.handlers.pixels_received = pixels_received_counters;
+    }
 
     res = katherine_acquisition_begin(&acq, c, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true);
     if (res != 0) {
@@ -233,7 +318,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     time_t toc = time(NULL);
 
     double duration = difftime(toc, tic);
-    ;
+
     printf("\n");
     printf("Acquisition completed:\n");
     printf(" - state: %s\n", katherine_str_acquisition_status(acq.state));
