@@ -52,7 +52,7 @@ test_sensor_temperature_refused_while_running(void)
     KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &temperature), -KATHERINE_E_STATE);
 
     /* The out parameter is left alone when the call is refused. */
-    KT_CHECK(temperature == 0.0f);
+    KT_CHECK_EXACT(temperature, 0.0f);
 }
 
 static void

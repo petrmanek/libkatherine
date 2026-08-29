@@ -39,6 +39,9 @@ include_guard(GLOBAL)
 # katherine_add_test() call.
 find_package(Threads REQUIRED)
 
+find_library(KATHERINE_LIBM m)
+mark_as_advanced(KATHERINE_LIBM)
+
 function(katherine_add_test)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" "NAME" "SOURCES;ARGS;LABELS;PROPERTIES")
     if(NOT ARG_NAME)
@@ -53,6 +56,12 @@ function(katherine_add_test)
 
     add_executable(${ARG_NAME} ${ARG_SOURCES})
     target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private Threads::Threads)
+    # ktest.h's floating-point comparisons call nextafter(), which glibc keeps
+    # in a separate libm. Elsewhere -- MSVC among them -- the maths functions
+    # live in the C runtime and there is no such library to find.
+    if(KATHERINE_LIBM)
+        target_link_libraries(${ARG_NAME} PRIVATE ${KATHERINE_LIBM})
+    endif()
     katherine_target_warnings(${ARG_NAME})
 
     add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME} ${ARG_ARGS})
