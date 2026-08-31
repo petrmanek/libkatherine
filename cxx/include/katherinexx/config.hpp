@@ -123,6 +123,12 @@ public:
     bool polarity_holes() const { return conf_.polarity_holes; }
     void set_polarity_holes(bool val) { conf_.polarity_holes = val; }
 
+    /* A request only: what actually happens depends on the device and on the
+       phase count, and is reported after the fact by
+       katherine::base_acquisition::phase_correction(), not by this getter. */
+    bool correct_phase() const { return conf_.correct_phase; }
+    void set_correct_phase(bool val) { conf_.correct_phase = val; }
+
     katherine::phase phase() const { return (katherine::phase) conf_.phase; }
     void set_phase(katherine::phase val) { conf_.phase = (katherine_phase_t) val; }
 

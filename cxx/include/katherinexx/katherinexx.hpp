@@ -22,6 +22,7 @@
 #include <katherinexx/device.hpp>
 #include <katherinexx/config.hpp>
 #include <katherinexx/px_config.hpp>
+#include <katherinexx/toa.hpp>
 #include <katherinexx/udp.hpp>
 #include <katherinexx/version.hpp>
 #include <katherinexx/repr.hpp>

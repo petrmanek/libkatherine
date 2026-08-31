@@ -6,6 +6,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+from libcpp cimport bool
+
 cdef extern from 'katherine/device.h':
     ctypedef struct katherine_device_t:
         pass
@@ -14,3 +16,4 @@ cdef extern from 'katherine/device.h':
 
     int katherine_device_init(katherine_device_t *device, const char *addr)
     void katherine_device_fini(katherine_device_t *device)
+    bool katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)

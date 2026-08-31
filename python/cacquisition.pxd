@@ -8,9 +8,10 @@
 
 from libcpp cimport bool
 from libc.time cimport time_t
-from libc.stdint cimport uint32_t, uint64_t
+from libc.stdint cimport uint8_t, uint32_t, uint64_t
 from cdevice cimport katherine_device_t
 from cconfig cimport katherine_config_t, katherine_acquisition_mode_t
+from cpx cimport katherine_coord_t
 
 cdef extern from 'katherine/acquisition.h':
     ctypedef struct katherine_frame_info_time_split_t:
@@ -40,6 +41,13 @@ cdef extern from 'katherine/acquisition.h':
         void (*frame_started)(void *, int)
         void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *)
         void (*data_received)(void *, const char *, size_t)
+
+    ctypedef enum katherine_phase_correction_t:
+        KATHERINE_PHASE_CORRECTION_NONE
+        KATHERINE_PHASE_CORRECTION_SOFTWARE
+        KATHERINE_PHASE_CORRECTION_HARDWARE
+
+    const char *katherine_str_phase_correction(katherine_phase_correction_t v)
 
     ctypedef struct katherine_acquisition_t:
         katherine_device_t *device
@@ -75,9 +83,14 @@ cdef extern from 'katherine/acquisition.h':
 
         uint64_t last_toa_offset
 
+        katherine_phase_correction_t phase_correction
+        uint8_t phase_count
+
         bool frame_active
 
     int katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v)
+
+    uint8_t katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
 
     ctypedef enum katherine_readout_type_t:
         READOUT_SEQUENTIAL

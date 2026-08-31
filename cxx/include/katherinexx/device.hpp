@@ -56,6 +56,15 @@ public:
         return &dev_;
     }
 
+    /* Always false for now: this asks the readout, not a hardware-type table,
+       because the answer also depends on firmware; wiring up the real query
+       is future work. See katherine_device_can_correct_timestamp_phase(). */
+    bool
+    can_correct_timestamp_phase() const
+    {
+        return katherine_device_can_correct_timestamp_phase(&dev_);
+    }
+
     katherine_readout_status_t
     readout_status()
     {

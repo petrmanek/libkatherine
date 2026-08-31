@@ -89,6 +89,8 @@ cdef extern from 'katherine/config.h':
         bool gray_disable
         bool polarity_holes
 
+        bool correct_phase
+
         katherine_phase_t phase
         katherine_freq_t freq
         katherine_dacs_t dacs

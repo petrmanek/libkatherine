@@ -10,7 +10,7 @@
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cpython.bytes cimport PyBytes_FromStringAndSize
-from libc.stdint cimport uint8_t, uint16_t, uint32_t, int32_t
+from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, int32_t
 from libc.string cimport memcpy
 from libcpp cimport bool
 from enum import Enum, unique
@@ -22,6 +22,7 @@ cimport cconfig
 cimport cpx
 cimport cpx_config
 cimport cacquisition
+cimport ctoa
 cimport cudp
 cimport cversion
 cimport cerror
@@ -96,6 +97,9 @@ cdef class Device:
 
     def __repr__(self):
          return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._c_device)
+
+    def can_correct_timestamp_phase(self):
+         return cdevice.katherine_device_can_correct_timestamp_phase(self._c_device)
 
     def get_readout_status(self):
          cdef ReadoutStatus status = ReadoutStatus()
@@ -667,6 +671,32 @@ class Freq(Enum):
     FREQ_160         = cconfig.katherine_freq_t.FREQ_160
 
 
+def tpx3_toa_coarse_tick_to_fine_ticks(freq):
+    return ctoa.katherine_tpx3_toa_coarse_tick_to_fine_ticks(freq.value)
+
+
+def tpx3_toa_coarse_tick_to_fine_shift(freq):
+    return ctoa.katherine_tpx3_toa_coarse_tick_to_fine_shift(freq.value)
+
+
+def tpx3_toa_epoch_bias(uint8_t coarse_tick_to_fine_shift):
+    return ctoa.katherine_tpx3_toa_epoch_bias(coarse_tick_to_fine_shift)
+
+
+def tpx3_timestamp_to_seconds(uint64_t timestamp):
+    cdef uint64_t sec
+    cdef double nsec
+    ctoa.katherine_tpx3_timestamp_to_seconds(timestamp, &sec, &nsec)
+    return (sec, nsec)
+
+
+def tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t phase_offset, uint64_t timestamp):
+    cdef uint64_t toa
+    cdef uint8_t ftoa
+    ctoa.katherine_tpx3_timestamp_to_toa_ftoa(coarse_tick_to_fine_shift, phase_offset, timestamp, &toa, &ftoa)
+    return (toa, ftoa)
+
+
 @unique
 class Tpx3Reg(Enum):
     TEST_PULSE_METHOD     = cconfig.katherine_tpx3_reg_t.TPX3_REG_TEST_PULSE_METHOD
@@ -770,6 +800,17 @@ cdef class Config:
     def polarity_holes(self, val):
        self._c_config.polarity_holes = val
 
+    # A request only: what actually happens depends on the device and on the
+    # phase count, and is reported afterwards by Acquisition.phase_correction,
+    # not by this property.
+    @property
+    def correct_phase(self):
+       return self._c_config.correct_phase
+
+    @correct_phase.setter
+    def correct_phase(self, val):
+       self._c_config.correct_phase = val
+
     @property
     def phase(self):
        return Phase(self._c_config.phase)
@@ -839,6 +880,20 @@ def str_acquisition_status(status):
     if isinstance(status, AcquisitionState):
         status = status.value
     cdef const char *s = cacquisition.katherine_str_acquisition_status(status)
+    return s.decode('UTF-8')
+
+
+@unique
+class PhaseCorrection(Enum):
+    NONE     = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_NONE
+    SOFTWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_SOFTWARE
+    HARDWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_HARDWARE
+
+
+def str_phase_correction(v):
+    if isinstance(v, PhaseCorrection):
+        v = v.value
+    cdef const char *s = cacquisition.katherine_str_phase_correction(v)
     return s.decode('UTF-8')
 
 
@@ -1232,8 +1287,19 @@ cdef class Acquisition:
        return self._c_acq.last_toa_offset
 
     @property
+    def phase_correction(self):
+       return PhaseCorrection(self._c_acq.phase_correction)
+
+    @property
+    def phase_count(self):
+       return self._c_acq.phase_count
+
+    @property
     def frame_active(self):
        return self._c_acq.frame_active
+
+    def timestamp_phase_offset(self, int x, int y):
+       return cacquisition.katherine_acquisition_timestamp_phase_offset(self._c_acq, PxConfig._coord(x, y))
 
 
 cdef void _forward_frame_started(void *user_ctx, int frame_idx) noexcept:

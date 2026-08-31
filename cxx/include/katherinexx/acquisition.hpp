@@ -42,6 +42,14 @@ enum class acq_state {
     timed_out   = ACQUISITION_TIMED_OUT
 };
 
+/// What a katherine::config::correct_phase() request resolved to;
+/// see katherine::base_acquisition::phase_correction().
+enum class phase_correction {
+    none     = KATHERINE_PHASE_CORRECTION_NONE,
+    software = KATHERINE_PHASE_CORRECTION_SOFTWARE,
+    hardware = KATHERINE_PHASE_CORRECTION_HARDWARE
+};
+
 /* acq_mode itself now lives in config.hpp (see the comment there); this
    header still uses it unqualified below via the katherinexx/config.hpp
    include above. */
@@ -184,6 +192,11 @@ public:
     int completed_frames() const { return acq_.completed_frames; }
     std::size_t dropped_measurement_data() const { return acq_.dropped_measurement_data; }
     std::uint64_t truncated_measurement_data() const { return acq_.truncated_measurement_data; }
+
+    std::uint8_t timestamp_phase_offset(katherine::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
+
+    katherine::phase_correction phase_correction() const { return (katherine::phase_correction) acq_.phase_correction; }
+    std::uint8_t phase_count() const { return acq_.phase_count; }
 };
 
 
@@ -272,6 +285,12 @@ static inline const char *
 str_acq_state(acq_state state)
 {
     return katherine_str_acquisition_status((char) state);
+}
+
+static inline const char *
+str_phase_correction(phase_correction v)
+{
+    return katherine_str_phase_correction((katherine_phase_correction_t) v);
 }
 
 /** @} */
