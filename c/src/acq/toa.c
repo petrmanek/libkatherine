@@ -203,9 +203,11 @@ katherine_tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t 
        very value. */
     const uint64_t t = timestamp - phase_offset;
 
-    /* Two's complement of the low bits, which is what the subtraction left
-       behind there. */
-    const uint64_t fine = (-t) & fine_mask;
+    /* How far short of the next coarse tick the value falls, which is exactly
+       what was subtracted from it. Written as a subtraction rather than as a
+       negation of an unsigned value: the two are identical for a power-of-two
+       modulus, but MSVC rightly warns about the latter (C4146). */
+    const uint64_t fine = ((fine_mask + 1u) - (t & fine_mask)) & fine_mask;
 
     if (ftoa != NULL) *ftoa = (uint8_t) fine;
     if (toa != NULL)

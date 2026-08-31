@@ -45,9 +45,9 @@ extern "C" {
  * its own: ordering, differencing and clustering need no further arithmetic
  * and cannot forget any. The chip's own quantities remain recoverable from it.
  *
- * The epoch is offset by exactly one coarse tick -- one whole
- * katherine_tpx3_toa_coarse_tick_to_fine_ticks(), so 50/25/12.5/6.25 ns by the
- * frequency. This is deliberate and must not be removed: the fine counter is
+ * The epoch is offset by the larger of one coarse tick and the fine field's
+ * span of 16 ticks -- so 50/25/25/25 ns by the frequency, one coarse tick only
+ * where a coarse tick is itself at least that wide. This is deliberate and must not be removed: the fine counter is
  * subtracted from the coarse one, which would underflow for a hit in the very
  * first coarse tick after an offset reset, and an unsigned wrap there produces
  * a timestamp some 914 years in the future rather than a slightly early one.
@@ -56,7 +56,11 @@ extern "C" {
  * Differences between timestamps are therefore exact, and every absolute value
  * carries the same constant offset. Two consequences worth knowing:
  * katherine_tpx3_timestamp_to_toa_ftoa() removes the bias, so the chip's own
- * counters come back exactly; and a timestamp converted to seconds sits one
+ * counters come back exactly -- provided it is also given the phase offset
+ * applied to the pixel, from katherine_acquisition_timestamp_phase_offset().
+ * Passing zero where an offset was applied returns a wrong answer silently,
+ * since a phase offset is not a whole coarse tick and corrupts the residue the
+ * fine term is read from; and a timestamp converted to seconds sits one
  * coarse tick later than katherine_frame_info_t.start_time would suggest,
  * which at 40 MHz is exactly one of that field's own 25 ns ticks.
  *
@@ -84,6 +88,9 @@ extern "C" {
  * hit_count at 14 (not 15). The chip's fine counter saturates at 15, which
  * the combination above consumes rather than reports.
  */
+
+/// Columns in the Timepix3 pixel matrix, and so rows: it is square.
+#define KATHERINE_TPX3_MATRIX_WIDTH 256
 
 typedef struct katherine_coord {
     uint8_t x;

@@ -148,7 +148,9 @@ typedef struct katherine_config {
     bool gray_disable;
     bool polarity_holes;
 
-    katherine_phase_t phase;
+    katherine_phase_t phase; ///< Phase distribution of clock signals across the ASIC. A single phase (PHASE_1) means that all timestamps are recorded in-phase. Any other setting will stagger adjacent clock signals by half of the period (PHASE_2), a quarter of the period (PHASE_4) etc., so that coincident data bursts are better distributed in time for a more stable data flow. This performance improvement however comes at the price of having to correct the phase-offsets in hit timestamps to recover true values. See the correct_phase setting below for that.
+    bool correct_phase;      ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
+
     katherine_freq_t freq;
     katherine_dacs_t dacs;
 

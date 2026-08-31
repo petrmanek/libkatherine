@@ -132,6 +132,23 @@ katherine_str_readout_type(katherine_readout_type_t type)
 }
 
 /**
+ * Describe what a phase-correction request resolved to.
+ *
+ * @param v Outcome to describe.
+ * @return Static string, "(unknown)" for a value outside the enumeration.
+ */
+const char *
+katherine_str_phase_correction(katherine_phase_correction_t v)
+{
+    switch (v) {
+    case KATHERINE_PHASE_CORRECTION_NONE:     return "none";
+    case KATHERINE_PHASE_CORRECTION_SOFTWARE: return "software";
+    case KATHERINE_PHASE_CORRECTION_HARDWARE: return "hardware";
+    default:                                  return "(unknown)";
+    }
+}
+
+/**
  * Get stable, lowercase description of an acquisition mode.
  * @param mode Acquisition mode to describe
  * @return Null-terminated string. "unknown" for a value outside the enum.

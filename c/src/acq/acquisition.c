@@ -256,6 +256,15 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
 int
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
 {
+    /* The phase state has to be defined before begin() runs: the offset
+       accessor is readable on an initialized acquisition, and a stray
+       HARDWARE value there would shift by an indeterminate amount. begin()
+       resolves these properly; this only makes the in-between state honest. */
+    acq->phase_correction              = KATHERINE_PHASE_CORRECTION_NONE;
+    acq->phase_count                   = 0;
+    acq->toa_coarse_tick_to_fine_shift = 0;
+    memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
+
     int res = 0;
 
     acq->device       = device;
@@ -456,6 +465,68 @@ DEFINE_ACQ_IMPL(event_itot, , pmd_event_itot_map)
 #undef DEFINE_ACQ_IMPL
 
 /**
+ * The pixel clock reaches double column i on phase (i mod n), each phase a
+ * coarse tick divided by n later than the last, so a hit there is timed against
+ * an edge that much later than one in the first column -- and the timestamp
+ * comes out that much smaller. Adding the offset back is what equalises hits
+ * that arrived together.
+ *
+ * Both halves of a double column share a phase, hence x / 2. In fine ticks the
+ * step is a whole number for every frequency and phase count, because a coarse
+ * tick is a power-of-two multiple of the fine tick and the clamped phase count
+ * divides it -- but only the CLAMPED count, from katherine_actual_phases(),
+ * divides it. The enumerator's own name does not: PHASE_16 at FREQ_160 would
+ * give a quarter of a fine tick.
+ *
+ * Internal on purpose: the offsets reach callers through
+ * katherine_acquisition_timestamp_phase_offset(), not as a table of their own.
+ *
+ * @param coarse_tick_to_fine_shift Bitshift needed to calculate the number of fine clock ticks in a single coarse clock tick.
+ * @param phase_count Actual number of phases.
+ * @param x Pixel X-coordinate (0..255), adjacent pixels within a double-column receive the same return value.
+ * @return Offset applied to this pixel's column, in fine-oscillator ticks.
+ */
+static uint8_t
+katherine_tpx3_toa_phase_offset(uint8_t coarse_tick_to_fine_shift, uint8_t phase_count, uint8_t x)
+{
+    if (phase_count <= 1) return 0;
+
+    const uint8_t fine_ticks = (uint8_t) (1u << coarse_tick_to_fine_shift);
+    const uint8_t step       = (uint8_t) (fine_ticks / phase_count);
+
+    return (uint8_t) (((x / 2u) % phase_count) * step);
+}
+
+/**
+ * Which of the three outcomes a phase-correction request resolves to. Ordered
+ * so that the cheap, certain answers come first: a caller who did not ask gets
+ * NONE without the device being consulted, and a configuration with a single
+ * phase gets NONE because there is genuinely nothing to correct -- which is
+ * worth reporting rather than papering over with a table of zeroes. Only then
+ * is the readout asked whether it will do the work itself.
+ *
+ * Internal on purpose.
+ *
+ * @param acq Acquisition, where phase-correction may be applied.
+ * @param config Readout configuration, which determines phase-correction behavior.
+ */
+static katherine_phase_correction_t
+resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_config_t *config)
+{
+    // Not applied if not requested, or all columns use the same phase.
+    if (!config->correct_phase) return KATHERINE_PHASE_CORRECTION_NONE;
+    if (acq->phase_count <= 1) return KATHERINE_PHASE_CORRECTION_NONE;
+
+    // Offloaded to hardware if supported.
+    if (katherine_device_can_correct_timestamp_phase(acq->device))
+        return KATHERINE_PHASE_CORRECTION_HARDWARE;
+
+    // Otherwise: there are at least two phases, correction was requested, and hardware does not support offloading
+    //            --> we got to do it in software.
+    return KATHERINE_PHASE_CORRECTION_SOFTWARE;
+}
+
+/**
  * Phase offset applied to a pixel's double column, in fine-oscillator ticks.
  *
  * The pixel clock reaches the double columns in staggered phases, so hits in
@@ -478,11 +549,15 @@ DEFINE_ACQ_IMPL(event_itot, , pmd_event_itot_map)
 uint8_t
 katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
 {
-    (void) acq;
-    (void) coord;
+    /* The table is filled only where the decoder does the work. Where the
+       readout did it instead, the offset is real but absent from the table, so
+       it is computed -- this is a cold path and the arithmetic is the same
+       closed form the table was built from. */
+    if (acq->phase_correction == KATHERINE_PHASE_CORRECTION_HARDWARE) {
+        return katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, coord.x);
+    }
 
-    /* No phase correction is applied yet, so nothing has been added to undo. */
-    return 0;
+    return acq->phase_offsets[coord.x];
 }
 
 
@@ -648,11 +723,23 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->dropped_measurement_data   = 0;
     acq->truncated_measurement_data = 0;
 
-    acq->pixel_buffer_valid            = 0;
-    acq->pixel_buffer_max_valid        = 0;
+    acq->pixel_buffer_valid     = 0;
+    acq->pixel_buffer_max_valid = 0;
+
     acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(config->freq);
-    acq->last_toa_offset               = KATHERINE_TOA_EPOCH_BIAS(acq);
-    acq->frame_active                  = false;
+    acq->phase_count                   = katherine_actual_phases(config->freq, config->phase);
+    acq->phase_correction              = resolve_phase_correction(acq, config);
+
+    /* Only SOFTWARE puts anything in the table. Every other outcome leaves it
+       zeroed, which is what lets the decoder add unconditionally. */
+    memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
+    if (acq->phase_correction == KATHERINE_PHASE_CORRECTION_SOFTWARE) {
+        for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
+            acq->phase_offsets[x] = katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, (uint8_t) x);
+        }
+    }
+    acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq);
+    acq->frame_active    = false;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
     if (res) goto err;

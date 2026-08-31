@@ -68,6 +68,32 @@ err_control:
 }
 
 /**
+ * Whether this readout can apply per-double-column phase correction itself.
+ *
+ * The pixel clock reaches the double columns in staggered phases, and from
+ * some firmware revision onward the readout can subtract that stagger before
+ * sending, sparing the host the work. The capability therefore depends on the
+ * firmware version as much as on the model, which is why the question is asked
+ * of a device rather than of a hardware-type row: only the device carries both.
+ *
+ * False throughout for now. Wiring it up needs the opcode and its minimum
+ * firmware version identified, and the version retained at open, where it is
+ * currently read and discarded.
+ *
+ * @see katherine_acquisition_timestamp_phase_offset
+ *
+ * @param device Device to ask.
+ * @return true if the readout corrects the phase stagger itself.
+ */
+bool
+katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)
+{
+    (void) device;
+
+    return false;
+}
+
+/**
  * Finalize Katherine device.
  * @param device Device to finalize.
  */

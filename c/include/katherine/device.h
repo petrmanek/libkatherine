@@ -13,6 +13,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <katherine/global.h>
 #include <katherine/udp.h>
 
@@ -39,6 +40,9 @@ katherine_device_init(katherine_device_t *device, const char *addr);
 
 KATHERINE_EXPORTED void
 katherine_device_fini(katherine_device_t *device);
+
+KATHERINE_EXPORTED bool
+katherine_device_can_correct_timestamp_phase(const katherine_device_t *device);
 
 #ifdef __cplusplus
 }

@@ -103,8 +103,10 @@ configure(katherine_config_t *config)
     config->gray_disable   = false;
     config->polarity_holes = false;
 
-    config->phase = PHASE_1;
-    config->freq  = FREQ_40;
+    config->phase         = PHASE_1;
+    config->correct_phase = false; // only makes sense to correct phase offset when we request more than 1 phase
+
+    config->freq = FREQ_40;
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;

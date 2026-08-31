@@ -734,6 +734,108 @@ test_faux_echo_rejected(void)
 }
 
 /* ------------------------------------------------------------------ */
+/* What katherine_acquisition_begin() resolves a phase request into.    */
+
+/* The resolution is the one part of phase correction that a hand-built
+   acquisition cannot reach: it happens inside begin(), which needs a readout.
+   Driven here against the emulator, over the inputs that decide it. The offset
+   values themselves are checked in test_phase_correction.c; what matters here
+   is which of the three outcomes begin() picks, and whether it fills the table
+   to match. */
+static void
+check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
+    katherine_phase_correction_t expect)
+{
+    katherine_acquisition_t acq;
+    acq_probe_t probe;
+    katherine_config_t config;
+
+    memset(&acq, 0, sizeof(acq));
+    memset(&probe, 0, sizeof(probe));
+    probe.acq = &acq;
+
+    configure(&config, SHORT_ACQ_TIME_NS, 1);
+    config.freq          = freq;
+    config.phase         = phase;
+    config.correct_phase = request;
+
+    KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE,
+                   PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
+        == 0);
+
+    /* Sequential readout so the run ends on its own; the hits are irrelevant
+       here, only the state begin() left behind. */
+    KT_REQUIRE(katherine_acquisition_begin(
+                   &acq, &config, READOUT_SEQUENTIAL, ACQUISITION_MODE_TOA_TOT, false, true)
+        == 0);
+
+    KT_CHECK_EQ(acq.phase_correction, expect);
+    KT_CHECK_EQ(acq.phase_count, katherine_actual_phases(freq, phase));
+
+    /* The table is the mechanism, so it must agree with the outcome: filled
+       only for SOFTWARE, zero everywhere else -- which is what lets the decoder
+       add unconditionally.
+
+       Checked entry by entry against a formula written out here, not against
+       the library's. This is the ONLY place a library-built table is in scope:
+       the fill happens inside begin(), and the closed form behind it is static.
+       Counting nonzero entries instead would accept a table that paired the
+       wrong columns, or used the wrong step, or repeated with the wrong
+       period. */
+    const uint8_t n     = katherine_actual_phases(freq, phase);
+    const unsigned fine = katherine_tpx3_toa_coarse_tick_to_fine_ticks(freq);
+    unsigned mismatched = 0, nonzero = 0;
+
+    for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
+        const uint8_t got = acq.phase_offsets[x];
+        uint8_t want      = 0;
+        if (expect == KATHERINE_PHASE_CORRECTION_SOFTWARE && n > 1) {
+            want = (uint8_t) (((x / 2u) % n) * (fine / n));
+        }
+        if (got != want) ++mismatched;
+        if (got != 0) ++nonzero;
+    }
+    KT_CHECK_EQ(mismatched, 0u);
+
+    if (expect == KATHERINE_PHASE_CORRECTION_SOFTWARE) {
+        /* And it must not be uniformly zero, or the comparison above would
+           hold vacuously for a table that was never filled. */
+        KT_CHECK(nonzero > 0);
+    } else {
+        KT_CHECK_EQ(nonzero, 0u);
+    }
+
+    (void) katherine_acquisition_read(&acq);
+    katherine_acquisition_fini(&acq);
+}
+
+static void
+test_phase_request_resolution(void)
+{
+    /* Not asked for: nothing happens, however many phases there are. */
+    check_resolution(FREQ_40, PHASE_16, false, KATHERINE_PHASE_CORRECTION_NONE);
+
+    /* Asked for, and there is something to correct. */
+    check_resolution(FREQ_40, PHASE_16, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
+    check_resolution(FREQ_40, PHASE_2, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
+
+    /* Asked for, but the configuration yields a single phase, so there is
+       genuinely nothing to correct. Reported as NONE rather than as SOFTWARE
+       over a table of zeroes: the caller is told, not reassured. */
+    check_resolution(FREQ_40, PHASE_1, true, KATHERINE_PHASE_CORRECTION_NONE);
+
+    /* And where the divider clamps the phase count to one, likewise -- the
+       enumerator asked for more than the clock grants. */
+    KT_REQUIRE(katherine_actual_phases(FREQ_160, PHASE_2) == 1);
+    check_resolution(FREQ_160, PHASE_2, true, KATHERINE_PHASE_CORRECTION_NONE);
+
+    /* HARDWARE is unreachable until a readout reports the capability, so it is
+       not exercised here; katherine_device_can_correct_timestamp_phase()
+       answers false throughout. */
+    KT_CHECK(!katherine_device_can_correct_timestamp_phase(&g_device));
+}
+
+/* ------------------------------------------------------------------ */
 
 int
 main(int argc, char *argv[])
@@ -759,6 +861,7 @@ main(int argc, char *argv[])
     KT_RUN(test_sequential_frames);
     KT_RUN(test_abort_undecoded);
     KT_RUN(test_abort_decoded);
+    KT_RUN(test_phase_request_resolution);
 
     katherine_device_fini(&g_device);
     kspawn_stop(&g_ksim);

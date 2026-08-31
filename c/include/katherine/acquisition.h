@@ -110,6 +110,20 @@ typedef enum katherine_acquisition_state {
     ACQUISITION_TIMED_OUT   = 3, ///< Communications timeout. Either the detector is still measuring and the data flow was disrupted, or the device was powered off unexpectedly. This is also a common failure mode if decode_data == false, and the user fails to call katherine_acquisition_abort() at the end of the measurement.
 } katherine_acquisition_state_t;
 
+/// What became of katherine_config_t::correct_phase for a given
+/// acquisition. Three outcomes, not two: a device that never staggers its
+/// columns and one that corrects the stagger itself are different situations,
+/// and only the second leaves an offset that has to be undone to recover the
+/// sensor's own counters.
+typedef enum katherine_phase_correction {
+    KATHERINE_PHASE_CORRECTION_NONE     = 0, ///< Not requested, or nothing to correct.
+    KATHERINE_PHASE_CORRECTION_SOFTWARE = 1, ///< Applied by the decoder.
+    KATHERINE_PHASE_CORRECTION_HARDWARE = 2, ///< Offloaded to the readout.
+} katherine_phase_correction_t;
+
+KATHERINE_EXPORTED const char *
+katherine_str_phase_correction(katherine_phase_correction_t v);
+
 typedef struct katherine_acquisition {
     katherine_device_t *device;
     void *user_ctx;
@@ -177,6 +191,19 @@ typedef struct katherine_acquisition {
     /// by katherine_acquisition_begin(). The ratio itself is 1 << this.
     uint8_t toa_coarse_tick_to_fine_shift;
 
+    /// What the phase request resolved to, decided by katherine_acquisition_begin().
+    katherine_phase_correction_t phase_correction;
+
+    /// Pixel-clock phases this configuration actually yields, which the clock
+    /// divider may clamp below what katherine_phase_t asked for.
+    uint8_t phase_count;
+
+    /// Per-column phase offsets in fine-oscillator ticks, added by the decoder.
+    /// Filled only when phase_correction is SOFTWARE; all zeroes otherwise, so
+    /// the decoder needs no test for whether correction is in effect. Read it
+    /// through katherine_acquisition_timestamp_phase_offset().
+    uint8_t phase_offsets[KATHERINE_TPX3_MATRIX_WIDTH];
+
     bool frame_active;
 } katherine_acquisition_t;
 
@@ -184,8 +211,7 @@ KATHERINE_EXPORTED int
 katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v);
 
 KATHERINE_EXPORTED uint8_t
-katherine_acquisition_timestamp_phase_offset(
-    const katherine_acquisition_t *acq, katherine_coord_t coord);
+katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord);
 
 KATHERINE_EXPORTED int
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout);

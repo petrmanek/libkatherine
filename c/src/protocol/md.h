@@ -107,16 +107,27 @@
 
    The fine counter measures how far the hit preceded its coarse tick, so it is
    subtracted. That cannot underflow: katherine_acquisition_begin() biases the
-   epoch by one whole coarse tick, which is at least the largest fine term, so
-   the difference stays representable without a per-hit test. See the timestamp
+   epoch by the larger of one coarse tick and the fine field's span, so the
+   difference stays representable without a per-hit test. One coarse tick alone
+   would not do at the shorter dividers, where a coarse tick is 4 or 8 fine
+   ticks against a field spanning 16. See the timestamp
    notes in px.h -- the bias is visible to callers and must not be removed
    here without removing it there.
 
    acq->last_toa_offset carries that bias and is kept in fine ticks, so no
-   scaling happens per hit. */
+   scaling happens per hit.
+
+   The double-column phase offset is ADDED. A later clock phase means a later
+   latching edge and so a smaller timestamp, and adding the offset back is what
+   equalises hits that arrived together -- measured on I8-W00036, and the
+   opposite sign to the reference implementation's data parser. The table is
+   filled only when the decoder is the one correcting, so this adds an
+   unconditional zero otherwise and needs no test for whether correction is in
+   effect. DEFINE_PMD_PAIR_COORD must therefore run FIRST: the lookup reads the
+   coordinate this line depends on. */
 #define DEFINE_PMD_PAIR_TIMESTAMP(BASE_TYPE, SHIFT, FTOA) \
     dst->timestamp = (((uint64_t) EXTRACT(*src, BASE_TYPE, toa) << (SHIFT)) + acq->last_toa_offset) \
-        - (uint64_t) (FTOA)
+        - (uint64_t) (FTOA) + acq->phase_offsets[dst->coord.x]
 
 #define DEFINE_PMD_PAIR_COORD(BASE_TYPE) \
     { \
