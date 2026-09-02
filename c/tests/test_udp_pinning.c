@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief A pinned UDP session keeps the remote address it was given.
+ * \file
+ * \brief A pinned UDP session keeps the remote address it was given.
  *
  * Every datagram a session receives used to make its sender the session's
  * remote address, so a single stray one -- a late response of a readout
@@ -27,10 +27,10 @@
  * measurement data from another. A host that has only one loopback address
  * runs the second group and skips the first.
  *
- * @author Petr Mánek
- * @date 21.8.26
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

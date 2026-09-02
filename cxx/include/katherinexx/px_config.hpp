@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief C++ wrapper for pixel matrix configuration format.
- * @author Petr Mánek
- * @date 28.1.19
+ * \file
+ * \brief C++ wrapper for pixel matrix configuration format.
+ * \author Petr Mánek
+ * \date 28.1.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -21,8 +21,8 @@
 namespace katherine {
 
 /**
- * @addtogroup cxx_api
- * @{
+ * \addtogroup cxx_api
+ * \{
  */
 
 using bmc   = katherine_bmc_t;
@@ -94,6 +94,6 @@ load_bpc_file(std::string file_path)
     return data;
 }
 
-/** @} */
+/** \} */
 
 }

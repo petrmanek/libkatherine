@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Implementation of the library's own error domain.
- * @author Petr Mánek
- * @date 25.8.26
+ * \file
+ * \brief Implementation of the library's own error domain.
+ * \author Petr Mánek
+ * \date 25.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -41,10 +41,10 @@ static const char *const KATHERINE_ERROR_STRINGS[KATHERINE_ERROR_COUNT] = {
 
 /**
  * Describe an error code.
- * @param error 0, the negative of a katherine_error_t enumerator (the form
+ * \param error 0, the negative of a katherine_error_t enumerator (the form
  *   every public function of this library now returns), or the bare
  *   positive enumerator.
- * @return A statically allocated, NUL-terminated, lowercase description.
+ * \return A statically allocated, NUL-terminated, lowercase description.
  *   Never NULL: a value outside the domain renders as "unknown error".
  */
 const char *

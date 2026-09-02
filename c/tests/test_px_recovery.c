@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Recovery of a pixel-configuration upload whose acknowledgement is lost.
+ * \file
+ * \brief Recovery of a pixel-configuration upload whose acknowledgement is lost.
  *
  * The pixel matrix travels as a stateful exchange: the upload command, then
  * 64 raw chunks, then a single acknowledgement once the readout has counted
@@ -35,10 +35,10 @@
  * the environmental skip are those of test_e2e_acq.c, which documents them
  * at length.
  *
- * @author Petr Mánek
- * @date 21.8.26
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

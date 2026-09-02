@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Timestamp units for Timepix3 pixel data.
- * @author Petr Mánek
- * @date 29.8.26
+ * \file
+ * \brief Timestamp units for Timepix3 pixel data.
+ * \author Petr Mánek
+ * \date 29.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -17,8 +17,8 @@
 #include <katherine/global.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #ifdef __cplusplus
@@ -46,5 +46,5 @@ katherine_tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t 
 #endif
 
 /**
- * @}
+ * \}
  */

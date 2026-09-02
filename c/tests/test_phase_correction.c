@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Per-double-column clock phase correction.
+ * \file
+ * \brief Per-double-column clock phase correction.
  *
  * The pixel clock reaches the double columns in staggered phases, so a hit in
  * a later-phased column is latched against a later edge and its timestamp
@@ -22,10 +22,10 @@
  * implementation applies, so it is asserted explicitly and by direction rather
  * than only by magnitude.
  *
- * @author Petr Mánek
- * @date 30.8.26
+ * \author Petr Mánek
+ * \date 30.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

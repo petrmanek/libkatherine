@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Decode throughput benchmark (B1): Mhits/s per pixel variant.
+ * \file
+ * \brief Decode throughput benchmark (B1): Mhits/s per pixel variant.
  *
  * Builds one canned in-RAM buffer of six-byte pixel measurement data (header
  * 0x4), then walks it with the exact per-hit work c/src/acquisition.c's
@@ -27,10 +27,10 @@
  * even though the absolute Mhit/s figures vary by a factor of ~2 across
  * shared CI runner generations.
  *
- * @author Petr Mánek
- * @date 24.8.26
+ * \author Petr Mánek
+ * \date 24.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

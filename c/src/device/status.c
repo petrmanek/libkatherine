@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Implementation of readout status inquiry.
- * @author Petr Mánek
- * @date 14.6.18
+ * \file
+ * \brief Implementation of readout status inquiry.
+ * \author Petr Mánek
+ * \date 14.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -21,9 +21,9 @@
 
 /**
  * Inquire the status of the readout.
- * @param device Katherine device
- * @param status Retrieved status information
- * @return Error code.
+ * \param device Katherine device
+ * \param status Retrieved status information
+ * \return Error code.
  */
 int
 katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status)
@@ -63,9 +63,9 @@ err:
 
 /**
  * Inquire the communication status of the readout.
- * @param device Katherine device
- * @param status Retrieve status information
- * @return Error code.
+ * \param device Katherine device
+ * \param status Retrieve status information
+ * \return Error code.
  */
 int
 katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status)
@@ -105,9 +105,9 @@ err:
 
 /**
  * Retrieve Timepix3 chip identifier.
- * @param device Katherine device
- * @param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`
- * @return Error code.
+ * \param device Katherine device
+ * \param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`
+ * \return Error code.
  */
 int
 katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
@@ -167,9 +167,9 @@ err:
  * unlike katherine_get_sensor_temperature() this remains available while an
  * acquisition is running and is the one to poll during a measurement.
  *
- * @param device Katherine device
- * @param temperature Measured temperature in Celsius.
- * @return Error code.
+ * \param device Katherine device
+ * \param temperature Measured temperature in Celsius.
+ * \return Error code.
  */
 int
 katherine_get_readout_temperature(katherine_device_t *device, float *temperature)
@@ -211,9 +211,9 @@ err:
  * pointing elsewhere. Poll katherine_get_readout_temperature() instead, which
  * reads a readout-side sensor and never touches the chip.
  *
- * @param device Katherine device
- * @param temperature Measured temperature in Celsius.
- * @return Error code.
+ * \param device Katherine device
+ * \param temperature Measured temperature in Celsius.
+ * \return Error code.
  */
 int
 katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
@@ -248,8 +248,8 @@ err:
 
 /**
  * Test communication between the readout and the sensor chip (may take several seconds).
- * @param device Katherine device
- * @return Error code.
+ * \param device Katherine device
+ * \return Error code.
  */
 int
 katherine_perform_digital_test(katherine_device_t *device)
@@ -292,10 +292,10 @@ err:
 
 /**
  * Measure ADC voltage.
- * @param device Katherine device
- * @param channel_id Index of the measured ADC channel
- * @param voltage Retrieved voltage
- * @return Error code.
+ * \param device Katherine device
+ * \param channel_id Index of the measured ADC channel
+ * \param voltage Retrieved voltage
+ * \return Error code.
  */
 int
 katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)

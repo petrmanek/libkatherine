@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief UDP loopback throughput benchmark (B2): measurement bursts and a
+ * \file
+ * \brief UDP loopback throughput benchmark (B2): measurement bursts and a
  * command round trip, generalizing misc/bench-seeds/pin_bench.c.
  *
  * Two independent measurements, each over its own katherine_udp_init_bound()
@@ -20,10 +20,10 @@
  *     round trip additionally crosses into and back out of the readout's own
  *     firmware, which this cannot model.
  *
- * @author Petr Mánek
- * @date 24.8.26
+ * \author Petr Mánek
+ * \date 24.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

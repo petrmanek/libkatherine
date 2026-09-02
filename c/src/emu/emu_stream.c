@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Measurement data generator of the protocol emulator.
- * @author Petr Mánek
- * @date 21.8.26
+ * \file
+ * \brief Measurement data generator of the protocol emulator.
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -305,7 +305,7 @@ pump(katherine_emu_t *emu)
 
 /**
  * Return the measurement data generator to its initial state.
- * @param emu Emulator
+ * \param emu Emulator
  */
 KATHERINE_NOT_EXPORTED void
 katherine_emu_stream_reset(katherine_emu_t *emu)
@@ -316,8 +316,8 @@ katherine_emu_stream_reset(katherine_emu_t *emu)
 
 /**
  * Begin an acquisition, sampling the register file for its parameters.
- * @param emu Emulator
- * @param readout_mode Readout chain selected by the acquisition start command
+ * \param emu Emulator
+ * \param readout_mode Readout chain selected by the acquisition start command
  */
 KATHERINE_NOT_EXPORTED void
 katherine_emu_stream_arm(katherine_emu_t *emu, uint8_t readout_mode)
@@ -361,7 +361,7 @@ katherine_emu_stream_arm(katherine_emu_t *emu, uint8_t readout_mode)
 /**
  * End an acquisition. A frame still open is terminated by the aborted
  * measurement datum, in place of the frame finished one.
- * @param emu Emulator
+ * \param emu Emulator
  */
 KATHERINE_NOT_EXPORTED void
 katherine_emu_stream_stop(katherine_emu_t *emu)
@@ -387,8 +387,8 @@ katherine_emu_stream_stop(katherine_emu_t *emu)
 
 /**
  * Accrue rate shaping credit for the time that has passed.
- * @param emu Emulator
- * @param ns Amount of time that has passed, in nanoseconds
+ * \param emu Emulator
+ * \param ns Amount of time that has passed, in nanoseconds
  */
 KATHERINE_NOT_EXPORTED void
 katherine_emu_stream_advance(katherine_emu_t *emu, uint64_t ns)
@@ -421,11 +421,11 @@ katherine_emu_stream_advance(katherine_emu_t *emu, uint64_t ns)
  * Only whole measurement data are written, so a buffer shorter than one
  * datum never receives anything.
  *
- * @param emu Emulator
- * @param buf Start of the destination buffer
- * @param cap Capacity of the destination buffer in bytes
- * @param len Number of bytes written (optional)
- * @return Error code, or -KATHERINE_E_TIMEOUT if no data are available yet.
+ * \param emu Emulator
+ * \param buf Start of the destination buffer
+ * \param cap Capacity of the destination buffer in bytes
+ * \param len Number of bytes written (optional)
+ * \return Error code, or -KATHERINE_E_TIMEOUT if no data are available yet.
  */
 int
 katherine_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len)

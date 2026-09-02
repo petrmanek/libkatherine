@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Internal bitfield definitions for measurement data.
- * @author Petr Mánek
- * @date 28.2.19
+ * \file
+ * \brief Internal bitfield definitions for measurement data.
+ * \author Petr Mánek
+ * \date 28.2.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

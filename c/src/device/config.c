@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Implementation of detector and readout configuration.
- * @author Petr Mánek
- * @date 14.6.18
+ * \file
+ * \brief Implementation of detector and readout configuration.
+ * \author Petr Mánek
+ * \date 14.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -27,9 +27,9 @@
 
 /**
  * Set detector configuration.
- * @param device Katherine device
- * @param config Detector configuration to set
- * @return Error code.
+ * \param device Katherine device
+ * \param config Detector configuration to set
+ * \return Error code.
  */
 int
 katherine_configure(katherine_device_t *device, const katherine_config_t *config)
@@ -148,9 +148,9 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
 
 /**
  * Configure all pixels of the detector.
- * @param device Katherine device
- * @param px_config Configuration matrix to set
- * @return Error code.
+ * \param device Katherine device
+ * \param px_config Configuration matrix to set
+ * \return Error code.
  */
 int
 katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
@@ -260,9 +260,9 @@ err:
 
 /**
  * Set acquisition time of a single frame.
- * @param device Katherine device
- * @param ns Acquisition time in nanoseconds
- * @return Error code.
+ * \param device Katherine device
+ * \param ns Acquisition time in nanoseconds
+ * \return Error code.
  */
 int
 katherine_set_acq_time(katherine_device_t *device, double ns)
@@ -302,10 +302,10 @@ err:
 
 /**
  * Set acquisition mode.
- * @param device Katherine device
- * @param acq_mode Acquisition mode to set
- * @param fast_vco_enabled Flag indicating the use of fast clock signal
- * @return Error code.
+ * \param device Katherine device
+ * \param acq_mode Acquisition mode to set
+ * \param fast_vco_enabled Flag indicating the use of fast clock signal
+ * \return Error code.
  */
 int
 katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
@@ -350,10 +350,10 @@ err:
 
 /**
  * Set detector bias voltage.
- * @param device Katherine device
- * @param bias_id Index of the bias voltage (the value is discarded by implementation)
- * @param bias_value Bias voltage in Volts
- * @return Error code.
+ * \param device Katherine device
+ * \param bias_id Index of the bias voltage (the value is discarded by implementation)
+ * \param bias_value Bias voltage in Volts
+ * \return Error code.
  */
 int
 katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
@@ -385,9 +385,9 @@ err:
 
 /**
  * Set number of acquired frames.
- * @param device Katherine device
- * @param no_frames Number of frames
- * @return Error code.
+ * \param device Katherine device
+ * \param no_frames Number of frames
+ * \return Error code.
  */
 int
 katherine_set_no_frames(katherine_device_t *device, int no_frames)
@@ -415,9 +415,9 @@ err:
 
 /**
  * Signal start of sequential readout.
- * @param device Katherine device
- * @param arg Implementation-defined argument
- * @return Error code.
+ * \param device Katherine device
+ * \param arg Implementation-defined argument
+ * \return Error code.
  */
 int
 katherine_set_seq_readout_start(katherine_device_t *device, int arg)
@@ -442,11 +442,11 @@ err:
 
 /**
  * Prepare readout for acquisition.
- * @param device Katherine device
- * @param start_trigger I/O trigger signalling acquisition start
- * @param delayed_start Flag indicating whether acquisition start is delayed
- * @param end_trigger I/O trigger signalling acquisition end
- * @return Error code.
+ * \param device Katherine device
+ * \param start_trigger I/O trigger signalling acquisition start
+ * \param delayed_start Flag indicating whether acquisition start is delayed
+ * \param end_trigger I/O trigger signalling acquisition end
+ * \return Error code.
  */
 int
 katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
@@ -508,9 +508,9 @@ err:
  * The readout acknowledges this command only after applying it, which takes
  * about one second; this function blocks accordingly.
  *
- * @param device Katherine device
- * @param tp_config Test pulse configuration to set
- * @return Error code.
+ * \param device Katherine device
+ * \param tp_config Test pulse configuration to set
+ * \return Error code.
  */
 int
 katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config)
@@ -580,11 +580,11 @@ err:
  * the sensor simply goes on using whatever a previous flush left there.
  * Several registers may be written before one flush commits them together.
  *
- * @param device Katherine device
- * @param reg_idx Index of the register
- * @param reg_value Value to assign to the register
- * @return Error code.
- * @see katherine_update_sensor_registers
+ * \param device Katherine device
+ * \param reg_idx Index of the register
+ * \param reg_value Value to assign to the register
+ * \return Error code.
+ * \see katherine_update_sensor_registers
  */
 int
 katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
@@ -620,9 +620,9 @@ err:
  * this flushes them. Registers written and never flushed have no effect
  * whatsoever, silently, so treat the pairing as mandatory.
  *
- * @param device Katherine device
- * @return Error code.
- * @see katherine_set_sensor_register
+ * \param device Katherine device
+ * \return Error code.
+ * \see katherine_set_sensor_register
  */
 int
 katherine_update_sensor_registers(katherine_device_t *device)
@@ -650,8 +650,8 @@ err:
 
 /**
  * Update output block config.
- * @param device Katherine device
- * @return Error code.
+ * \param device Katherine device
+ * \return Error code.
  */
 int
 katherine_output_block_config_update(katherine_device_t *device)
@@ -679,8 +679,8 @@ err:
 
 /**
  * Set timer.
- * @param device Katherine device
- * @return Error code.
+ * \param device Katherine device
+ * \return Error code.
  */
 int
 katherine_timer_set(katherine_device_t *device)
@@ -714,9 +714,9 @@ err:
  * katherine_dacs_validate() first if that matters to the caller; this
  * function's own behavior is unchanged from the 1.x series.
  *
- * @param device Katherine device
- * @param dacs DAC register values to set
- * @return Error code.
+ * \param device Katherine device
+ * \param dacs DAC register values to set
+ * \return Error code.
  */
 int
 katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
@@ -805,9 +805,9 @@ static const uint8_t KATHERINE_ACTUAL_PHASES[4][5] = {
  * the number of phases -- per-double-column timestamp correction above all --
  * has to divide by this, not by the enumerator's name.
  *
- * @param freq Pixel-clock frequency selector.
- * @param phase Requested phase count.
- * @return Phases actually generated, or 0 if either argument is out of range.
+ * \param freq Pixel-clock frequency selector.
+ * \param phase Requested phase count.
+ * \return Phases actually generated, or 0 if either argument is out of range.
  */
 uint8_t
 katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
@@ -841,10 +841,10 @@ katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
  * column: where the fine field matches the tick, the per-double-column clock
  * stagger resolves cleanly; where it does not, the measurement is noise.
  *
- * @see katherine_acquisition_begin
+ * \see katherine_acquisition_begin
  *
- * @param freq Pixel-clock frequency selector.
- * @return true if fast time stamping is coherent at this frequency.
+ * \param freq Pixel-clock frequency selector.
+ * \return true if fast time stamping is coherent at this frequency.
  */
 bool
 katherine_freq_is_fast_vco_supported(katherine_freq_t freq)
@@ -863,8 +863,8 @@ katherine_freq_is_fast_vco_supported(katherine_freq_t freq)
  * rather than rejected there. Calling this function first is a caller's
  * choice; it does not change katherine_set_dacs()'s own behavior.
  *
- * @param v DAC register values to validate.
- * @return 0 if every value fits its DAC's range, -KATHERINE_E_INVAL otherwise.
+ * \param v DAC register values to validate.
+ * \return 0 if every value fits its DAC's range, -KATHERINE_E_INVAL otherwise.
  */
 int
 katherine_dacs_validate(const katherine_dacs_t *v)

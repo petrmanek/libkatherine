@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief POSIX implementation of the UDP communication layer.
- * @author Petr Mánek
- * @date 29.5.18
+ * \file
+ * \brief POSIX implementation of the UDP communication layer.
+ * \author Petr Mánek
+ * \date 29.5.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -69,9 +69,9 @@ from_pinned_remote(const katherine_udp_t *u, const struct sockaddr_in *addr)
  * at; anything else falls back to the group the caller names, since the
  * OS-level detail is preserved separately, in
  * katherine_udp_t::last_os_error.
- * @param err Raw `<errno.h>` value
- * @param fallback Group to report if err does not match a specific case
- * @return The mapped enumerator
+ * \param err Raw `<errno.h>` value
+ * \param fallback Group to report if err does not match a specific case
+ * \return The mapped enumerator
  */
 static katherine_error_t
 map_syscall_error(int err, katherine_error_t fallback)
@@ -99,9 +99,9 @@ map_syscall_error(int err, katherine_error_t fallback)
  * katherine_udp_last_os_error() to hand out. The Windows readiness check
  * clears it for the same reason.
  *
- * @param u UDP session
- * @param err errno of the failed syscall
- * @return Error code.
+ * \param u UDP session
+ * \param err errno of the failed syscall
+ * \return Error code.
  */
 static int
 recv_failure(katherine_udp_t *u, int err)
@@ -173,12 +173,12 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, in
 
 /**
  * Initialize new UDP session.
- * @param u UDP session to initialize
- * @param local_port Local port number
- * @param remote_addr Remote IP address
- * @param remote_port Remote port number
- * @param timeout_ms Communication timeout in milliseconds (zero if disabled)
- * @return Error code.
+ * \param u UDP session to initialize
+ * \param local_port Local port number
+ * \param remote_addr Remote IP address
+ * \param remote_port Remote port number
+ * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
+ * \return Error code.
  */
 int
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -194,13 +194,13 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  * addresses (e.g. a daemon serving several emulated readouts, each bound to a distinct address on
  * the same port).
  *
- * @param u UDP session to initialize
- * @param local_addr Local IP address to bind to, or NULL for the wildcard address (INADDR_ANY)
- * @param local_port Local port number
- * @param remote_addr Remote IP address
- * @param remote_port Remote port number
- * @param timeout_ms Communication timeout in milliseconds (zero if disabled)
- * @return Error code.
+ * \param u UDP session to initialize
+ * \param local_addr Local IP address to bind to, or NULL for the wildcard address (INADDR_ANY)
+ * \param local_port Local port number
+ * \param remote_addr Remote IP address
+ * \param remote_port Remote port number
+ * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
+ * \return Error code.
  */
 int
 katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -296,7 +296,7 @@ err_socket:
 
 /**
  * Finalize UDP session.
- * @param u UDP session to finalize
+ * \param u UDP session to finalize
  */
 void
 katherine_udp_fini(katherine_udp_t *u)
@@ -309,10 +309,10 @@ katherine_udp_fini(katherine_udp_t *u)
 
 /**
  * Send a message (unreliable).
- * @param u UDP session
- * @param data Message start
- * @param count Message length in bytes
- * @return Error code.
+ * \param u UDP session
+ * \param data Message start
+ * \param count Message length in bytes
+ * \return Error code.
  */
 int
 katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
@@ -339,10 +339,10 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
 
 /**
  * Receive a message (unreliable).
- * @param u UDP session
- * @param data Inbound buffer start
- * @param count Inbound buffer size in bytes
- * @return Error code.
+ * \param u UDP session
+ * \param data Inbound buffer start
+ * \param count Inbound buffer size in bytes
+ * \return Error code.
  */
 int
 katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
@@ -371,10 +371,10 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
 
 /**
  * Receive a portion of a message (unreliable).
- * @param u UDP session
- * @param data Inbound buffer start
- * @param count Inbound buffer size in bytes
- * @return Error code.
+ * \param u UDP session
+ * \param data Inbound buffer start
+ * \param count Inbound buffer size in bytes
+ * \return Error code.
  */
 int
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
@@ -404,11 +404,11 @@ katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
  * socket it finds in the ordinary case, which every command of the library
  * would otherwise pay for.
  *
- * @param u UDP session
- * @param data Inbound buffer start
- * @param count Inbound buffer size in bytes on entry, bytes received on
+ * \param u UDP session
+ * \param data Inbound buffer start
+ * \param count Inbound buffer size in bytes on entry, bytes received on
  *   success
- * @return Error code. -KATHERINE_E_TIMEOUT if nothing was queued.
+ * \return Error code. -KATHERINE_E_TIMEOUT if nothing was queued.
  */
 int
 katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
@@ -440,10 +440,10 @@ katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
  * this function is the only way the remote address ever moves, and the pin follows it: from here on
  * the newly named host is the one whose datagrams the session accepts.
  *
- * @param u UDP session
- * @param remote_addr Remote IP address
- * @param remote_port Remote port number
- * @return Error code.
+ * \param u UDP session
+ * \param remote_addr Remote IP address
+ * \param remote_port Remote port number
+ * \return Error code.
  */
 int
 katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
@@ -477,7 +477,7 @@ katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t r
  * Only the remote host is pinned, not its port, because a readout answers commands from its
  * command port but streams measurement data from another. Pinning cannot be undone.
  *
- * @param u UDP session
+ * \param u UDP session
  */
 void
 katherine_udp_pin_remote(katherine_udp_t *u)
@@ -504,8 +504,8 @@ katherine_udp_pin_remote(katherine_udp_t *u)
  * is off until then. Nothing else changes: malformed responses and non-correlating ones are handled
  * the same way in both modes.
  *
- * @param u UDP session
- * @param strict True to require the request's own operation code, false (the default) to accept the
+ * \param u UDP session
+ * \param strict True to require the request's own operation code, false (the default) to accept the
  *   firmware's documented substitutions as well
  */
 void
@@ -516,8 +516,8 @@ katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict)
 
 /**
  * Lock mutual exclusion synchronization primitive.
- * @param u UDP session
- * @return Error code.
+ * \param u UDP session
+ * \return Error code.
  */
 int
 katherine_udp_mutex_lock(katherine_udp_t *u)
@@ -533,8 +533,8 @@ katherine_udp_mutex_lock(katherine_udp_t *u)
 
 /**
  * Unlock mutual exclusion synchronization primitive.
- * @param u UDP session
- * @return Error code.
+ * \param u UDP session
+ * \return Error code.
  */
 int
 katherine_udp_mutex_unlock(katherine_udp_t *u)
@@ -550,8 +550,8 @@ katherine_udp_mutex_unlock(katherine_udp_t *u)
 
 /**
  * Read the OS-level detail of a UDP session's most recent transport failure.
- * @param u UDP session
- * @return The raw OS error code behind the session's last failure, or 0 if
+ * \param u UDP session
+ * \return The raw OS error code behind the session's last failure, or 0 if
  *   it succeeded, or failed without one (e.g. a malformed address argument).
  */
 int

@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Recognizing a readout from the hardware type it reports.
+ * \file
+ * \brief Recognizing a readout from the hardware type it reports.
  *
  * The recognition map is the one part of the capability table with an upstream
  * source. Everything asserted here is asserted about that map: which codes are
@@ -12,10 +12,10 @@
  * can be driven and tested, and a flag that cannot be checked is a guess with a
  * struct field around it.
  *
- * @author Petr Mánek
- * @date 31.8.26
+ * \author Petr Mánek
+ * \date 31.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

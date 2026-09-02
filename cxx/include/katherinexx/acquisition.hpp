@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief C++ wrapper for the data acquisition process.
- * @author Petr Mánek
- * @date 28.1.19
+ * \file
+ * \brief C++ wrapper for the data acquisition process.
+ * \author Petr Mánek
+ * \date 28.1.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -24,8 +24,8 @@
 namespace katherine {
 
 /**
- * @addtogroup cxx_api
- * @{
+ * \addtogroup cxx_api
+ * \{
  */
 
 static constexpr std::size_t md_size = KATHERINE_MD_SIZE;
@@ -203,8 +203,8 @@ public:
 namespace acq {
 
 /**
- * @addtogroup cxx_api
- * @{
+ * \addtogroup cxx_api
+ * \{
  */
 
 struct f_toa_tot {
@@ -243,7 +243,7 @@ struct event_itot {
     static constexpr bool fast_vco_enabled = false;
 };
 
-/** @} */
+/** \} */
 
 }
 
@@ -293,6 +293,6 @@ str_phase_correction(phase_correction v)
     return katherine_str_phase_correction((katherine_phase_correction_t) v);
 }
 
-/** @} */
+/** \} */
 
 }

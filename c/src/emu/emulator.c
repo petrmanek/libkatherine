@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Command responder of the protocol emulator.
- * @author Petr Mánek
- * @date 21.8.26
+ * \file
+ * \brief Command responder of the protocol emulator.
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -456,7 +456,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
 
 /**
  * Fill in the default emulated readout properties.
- * @param profile Profile to initialize
+ * \param profile Profile to initialize
  */
 void
 katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
@@ -494,9 +494,9 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
  * state, and it is fully initialized here regardless of its previous
  * contents.
  *
- * @param emu Emulator to initialize
- * @param profile Properties of the readout, or NULL for the defaults
- * @return Error code.
+ * \param emu Emulator to initialize
+ * \param profile Properties of the readout, or NULL for the defaults
+ * \return Error code.
  */
 int
 katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
@@ -538,7 +538,7 @@ katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
  * threads. The state is cleared, so that use after finalization is inert
  * rather than plausible, and the storage is the caller's again.
  *
- * @param emu Emulator
+ * \param emu Emulator
  */
 void
 katherine_emu_fini(katherine_emu_t *emu)
@@ -556,10 +556,10 @@ katherine_emu_fini(katherine_emu_t *emu)
  * consumed as configuration data instead, even if its contents would
  * otherwise parse as a command.
  *
- * @param emu Emulator
- * @param data Start of the datagram
- * @param len Length of the datagram in bytes
- * @return Error code.
+ * \param emu Emulator
+ * \param data Start of the datagram
+ * \param len Length of the datagram in bytes
+ * \return Error code.
  */
 int
 katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
@@ -581,10 +581,10 @@ katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
 
 /**
  * Retrieve one command response datagram, if any is due.
- * @param emu Emulator
- * @param crd8 Start of a buffer of `KATHERINE_EMU_CRD_SIZE` bytes
- * @param len Number of bytes written (optional)
- * @return Error code, or -KATHERINE_E_TIMEOUT if no response is due yet.
+ * \param emu Emulator
+ * \param crd8 Start of a buffer of `KATHERINE_EMU_CRD_SIZE` bytes
+ * \param len Number of bytes written (optional)
+ * \return Error code, or -KATHERINE_E_TIMEOUT if no response is due yet.
  */
 int
 katherine_emu_crd_out(katherine_emu_t *emu, void *crd8, size_t *len)
@@ -604,8 +604,8 @@ katherine_emu_crd_out(katherine_emu_t *emu, void *crd8, size_t *len)
 
 /**
  * Advance the virtual clock of the emulated readout.
- * @param emu Emulator
- * @param ns Amount of time to pass, in nanoseconds
+ * \param emu Emulator
+ * \param ns Amount of time to pass, in nanoseconds
  */
 void
 katherine_emu_advance(katherine_emu_t *emu, uint64_t ns)
@@ -618,8 +618,8 @@ katherine_emu_advance(katherine_emu_t *emu, uint64_t ns)
 
 /**
  * Read the virtual clock of the emulated readout.
- * @param emu Emulator
- * @return Time since creation, in nanoseconds.
+ * \param emu Emulator
+ * \return Time since creation, in nanoseconds.
  */
 uint64_t
 katherine_emu_now(const katherine_emu_t *emu)
@@ -629,10 +629,10 @@ katherine_emu_now(const katherine_emu_t *emu)
 
 /**
  * Read and clear recorded command datagrams, oldest first.
- * @param emu Emulator
- * @param entries Start of an array of at least `max` entries
- * @param max Maximum number of entries to read
- * @return Number of entries read.
+ * \param emu Emulator
+ * \param entries Start of an array of at least `max` entries
+ * \param max Maximum number of entries to read
+ * \return Number of entries read.
  */
 size_t
 katherine_emu_log_read(katherine_emu_t *emu, katherine_emu_log_entry_t *entries, size_t max)
@@ -652,8 +652,8 @@ katherine_emu_log_read(katherine_emu_t *emu, katherine_emu_log_entry_t *entries,
 
 /**
  * Count command datagrams the emulated readout did not implement.
- * @param emu Emulator
- * @return Number of unhandled commands received since creation.
+ * \param emu Emulator
+ * \return Number of unhandled commands received since creation.
  */
 uint64_t
 katherine_emu_unknown_cmd_count(const katherine_emu_t *emu)
@@ -668,8 +668,8 @@ katherine_emu_unknown_cmd_count(const katherine_emu_t *emu)
  * is; a caller that stops collecting responses while commands keep
  * arriving loses the excess.
  *
- * @param emu Emulator
- * @return Number of responses dropped since initialization.
+ * \param emu Emulator
+ * \return Number of responses dropped since initialization.
  */
 uint64_t
 katherine_emu_dropped_crd_count(const katherine_emu_t *emu)

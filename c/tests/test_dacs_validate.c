@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Range validation of DAC register values against Tpx3 manual Table 11.
+ * \file
+ * \brief Range validation of DAC register values against Tpx3 manual Table 11.
  *
  * katherine_dacs_validate() is opt-in: katherine_set_dacs() (config.c) sends
  * every register unchecked and lets the chip truncate an out-of-range value
@@ -28,9 +28,9 @@
  * built. Plain, portable C with no sockets, so it builds and runs
  * everywhere and claims no resource, like test_bitfields.c.
  *
- * @author Petr Mánek
+ * \author Petr Mánek
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

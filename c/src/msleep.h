@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Internal portable millisecond sleep.
- * @author Petr Mánek
- * @date 20.8.26
+ * \file
+ * \brief Internal portable millisecond sleep.
+ * \author Petr Mánek
+ * \date 20.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

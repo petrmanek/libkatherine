@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Golden byte-vector tests for the command encoders in cmd_interface.h.
+ * \file
+ * \brief Golden byte-vector tests for the command encoders in cmd_interface.h.
  *
  * Wire format: every command is one 8-byte little-endian UDP datagram --
  * byte[6] carries the opcode, byte[4] a sub-index where the command has one,
@@ -34,10 +34,10 @@
  * The 0x26 test-pulse datagram already has byte-exact coverage in
  * test_tp.c and is not repeated here.
  *
- * @author Petr Mánek
- * @date 21.8.26
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

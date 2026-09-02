@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Byte-exact vectors for the acquisition-mode command and its flush.
+ * \file
+ * \brief Byte-exact vectors for the acquisition-mode command and its flush.
  *
  * The acquisition-mode command is a GeneralConfig accessor: the readout
  * merges byte 0 into Op_mode [2:1] and byte 1 into Fast_lo_en [6] of its own
@@ -27,10 +27,10 @@
  * so a lockstep ping-pong in this thread cannot get between them. Here it has
  * to serve two commands per call rather than one.
  *
- * @author Petr Mánek
- * @date 27.8.26
+ * \author Petr Mánek
+ * \date 27.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

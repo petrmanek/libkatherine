@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief L0 vectors for the internal MD bitfield / wire-format machinery.
+ * \file
+ * \brief L0 vectors for the internal MD bitfield / wire-format machinery.
  *
  * Exercises MASK()/EXTRACT()/INSERT() (bitfields.h) directly against the
  * field layouts declared in md.h: the shared 4-bit "header" nibble at bits
@@ -8,10 +8,10 @@
  * and coord_y @ 36 (8 bits), differing only in how they pack their
  * mode-specific low 28 bits (0-27).
  *
- * @author Petr Mánek
- * @date 20.8.26
+ * \author Petr Mánek
+ * \date 20.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Command datagram builder and chip-envelope table.
- * @author Petr Mánek
- * @date 25.8.26
+ * \file
+ * \brief Command datagram builder and chip-envelope table.
+ * \author Petr Mánek
+ * \date 25.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -37,8 +37,8 @@ typedef struct katherine_cmd {
 
 /**
  * Begin a command.
- * @param opcode Command opcode, placed at b[6].
- * @return A command with the given opcode and every other byte zero.
+ * \param opcode Command opcode, placed at b[6].
+ * \return A command with the given opcode and every other byte zero.
  */
 static inline katherine_cmd_t
 katherine_cmd_create(uint8_t opcode)
@@ -52,8 +52,8 @@ katherine_cmd_create(uint8_t opcode)
  * Set the sub-index of a command that takes one, such as the DAC index of
  * CMD_TYPE_INTERNAL_DAC_SETTINGS or the register index of
  * CMD_TYPE_SENSOR_REGISTER_SETTING.
- * @param cmd Command to modify.
- * @param subidx Sub-index, placed at b[4].
+ * \param cmd Command to modify.
+ * \param subidx Sub-index, placed at b[4].
  */
 static inline void
 katherine_cmd_payload_set_subidx(katherine_cmd_t *cmd, uint8_t subidx)
@@ -69,8 +69,8 @@ katherine_cmd_payload_set_subidx(katherine_cmd_t *cmd, uint8_t subidx)
  * Callers holding a wider integer go through
  * katherine_cmd_payload_set_i64(), which documents what it drops.
  *
- * @param cmd Command to modify.
- * @param value Payload, stored little-endian into b[0..3]. Every other byte
+ * \param cmd Command to modify.
+ * \param value Payload, stored little-endian into b[0..3]. Every other byte
  *   of the command is left untouched.
  */
 static inline void
@@ -91,8 +91,8 @@ katherine_cmd_payload_set_u32(katherine_cmd_t *cmd, uint32_t value)
  * bit pattern of those low 32 bits, matching the plain 32-bit word the
  * receiving hardware register takes with no sign extension.
  *
- * @param cmd Command to modify.
- * @param value Payload, truncated to its low 32 bits.
+ * \param cmd Command to modify.
+ * \param value Payload, truncated to its low 32 bits.
  */
 static inline void
 katherine_cmd_payload_set_i64(katherine_cmd_t *cmd, int64_t value)
@@ -109,8 +109,8 @@ katherine_cmd_payload_set_i64(katherine_cmd_t *cmd, int64_t value)
  * sizeof(float) == sizeof(uint32_t), true on every platform this library
  * targets.
  *
- * @param cmd Command to modify.
- * @param value Payload, stored into the same field
+ * \param cmd Command to modify.
+ * \param value Payload, stored into the same field
  *   katherine_cmd_payload_set_u32() writes.
  */
 static inline void
@@ -191,10 +191,10 @@ static const uint8_t KATHERINE_CHIP_ENVELOPE[256] = {
  * nothing is written -- but rejects a nonzero index rather than dropping it,
  * which would be a wire-format error invisible to the caller.
  *
- * @param cmd Command to modify.
- * @param opcode Opcode of the command, as passed to katherine_cmd_create().
- * @param chip Chip index to place.
- * @return 0 on success, -KATHERINE_E_BAD_CHIP for a nonzero chip index on an
+ * \param cmd Command to modify.
+ * \param opcode Opcode of the command, as passed to katherine_cmd_create().
+ * \param chip Chip index to place.
+ * \return 0 on success, -KATHERINE_E_BAD_CHIP for a nonzero chip index on an
  *   opcode that has no slot for one.
  */
 static inline int

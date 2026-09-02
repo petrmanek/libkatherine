@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief operator<< overloads delegating to the C katherine_*_snprint() family.
- * @author Petr Mánek
- * @date 24.8.26
+ * \file
+ * \brief operator<< overloads delegating to the C katherine_*_snprint() family.
+ * \author Petr Mánek
+ * \date 24.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -23,8 +23,8 @@
 #include <katherinexx/udp.hpp>
 
 /**
- * @addtogroup cxx_api
- * @{
+ * \addtogroup cxx_api
+ * \{
  */
 
 namespace katherine {
@@ -239,4 +239,4 @@ operator<<(std::ostream& os, const katherine::config& v)
 
 }
 
-/** @} */
+/** \} */

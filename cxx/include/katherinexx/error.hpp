@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief C++ exception type wrapping libkatherine error codes.
- * @author Petr Mánek
- * @date 28.1.19
+ * \file
+ * \brief C++ exception type wrapping libkatherine error codes.
+ * \author Petr Mánek
+ * \date 28.1.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -20,8 +20,8 @@
 namespace katherine {
 
 /**
- * @addtogroup cxx_api
- * @{
+ * \addtogroup cxx_api
+ * \{
  */
 
 class error: public std::runtime_error {
@@ -34,6 +34,6 @@ public:
     system_error(int rc) : error{katherine_strerror(rc)} { }
 };
 
-/** @} */
+/** \} */
 
 }

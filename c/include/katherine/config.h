@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Functions related to detector and readout configuration.
- * @author Petr Mánek
- * @date 10.6.18
+ * \file
+ * \brief Functions related to detector and readout configuration.
+ * \author Petr Mánek
+ * \date 10.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -19,8 +19,8 @@
 #include <katherine/px_config.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #ifdef __cplusplus
@@ -227,4 +227,4 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
 }
 #endif
 
-/** @} */
+/** \} */

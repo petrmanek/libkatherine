@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Decoding tests over synthetic measurement data.
+ * \file
+ * \brief Decoding tests over synthetic measurement data.
  *
  * These tests drive the real read loop of c/src/acquisition.c over a crafted
  * measurement data stream, with no readout and no emulator involved: the
@@ -11,10 +11,10 @@
  * Every datum is built with the field declarations of c/src/md.h, the ones
  * the decoder reads them back with, so that the two can never disagree.
  *
- * @author Petr Mánek
- * @date 21.8.26
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

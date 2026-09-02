@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Implementation of pixel matrix configuration format.
- * @author Petr Mánek
- * @date 9.6.18
+ * \file
+ * \brief Implementation of pixel matrix configuration format.
+ * \author Petr Mánek
+ * \date 9.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -23,8 +23,8 @@
  * Maps the small subset of `<errno.h>` values fopen() can plausibly produce
  * that this library's own domain also names explicitly; anything else is a
  * generic I/O failure, exactly like a short read below.
- * @param err Raw `<errno.h>` value from fopen()
- * @return The mapped enumerator
+ * \param err Raw `<errno.h>` value from fopen()
+ * \return The mapped enumerator
  */
 static katherine_error_t
 map_fopen_errno(int err)
@@ -63,8 +63,8 @@ map_fopen_errno(int err)
  *
  * Self-inverse, so one table serves reading and writing alike.
  *
- * @param nibble Value to reverse; only the low four bits are considered.
- * @return The four bits in the opposite order.
+ * \param nibble Value to reverse; only the low four bits are considered.
+ * \return The four bits in the opposite order.
  */
 static inline uint8_t
 reverse_nibble(uint8_t nibble)
@@ -75,9 +75,9 @@ reverse_nibble(uint8_t nibble)
 
 /**
  * Load pixel configuration from a BMC file (in BurdaMan format).
- * @param px_config Target configuration matrix.
- * @param file_path BMC file path.
- * @return Error code.
+ * \param px_config Target configuration matrix.
+ * \param file_path BMC file path.
+ * \return Error code.
  */
 int
 katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path)
@@ -115,9 +115,9 @@ err_fopen:
 
 /**
  * Load pixel configuration from a BMC file contents (in BurdaMan format).
- * @param px_config Target configuration matrix.
- * @param bmc BMC file data.
- * @return Error code.
+ * \param px_config Target configuration matrix.
+ * \param bmc BMC file data.
+ * \return Error code.
  */
 int
 katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc)
@@ -141,9 +141,9 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
 
 /**
  * Load pixel configuration from a BPC file (in Pixet format).
- * @param px_config Target configuration matrix.
- * @param file_path BPC file path.
- * @return Error code.
+ * \param px_config Target configuration matrix.
+ * \param file_path BPC file path.
+ * \return Error code.
  */
 int
 katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path)
@@ -181,9 +181,9 @@ err_fopen:
 
 /**
  * Load pixel configuration from a BPC file contents (in Pixet format).
- * @param px_config Target configuration matrix.
- * @param bpc BPC file data.
- * @return Error code.
+ * \param px_config Target configuration matrix.
+ * \param bpc BPC file data.
+ * \return Error code.
  */
 int
 katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc)
@@ -234,9 +234,9 @@ _px_config_set_byte(katherine_px_config_t *px_config, katherine_coord_t coord, u
  * Set the test bit of a single pixel.
  * Pixels with the test bit set receive test pulses during acquisition
  * (see katherine_set_test_pulses).
- * @param px_config Configuration matrix to modify.
- * @param coord Pixel coordinates.
- * @param enabled New value of the test bit.
+ * \param px_config Configuration matrix to modify.
+ * \param coord Pixel coordinates.
+ * \param enabled New value of the test bit.
  */
 void
 katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool enabled)
@@ -247,9 +247,9 @@ katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_coo
 
 /**
  * Get the test bit of a single pixel.
- * @param px_config Configuration matrix to inspect.
- * @param coord Pixel coordinates.
- * @return Current value of the test bit.
+ * \param px_config Configuration matrix to inspect.
+ * \param coord Pixel coordinates.
+ * \return Current value of the test bit.
  */
 bool
 katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_coord_t coord)
@@ -267,9 +267,9 @@ katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katheri
  * this accessor's `masked` parameter follows. Do not "fix" this against
  * Table 23; it would invert every caller's masking.
  *
- * @param px_config Configuration matrix to modify.
- * @param coord Pixel coordinates.
- * @param masked New value of the mask bit.
+ * \param px_config Configuration matrix to modify.
+ * \param coord Pixel coordinates.
+ * \param masked New value of the mask bit.
  */
 void
 katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool masked)
@@ -280,9 +280,9 @@ katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_coo
 
 /**
  * Get the mask bit of a single pixel.
- * @param px_config Configuration matrix to inspect.
- * @param coord Pixel coordinates.
- * @return Current value of the mask bit.
+ * \param px_config Configuration matrix to inspect.
+ * \param coord Pixel coordinates.
+ * \return Current value of the mask bit.
  */
 bool
 katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_coord_t coord)
@@ -299,9 +299,9 @@ katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katheri
  * this accessor wrote the nibble unreversed and so programmed a trim of 8 for
  * an argument of 1, disagreeing with the BPC loader, which had the order right.
  *
- * @param px_config Configuration matrix to modify.
- * @param coord Pixel coordinates.
- * @param loc_thl New threshold adjustment DAC value, 0 to 15.
+ * \param px_config Configuration matrix to modify.
+ * \param coord Pixel coordinates.
+ * \param loc_thl New threshold adjustment DAC value, 0 to 15.
  */
 void
 katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t loc_thl)
@@ -318,9 +318,9 @@ katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coor
  * Returns the chip's threshold DAC tuning value, reversed back out of the
  * storage order described on katherine_px_config_set_loc_thl().
  *
- * @param px_config Configuration matrix to inspect.
- * @param coord Pixel coordinates.
- * @return Current threshold adjustment DAC value, 0 to 15.
+ * \param px_config Configuration matrix to inspect.
+ * \param coord Pixel coordinates.
+ * \return Current threshold adjustment DAC value, 0 to 15.
  */
 uint8_t
 katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_coord_t coord)

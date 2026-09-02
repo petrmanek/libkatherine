@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Pixel-clock phase counts and where fast time stamping is coherent.
+ * \file
+ * \brief Pixel-clock phase counts and where fast time stamping is coherent.
  *
  * The whole of Timepix3 manual Table 17 (p39) for DualEdgeClock = 1, which is
  * the value katherine_pll_config_word() pins, pinned here cell by cell. The
@@ -14,10 +14,10 @@
  * altogether, which is exactly the sort of gap a table copied from prose
  * inherits.
  *
- * @author Petr Mánek
- * @date 27.8.26
+ * \author Petr Mánek
+ * \date 27.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

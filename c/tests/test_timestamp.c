@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Timestamp conversion and recovery.
+ * \file
+ * \brief Timestamp conversion and recovery.
  *
  * Pure functions over a timestamp, so none of this needs a readout: the values
  * are constructed the way the decoder would have built them and put back
@@ -11,10 +11,10 @@
  * one has to be made deliberately in the other rather than cancelling out
  * silently.
  *
- * @author Petr Mánek
- * @date 29.8.26
+ * \author Petr Mánek
+ * \date 29.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

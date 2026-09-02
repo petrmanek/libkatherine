@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief The 1.x compatibility shim compiles 1.x source and maps its return codes back.
+ * \file
+ * \brief The 1.x compatibility shim compiles 1.x source and maps its return codes back.
  *
  * Everything below is written the way 1.x source was: only katherine1.h is
  * included (never a 2.0 header directly), every call uses a 1.x function
@@ -32,10 +32,10 @@
  * like test_udp_pinning.c and test_dacs_validate.c, whose fixtures this
  * borrows.
  *
- * @author Petr Mánek
- * @date 26.8.26
+ * \author Petr Mánek
+ * \date 26.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

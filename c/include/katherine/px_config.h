@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Functions related to pixel matrix configuration format.
- * @author Petr Mánek
- * @date 9.6.18
+ * \file
+ * \brief Functions related to pixel matrix configuration format.
+ * \author Petr Mánek
+ * \date 9.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -19,8 +19,8 @@
 #include <katherine/px.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #ifdef __cplusplus
@@ -100,4 +100,4 @@ katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherin
 }
 #endif
 
-/** @} */
+/** \} */

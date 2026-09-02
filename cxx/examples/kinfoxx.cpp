@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Example: enumerate a readout: chip ID, readout and comm status.
- * @author Petr Mánek
- * @date 21.8.26
+ * \file
+ * \brief Example: enumerate a readout: chip ID, readout and comm status.
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

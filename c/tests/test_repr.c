@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Golden-string tests for katherine_*_snprint() / katherine_str_*().
+ * \file
+ * \brief Golden-string tests for katherine_*_snprint() / katherine_str_*().
  *
  * Every covered type gets one hand-computed golden string, filled with
  * distinctive values that exercise both bool states and at least two enum
@@ -9,10 +9,10 @@
  * uses for katherine_udp_t (never the fixed 1555/1556 device ports) -- so
  * this test is registered unconditionally, like test_bitfields.c.
  *
- * @author Petr Mánek
- * @date 24.8.26
+ * \author Petr Mánek
+ * \date 24.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

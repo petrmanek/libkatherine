@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief POSIX definitions for the UDP communication layer.
- * @author Petr Mánek
- * @date 13.2.19
+ * \file
+ * \brief POSIX definitions for the UDP communication layer.
+ * \author Petr Mánek
+ * \date 13.2.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -15,8 +15,8 @@
 #include <katherine/global.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #ifdef KATHERINE_NIX
@@ -51,4 +51,4 @@ typedef struct katherine_udp {
 
 #endif /* KATHERINE_NIX */
 
-/** @} */
+/** \} */

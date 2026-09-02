@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Protocol emulator of the Katherine readout.
- * @author Petr Mánek
- * @date 21.8.26
+ * \file
+ * \brief Protocol emulator of the Katherine readout.
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -18,8 +18,8 @@
 #include <katherine/global.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #ifdef __cplusplus
@@ -297,4 +297,4 @@ katherine_emu_dropped_crd_count(const katherine_emu_t *emu);
 }
 #endif
 
-/** @} */
+/** \} */

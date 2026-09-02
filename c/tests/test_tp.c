@@ -1,13 +1,13 @@
 /**
- * @file
- * @brief Validation tests for the libkatherine test pulse feature.
+ * \file
+ * \brief Validation tests for the libkatherine test pulse feature.
  *
  * 1. Pixel test-bit helpers vs. the proven BMC/BPC loader packing.
  * 2. -KATHERINE_E_INVAL validation rules of katherine_set_test_pulses.
  * 3. Byte-exact 0x26 datagram check against the vendor C# reference,
  *    using a mock readout on a localhost UDP socket.
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

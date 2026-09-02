@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Functions related to the UDP communication layer.
- * @author Petr Mánek
- * @date 29.5.18
+ * \file
+ * \brief Functions related to the UDP communication layer.
+ * \author Petr Mánek
+ * \date 29.5.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -18,8 +18,8 @@
 #include <katherine/udp_win.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 // Uncomment the following line to enable network trace:
@@ -94,4 +94,4 @@ katherine_udp_last_os_error(const katherine_udp_t *u);
 }
 #endif
 
-/** @} */
+/** \} */

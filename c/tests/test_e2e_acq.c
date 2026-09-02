@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief End-to-end acquisition tests against the ksim daemon.
+ * \file
+ * \brief End-to-end acquisition tests against the ksim daemon.
  *
  * These tests drive the unmodified 1.x public API -- katherine_device_init(),
  * the katherine_get_* inquiries, katherine_acquisition_begin()/read()/abort()
@@ -40,10 +40,10 @@
  *     instants in the same 25 ns ticks (stages START_* and END_*), so they
  *     differ by exactly the configured acquisition time.
  *
- * @author Petr Mánek
- * @date 21.8.26
+ * \author Petr Mánek
+ * \date 21.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Implementation of Katherine device communication.
- * @author Petr Mánek
- * @date 14.6.18
+ * \file
+ * \brief Implementation of Katherine device communication.
+ * \author Petr Mánek
+ * \date 14.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -65,8 +65,8 @@ static const katherine_device_info_t KATHERINE_DEVICE_INFO[] = {
 /**
  * Recognize a readout from the hardware type it reports.
  *
- * @param hw_type Hardware type as katherine_readout_status_t reports it.
- * @return What that readout is, or a structure whose hw_type is 0 if this
+ * \param hw_type Hardware type as katherine_readout_status_t reports it.
+ * \return What that readout is, or a structure whose hw_type is 0 if this
  *   version does not know the type.
  */
 katherine_device_info_t
@@ -87,9 +87,9 @@ katherine_device_info_recognize(uint8_t hw_type)
 
 /**
  * Initialize Katherine device.
- * @param device Katherine device
- * @param addr IP address
- * @return Error code.
+ * \param device Katherine device
+ * \param addr IP address
+ * \return Error code.
  */
 int
 katherine_device_init(katherine_device_t *device, const char *addr)
@@ -155,10 +155,10 @@ err_control:
  * firmware version identified, and the version retained at open, where it is
  * currently read and discarded.
  *
- * @see katherine_acquisition_timestamp_phase_offset
+ * \see katherine_acquisition_timestamp_phase_offset
  *
- * @param device Device to ask.
- * @return true if the readout corrects the phase stagger itself.
+ * \param device Device to ask.
+ * \return true if the readout corrects the phase stagger itself.
  */
 bool
 katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)
@@ -170,7 +170,7 @@ katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)
 
 /**
  * Finalize Katherine device.
- * @param device Device to finalize.
+ * \param device Device to finalize.
  */
 void
 katherine_device_fini(katherine_device_t *device)
@@ -192,8 +192,8 @@ katherine_device_fini(katherine_device_t *device)
  * persisted in committed in katherine_device_t, otherwise the result of the
  * previous successful enumeration is retained.
  *
- * @param device Device to enumerate.
- * @return Error code.
+ * \param device Device to enumerate.
+ * \return Error code.
  */
 int
 katherine_device_enumerate(katherine_device_t *device)

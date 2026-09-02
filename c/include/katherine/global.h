@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Platform-specific definitions and symbol export macros.
- * @author Petr Mánek
- * @date 13.2.19
+ * \file
+ * \brief Platform-specific definitions and symbol export macros.
+ * \author Petr Mánek
+ * \date 13.2.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -15,8 +15,8 @@
 #include <stdbool.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 // Useful macros courtesy of:
@@ -80,8 +80,8 @@
  * never a raw 0/1 or a translated word. Included from every public header
  * (this one), so it is always in scope where a snprint implementation or a
  * caller composing its own debug output needs it.
- * @param value Value to render
- * @return A statically allocated, NUL-terminated string. Never NULL.
+ * \param value Value to render
+ * \return A statically allocated, NUL-terminated string. Never NULL.
  */
 static inline const char *
 katherine_str_bool(bool value)
@@ -89,4 +89,4 @@ katherine_str_bool(bool value)
     return value ? "true" : "false";
 }
 
-/** @} */
+/** \} */

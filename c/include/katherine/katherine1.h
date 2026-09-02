@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief 1.x source-compatibility shim.
- * @author Petr Mánek
- * @date 26.8.26
+ * \file
+ * \brief 1.x source-compatibility shim.
+ * \author Petr Mánek
+ * \date 26.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -17,8 +17,8 @@
 #include <katherine/katherine.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 //
@@ -552,4 +552,4 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-/** @} */
+/** \} */

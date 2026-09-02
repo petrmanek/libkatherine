@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Debug stringification: katherine_*_snprint() and katherine_str_*().
- * @author Petr Mánek
- * @date 24.8.26
+ * \file
+ * \brief Debug stringification: katherine_*_snprint() and katherine_str_*().
+ * \author Petr Mánek
+ * \date 24.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -112,8 +112,8 @@ format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *addr)
 
 /**
  * Get stable, lowercase description of a readout type.
- * @param type Readout type to describe
- * @return Null-terminated string. "unknown" for a value outside the enum.
+ * \param type Readout type to describe
+ * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
 katherine_str_readout_type(katherine_readout_type_t type)
@@ -125,7 +125,7 @@ katherine_str_readout_type(katherine_readout_type_t type)
     }
 }
 
-/** @copydoc katherine_str_readout_type */
+/** \copydoc katherine_str_readout_type */
 const char *
 katherine_str_asic(katherine_asic_t v)
 {
@@ -138,7 +138,7 @@ katherine_str_asic(katherine_asic_t v)
     }
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info_t *v)
 {
@@ -162,8 +162,8 @@ katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info
 /**
  * Describe what a phase-correction request resolved to.
  *
- * @param v Outcome to describe.
- * @return Static string, "(unknown)" for a value outside the enumeration.
+ * \param v Outcome to describe.
+ * \return Static string, "(unknown)" for a value outside the enumeration.
  */
 const char *
 katherine_str_phase_correction(katherine_phase_correction_t v)
@@ -178,8 +178,8 @@ katherine_str_phase_correction(katherine_phase_correction_t v)
 
 /**
  * Get stable, lowercase description of an acquisition mode.
- * @param mode Acquisition mode to describe
- * @return Null-terminated string. "unknown" for a value outside the enum.
+ * \param mode Acquisition mode to describe
+ * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
 katherine_str_acquisition_mode(katherine_acquisition_mode_t mode)
@@ -194,8 +194,8 @@ katherine_str_acquisition_mode(katherine_acquisition_mode_t mode)
 
 /**
  * Get stable, lowercase description of a pixel clock phase.
- * @param phase Phase to describe
- * @return Null-terminated string. "unknown" for a value outside the enum.
+ * \param phase Phase to describe
+ * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
 katherine_str_phase(katherine_phase_t phase)
@@ -212,8 +212,8 @@ katherine_str_phase(katherine_phase_t phase)
 
 /**
  * Get stable, lowercase description of a pixel clock frequency.
- * @param freq Frequency to describe
- * @return Null-terminated string. "unknown" for a value outside the enum.
+ * \param freq Frequency to describe
+ * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
 katherine_str_freq(katherine_freq_t freq)
@@ -229,10 +229,10 @@ katherine_str_freq(katherine_freq_t freq)
 
 /**
  * Render pixel coordinates.
- * @param buf Destination buffer, or NULL if cap is 0
- * @param cap Capacity of buf in bytes
- * @param v Value to render
- * @return The number of bytes the rendering would occupy excluding the terminating NUL, same as snprintf().
+ * \param buf Destination buffer, or NULL if cap is 0
+ * \param cap Capacity of buf in bytes
+ * \param v Value to render
+ * \return The number of bytes the rendering would occupy excluding the terminating NUL, same as snprintf().
  */
 int
 katherine_coord_snprint(char *buf, size_t cap, const katherine_coord_t *v)
@@ -242,7 +242,7 @@ katherine_coord_snprint(char *buf, size_t cap, const katherine_coord_t *v)
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v)
 {
@@ -254,7 +254,7 @@ katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_t
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v)
 {
@@ -267,7 +267,7 @@ katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v)
 {
@@ -278,7 +278,7 @@ katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v)
 {
@@ -289,7 +289,7 @@ katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_px_f_event_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_itot_t *v)
 {
@@ -301,7 +301,7 @@ katherine_px_f_event_itot_snprint(char *buf, size_t cap, const katherine_px_f_ev
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_px_event_itot_snprint(char *buf, size_t cap, const katherine_px_event_itot_t *v)
 {
@@ -313,7 +313,7 @@ katherine_px_event_itot_snprint(char *buf, size_t cap, const katherine_px_event_
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 {
@@ -323,7 +323,7 @@ katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v)
 {
@@ -334,7 +334,7 @@ katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
 {
@@ -357,7 +357,7 @@ katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
  * Render a digest of the pixel configuration matrix (word count and a
  * 64-bit XOR fold, never the 16384 words themselves -- see px_config_xor64()
  * above for how the fold is computed).
- * @copydetails katherine_coord_snprint
+ * \copydetails katherine_coord_snprint
  */
 int
 katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v)
@@ -368,7 +368,7 @@ katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 {
@@ -392,7 +392,7 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_info_time_t *v)
 {
@@ -402,7 +402,7 @@ katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_i
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t *v)
 {
@@ -424,7 +424,7 @@ katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t
  * pointers (device, user_ctx, the data buffers) and the handler table are
  * omitted, as is everything about buffer occupancy beyond the two
  * capacities (pixel_buffer_valid/_max_valid, the timing fields, ...).
- * @copydetails katherine_coord_snprint
+ * \copydetails katherine_coord_snprint
  */
 int
 katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v)
@@ -440,7 +440,7 @@ katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_status_t *v)
 {
@@ -450,7 +450,7 @@ katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status_t *v)
 {
@@ -464,7 +464,7 @@ katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status
  * Render a UDP session's endpoints, pin state and command-response
  * correlation state. The socket handle and the mutex are omitted: neither is
  * meaningful in a log line.
- * @copydetails katherine_coord_snprint
+ * \copydetails katherine_coord_snprint
  */
 int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
@@ -483,7 +483,7 @@ katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
     return (int) off;
 }
 
-/** @copydoc katherine_coord_snprint */
+/** \copydoc katherine_coord_snprint */
 int
 katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
 {

@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Inquiries a running acquisition has to refuse.
+ * \file
+ * \brief Inquiries a running acquisition has to refuse.
  *
  * The readout measures the sensor temperature by way of the DAC scan: it
  * reloads every sensor register from its own image, points the sense-DAC
@@ -18,10 +18,10 @@
  * the guard really does come first, since a guard placed after the lock would
  * hang or crash here instead of returning.
  *
- * @author Petr Mánek
- * @date 27.8.26
+ * \author Petr Mánek
+ * \date 27.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

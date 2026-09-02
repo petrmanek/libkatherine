@@ -1,18 +1,18 @@
 /**
- * @file
- * @brief Main umbrella header.
- * @author Petr Mánek
- * @date 28.1.19
+ * \file
+ * \brief Main umbrella header.
+ * \author Petr Mánek
+ * \date 28.1.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
  */
 
 /**
- * @defgroup cxx_api C++ Wrapper
- * @brief Header-only C++ interface wrapping the C API.
+ * \defgroup cxx_api C++ Wrapper
+ * \brief Header-only C++ interface wrapping the C API.
  */
 
 #pragma once

@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Timestamp units for Timepix3 pixel data.
- * @author Petr Mánek
- * @date 29.8.26
+ * \file
+ * \brief Timestamp units for Timepix3 pixel data.
+ * \author Petr Mánek
+ * \date 29.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -50,11 +50,11 @@ katherine_toa_freq_in_range(katherine_freq_t freq)
  * The unit timestamps are carried in. Callers need this to reason about the
  * resolution of a timestamp, and to divide a coarse tick by a phase count.
  *
- * @see katherine_tpx3_toa_coarse_tick_to_fine_shift
- * @see katherine_actual_phases
+ * \see katherine_tpx3_toa_coarse_tick_to_fine_shift
+ * \see katherine_actual_phases
  *
- * @param freq Pixel-clock frequency selector.
- * @return Fine ticks per coarse tick, or 0 if freq is out of range.
+ * \param freq Pixel-clock frequency selector.
+ * \return Fine ticks per coarse tick, or 0 if freq is out of range.
  */
 uint8_t
 katherine_tpx3_toa_coarse_tick_to_fine_ticks(katherine_freq_t freq)
@@ -73,10 +73,10 @@ katherine_tpx3_toa_coarse_tick_to_fine_ticks(katherine_freq_t freq)
  * compiler, which must emit a multiply for it, while the shift costs one
  * cheap operation. katherine_acquisition_begin() caches this for the decoder.
  *
- * @see katherine_tpx3_toa_coarse_tick_to_fine_ticks
+ * \see katherine_tpx3_toa_coarse_tick_to_fine_ticks
  *
- * @param freq Pixel-clock frequency selector.
- * @return Shift taking coarse ticks to fine ticks, or 0 if freq is out of range.
+ * \param freq Pixel-clock frequency selector.
+ * \return Shift taking coarse ticks to fine ticks, or 0 if freq is out of range.
  */
 uint8_t
 katherine_tpx3_toa_coarse_tick_to_fine_shift(katherine_freq_t freq)
@@ -122,10 +122,10 @@ katherine_toa_epoch_bias_shift(uint8_t coarse_tick_to_fine_shift)
  * one definition rather than two that must agree, and so callers doing their
  * own arithmetic on timestamps can account for it.
  *
- * @see katherine_tpx3_timestamp_to_toa_ftoa
+ * \see katherine_tpx3_timestamp_to_toa_ftoa
  *
- * @param coarse_tick_to_fine_shift Shift for the acquisition's pixel clock.
- * @return Bias in fine-oscillator ticks.
+ * \param coarse_tick_to_fine_shift Shift for the acquisition's pixel clock.
+ * \return Bias in fine-oscillator ticks.
  */
 uint64_t
 katherine_tpx3_toa_epoch_bias(uint8_t coarse_tick_to_fine_shift)
@@ -153,11 +153,11 @@ katherine_tpx3_toa_epoch_bias(uint8_t coarse_tick_to_fine_shift)
  * is frame-relative rather than absolute in any case. Use
  * katherine_tpx3_timestamp_to_toa_ftoa() to recover the chip's own quantities.
  *
- * @see katherine_tpx3_timestamp_to_toa_ftoa
+ * \see katherine_tpx3_timestamp_to_toa_ftoa
  *
- * @param timestamp Timestamp in fine-oscillator ticks.
- * @param sec Whole seconds, or NULL.
- * @param nsec Remainder within that second, in nanoseconds, or NULL.
+ * \param timestamp Timestamp in fine-oscillator ticks.
+ * \param sec Whole seconds, or NULL.
+ * \param nsec Remainder within that second, in nanoseconds, or NULL.
  */
 void
 katherine_tpx3_timestamp_to_seconds(uint64_t timestamp, uint64_t *sec, double *nsec)
@@ -182,13 +182,13 @@ katherine_tpx3_timestamp_to_seconds(uint64_t timestamp, uint64_t *sec, double *n
  * pass the offset that was applied to this pixel, or 0 when no phase
  * correction is in effect.
  *
- * @see katherine_tpx3_timestamp_to_seconds
+ * \see katherine_tpx3_timestamp_to_seconds
  *
- * @param coarse_tick_to_fine_shift Shift for the acquisition's pixel clock.
- * @param phase_offset Phase offset applied to this pixel's column, in fine ticks.
- * @param timestamp Timestamp in fine-oscillator ticks.
- * @param toa Coarse ticks since the epoch, or NULL.
- * @param ftoa Fine ticks the hit preceded its coarse tick by, or NULL.
+ * \param coarse_tick_to_fine_shift Shift for the acquisition's pixel clock.
+ * \param phase_offset Phase offset applied to this pixel's column, in fine ticks.
+ * \param timestamp Timestamp in fine-oscillator ticks.
+ * \param toa Coarse ticks since the epoch, or NULL.
+ * \param ftoa Fine ticks the hit preceded its coarse tick by, or NULL.
  */
 void
 katherine_tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t phase_offset,

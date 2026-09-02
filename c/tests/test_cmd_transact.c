@@ -1,6 +1,6 @@
 /**
- * @file
- * @brief Correlation of command responses with the requests that provoked them.
+ * \file
+ * \brief Correlation of command responses with the requests that provoked them.
  *
  * The readout answers an acknowledged command with exactly eight bytes, all
  * zero but for byte 6, which repeats the operation code of the request. Until
@@ -28,10 +28,10 @@
  *   - the flush that opens a transaction consumes what an earlier exchange
  *     left behind and does so without blocking.
  *
- * @author Petr Mánek
- * @date 26.8.26
+ * \author Petr Mánek
+ * \date 26.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

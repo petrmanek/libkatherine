@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Functions related to readout status inquiry.
- * @author Petr Mánek
- * @date 14.6.18
+ * \file
+ * \brief Functions related to readout status inquiry.
+ * \author Petr Mánek
+ * \date 14.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -18,8 +18,8 @@
 #include <katherine/global.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #ifdef __cplusplus
@@ -85,4 +85,4 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
 }
 #endif
 
-/** @} */
+/** \} */

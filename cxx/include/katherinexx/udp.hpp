@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief C++ wrapper for a UDP communication session.
- * @author Petr Mánek
- * @date 24.8.26
+ * \file
+ * \brief C++ wrapper for a UDP communication session.
+ * \author Petr Mánek
+ * \date 24.8.26
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -23,8 +23,8 @@
 namespace katherine {
 
 /**
- * @addtogroup cxx_api
- * @{
+ * \addtogroup cxx_api
+ * \{
  */
 
 // Note: katherine_udp_mutex_lock()/katherine_udp_mutex_unlock() are
@@ -94,9 +94,9 @@ public:
 
     /**
      * Receive one datagram without waiting for one to arrive.
-     * @param data Inbound buffer start
-     * @param count Buffer capacity in, bytes received out, exactly as in the C call
-     * @throws katherine::system_error -KATHERINE_E_TIMEOUT if nothing is queued, rather
+     * \param data Inbound buffer start
+     * \param count Buffer capacity in, bytes received out, exactly as in the C call
+     * \throws katherine::system_error -KATHERINE_E_TIMEOUT if nothing is queued, rather
      *   than waiting for the session's receive timeout
      */
     void
@@ -127,7 +127,7 @@ public:
 
     /**
      * Require command responses to repeat the operation code of their request exactly.
-     * @param strict True to require the request's own operation code, false (the default)
+     * \param strict True to require the request's own operation code, false (the default)
      *   to accept the readout firmware's documented substitutions as well; see
      *   katherine_udp_set_strict_ack() for what those are and why they are tolerated
      */
@@ -139,12 +139,12 @@ public:
 
     /**
      * Count command responses this session discarded as belonging to no request of its own.
-     * @return The running count since the session was created; see
+     * \return The running count since the session was created; see
      *   katherine_udp_set_strict_ack()
      */
     std::uint64_t stray_command_responses() const { return udp_.stray_command_responses; }
 };
 
-/** @} */
+/** \} */
 
 }

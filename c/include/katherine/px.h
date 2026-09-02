@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Pixel data types for all supported acquisition modes.
- * @author Petr Mánek
- * @date 28.2.19
+ * \file
+ * \brief Pixel data types for all supported acquisition modes.
+ * \author Petr Mánek
+ * \date 28.2.19
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -17,8 +17,8 @@
 #include <katherine/global.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #ifdef __cplusplus
@@ -163,4 +163,4 @@ katherine_px_event_itot_snprint(char *buf, size_t cap, const katherine_px_event_
 }
 #endif
 
-/** @} */
+/** \} */

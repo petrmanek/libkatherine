@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Functions related to the data acquisition process.
- * @author Petr Mánek
- * @date 29.5.18
+ * \file
+ * \brief Functions related to the data acquisition process.
+ * \author Petr Mánek
+ * \date 29.5.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -22,8 +22,8 @@
 #include <katherine/px.h>
 
 /**
- * @addtogroup c_api
- * @{
+ * \addtogroup c_api
+ * \{
  */
 
 #define KATHERINE_MD_SIZE 6
@@ -238,4 +238,4 @@ katherine_str_acquisition_status(char status);
 }
 #endif
 
-/** @} */
+/** \} */

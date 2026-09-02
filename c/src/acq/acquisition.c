@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Implementation of the data acquisition process.
- * @author Petr Mánek
- * @date 29.5.18
+ * \file
+ * \brief Implementation of the data acquisition process.
+ * \author Petr Mánek
+ * \date 29.5.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -244,14 +244,14 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
  * 65 kB, and a smaller buffer risks silently truncating a datagram (see
  * katherine_acquisition_t::truncated_measurement_data).
  *
- * @param acq Acquisition to initialize
- * @param device Katherine device
- * @param ctx User context (may be used to convey useful info)
- * @param md_buffer_size Size of the measurement data buffer in bytes; at least 65536 on real hardware
- * @param pixel_buffer_size Size of the pixel buffer in bytes
- * @param report_timeout Timeout for reporting incomplete pixel buffers (ms). Set zero to disable.
- * @param fail_timeout Timeout for any device communication (ms). Set zero to disable.
- * @return Error code.
+ * \param acq Acquisition to initialize
+ * \param device Katherine device
+ * \param ctx User context (may be used to convey useful info)
+ * \param md_buffer_size Size of the measurement data buffer in bytes; at least 65536 on real hardware
+ * \param pixel_buffer_size Size of the pixel buffer in bytes
+ * \param report_timeout Timeout for reporting incomplete pixel buffers (ms). Set zero to disable.
+ * \param fail_timeout Timeout for any device communication (ms). Set zero to disable.
+ * \return Error code.
  */
 int
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
@@ -312,7 +312,7 @@ err_datagram_buffer:
 
 /**
  * Finalize acquisition
- * @param acq Acquisition to finalize
+ * \param acq Acquisition to finalize
  */
 void
 katherine_acquisition_fini(katherine_acquisition_t *acq)
@@ -481,10 +481,10 @@ DEFINE_ACQ_IMPL(event_itot, , pmd_event_itot_map)
  * Internal on purpose: the offsets reach callers through
  * katherine_acquisition_timestamp_phase_offset(), not as a table of their own.
  *
- * @param coarse_tick_to_fine_shift Bitshift needed to calculate the number of fine clock ticks in a single coarse clock tick.
- * @param phase_count Actual number of phases.
- * @param x Pixel X-coordinate (0..255), adjacent pixels within a double-column receive the same return value.
- * @return Offset applied to this pixel's column, in fine-oscillator ticks.
+ * \param coarse_tick_to_fine_shift Bitshift needed to calculate the number of fine clock ticks in a single coarse clock tick.
+ * \param phase_count Actual number of phases.
+ * \param x Pixel X-coordinate (0..255), adjacent pixels within a double-column receive the same return value.
+ * \return Offset applied to this pixel's column, in fine-oscillator ticks.
  */
 static uint8_t
 katherine_tpx3_toa_phase_offset(uint8_t coarse_tick_to_fine_shift, uint8_t phase_count, uint8_t x)
@@ -507,8 +507,8 @@ katherine_tpx3_toa_phase_offset(uint8_t coarse_tick_to_fine_shift, uint8_t phase
  *
  * Internal on purpose.
  *
- * @param acq Acquisition, where phase-correction may be applied.
- * @param config Readout configuration, which determines phase-correction behavior.
+ * \param acq Acquisition, where phase-correction may be applied.
+ * \param config Readout configuration, which determines phase-correction behavior.
  */
 static katherine_phase_correction_t
 resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_config_t *config)
@@ -542,9 +542,9 @@ resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_con
  * arithmetic downstream is unchanged. Reading it rather than assuming zero is
  * what keeps such code correct if correction is later switched on.
  *
- * @param acq Acquisition the pixel was decoded by.
- * @param coord Pixel coordinates.
- * @return Offset applied to this pixel's column, in fine-oscillator ticks.
+ * \param acq Acquisition the pixel was decoded by.
+ * \param coord Pixel coordinates.
+ * \return Offset applied to this pixel's column, in fine-oscillator ticks.
  */
 uint8_t
 katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
@@ -576,8 +576,8 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * simply a consequence of receiving no further data past the frame-finished
  * datum (which we do not know arrived because we are not decoding).
  *
- * @param acq Acquisition
- * @return Error code.
+ * \param acq Acquisition
+ * \return Error code.
  */
 int
 katherine_acquisition_read(katherine_acquisition_t *acq)
@@ -668,15 +668,15 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  * Both refusals here, this one and the data-driven frame count, precede every
  * socket, so a failed begin() has sent nothing and left the device idle.
  *
- * @see katherine_freq_is_fast_vco_supported
- * @see katherine_actual_phases
+ * \see katherine_freq_is_fast_vco_supported
+ * \see katherine_actual_phases
  *
- * @param acq Acquisition
- * @param config Configuration
- * @param readout_mode Readout mode
- * @param acq_mode Acquisition mode
- * @param fast_vco_enabled Enable fast voltage-controlled oscillators
- * @return Error code.
+ * \param acq Acquisition
+ * \param config Configuration
+ * \param readout_mode Readout mode
+ * \param acq_mode Acquisition mode
+ * \param fast_vco_enabled Enable fast voltage-controlled oscillators
+ * \return Error code.
  */
 int
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
@@ -765,8 +765,8 @@ err:
  * Stop acquisition. No acknowledgement exists for this command; the
  * readout signals the end of the current frame through the measurement
  * data stream instead.
- * @param acq Acquisition
- * @return Error code.
+ * \param acq Acquisition
+ * \return Error code.
  */
 int
 katherine_acquisition_stop(katherine_acquisition_t *acq)
@@ -801,8 +801,8 @@ err:
  * datum, so an acquisition the hardware abandoned and one the caller stopped
  * both finish as ACQUISITION_SUCCEEDED and cannot be told apart afterwards.
  *
- * @param acq Acquisition
- * @return Error code.
+ * \param acq Acquisition
+ * \return Error code.
  */
 int
 katherine_acquisition_abort(katherine_acquisition_t *acq)
@@ -835,8 +835,8 @@ err:
  * function used to return "not started" and "timed out" (with a space);
  * it now returns "not_started" and "timed_out" to match.
  *
- * @param status Status to describe
- * @return Null-terminated string.
+ * \param status Status to describe
+ * \return Null-terminated string.
  */
 const char *
 katherine_str_acquisition_status(char status)

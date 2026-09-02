@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Example: configure and perform data-driven acquisition.
- * @author Petr Mánek
- * @date 13.07.18
+ * \file
+ * \brief Example: configure and perform data-driven acquisition.
+ * \author Petr Mánek
+ * \date 13.07.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT

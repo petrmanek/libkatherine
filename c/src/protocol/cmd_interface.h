@@ -1,10 +1,10 @@
 /**
- * @file
- * @brief Internal command interface of the Katherine readout.
- * @author Petr Mánek
- * @date 9.6.18
+ * \file
+ * \brief Internal command interface of the Katherine readout.
+ * \author Petr Mánek
+ * \date 9.6.18
  *
- * @copyright Copyright (c) 2018 Petr Mánek.
+ * \copyright Copyright (c) 2018 Petr Mánek.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
  *
  * SPDX-License-Identifier: MIT
@@ -71,10 +71,10 @@
 
 /**
  * Send a command, or any other exact-length buffer, to the readout.
- * @param udp Session to send on.
- * @param buffer Bytes to send.
- * @param count Number of bytes to send.
- * @return Error code.
+ * \param udp Session to send on.
+ * \param buffer Bytes to send.
+ * \param count Number of bytes to send.
+ * \return Error code.
  */
 static inline int
 katherine_cmd_send(katherine_udp_t *udp, const void *buffer, size_t count)
@@ -92,9 +92,9 @@ err:
 
 /**
  * Send a command that carries nothing but its opcode.
- * @param udp Session to send on.
- * @param val6 Command opcode.
- * @return Error code.
+ * \param udp Session to send on.
+ * \param val6 Command opcode.
+ * \return Error code.
  */
 static inline int
 katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
@@ -106,10 +106,10 @@ katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
 /**
  * Send a command whose only argument occupies the lowest payload byte, as
  * the hardware-command dispatch does with its sub-command number.
- * @param udp Session to send on.
- * @param val6 Command opcode.
- * @param val0 Argument byte.
- * @return Error code.
+ * \param udp Session to send on.
+ * \param val6 Command opcode.
+ * \param val0 Argument byte.
+ * \return Error code.
  */
 static inline int
 katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
@@ -122,11 +122,11 @@ katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
 /**
  * Send a command with both a sub-index and a payload word, as the DAC
  * setters and sensor-register writes use.
- * @param udp Session to send on.
- * @param val6 Command opcode.
- * @param val4 Sub-index.
- * @param value Payload; only its low 32 bits reach the wire.
- * @return Error code.
+ * \param udp Session to send on.
+ * \param val6 Command opcode.
+ * \param val4 Sub-index.
+ * \param value Payload; only its low 32 bits reach the wire.
+ * \return Error code.
  */
 static inline int
 katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64_t value)
@@ -139,10 +139,10 @@ katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64
 
 /**
  * Send a command with a payload word and no sub-index.
- * @param udp Session to send on.
- * @param val6 Command opcode.
- * @param value Payload; only its low 32 bits reach the wire.
- * @return Error code.
+ * \param udp Session to send on.
+ * \param val6 Command opcode.
+ * \param value Payload; only its low 32 bits reach the wire.
+ * \return Error code.
  */
 static inline int
 katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
@@ -154,10 +154,10 @@ katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
 
 /**
  * Send a command whose payload is a float rather than an integer.
- * @param udp Session to send on.
- * @param val6 Command opcode.
- * @param value Payload, transmitted as its IEEE-754 bytes.
- * @return Error code.
+ * \param udp Session to send on.
+ * \param val6 Command opcode.
+ * \param value Payload, transmitted as its IEEE-754 bytes.
+ * \return Error code.
  */
 static inline int
 katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
@@ -209,9 +209,9 @@ katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
  * katherine_set_acq_mode() rewrites it, together with Op_mode, on every
  * acquisition.
  *
- * @param config Configuration to read the polarity, gray-coding and
+ * \param config Configuration to read the polarity, gray-coding and
  *   test-pulse settings from.
- * @return Register word, ready for a sensor-register write.
+ * \return Register word, ready for a sensor-register write.
  */
 static inline int32_t
 katherine_general_config_word(const katherine_config_t *config)
@@ -270,8 +270,8 @@ katherine_general_config_word(const katherine_config_t *config)
  * masked to their field widths rather than validated, matching how the DAC
  * setters transmit unchecked values.
  *
- * @param config Configuration to read the phase and frequency from.
- * @return Register word, ready for a sensor-register write.
+ * \param config Configuration to read the phase and frequency from.
+ * \return Register word, ready for a sensor-register write.
  */
 static inline int32_t
 katherine_pll_config_word(const katherine_config_t *config)
@@ -294,10 +294,10 @@ katherine_pll_config_word(const katherine_config_t *config)
 /**
  * Define katherine_cmd_<CMD_NAME>(udp), sending a command whose arguments
  * are all fixed at definition time.
- * @param A Sender to build on, without the katherine_ prefix (e.g. cmd6).
- * @param CMD_NAME Name of the generated function, without the
+ * \param A Sender to build on, without the katherine_ prefix (e.g. cmd6).
+ * \param CMD_NAME Name of the generated function, without the
  *   katherine_cmd_ prefix.
- * @param ... Leading arguments of the sender, typically the opcode.
+ * \param ... Leading arguments of the sender, typically the opcode.
  */
 #define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...) \
     static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp) \
@@ -308,11 +308,11 @@ katherine_pll_config_word(const katherine_config_t *config)
 /**
  * Define katherine_cmd_<CMD_NAME>(udp, arg1), sending a command whose last
  * argument the caller supplies.
- * @param A Sender to build on, without the katherine_ prefix.
- * @param CMD_NAME Name of the generated function, without the
+ * \param A Sender to build on, without the katherine_ prefix.
+ * \param CMD_NAME Name of the generated function, without the
  *   katherine_cmd_ prefix.
- * @param ARG1_TYPE Type of the caller-supplied argument.
- * @param ... Leading arguments of the sender, which the caller's argument
+ * \param ARG1_TYPE Type of the caller-supplied argument.
+ * \param ... Leading arguments of the sender, which the caller's argument
  *   follows.
  */
 #define K_DEFINE_CMD_ARG1(A, CMD_NAME, ARG1_TYPE, ...) \
@@ -404,8 +404,8 @@ typedef enum katherine_cmd_type {
  * code would reject the answers of a real readout. Both are also recorded at
  * their enumerators above.
  *
- * @param opcode Operation code of the request.
- * @return Identifier its response carries.
+ * \param opcode Operation code of the request.
+ * \return Identifier its response carries.
  */
 static inline uint8_t
 katherine_cmd_reply_id(uint8_t opcode)
@@ -436,8 +436,8 @@ katherine_cmd_reply_id(uint8_t opcode)
  * dropped without a reply (the firmware's dispatcher has no default branch),
  * and this function speaks only of the ones the table names.
  *
- * @param opcode Operation code of the request.
- * @return True if a response can be waited for.
+ * \param opcode Operation code of the request.
+ * \return True if a response can be waited for.
  */
 static inline bool
 katherine_cmd_is_acknowledged(uint8_t opcode)
@@ -482,7 +482,7 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
  * receive that follows, where the caller is already prepared for it. What
  * was discarded is counted in katherine_udp_t::stray_command_responses.
  *
- * @param udp Session to flush.
+ * \param udp Session to flush.
  */
 static inline void
 katherine_cmd_drain(katherine_udp_t *udp)
@@ -513,11 +513,11 @@ katherine_cmd_drain(katherine_udp_t *udp)
  * A command the readout never answers is refused outright rather than waited
  * for; see katherine_cmd_is_acknowledged().
  *
- * @param udp Session to receive on.
- * @param opcode Operation code of the request whose response this is.
- * @param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
+ * \param udp Session to receive on.
+ * \param opcode Operation code of the request whose response this is.
+ * \param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
  *   to discard them.
- * @return Error code. -KATHERINE_E_INVAL if the readout does not answer this
+ * \return Error code. -KATHERINE_E_INVAL if the readout does not answer this
  *   command at all, -KATHERINE_E_BAD_CRD for a datagram whose length is not
  *   KATHERINE_CMD_CRD_SIZE, -KATHERINE_E_STRAY once
  *   KATHERINE_CMD_MAX_STRAY_DISCARDS non-correlating datagrams have been
@@ -564,9 +564,9 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
 /**
  * Receive the command response belonging to one request and discard it, for
  * the commands whose acknowledgement carries no payload of interest.
- * @param udp Session to receive on.
- * @param opcode Operation code of the request whose response this is.
- * @return Error code; see katherine_cmd_wait_ack_crd().
+ * \param udp Session to receive on.
+ * \param opcode Operation code of the request whose response this is.
+ * \return Error code; see katherine_cmd_wait_ack_crd().
  */
 static inline int
 katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
@@ -586,13 +586,13 @@ katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
  * separately, so the response cannot be correlated against a code the
  * request did not carry.
  *
- * @param udp Session to exchange on.
- * @param buffer Command datagram to send.
- * @param count Its length; at least KATHERINE_CMD_CRD_SIZE, since a shorter
+ * \param udp Session to exchange on.
+ * \param buffer Command datagram to send.
+ * \param count Its length; at least KATHERINE_CMD_CRD_SIZE, since a shorter
  *   datagram carries no operation code.
- * @param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
+ * \param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
  *   to discard them.
- * @return Error code. -KATHERINE_E_INVAL for a command too short to carry an
+ * \return Error code. -KATHERINE_E_INVAL for a command too short to carry an
  *   operation code, or one the readout never answers -- reported before
  *   anything is sent, so the readout is left untouched. Otherwise as
  *   katherine_cmd_wait_ack_crd().
