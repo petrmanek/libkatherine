@@ -37,7 +37,7 @@ rm -f build/docs/docs.stamp
 cmake --build build --target docs 2>&1 | grep -c warning:
 ```
 
-At the time of writing the suite is 20 tests and Doxygen emits 314 warnings,
+At the time of writing the suite is 21 tests and Doxygen emits 314 warnings,
 all pre-existing. Take your own baseline rather than trusting those numbers:
 the `grep -c` above is the number to beat, and the `rm` is required because the
 target is stamp-guarded and will otherwise print nothing at all.
@@ -75,6 +75,32 @@ katherine_device_enumerate  (c/src/device/device.c:199)
 The chain is the shortest route to that code, not the only one. Nothing stops a
 second, longer route existing, so read the function's own error paths too
 instead of assuming the chain enumerates them.
+
+### The Windows transport needs `--platform windows`
+
+`c/src/transport/udp_win.c` is the exception. Its body is entirely inside
+`#ifdef KATHERINE_WIN` and needs the winsock headers, so under the host's own
+flags it parses to an empty translation unit and its functions are absent from
+the index rather than reported as undocumented. Every command above therefore
+takes `--platform windows` when that file is the subject:
+
+```
+python3 tools/katherine_errdoc.py --platform windows --check
+```
+
+This needs the mingw-w64 headers (`mingw-w64-headers` on Arch, `mingw-w64` on
+Debian); without them the tool says so and skips the file. The two transports
+implement one API and define the same function names, which is why a run picks
+one platform rather than indexing both and demanding each document the union.
+
+The same target gives that file the compile check it otherwise has nowhere,
+neither a Linux build, which compiles it to nothing, nor MSVC, which accepts
+an enum where an `int` is declared:
+
+```
+clang --target=x86_64-w64-mingw32 -fsyntax-only -std=gnu2x -Dkatherine_EXPORTS \
+  -I c/include -I build/c/include -I c/src c/src/transport/udp_win.c
+```
 
 ## Writing a description
 
