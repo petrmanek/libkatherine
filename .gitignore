@@ -91,3 +91,5 @@ CTestTestfile.cmake
 
 # End of https://www.gitignore.io/api/clion,cmake
 
+# Python bytecode cache, from the tools in tools/
+__pycache__/
