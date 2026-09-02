@@ -77,15 +77,15 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_dacs(device, &config->dacs);
     if (res) goto err;
 
-    /* The test-pulse command carries the enable flag as well as the pulse
-       parameters, and it is the only thing that needs to: GeneralConfig's
-       Tp_en bit is not load-bearing. Forcing that bit to zero and repeating
-       this configuration on hardware fires exactly the 256 pixels of a
-       painted 16x16 patch, for analog and digital pulses alike, which is
-       also how the vendor tool and the reference implementation drive it.
-       Issued last so the register updates above cannot override it, and
-       skipped when pulses are disabled, keeping the wire traffic identical
-       to configurations that predate test pulse support. */
+    // The test-pulse command carries the enable flag as well as the pulse
+    // parameters, and it is the only thing that needs to: GeneralConfig's
+    // Tp_en bit is not load-bearing. Forcing that bit to zero and repeating
+    // this configuration on hardware fires exactly the 256 pixels of a
+    // painted 16x16 patch, for analog and digital pulses alike, which is
+    // also how the vendor tool and the reference implementation drive it.
+    // Issued last so the register updates above cannot override it, and
+    // skipped when pulses are disabled, keeping the wire traffic identical
+    // to configurations that predate test pulse support.
     if (config->test_pulse_config.enabled) {
         res = katherine_set_test_pulses(device, &config->test_pulse_config);
         if (res) goto err;
@@ -160,14 +160,14 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    /* This upload is the one exchange whose data travels between the command
-       and its acknowledgement, so it flushes and correlates by hand rather
-       than through katherine_cmd_transact(). The flush is placed here and not
-       per attempt: what a failed attempt leaves behind is cleared by the
-       recovery below, whose blocking drain is the only thing that can wait
-       out an acknowledgement still in flight -- and it has to be, because a
-       stale acknowledgement of *this* command correlates with a retry of it
-       perfectly. */
+    // This upload is the one exchange whose data travels between the command
+    // and its acknowledgement, so it flushes and correlates by hand rather
+    // than through katherine_cmd_transact(). The flush is placed here and not
+    // per attempt: what a failed attempt leaves behind is cleared by the
+    // recovery below, whose blocking drain is the only thing that can wait
+    // out an acknowledgement still in flight -- and it has to be, because a
+    // stale acknowledgement of *this* command correlates with a retry of it
+    // perfectly.
     katherine_cmd_drain(&device->control_socket);
 
     // The following section sometimes cause issues, repeat it several times if need be.
@@ -430,7 +430,7 @@ katherine_set_seq_readout_start(katherine_device_t *device, int arg)
     res = katherine_cmd_set_seq_readout_start(&device->control_socket, arg);
     if (res) goto err;
 
-    /* Note: this command does _not_ produce an acknowledgement. */
+    // Note: this command does _not_ produce an acknowledgement.
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;
@@ -542,19 +542,19 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    /* Sent and awaited by hand rather than through katherine_cmd_transact(),
-       whose single wait this command outlives: the retrying wait below has to
-       reissue the receive, never the command. */
+    // Sent and awaited by hand rather than through katherine_cmd_transact(),
+    // whose single wait this command outlives: the retrying wait below has to
+    // reissue the receive, never the command.
     katherine_cmd_drain(&device->control_socket);
 
     res = katherine_cmd_send(&device->control_socket, cmd, sizeof(cmd));
     if (res) goto err;
 
-    /* The readout applies this command before acknowledging it, and its
-       firmware sleeps for a full second while doing so. A single wait is
-       bounded by the socket receive timeout (100 ms) and would therefore
-       always expire, so keep receiving until the acknowledgement arrives,
-       an unrelated error occurs, or roughly 5 seconds elapse. */
+    // The readout applies this command before acknowledging it, and its
+    // firmware sleeps for a full second while doing so. A single wait is
+    // bounded by the socket receive timeout (100 ms) and would therefore
+    // always expire, so keep receiving until the acknowledgement arrives,
+    // an unrelated error occurs, or roughly 5 seconds elapse.
     static const int max_attempts = 50;
     int attempts                  = max_attempts;
     do {
@@ -726,9 +726,9 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    /* Nineteen exchanges under one lock, flushed once: each of them
-       correlates its own response, so a flush before every send would only
-       repeat work the correlation already does. */
+    // Nineteen exchanges under one lock, flushed once: each of them
+    // correlates its own response, so a flush before every send would only
+    // repeat work the correlation already does.
     katherine_cmd_drain(&device->control_socket);
 
     for (int i = 0; i < 18; ++i) {
@@ -754,8 +754,8 @@ err:
     return res;
 }
 
-/* Per-DAC maxima (Tpx3 manual Table 11, "DAC Value" column width), in
-   katherine_dacs_named_t / array order, i.e. chip DAC Code minus one. */
+// Per-DAC maxima (Tpx3 manual Table 11, "DAC Value" column width), in
+// katherine_dacs_named_t / array order, i.e. chip DAC Code minus one.
 static const uint16_t KATHERINE_DAC_MAX[18] = {
     255, // Ibias_Preamp_ON     [7:0]
     15,  // Ibias_Preamp_OFF    [3:0]
@@ -789,7 +789,7 @@ static const uint16_t KATHERINE_DAC_MAX[18] = {
  * ever exposed, this table gains a dimension rather than changing shape.
  */
 static const uint8_t KATHERINE_ACTUAL_PHASES[4][5] = {
-    /*              PHASE_1 PHASE_2 PHASE_4 PHASE_8 PHASE_16 */
+    // PHASE_1 PHASE_2 PHASE_4 PHASE_8 PHASE_16
     /* FREQ_20  */ {1, 2, 4, 8, 16},
     /* FREQ_40  */ {1, 2, 4, 8, 16},
     /* FREQ_80  */ {1, 1, 2, 4, 8},
@@ -812,9 +812,9 @@ static const uint8_t KATHERINE_ACTUAL_PHASES[4][5] = {
 uint8_t
 katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
 {
-    /* Signed comparison on purpose: both parameters are enumerations, and a
-       caller passing a negative value would otherwise index far outside the
-       table after conversion to an unsigned index. */
+    // Signed comparison on purpose: both parameters are enumerations, and a
+    // caller passing a negative value would otherwise index far outside the
+    // table after conversion to an unsigned index.
     if ((int) freq < 0 || (int) freq > FREQ_160) return 0;
     if ((int) phase < 0 || (int) phase > PHASE_16) return 0;
 
@@ -849,8 +849,8 @@ katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
 bool
 katherine_freq_is_fast_vco_supported(katherine_freq_t freq)
 {
-    /* Table 17 answers "Fast Time Stamping" Yes for the Fin/8 divider alone,
-       in both DualEdgeClock rows. */
+    // Table 17 answers "Fast Time Stamping" Yes for the Fin/8 divider alone,
+    // in both DualEdgeClock rows.
     return freq == FREQ_40;
 }
 

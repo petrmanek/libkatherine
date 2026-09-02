@@ -24,8 +24,8 @@ typedef katherine_px_f_toa_tot_t px_t;
 // pixels during the acquisition.
 static const bool test_pulse = false;
 
-/* How the hit lines below report time. Each costs a little more than the last
-   and says a little more; see the three handlers for what that buys. */
+// How the hit lines below report time. Each costs a little more than the last
+// and says a little more; see the three handlers for what that buys.
 typedef enum krun_toa_format {
     KRUN_TOA_TIMESTAMP, /* the decoded value as stored */
     KRUN_TOA_SECONDS,   /* whole seconds and nanoseconds within them */
@@ -165,9 +165,9 @@ frame_started(void *user_ctx, int frame_idx)
 
     printf("Started frame %d.\n", frame_idx);
 
-    /* Column labels have to follow the format actually printed, or a reader
-       silently misreads the wrong quantity. Not performance-critical: this
-       runs once per frame, not once per hit. */
+    // Column labels have to follow the format actually printed, or a reader
+    // silently misreads the wrong quantity. Not performance-critical: this
+    // runs once per frame, not once per hit.
     if (print_toa == KRUN_TOA_TIMESTAMP) {
         printf("X\tY\tTimestamp\tToT\n");
     } else if (print_toa == KRUN_TOA_SECONDS) {
@@ -192,12 +192,12 @@ frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame
     printf(" - end time: %" PRIu64 "\n", info->end_time.d);
 }
 
-/* The timestamp as the decoder produced it: fine-oscillator ticks, already
-   combined from the sensor's two counters. Nothing to call and nothing to get
-   wrong -- and because it is one monotonic integer, hits compare and subtract
-   directly, which is what ordering and clustering need. The unit is arbitrary
-   but uniform, so differences are meaningful even though absolute values are
-   not a physical time. */
+// The timestamp as the decoder produced it: fine-oscillator ticks, already
+// combined from the sensor's two counters. Nothing to call and nothing to get
+// wrong -- and because it is one monotonic integer, hits compare and subtract
+// directly, which is what ordering and clustering need. The unit is arbitrary
+// but uniform, so differences are meaningful even though absolute values are
+// not a physical time.
 void
 pixels_received_timestamp(void *user_ctx, const void *px, size_t count)
 {
@@ -211,11 +211,11 @@ pixels_received_timestamp(void *user_ctx, const void *px, size_t count)
     }
 }
 
-/* Physical time, which is what most consumers actually want. One call per hit
-   buys it, and the split into whole seconds and nanoseconds within them is
-   what keeps the result exact: a single double cannot hold the range a long
-   acquisition covers at this resolution. Summing the two parts back together
-   throws that away again. */
+// Physical time, which is what most consumers actually want. One call per hit
+// buys it, and the split into whole seconds and nanoseconds within them is
+// what keeps the result exact: a single double cannot hold the range a long
+// acquisition covers at this resolution. Summing the two parts back together
+// throws that away again.
 void
 pixels_received_seconds(void *user_ctx, const void *px, size_t count)
 {
@@ -233,12 +233,12 @@ pixels_received_seconds(void *user_ctx, const void *px, size_t count)
     }
 }
 
-/* The sensor's own counters, for comparing against a raw capture or against
-   what libkatherine reported before timestamps existed. The decoder combined
-   them, so this undoes that -- including the offset applied to this pixel's
-   double column, which is read rather than assumed zero so the code stays
-   right if phase correction is switched on. Needs the acquisition, both for
-   the divider it resolved and for that offset. */
+// The sensor's own counters, for comparing against a raw capture or against
+// what libkatherine reported before timestamps existed. The decoder combined
+// them, so this undoes that -- including the offset applied to this pixel's
+// double column, which is read rather than assumed zero so the code stays
+// right if phase correction is switched on. Needs the acquisition, both for
+// the divider it resolved and for that offset.
 void
 pixels_received_counters(void *user_ctx, const void *px, size_t count)
 {
@@ -246,7 +246,7 @@ pixels_received_counters(void *user_ctx, const void *px, size_t count)
 
     n_hits += count;
 
-    /* Fixed for the acquisition, so it is read once rather than per hit. */
+    // Fixed for the acquisition, so it is read once rather than per hit.
     const uint8_t shift = acq->toa_coarse_tick_to_fine_shift;
 
     const px_t *dpx = (const px_t *) px;
@@ -281,8 +281,8 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
     int res;
     katherine_acquisition_t acq;
 
-    /* The handlers are given the acquisition itself: they need the divider it
-       resolved in order to interpret the timestamps it produces. */
+    // The handlers are given the acquisition itself: they need the divider it
+    // resolved in order to interpret the timestamps it produces.
     res = katherine_acquisition_init(
         &acq, dev, &acq, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 65536, 500, 10000);
     if (res != 0) {

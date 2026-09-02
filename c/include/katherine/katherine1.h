@@ -21,54 +21,53 @@
  * @{
  */
 
-/*
- * 2.0 replaced the return convention of every function below: each used to
- * return 0 on success and a positive `<errno.h>` value on failure, and now
- * returns 0 or the negative of a katherine_error_t enumerator (see
- * katherine/error.h). This header lets source written against 1.x keep
- * compiling unmodified against the 2.0 library: for each affected function,
- * it defines a katherine1_<name>() wrapper that calls the 2.0 function and
- * translates the result back to the 1.x convention, then renames the 1.x
- * symbol onto that wrapper with a function-like macro. Nothing here changes
- * behavior beyond the return value -- arguments, semantics and struct
- * layouts are exactly the 2.0 ones.
- *
- * Not every 1.x function needs a wrapper: katherine_*_snprint() (a
- * snprintf()-style length, never an error code), the str_*() lookups, and
- * the plain getters/setters of px_config.h never used the errno convention
- * and are unaffected. Functions with no 1.x history at all -- e.g.
- * katherine_udp_last_os_error(), katherine_strerror(), katherine_version()
- * -- have no 1.x name to preserve and so are not wrapped either.
- *
- * This header exports no new symbols of its own: every wrapper is `static
- * inline`, so linking 1.x source against the 2.0 library needs nothing this
- * header did not already provide as C source. The ABI break itself is
- * announced by the SONAME bump to libkatherine.so.2, not by anything here.
- *
- * Each wrapper also carries a deprecation attribute, so a consumer still
- * calling it under its 1.x name sees a compiler warning at its own call
- * site (see KATHERINE1_DEPRECATED below). This header, and the
- * compatibility it provides, is removed in libkatherine 3.0.
- *
- * The wrappers for katherine/emulator.h are declared only if that header
- * was already included before this one (KATHERINE_EMU_CRD_SIZE is defined):
- * emulator.h is not pulled in by katherine/katherine.h above, and is not
- * installed at all unless the library was built with KATHERINE_BUILD_EMULATOR,
- * so this header cannot include it unconditionally itself. A consumer of the
- * emulator therefore has to include emulator.h *before* this header to get
- * 1.x return values from it; the other order compiles just as well but
- * leaves the emulator's own calls on the 2.0 convention, without a
- * diagnostic to say so.
- *
- * The #define renames below are ordered after every wrapper definition in
- * this file on purpose: each wrapper's body calls the real 2.0 function by
- * its plain name, and a rename macro in scope at that call would rewrite it
- * into a call to the wrapper itself, recursing forever. Once the last
- * wrapper is defined, nothing in this header calls a renamed name again, so
- * the macros are safe to introduce from that point on -- including into any
- * 1.x call site later in the same translation unit, which is the point of
- * them.
- */
+//
+// 2.0 replaced the return convention of every function below: each used to
+// return 0 on success and a positive `<errno.h>` value on failure, and now
+// returns 0 or the negative of a katherine_error_t enumerator (see
+// katherine/error.h). This header lets source written against 1.x keep
+// compiling unmodified against the 2.0 library: for each affected function,
+// it defines a katherine1_<name>() wrapper that calls the 2.0 function and
+// translates the result back to the 1.x convention, then renames the 1.x
+// symbol onto that wrapper with a function-like macro. Nothing here changes
+// behavior beyond the return value -- arguments, semantics and struct
+// layouts are exactly the 2.0 ones.
+//
+// Not every 1.x function needs a wrapper: katherine_*_snprint() (a
+// snprintf()-style length, never an error code), the str_*() lookups, and
+// the plain getters/setters of px_config.h never used the errno convention
+// and are unaffected. Functions with no 1.x history at all -- e.g.
+// katherine_udp_last_os_error(), katherine_strerror(), katherine_version()
+// -- have no 1.x name to preserve and so are not wrapped either.
+//
+// This header exports no new symbols of its own: every wrapper is `static
+// inline`, so linking 1.x source against the 2.0 library needs nothing this
+// header did not already provide as C source. The ABI break itself is
+// announced by the SONAME bump to libkatherine.so.2, not by anything here.
+//
+// Each wrapper also carries a deprecation attribute, so a consumer still
+// calling it under its 1.x name sees a compiler warning at its own call
+// site (see KATHERINE1_DEPRECATED below). This header, and the
+// compatibility it provides, is removed in libkatherine 3.0.
+//
+// The wrappers for katherine/emulator.h are declared only if that header
+// was already included before this one (KATHERINE_EMU_CRD_SIZE is defined):
+// emulator.h is not pulled in by katherine/katherine.h above, and is not
+// installed at all unless the library was built with KATHERINE_BUILD_EMULATOR,
+// so this header cannot include it unconditionally itself. A consumer of the
+// emulator therefore has to include emulator.h *before* this header to get
+// 1.x return values from it; the other order compiles just as well but
+// leaves the emulator's own calls on the 2.0 convention, without a
+// diagnostic to say so.
+//
+// The #define renames below are ordered after every wrapper definition in
+// this file on purpose: each wrapper's body calls the real 2.0 function by
+// its plain name, and a rename macro in scope at that call would rewrite it
+// into a call to the wrapper itself, recursing forever. Once the last
+// wrapper is defined, nothing in this header calls a renamed name again, so
+// the macros are safe to introduce from that point on -- including into any
+// 1.x call site later in the same translation unit, which is the point of
+// them.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -82,24 +81,24 @@
 #define KATHERINE1_DEPRECATED
 #endif
 
-/* Single point of translation from the 2.0 return convention (0, or the
-   negative of a katherine_error_t enumerator) to the 1.x one (0, or a
-   positive <errno.h> value); every wrapper below funnels its result through
-   this rather than repeating the mapping.
-
-   1.x reported a failed address resolution or bind as EINVAL, not a
-   dedicated code of its own (see katherine_udp_init_bound() as of the
-   1.1.0 release, the last one before this convention changed): both its
-   local- and remote-address branches set `res = EINVAL` on an inet_pton()
-   failure. KATHERINE_E_ADDR is the 2.0 enumerator that condition now maps
-   to, hence the explicit case below rather than letting it fall to EIO.
-
-   Every other katherine_error_t enumerator collapses onto EIO: 1.x had no
-   single code for "malformed command response" or "unsupported by this
-   device" either, since it had no error domain of its own to begin with,
-   only whatever the failing syscall happened to set. A caller that needs
-   the precise 2.0 cause should read the library's own return value with
-   katherine_strerror() instead of going through this shim. */
+// Single point of translation from the 2.0 return convention (0, or the
+// negative of a katherine_error_t enumerator) to the 1.x one (0, or a
+// positive <errno.h> value); every wrapper below funnels its result through
+// this rather than repeating the mapping.
+//
+// 1.x reported a failed address resolution or bind as EINVAL, not a
+// dedicated code of its own (see katherine_udp_init_bound() as of the
+// 1.1.0 release, the last one before this convention changed): both its
+// local- and remote-address branches set `res = EINVAL` on an inet_pton()
+// failure. KATHERINE_E_ADDR is the 2.0 enumerator that condition now maps
+// to, hence the explicit case below rather than letting it fall to EIO.
+//
+// Every other katherine_error_t enumerator collapses onto EIO: 1.x had no
+// single code for "malformed command response" or "unsupported by this
+// device" either, since it had no error domain of its own to begin with,
+// only whatever the failing syscall happened to set. A caller that needs
+// the precise 2.0 cause should read the library's own return value with
+// katherine_strerror() instead of going through this shim.
 static inline int
 katherine1_map_result(int result)
 {
@@ -116,7 +115,7 @@ katherine1_map_result(int result)
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-/* device.h */
+// device.h
 
 /** 1.x-named wrapper for katherine_device_init(). */
 KATHERINE1_DEPRECATED
@@ -126,7 +125,7 @@ katherine1_device_init(katherine_device_t *device, const char *addr)
     return katherine1_map_result(katherine_device_init(device, addr));
 }
 
-/* config.h */
+// config.h
 
 /** 1.x-named wrapper for katherine_dacs_validate(). */
 KATHERINE1_DEPRECATED
@@ -248,7 +247,7 @@ katherine1_set_test_pulses(katherine_device_t *device, const katherine_test_puls
     return katherine1_map_result(katherine_set_test_pulses(device, tp_config));
 }
 
-/* px_config.h */
+// px_config.h
 
 /** 1.x-named wrapper for katherine_px_config_load_bmc_file(). */
 KATHERINE1_DEPRECATED
@@ -282,7 +281,7 @@ katherine1_px_config_load_bpc_data(katherine_px_config_t *px_config, const kathe
     return katherine1_map_result(katherine_px_config_load_bpc_data(px_config, bpc));
 }
 
-/* status.h */
+// status.h
 
 /** 1.x-named wrapper for katherine_get_readout_status(). */
 KATHERINE1_DEPRECATED
@@ -347,7 +346,7 @@ katherine1_get_adc_voltage(katherine_device_t *device, unsigned char channel_id,
     return katherine1_map_result(katherine_get_adc_voltage(device, channel_id, voltage));
 }
 
-/* acquisition.h */
+// acquisition.h
 
 /** 1.x-named wrapper for katherine_acquisition_init(). */
 KATHERINE1_DEPRECATED
@@ -389,7 +388,7 @@ katherine1_acquisition_read(katherine_acquisition_t *acq)
     return katherine1_map_result(katherine_acquisition_read(acq));
 }
 
-/* udp.h */
+// udp.h
 
 /** 1.x-named wrapper for katherine_udp_init(). */
 KATHERINE1_DEPRECATED
@@ -455,7 +454,7 @@ katherine1_udp_mutex_unlock(katherine_udp_t *u)
     return katherine1_map_result(katherine_udp_mutex_unlock(u));
 }
 
-/* emulator.h -- see the file header for why this is conditional. */
+// emulator.h -- see the file header for why this is conditional.
 #ifdef KATHERINE_EMU_CRD_SIZE
 
 /** 1.x-named wrapper for katherine_emu_init(). */
@@ -492,11 +491,10 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 
 #endif /* KATHERINE_EMU_CRD_SIZE */
 
-/*
- * Renames onto the wrappers above, in the 1.x names. See the file header
- * for why these must come after every wrapper definition above rather than
- * before.
- */
+//
+// Renames onto the wrappers above, in the 1.x names. See the file header
+// for why these must come after every wrapper definition above rather than
+// before.
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #define katherine_device_init(...)                katherine1_device_init(__VA_ARGS__)

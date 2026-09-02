@@ -28,12 +28,11 @@
 #include <stdint.h>
 #include <katherine/global.h>
 
-/*
- * IMPORTANT NOTICE:
- *
- * The following interface is internal.
- * It is not intended for user application access.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -45,11 +44,11 @@
 
 #ifdef KATHERINE_WIN
 
-/* Monotonic timestamp in nanoseconds since an arbitrary epoch.
- * POSIX: clock_gettime(CLOCK_MONOTONIC). Windows: QueryPerformanceCounter,
- * frequency cached on first use; ticks are split into whole seconds and
- * remainder before scaling so the conversion cannot overflow uint64_t for
- * decades of uptime. */
+// Monotonic timestamp in nanoseconds since an arbitrary epoch.
+// POSIX: clock_gettime(CLOCK_MONOTONIC). Windows: QueryPerformanceCounter,
+// frequency cached on first use; ticks are split into whole seconds and
+// remainder before scaling so the conversion cannot overflow uint64_t for
+// decades of uptime.
 static inline uint64_t
 katherine_clock_monotonic_ns(void)
 {
@@ -86,11 +85,11 @@ katherine_clock_monotonic_ns(void)
 
 #else /* KATHERINE_NIX */
 
-/* Monotonic timestamp in nanoseconds since an arbitrary epoch.
- * POSIX: clock_gettime(CLOCK_MONOTONIC). Windows: QueryPerformanceCounter,
- * frequency cached on first use; ticks are split into whole seconds and
- * remainder before scaling so the conversion cannot overflow uint64_t for
- * decades of uptime. */
+// Monotonic timestamp in nanoseconds since an arbitrary epoch.
+// POSIX: clock_gettime(CLOCK_MONOTONIC). Windows: QueryPerformanceCounter,
+// frequency cached on first use; ticks are split into whole seconds and
+// remainder before scaling so the conversion cannot overflow uint64_t for
+// decades of uptime.
 static inline uint64_t
 katherine_clock_monotonic_ns(void)
 {

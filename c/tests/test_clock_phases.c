@@ -33,9 +33,9 @@
 static void
 test_actual_phases_table(void)
 {
-    /* Rows in katherine_freq_t order, columns in katherine_phase_t order. */
+    // Rows in katherine_freq_t order, columns in katherine_phase_t order.
     static const uint8_t expected[4][5] = {
-        /*              PHASE_1 PHASE_2 PHASE_4 PHASE_8 PHASE_16 */
+        // PHASE_1 PHASE_2 PHASE_4 PHASE_8 PHASE_16
         /* FREQ_20  */ {1, 2, 4, 8, 16},
         /* FREQ_40  */ {1, 2, 4, 8, 16},
         /* FREQ_80  */ {1, 1, 2, 4, 8},
@@ -52,22 +52,22 @@ test_actual_phases_table(void)
 static void
 test_actual_phases_clamping_is_real(void)
 {
-    /* The three cells the naming would get wrong, called out on their own so a
-       regression names the case rather than an index. */
+    // The three cells the naming would get wrong, called out on their own so a
+    // regression names the case rather than an index.
     KT_CHECK_EQ(katherine_actual_phases(FREQ_160, PHASE_16), 4);
     KT_CHECK_EQ(katherine_actual_phases(FREQ_80, PHASE_16), 8);
     KT_CHECK_EQ(katherine_actual_phases(FREQ_160, PHASE_2), 1);
 
-    /* And the one where the name does hold, so the test is not merely
-       asserting that everything is clamped. */
+    // And the one where the name does hold, so the test is not merely
+    // asserting that everything is clamped.
     KT_CHECK_EQ(katherine_actual_phases(FREQ_40, PHASE_16), 16);
 }
 
 static void
 test_actual_phases_rejects_out_of_range(void)
 {
-    /* 0 means "no answer", which is distinguishable from every real count:
-       the table's smallest entry is 1. */
+    // 0 means "no answer", which is distinguishable from every real count:
+    // the table's smallest entry is 1.
     KT_CHECK_EQ(katherine_actual_phases((katherine_freq_t) (FREQ_160 + 1), PHASE_1), 0);
     KT_CHECK_EQ(katherine_actual_phases(FREQ_40, (katherine_phase_t) (PHASE_16 + 1)), 0);
     KT_CHECK_EQ(katherine_actual_phases((katherine_freq_t) -1, PHASE_1), 0);

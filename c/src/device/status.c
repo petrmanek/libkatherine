@@ -33,11 +33,11 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
-    /* Every inquiry below opens the same way: the session is flushed before
-       the command goes out, so a response an earlier exchange left behind
-       cannot be read as this one's. Correlation catches a response
-       identified as some other command's; only the flush catches a stale
-       response of the *same* command, which would correlate perfectly. */
+    // Every inquiry below opens the same way: the session is flushed before
+    // the command goes out, so a response an earlier exchange left behind
+    // cannot be read as this one's. Correlation catches a response
+    // identified as some other command's; only the flush catches a stale
+    // response of the *same* command, which would correlate perfectly.
     katherine_cmd_drain(&device->control_socket);
 
     res = katherine_cmd_get_readout_status(&device->control_socket);
@@ -220,8 +220,8 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 {
     int res;
 
-    /* Before the lock and before any I/O: nothing about this call is safe to
-       begin while a measurement is in flight. */
+    // Before the lock and before any I/O: nothing about this call is safe to
+    // begin while a measurement is in flight.
     if (device->acquisition != NULL) return -KATHERINE_E_STATE;
 
     res = katherine_udp_mutex_lock(&device->control_socket);

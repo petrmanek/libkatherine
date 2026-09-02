@@ -12,26 +12,24 @@
 
 #pragma once
 
-/*
- * IMPORTANT NOTICE:
- *
- * The following interface is internal.
- * It is not intended for user application access.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #include "bitfields.h"
 #include <katherine/px.h>
 
-/* MD stands for Measurement Data, the 6 byte
- * messages sent during (or after) acquisition.
- *
- * There are various types of MD's, some contain
- * metadata about the measurement, others can be
- * directly mapped to active pixels. Below are
- * defined all MD's recognized by this library.
- */
+// MD stands for Measurement Data, the 6 byte
+// messages sent during (or after) acquisition.
+//
+// There are various types of MD's, some contain
+// metadata about the measurement, others can be
+// directly mapped to active pixels. Below are
+// defined all MD's recognized by this library.
 
 #define _BITS_md_header_start                44
 #define _BITS_md_header_mask                 MASK(4)
@@ -62,28 +60,27 @@
 #define _BITS_md_lost_px_n_lost_type         uint64_t
 
 
-/* For MD's which correspond to pixels, we
- * define a direct mapping function named by
- * the following template:
- *
- *   pmd_{A}_map(dst, src, acq)
- *
- * This function is responsible for mapping MD
- * `src` of bitfield pmd_{A} to a pixel `dst` of
- * type katherine_px_{A}_t. Below are defined
- * such functions for all pixel types.
- */
+// For MD's which correspond to pixels, we
+// define a direct mapping function named by
+// the following template:
+//
+// pmd_{A}_map(dst, src, acq)
+//
+// This function is responsible for mapping MD
+// `src` of bitfield pmd_{A} to a pixel `dst` of
+// type katherine_px_{A}_t. Below are defined
+// such functions for all pixel types.
 
 #define DEFINE_PMD_MAP(SUFFIX) \
     static inline void \
     pmd_##SUFFIX##_map(katherine_px_##SUFFIX##_t *dst, const uint64_t *src, const katherine_acquisition_t *acq)
 
-/* Timestamp-bearing decoders are instantiated once per pixel-clock divider, so
-   the coarse-to-fine scale is a constant the compiler can see. Reading it from
-   the acquisition instead costs a variable shift, and reading a ratio rather
-   than a shift costs a multiply; both measured, both material at the rates this
-   loop is built for. The four dividers are the only ones the chip offers, so
-   the set is closed. */
+// Timestamp-bearing decoders are instantiated once per pixel-clock divider, so
+// the coarse-to-fine scale is a constant the compiler can see. Reading it from
+// the acquisition instead costs a variable shift, and reading a ratio rather
+// than a shift costs a multiply; both measured, both material at the rates this
+// loop is built for. The four dividers are the only ones the chip offers, so
+// the set is closed.
 #define DEFINE_PMD_MAP_S(SUFFIX, SHIFT) \
     static inline void \
     pmd_##SUFFIX##_s##SHIFT##_map( \
@@ -98,33 +95,33 @@
 #define DEFINE_PMD_PAIR(NAME, TYPE, BASE_TYPE) \
     dst->NAME = (TYPE) EXTRACT(*src, BASE_TYPE, NAME)
 
-/* Combine the chip's coarse and fine counters into one timestamp in fine ticks.
-
-   FTOA is the fine term as an expression rather than a field name, because the
-   coarse-only wire formats have no ftoa bit triad and a macro that extracted
-   one unconditionally would not compile against them; they pass 0 and the
-   compiler folds it away.
-
-   The fine counter measures how far the hit preceded its coarse tick, so it is
-   subtracted. That cannot underflow: katherine_acquisition_begin() biases the
-   epoch by the larger of one coarse tick and the fine field's span, so the
-   difference stays representable without a per-hit test. One coarse tick alone
-   would not do at the shorter dividers, where a coarse tick is 4 or 8 fine
-   ticks against a field spanning 16. See the timestamp
-   notes in px.h -- the bias is visible to callers and must not be removed
-   here without removing it there.
-
-   acq->last_toa_offset carries that bias and is kept in fine ticks, so no
-   scaling happens per hit.
-
-   The double-column phase offset is ADDED. A later clock phase means a later
-   latching edge and so a smaller timestamp, and adding the offset back is what
-   equalises hits that arrived together -- measured on I8-W00036, and the
-   opposite sign to the reference implementation's data parser. The table is
-   filled only when the decoder is the one correcting, so this adds an
-   unconditional zero otherwise and needs no test for whether correction is in
-   effect. DEFINE_PMD_PAIR_COORD must therefore run FIRST: the lookup reads the
-   coordinate this line depends on. */
+// Combine the chip's coarse and fine counters into one timestamp in fine ticks.
+//
+// FTOA is the fine term as an expression rather than a field name, because the
+// coarse-only wire formats have no ftoa bit triad and a macro that extracted
+// one unconditionally would not compile against them; they pass 0 and the
+// compiler folds it away.
+//
+// The fine counter measures how far the hit preceded its coarse tick, so it is
+// subtracted. That cannot underflow: katherine_acquisition_begin() biases the
+// epoch by the larger of one coarse tick and the fine field's span, so the
+// difference stays representable without a per-hit test. One coarse tick alone
+// would not do at the shorter dividers, where a coarse tick is 4 or 8 fine
+// ticks against a field spanning 16. See the timestamp
+// notes in px.h -- the bias is visible to callers and must not be removed
+// here without removing it there.
+//
+// acq->last_toa_offset carries that bias and is kept in fine ticks, so no
+// scaling happens per hit.
+//
+// The double-column phase offset is ADDED. A later clock phase means a later
+// latching edge and so a smaller timestamp, and adding the offset back is what
+// equalises hits that arrived together -- measured on I8-W00036, and the
+// opposite sign to the reference implementation's data parser. The table is
+// filled only when the decoder is the one correcting, so this adds an
+// unconditional zero otherwise and needs no test for whether correction is in
+// effect. DEFINE_PMD_PAIR_COORD must therefore run FIRST: the lookup reads the
+// coordinate this line depends on.
 #define DEFINE_PMD_PAIR_TIMESTAMP(BASE_TYPE, SHIFT, FTOA) \
     dst->timestamp = (((uint64_t) EXTRACT(*src, BASE_TYPE, toa) << (SHIFT)) + acq->last_toa_offset) \
         - (uint64_t) (FTOA) + acq->phase_offsets[dst->coord.x]
@@ -268,12 +265,12 @@ DEFINE_PMD_MAP(f_event_itot)
     DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_f_event_itot);
 }
 
-/* Bits [3:0] carry the pixel hit counter only while the fast oscillator is
-   OFF; with it on they are dummy and the fast variant below has no field for
-   them (Tpx3 manual Figure 1, p8). Measured on a Gen1 readout: with the
-   oscillator off, a patch given N test pulses reads N here for N up to 14 and
-   saturates at 14 -- Table 4's limit for this counter, and what distinguishes
-   it from the fine-ToA field, which saturates at 15. */
+// Bits [3:0] carry the pixel hit counter only while the fast oscillator is
+// OFF; with it on they are dummy and the fast variant below has no field for
+// them (Tpx3 manual Figure 1, p8). Measured on a Gen1 readout: with the
+// oscillator off, a patch given N test pulses reads N here for N up to 14 and
+// saturates at 14 -- Table 4's limit for this counter, and what distinguishes
+// it from the fine-ToA field, which saturates at 15.
 #define _BITS_pmd_event_itot_hit_count_start    0
 #define _BITS_pmd_event_itot_hit_count_mask     MASK(4)
 #define _BITS_pmd_event_itot_hit_count_type     uint16_t

@@ -15,30 +15,28 @@
 #include <stdio.h>
 #include <katherine/katherine.h>
 
-/* This is the single source of truth for the human-readable rendering of
- * every printable public struct: one katherine_<name>_snprint() per type,
- * with exact snprintf() semantics (would-be length returned, safe
- * truncation, buf may be NULL when cap is 0), and one katherine_str_<enum>()
- * per printable enum. The C++ wrapper's operator<< overloads and the Python
- * bindings' __repr__ methods both delegate to these instead of reimplementing
- * any formatting, so all three surfaces render byte-identical strings.
- *
- * The output is always a single line: "<name>{field: value, field: value}",
- * where <name> is the struct name with the katherine_ prefix and _t suffix
- * stripped. A struct nested inside another (e.g. katherine_config_t's
- * dacs field) is rendered by calling its own snprint function, so a
- * change to one type's format is visible everywhere it nests.
- */
+// This is the single source of truth for the human-readable rendering of
+// every printable public struct: one katherine_<name>_snprint() per type,
+// with exact snprintf() semantics (would-be length returned, safe
+// truncation, buf may be NULL when cap is 0), and one katherine_str_<enum>()
+// per printable enum. The C++ wrapper's operator<< overloads and the Python
+// bindings' __repr__ methods both delegate to these instead of reimplementing
+// any formatting, so all three surfaces render byte-identical strings.
+//
+// The output is always a single line: "<name>{field: value, field: value}",
+// where <name> is the struct name with the katherine_ prefix and _t suffix
+// stripped. A struct nested inside another (e.g. katherine_config_t's
+// dacs field) is rendered by calling its own snprint function, so a
+// change to one type's format is visible everywhere it nests.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-/* Internal: given a growing buffer buf of capacity cap and a byte offset
- * off already accounted for by earlier appends (some possibly already
- * truncated, i.e. off may exceed cap), computes the destination pointer and
- * remaining room for the next append: NULL/0 once off has reached cap. This
- * is the one piece of overflow-clamp arithmetic every composing snprint
- * function below shares, through the two macros built on it.
- */
+// Internal: given a growing buffer buf of capacity cap and a byte offset
+// off already accounted for by earlier appends (some possibly already
+// truncated, i.e. off may exceed cap), computes the destination pointer and
+// remaining room for the next append: NULL/0 once off has reached cap. This
+// is the one piece of overflow-clamp arithmetic every composing snprint
+// function below shares, through the two macros built on it.
 static inline void
 repr_cursor(char *buf, size_t cap, size_t off, char **dst, size_t *rem)
 {
@@ -46,14 +44,13 @@ repr_cursor(char *buf, size_t cap, size_t off, char **dst, size_t *rem)
     *dst = *rem > 0 ? buf + off : NULL;
 }
 
-/* Appends formatted text at the current offset, exactly like one more
- * snprintf() call continuing the same string: off is advanced by the number
- * of bytes the append would have produced given unlimited room (snprintf()'s
- * own return value), so that after the last of a sequence of REPR_APPENDF /
- * REPR_NEST calls, off holds the true (possibly truncated) total length --
- * the same contract a single snprintf() call has, extended over the whole
- * composed string.
- */
+// Appends formatted text at the current offset, exactly like one more
+// snprintf() call continuing the same string: off is advanced by the number
+// of bytes the append would have produced given unlimited room (snprintf()'s
+// own return value), so that after the last of a sequence of REPR_APPENDF /
+// REPR_NEST calls, off holds the true (possibly truncated) total length --
+// the same contract a single snprintf() call has, extended over the whole
+// composed string.
 #define REPR_APPENDF(buf, cap, off, ...) \
     do { \
         char *dst_; \
@@ -62,13 +59,12 @@ repr_cursor(char *buf, size_t cap, size_t off, char **dst, size_t *rem)
         (off) += (size_t) snprintf(dst_, rem_, __VA_ARGS__); \
     } while (0)
 
-/* Appends the rendering of a nested katherine_*_t value, produced by
- * calling its own katherine_*_snprint() (fn) at the current offset -- the
- * same idiom as REPR_APPENDF above, except the appended text comes from
- * another snprint call instead of a format string. This is how every nested
- * struct (config's triggers/dacs/test_pulse_config, device's two udp
- * sessions, a pixel type's coord, ...) composes into its owner's string.
- */
+// Appends the rendering of a nested katherine_*_t value, produced by
+// calling its own katherine_*_snprint() (fn) at the current offset -- the
+// same idiom as REPR_APPENDF above, except the appended text comes from
+// another snprint call instead of a format string. This is how every nested
+// struct (config's triggers/dacs/test_pulse_config, device's two udp
+// sessions, a pixel type's coord, ...) composes into its owner's string.
 #define REPR_NEST(buf, cap, off, fn, ...) \
     do { \
         char *dst_; \
@@ -77,13 +73,12 @@ repr_cursor(char *buf, size_t cap, size_t off, char **dst, size_t *rem)
         (off) += (size_t) fn(dst_, rem_, __VA_ARGS__); \
     } while (0)
 
-/* 64-bit XOR fold of the pixel configuration word array: a fingerprint for
- * telling two matrices apart at a glance in a log line, not a checksum --
- * collisions are neither avoided nor detected. Consecutive words are paired
- * up (the earlier of the pair in the high half) into a uint64_t and XORed
- * together; the array size (16384) is fixed and even, so every word
- * participates in exactly one pair.
- */
+// 64-bit XOR fold of the pixel configuration word array: a fingerprint for
+// telling two matrices apart at a glance in a log line, not a checksum --
+// collisions are neither avoided nor detected. Consecutive words are paired
+// up (the earlier of the pair in the high half) into a uint64_t and XORed
+// together; the array size (16384) is fixed and even, so every word
+// participates in exactly one pair.
 static uint64_t
 px_config_xor64(const katherine_px_config_t *v)
 {
@@ -97,13 +92,12 @@ px_config_xor64(const katherine_px_config_t *v)
     return acc;
 }
 
-/* Hand-formats "A.B.C.D:port" from a sockaddr_in, without inet_ntop() (which
- * Windows declares in a different header than POSIX does): sin_addr and
- * sin_port are named the same on both platforms via katherine/udp_nix.h and
- * katherine/udp_win.h, and are the only members katherine_udp_snprint()
- * needs. buf must be at least 22 bytes ("255.255.255.255:65535" plus the
- * NUL); the caller below sizes it generously.
- */
+// Hand-formats "A.B.C.D:port" from a sockaddr_in, without inet_ntop() (which
+// Windows declares in a different header than POSIX does): sin_addr and
+// sin_port are named the same on both platforms via katherine/udp_nix.h and
+// katherine/udp_win.h, and are the only members katherine_udp_snprint()
+// needs. buf must be at least 22 bytes ("255.255.255.255:65535" plus the
+// NUL); the caller below sizes it generously.
 static void
 format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *addr)
 {

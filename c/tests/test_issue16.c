@@ -1,10 +1,9 @@
-/* Regression test for issue #16: buffered pixels are discarded when an
- * acquisition ends without a frame-finished datum (e.g. times out).
- *
- * Drives the real read loop over a localhost UDP socket with a crafted
- * measurement-data stream, queued in with a second katherine_udp_t sender.
- * No hardware required.
- */
+// Regression test for issue #16: buffered pixels are discarded when an
+// acquisition ends without a frame-finished datum (e.g. times out).
+//
+// Drives the real read loop over a localhost UDP socket with a crafted
+// measurement-data stream, queued in with a second katherine_udp_t sender.
+// No hardware required.
 
 #include <stdio.h>
 #include <string.h>
@@ -20,12 +19,12 @@
 
 #define MD_SIZE     6
 
-/* High, uncommon ports of their own, distinct from every other fixed pair
-   registered in this tree (test_cmd_encoders.c's 42600/42601,
-   test_udp_pinning.c's 42555-42557, bench_udp.c's
-   47301/47302/47311/47312, the ksim daemon's 1555/1556): this fixture
-   claims no global resource, so the test needs no exclusive slot among the
-   others. */
+// High, uncommon ports of their own, distinct from every other fixed pair
+// registered in this tree (test_cmd_encoders.c's 42600/42601,
+// test_udp_pinning.c's 42555-42557, bench_udp.c's
+// 47301/47302/47311/47312, the ksim daemon's 1555/1556): this fixture
+// claims no global resource, so the test needs no exclusive slot among the
+// others.
 #define PORT_DATA   42610
 #define PORT_SENDER 42611
 
@@ -80,16 +79,16 @@ static int
 run_case(bool send_frame_finished, struct stats *s)
 {
     katherine_device_t dev;
-    /* Zeroed whole: this device is built by hand rather than by
-       katherine_device_init(), and katherine_device_t carries fields beyond
-       the two sessions -- the borrowed acquisition among them, which
-       katherine_device_fini() acts on. */
+    // Zeroed whole: this device is built by hand rather than by
+    // katherine_device_init(), and katherine_device_t carries fields beyond
+    // the two sessions -- the borrowed acquisition among them, which
+    // katherine_device_fini() acts on.
     memset(&dev, 0, sizeof(dev));
     memset(&dev, 0, sizeof(dev));
 
-    /* Only the data socket is used by the read loop. 100 ms recv timeout.
-       Bound to a fixed port on loopback, so the sender below can be pointed
-       at it directly instead of discovering an OS-picked one. */
+    // Only the data socket is used by the read loop. 100 ms recv timeout.
+    // Bound to a fixed port on loopback, so the sender below can be pointed
+    // at it directly instead of discovering an OS-picked one.
     int res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, 100);
     KT_CHECK(res == 0);
     if (res != 0) {
@@ -114,10 +113,10 @@ run_case(bool send_frame_finished, struct stats *s)
     acq.handlers.frame_started   = frame_started;
     acq.handlers.frame_ended     = frame_ended;
 
-    /* Stand in for katherine_acquisition_begin (which needs hardware). */
+    // Stand in for katherine_acquisition_begin (which needs hardware).
     acq.state = ACQUISITION_RUNNING;
-    /* Resolved by katherine_acquisition_begin() in a real run; the decoder is
-       instantiated per pixel-clock divider and refuses to guess one. */
+    // Resolved by katherine_acquisition_begin() in a real run; the decoder is
+    // instantiated per pixel-clock divider and refuses to guess one.
     acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(FREQ_40);
     acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40);
     acq.acq_mode                      = ACQUISITION_MODE_TOA_TOT;
@@ -127,7 +126,7 @@ run_case(bool send_frame_finished, struct stats *s)
     acq.requested_frame_duration      = 0.0;
     acq.acq_start_time                = time(NULL);
 
-    /* Craft the stream: frame start, 5 pixels, optionally frame finished. */
+    // Craft the stream: frame start, 5 pixels, optionally frame finished.
     unsigned char packet[7 * MD_SIZE];
     size_t n = 0;
     make_md(packet + (n++) * MD_SIZE, 0x7, 0);
@@ -150,7 +149,7 @@ run_case(bool send_frame_finished, struct stats *s)
     return res;
 }
 
-/* Case 1: normal completion -- behavior must be unchanged. */
+// Case 1: normal completion -- behavior must be unchanged.
 static void
 test_case_completed(void)
 {
@@ -172,7 +171,7 @@ test_case_completed(void)
     KT_CHECK(s.last_received_pixels == 5);
 }
 
-/* Case 2: acquisition times out mid-frame -- issue #16. */
+// Case 2: acquisition times out mid-frame -- issue #16.
 static void
 test_case_interrupted(void)
 {

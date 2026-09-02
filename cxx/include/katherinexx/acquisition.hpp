@@ -50,9 +50,9 @@ enum class phase_correction {
     hardware = KATHERINE_PHASE_CORRECTION_HARDWARE
 };
 
-/* acq_mode itself now lives in config.hpp (see the comment there); this
-   header still uses it unqualified below via the katherinexx/config.hpp
-   include above. */
+// acq_mode itself now lives in config.hpp (see the comment there); this
+// header still uses it unqualified below via the katherinexx/config.hpp
+// include above.
 
 using frame_info = katherine_frame_info_t;
 
@@ -113,7 +113,7 @@ public:
             throw katherine::system_error{res};
         }
 
-        /* TODO: uncomment in C++2a */
+        // TODO: uncomment in C++2a
         acq_.handlers = {
             /* .pixels_received = */ nullptr,
             /* .frame_started = */ base_acquisition::forward_frame_started,

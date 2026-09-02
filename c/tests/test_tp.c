@@ -28,8 +28,8 @@
 
 #define CO(X, Y) ((katherine_coord_t) {.x = (uint8_t) (X), .y = (uint8_t) (Y)})
 
-/* ------------------------------------------------------------------ */
-/* Test 1: pixel test-bit helpers                                      */
+// ------------------------------------------------------------------
+// Test 1: pixel test-bit helpers
 
 static void
 test_px_helpers(void)
@@ -63,11 +63,11 @@ test_px_helpers(void)
         15,
     };
 
-    /* Cross-validate against the BMC loader: a BMC byte at file index
-       y*256 + x carries mask (bit 0), the threshold nibble (bits 1-4) and test
-       (bit 5). That nibble is a raw register image, so it holds Thr[3:0] in
-       storage order -- reversed against the DAC value the accessors take, per
-       Tpx3 manual Table 23. */
+    // Cross-validate against the BMC loader: a BMC byte at file index
+    // y*256 + x carries mask (bit 0), the threshold nibble (bits 1-4) and test
+    // (bit 5). That nibble is a raw register image, so it holds Thr[3:0] in
+    // storage order -- reversed against the DAC value the accessors take, per
+    // Tpx3 manual Table 23.
     katherine_bmc_t *bmc = calloc(1, sizeof(katherine_bmc_t));
     KT_REQUIRE(bmc != NULL);
     for (int i = 0; i < n_coords; ++i) {
@@ -79,8 +79,8 @@ test_px_helpers(void)
     katherine_px_config_t loaded;
     KT_CHECK(katherine_px_config_load_bmc_data(&loaded, bmc) == 0);
 
-    /* The same pixels set through the helpers on an empty matrix must
-       produce a bit-identical configuration. */
+    // The same pixels set through the helpers on an empty matrix must
+    // produce a bit-identical configuration.
     katherine_px_config_t manual;
     memset(&manual, 0, sizeof(manual));
     for (int i = 0; i < n_coords; ++i) {
@@ -90,12 +90,12 @@ test_px_helpers(void)
     }
     KT_CHECK(memcmp(&loaded, &manual, sizeof(loaded)) == 0);
 
-    /* The BPC format carries the threshold nibble in DAC order, the same order
-       the accessors now use, so its bytes need no permutation here -- the
-       loader applies the one the storage order requires. Mask and test bits
-       are format-invariant. Note this is the mirror image of the BMC bytes
-       above: before 2.0 the two were written the other way round, because the
-       setter stored the nibble unreversed. */
+    // The BPC format carries the threshold nibble in DAC order, the same order
+    // the accessors now use, so its bytes need no permutation here -- the
+    // loader applies the one the storage order requires. Mask and test bits
+    // are format-invariant. Note this is the mirror image of the BMC bytes
+    // above: before 2.0 the two were written the other way round, because the
+    // setter stored the nibble unreversed.
     katherine_bpc_t *bpc = calloc(1, sizeof(katherine_bpc_t));
     KT_REQUIRE(bpc != NULL);
     for (int i = 0; i < n_coords; ++i) {
@@ -107,7 +107,7 @@ test_px_helpers(void)
     KT_CHECK(katherine_px_config_load_bpc_data(&loaded_bpc, bpc) == 0);
     KT_CHECK(memcmp(&loaded_bpc, &manual, sizeof(loaded_bpc)) == 0);
 
-    /* Getter round-trip, exact bit location and clearing. */
+    // Getter round-trip, exact bit location and clearing.
     for (int i = 0; i < n_coords; ++i) {
         KT_CHECK(katherine_px_config_get_test_bit(&manual, CO(coords[i][0], coords[i][1])));
         KT_CHECK(katherine_px_config_get_mask_bit(&manual, CO(coords[i][0], coords[i][1])));
@@ -133,7 +133,7 @@ test_px_helpers(void)
     katherine_px_config_set_loc_thl(&manual, CO(7, 3), 0);
     KT_CHECK(katherine_px_config_get_loc_thl(&manual, CO(7, 3)) == 0);
 
-    /* The helpers must not disturb the other per-pixel bits. */
+    // The helpers must not disturb the other per-pixel bits.
     katherine_px_config_t nonzero, all_ff;
     memset(&nonzero, 0xFF, sizeof(nonzero));
     memset(&all_ff, 0xFF, sizeof(all_ff));
@@ -149,11 +149,11 @@ test_px_helpers(void)
     katherine_px_config_set_loc_thl(&nonzero, CO(42, 17), 15);
     KT_CHECK(memcmp(&nonzero, &all_ff, sizeof(nonzero)) == 0);
 
-    /* Every round trip above is self-inverse, so it would hold with or without
-       the reversal. These are the asymmetric values -- 1 stores as 8, 2 as 4 --
-       checked against a BMC image, which is the only way to see the stored
-       nibble through the public interface. The fixed points 0, 6, 9 and 15
-       cannot distinguish the two orders at all. */
+    // Every round trip above is self-inverse, so it would hold with or without
+    // the reversal. These are the asymmetric values -- 1 stores as 8, 2 as 4 --
+    // checked against a BMC image, which is the only way to see the stored
+    // nibble through the public interface. The fixed points 0, 6, 9 and 15
+    // cannot distinguish the two orders at all.
     static const unsigned char asymmetric[][2] = {{1, 8}, {2, 4}, {3, 12}, {7, 14}, {8, 1}, {14, 7}};
     for (size_t i = 0; i < sizeof(asymmetric) / sizeof(asymmetric[0]); ++i) {
         const unsigned char dac = asymmetric[i][0], stored = asymmetric[i][1];
@@ -176,8 +176,8 @@ test_px_helpers(void)
     free(bpc);
 }
 
-/* ------------------------------------------------------------------ */
-/* Test 2: parameter validation (device is never touched on -KATHERINE_E_INVAL) */
+// ------------------------------------------------------------------
+// Test 2: parameter validation (device is never touched on -KATHERINE_E_INVAL)
 
 static void
 test_validation(void)
@@ -210,21 +210,21 @@ test_validation(void)
     KT_CHECK(katherine_set_test_pulses(NULL, &bad) == -KATHERINE_E_INVAL);
 }
 
-/* ------------------------------------------------------------------ */
-/* Test 3: byte-exact datagram check against a mock readout            */
+// ------------------------------------------------------------------
+// Test 3: byte-exact datagram check against a mock readout
 
-/* katherine_set_test_pulses() sends the command and then blocks in a
-   retrying wait for its acknowledgement (config.c), all inside one opaque
-   library call: the test cannot step in between the send and the receive
-   the way the inline ping-pong of bench_udp's run_cmd_roundtrips() does, so
-   the mock readout that supplies the acknowledgement genuinely has to run
-   on its own thread, concurrently with that call, rather than lockstep in
-   this one. */
+// katherine_set_test_pulses() sends the command and then blocks in a
+// retrying wait for its acknowledgement (config.c), all inside one opaque
+// library call: the test cannot step in between the send and the receive
+// the way the inline ping-pong of bench_udp's run_cmd_roundtrips() does, so
+// the mock readout that supplies the acknowledgement genuinely has to run
+// on its own thread, concurrently with that call, rather than lockstep in
+// this one.
 
-/* MOCK_TIMEOUT_MS bounds how long the mock readout waits for the command: on
-   the happy path it arrives within microseconds of katherine_set_test_pulses
-   sending it, so this is pure headroom against scheduling jitter, not a
-   value the test ever expects to actually wait out. */
+// MOCK_TIMEOUT_MS bounds how long the mock readout waits for the command: on
+// the happy path it arrives within microseconds of katherine_set_test_pulses
+// sending it, so this is pure headroom against scheduling jitter, not a
+// value the test ever expects to actually wait out.
 #define MOCK_TIMEOUT_MS 5000
 
 static katherine_udp_t mock_endpoint;
@@ -242,11 +242,11 @@ mock_readout(void *arg)
         exit(1);
     }
 
-    /* Acknowledge: echo the command id with zero response data. The mock
-       endpoint is never pinned, so katherine_udp_recv() above already
-       retargeted its remote address at whoever just sent the command --
-       exactly the server behavior katherine_udp_pin_remote() documents as
-       the unpinned default. */
+    // Acknowledge: echo the command id with zero response data. The mock
+    // endpoint is never pinned, so katherine_udp_recv() above already
+    // retargeted its remote address at whoever just sent the command --
+    // exactly the server behavior katherine_udp_pin_remote() documents as
+    // the unpinned default.
     unsigned char ack[8] = {0};
     ack[6]               = mock_captured[6];
     (void) katherine_udp_send_exact(&mock_endpoint, ack, sizeof(ack));
@@ -273,26 +273,26 @@ test_datagram(void)
     static const uint16_t MOCK_PORT  = 45679;
     static const uint16_t LOCAL_PORT = 45678;
 
-    /* Mock readout endpoint, over the public katherine_udp_* API alone. */
+    // Mock readout endpoint, over the public katherine_udp_* API alone.
     KT_REQUIRE(
         katherine_udp_init_bound(&mock_endpoint, "127.0.0.1", MOCK_PORT, "127.0.0.1", LOCAL_PORT, MOCK_TIMEOUT_MS)
         == 0);
 
-    /* Device whose control socket points at the mock. A failed init leaves
-       device.control_socket in an indeterminate state (its mutex is never
-       constructed on this path), so bail out of the whole suite rather
-       than risk destroying it later via katherine_udp_fini. */
+    // Device whose control socket points at the mock. A failed init leaves
+    // device.control_socket in an indeterminate state (its mutex is never
+    // constructed on this path), so bail out of the whole suite rather
+    // than risk destroying it later via katherine_udp_fini.
     katherine_device_t device;
-    /* Zeroed whole: this device is built by hand rather than by
-       katherine_device_init(), and katherine_device_t carries fields beyond
-       the two sessions -- the borrowed acquisition among them, which
-       katherine_device_fini() acts on. */
+    // Zeroed whole: this device is built by hand rather than by
+    // katherine_device_init(), and katherine_device_t carries fields beyond
+    // the two sessions -- the borrowed acquisition among them, which
+    // katherine_device_fini() acts on.
     memset(&device, 0, sizeof(device));
     KT_REQUIRE(katherine_udp_init(&device.control_socket, LOCAL_PORT, "127.0.0.1", MOCK_PORT, 2000) == 0);
 
-    /* Reference case from the vendor C# TPSetting implementation:
-       100 pulses, period 65 cycles (register 1), phase 0, enabled,
-       analog, internal -> {100, 0, 1, 0, 4, 0, 0x26, 0}. */
+    // Reference case from the vendor C# TPSetting implementation:
+    // 100 pulses, period 65 cycles (register 1), phase 0, enabled,
+    // analog, internal -> {100, 0, 1, 0, 4, 0, 0x26, 0}.
     katherine_test_pulse_config_t tp = {
         .enabled      = true,
         .digital_only = false,
@@ -303,28 +303,28 @@ test_datagram(void)
     };
     send_and_capture(&device, &tp, (const unsigned char[8]) {100, 0, 1, 0, 0x04, 0, 0x26, 0});
 
-    /* The example configuration: 100 pulses, period 6401 cycles (register
-       100 = 6400/64), phase 0. */
+    // The example configuration: 100 pulses, period 6401 cycles (register
+    // 100 = 6400/64), phase 0.
     tp.period = 6401;
     send_and_capture(&device, &tp, (const unsigned char[8]) {100, 0, 100, 0, 0x04, 0, 0x26, 0});
 
-    /* Wide count (LE split), digital, phase 5; period 16321 is the
-       maximum (register 255). */
+    // Wide count (LE split), digital, phase 5; period 16321 is the
+    // maximum (register 255).
     tp.count        = 0xBEEF;
     tp.period       = 16321;
     tp.phase        = 5;
     tp.digital_only = true;
     send_and_capture(&device, &tp, (const unsigned char[8]) {0xEF, 0xBE, 255, 5, 0x05, 0, 0x26, 0});
 
-    /* External source: count/period/phase do not apply -- neither
-       validated (out-of-range values below) nor transmitted. */
+    // External source: count/period/phase do not apply -- neither
+    // validated (out-of-range values below) nor transmitted.
     tp.count    = 0;
     tp.period   = 0;
     tp.phase    = 99;
     tp.external = true;
     send_and_capture(&device, &tp, (const unsigned char[8]) {0, 0, 0, 0, 0x07, 0, 0x26, 0});
 
-    /* Disabled: deterministic all-zero payload regardless of other fields. */
+    // Disabled: deterministic all-zero payload regardless of other fields.
     tp.enabled = false;
     send_and_capture(&device, &tp, (const unsigned char[8]) {0, 0, 0, 0, 0, 0, 0x26, 0});
 

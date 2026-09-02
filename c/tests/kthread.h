@@ -28,12 +28,11 @@
 #include <errno.h>
 #include <katherine/global.h>
 
-/*
- * IMPORTANT NOTICE:
- *
- * The following interface is internal.
- * It is not intended for user application access.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -47,10 +46,10 @@
 #include <pthread.h>
 #endif
 
-/* One thread started with kthread_start(), and the only operation this
- * suite's mock readouts ever need afterwards: a single blocking join. No
- * detach, no cancellation -- kspawn_proc_t is the model to extend if a future
- * test needs more. */
+// One thread started with kthread_start(), and the only operation this
+// suite's mock readouts ever need afterwards: a single blocking join. No
+// detach, no cancellation -- kspawn_proc_t is the model to extend if a future
+// test needs more.
 typedef struct kthread {
 #ifdef KATHERINE_WIN
     HANDLE handle;
@@ -63,10 +62,10 @@ typedef struct kthread {
 
 #ifdef KATHERINE_WIN
 
-/* Adapts a pthread-style start routine (returns void *, as every caller of
- * this header writes one) to the DWORD WINAPI signature CreateThread()
- * requires. The returned value is discarded, exactly as pthread_join(...,
- * NULL) below discards it. */
+// Adapts a pthread-style start routine (returns void *, as every caller of
+// this header writes one) to the DWORD WINAPI signature CreateThread()
+// requires. The returned value is discarded, exactly as pthread_join(...,
+// NULL) below discards it.
 static DWORD WINAPI
 kthread_trampoline(LPVOID param)
 {
@@ -75,12 +74,12 @@ kthread_trampoline(LPVOID param)
     return 0;
 }
 
-/* Starts fn(arg) on a new thread. Returns 0 on success, an errno-shaped
- * value otherwise -- CreateThread() fails with a GetLastError() code, not an
- * errno value, and there is no meaningful platform-independent mapping
- * between the two domains, so EAGAIN simply flags "could not start" to
- * callers that only branch on zero/non-zero (same reasoning as
- * kspawn_start()'s use of ENOENT). */
+// Starts fn(arg) on a new thread. Returns 0 on success, an errno-shaped
+// value otherwise -- CreateThread() fails with a GetLastError() code, not an
+// errno value, and there is no meaningful platform-independent mapping
+// between the two domains, so EAGAIN simply flags "could not start" to
+// callers that only branch on zero/non-zero (same reasoning as
+// kspawn_start()'s use of ENOENT).
 static inline int
 kthread_start(kthread_t *t, void *(*fn)(void *), void *arg)
 {
@@ -93,9 +92,9 @@ kthread_start(kthread_t *t, void *(*fn)(void *), void *arg)
     return 0;
 }
 
-/* Blocks until the thread started by kthread_start() has returned. Returns 0
- * on success, an errno-shaped value otherwise (see kthread_start() for why
- * EINVAL stands in for a GetLastError() code here). */
+// Blocks until the thread started by kthread_start() has returned. Returns 0
+// on success, an errno-shaped value otherwise (see kthread_start() for why
+// EINVAL stands in for a GetLastError() code here).
 static inline int
 kthread_join(kthread_t *t)
 {
@@ -107,17 +106,17 @@ kthread_join(kthread_t *t)
 
 #else /* KATHERINE_NIX */
 
-/* Starts fn(arg) on a new thread. Returns 0 on success, an errno value
- * otherwise (pthread_create()'s own return convention). */
+// Starts fn(arg) on a new thread. Returns 0 on success, an errno value
+// otherwise (pthread_create()'s own return convention).
 static inline int
 kthread_start(kthread_t *t, void *(*fn)(void *), void *arg)
 {
     return pthread_create(&t->thread, NULL, fn, arg);
 }
 
-/* Blocks until the thread started by kthread_start() has returned. Returns 0
- * on success, an errno value otherwise (pthread_join()'s own return
- * convention). */
+// Blocks until the thread started by kthread_start() has returned. Returns 0
+// on success, an errno value otherwise (pthread_join()'s own return
+// convention).
 static inline int
 kthread_join(kthread_t *t)
 {

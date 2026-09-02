@@ -27,15 +27,15 @@ namespace katherine {
  * @{
  */
 
-/* Note: katherine_udp_mutex_lock()/katherine_udp_mutex_unlock() are
-   deliberately not wrapped here. They exist to let a caller hold the
-   session's mutex across several C API calls that must observe it as one
-   unit (e.g. a send followed by the matching receive); a lock/unlock pair
-   with nothing in between them would not provide that, and a scoped-lock
-   wrapper would either have to expose the raw katherine_udp_t (defeating
-   the point of this class) or accept an arbitrary callback, which is more
-   machinery than this thin session wrapper is meant to carry. Callers who
-   need the mutex reach it through c_udp(). */
+// Note: katherine_udp_mutex_lock()/katherine_udp_mutex_unlock() are
+// deliberately not wrapped here. They exist to let a caller hold the
+// session's mutex across several C API calls that must observe it as one
+// unit (e.g. a send followed by the matching receive); a lock/unlock pair
+// with nothing in between them would not provide that, and a scoped-lock
+// wrapper would either have to expose the raw katherine_udp_t (defeating
+// the point of this class) or accept an arbitrary callback, which is more
+// machinery than this thin session wrapper is meant to carry. Callers who
+// need the mutex reach it through c_udp().
 class udp {
     katherine_udp_t udp_;
 
@@ -80,8 +80,8 @@ public:
         }
     }
 
-    /* count is in/out, exactly as in the C call: it carries the buffer
-       capacity in and the number of bytes actually received out. */
+    // count is in/out, exactly as in the C call: it carries the buffer
+    // capacity in and the number of bytes actually received out.
     void
     recv(void *data, std::size_t& count)
     {

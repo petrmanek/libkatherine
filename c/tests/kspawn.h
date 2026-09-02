@@ -31,12 +31,11 @@
 #include <stddef.h>
 #include <katherine/global.h>
 
-/*
- * IMPORTANT NOTICE:
- *
- * The following interface is internal.
- * It is not intended for user application access.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -55,9 +54,9 @@
 #include <unistd.h>
 #endif
 
-/* One spawned child process. Zero-initialize (`= {0}`) before use if any
- * function other than kspawn_start() may run first: every function is a
- * no-op on a structure that owns no child, but only if the flag says so. */
+// One spawned child process. Zero-initialize (`= {0}`) before use if any
+// function other than kspawn_start() may run first: every function is a
+// no-op on a structure that owns no child, but only if the flag says so.
 typedef struct kspawn_proc {
 #ifdef KATHERINE_WIN
     HANDLE handle; /* process handle, valid while owned */
@@ -69,9 +68,9 @@ typedef struct kspawn_proc {
 
 #ifdef KATHERINE_WIN
 
-/* Upper bound on the command line built from argv: every character of every
- * argument could be a backslash that has to be doubled, and each argument
- * adds a pair of quotes plus a separating space. */
+// Upper bound on the command line built from argv: every character of every
+// argument could be a backslash that has to be doubled, and each argument
+// adds a pair of quotes plus a separating space.
 static inline size_t
 kspawn_cmdline_size(char *const argv[])
 {
@@ -84,12 +83,12 @@ kspawn_cmdline_size(char *const argv[])
     return total;
 }
 
-/* Appends one argument to a command line in the quoting dialect
- * CommandLineToArgvW() -- and hence the CRT startup code of the child --
- * parses back: the argument is wrapped in quotes, a run of backslashes is
- * doubled only where it precedes a quote (embedded or closing), and an
- * embedded quote is escaped with one further backslash. Writes at most the
- * per-argument allowance of kspawn_cmdline_size(). */
+// Appends one argument to a command line in the quoting dialect
+// CommandLineToArgvW() -- and hence the CRT startup code of the child --
+// parses back: the argument is wrapped in quotes, a run of backslashes is
+// doubled only where it precedes a quote (embedded or closing), and an
+// embedded quote is escaped with one further backslash. Writes at most the
+// per-argument allowance of kspawn_cmdline_size().
 static inline void
 kspawn_append_quoted(char *out, size_t *len, const char *arg)
 {
@@ -105,8 +104,8 @@ kspawn_append_quoted(char *out, size_t *len, const char *arg)
         }
 
         if (*p == '\0') {
-            /* Trailing backslashes end up in front of the closing quote,
-               where they would escape it, so they double as well. */
+            // Trailing backslashes end up in front of the closing quote,
+            // where they would escape it, so they double as well.
             for (size_t i = 0; i < 2 * slashes; ++i) out[n++] = '\\';
             break;
         }
@@ -119,10 +118,10 @@ kspawn_append_quoted(char *out, size_t *len, const char *arg)
     *len     = n;
 }
 
-/* Starts `path` with the NULL-terminated `argv` (argv[0] is the child's own
- * idea of its name, as on POSIX). The child inherits this process's standard
- * streams, so its diagnostics land wherever the parent's do. Returns 0 on
- * success, an errno value otherwise. */
+// Starts `path` with the NULL-terminated `argv` (argv[0] is the child's own
+// idea of its name, as on POSIX). The child inherits this process's standard
+// streams, so its diagnostics land wherever the parent's do. Returns 0 on
+// success, an errno value otherwise.
 static inline int
 kspawn_start(kspawn_proc_t *proc, const char *path, char *const argv[])
 {
@@ -171,9 +170,9 @@ kspawn_start(kspawn_proc_t *proc, const char *path, char *const argv[])
     return 0;
 }
 
-/* Reports whether the child is still running. A child observed to have
- * exited is reaped here and released, so that a later kspawn_stop() cannot
- * signal a process identifier the system has since reused. */
+// Reports whether the child is still running. A child observed to have
+// exited is reaped here and released, so that a later kspawn_stop() cannot
+// signal a process identifier the system has since reused.
 static inline bool
 kspawn_alive(kspawn_proc_t *proc)
 {
@@ -186,8 +185,8 @@ kspawn_alive(kspawn_proc_t *proc)
     return false;
 }
 
-/* Terminates the child and reaps it, blocking until it is gone. Idempotent:
- * a no-op once the child has been reaped, here or by kspawn_alive(). */
+// Terminates the child and reaps it, blocking until it is gone. Idempotent:
+// a no-op once the child has been reaped, here or by kspawn_alive().
 static inline void
 kspawn_stop(kspawn_proc_t *proc)
 {
@@ -205,10 +204,10 @@ kspawn_stop(kspawn_proc_t *proc)
 
 #else /* KATHERINE_NIX */
 
-/* Starts `path` with the NULL-terminated `argv` (argv[0] is the child's own
- * idea of its name, as on POSIX). The child inherits this process's standard
- * streams, so its diagnostics land wherever the parent's do. Returns 0 on
- * success, an errno value otherwise. */
+// Starts `path` with the NULL-terminated `argv` (argv[0] is the child's own
+// idea of its name, as on POSIX). The child inherits this process's standard
+// streams, so its diagnostics land wherever the parent's do. Returns 0 on
+// success, an errno value otherwise.
 static inline int
 kspawn_start(kspawn_proc_t *proc, const char *path, char *const argv[])
 {
@@ -235,9 +234,9 @@ kspawn_start(kspawn_proc_t *proc, const char *path, char *const argv[])
     return 0;
 }
 
-/* Reports whether the child is still running. A child observed to have
- * exited is reaped here and released, so that a later kspawn_stop() cannot
- * signal a process identifier the system has since reused. */
+// Reports whether the child is still running. A child observed to have
+// exited is reaped here and released, so that a later kspawn_stop() cannot
+// signal a process identifier the system has since reused.
 static inline bool
 kspawn_alive(kspawn_proc_t *proc)
 {
@@ -255,8 +254,8 @@ kspawn_alive(kspawn_proc_t *proc)
     return false;
 }
 
-/* Terminates the child and reaps it, blocking until it is gone. Idempotent:
- * a no-op once the child has been reaped, here or by kspawn_alive(). */
+// Terminates the child and reaps it, blocking until it is gone. Idempotent:
+// a no-op once the child has been reaped, here or by kspawn_alive().
 static inline void
 kspawn_stop(kspawn_proc_t *proc)
 {

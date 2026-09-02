@@ -22,7 +22,7 @@ void
 test_failed(const std::string& address)
 {
     (void) address;
-    /* Ignored */
+    // Ignored
 }
 
 void

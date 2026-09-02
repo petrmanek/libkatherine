@@ -56,9 +56,9 @@ public:
         return &dev_;
     }
 
-    /* Always false for now: this asks the readout, not a hardware-type table,
-       because the answer also depends on firmware; wiring up the real query
-       is future work. See katherine_device_can_correct_timestamp_phase(). */
+    // Always false for now: this asks the readout, not a hardware-type table,
+    // because the answer also depends on firmware; wiring up the real query
+    // is future work. See katherine_device_can_correct_timestamp_phase().
     bool
     can_correct_timestamp_phase() const
     {
@@ -163,11 +163,11 @@ public:
         return voltage;
     }
 
-    /* The following methods each drive one step of detector/readout
-       configuration; configure() runs the whole sequence katherine_configure()
-       does in the C API. Kept here (rather than on katherine::config, which
-       only models the parameter struct) to match where the Python wrapper
-       puts the equivalent calls: on the device. */
+    // The following methods each drive one step of detector/readout
+    // configuration; configure() runs the whole sequence katherine_configure()
+    // does in the C API. Kept here (rather than on katherine::config, which
+    // only models the parameter struct) to match where the Python wrapper
+    // puts the equivalent calls: on the device.
 
     void
     configure(const katherine::config& config)

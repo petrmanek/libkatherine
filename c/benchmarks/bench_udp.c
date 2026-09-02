@@ -40,13 +40,13 @@
 
 #include <katherine/udp.h>
 
-/* Internal header, provided by the katherine_private interface target:
-   wraps the platform monotonic clock. */
+// Internal header, provided by the katherine_private interface target:
+// wraps the platform monotonic clock.
 #include "monoclock.h"
 
-/* High, uncommon ports of their own -- distinct from c/tests/test_udp_pinning
-   (42555-42557) and the ksim daemon (1555/1556) -- so this benchmark claims
-   no port anything else registered in this tree might be using. */
+// High, uncommon ports of their own -- distinct from c/tests/test_udp_pinning
+// (42555-42557) and the ksim daemon (1555/1556) -- so this benchmark claims
+// no port anything else registered in this tree might be using.
 #define PORT_MD_TX        47301
 #define PORT_MD_RX        47302
 #define PORT_CMD_A        47311
@@ -59,10 +59,10 @@
 #define MD_BURST          32
 #define CMD_DGRAM_BYTES   8
 
-/* Every measurement keeps re-running its loop until it has measured at
-   least this many seconds, so that a fast host still gets a stable rate.
-   The KATHERINE_BENCH_MIN_SECONDS environment variable overrides the
-   default, for the same calibration purpose as in bench_decode. */
+// Every measurement keeps re-running its loop until it has measured at
+// least this many seconds, so that a fast host still gets a stable rate.
+// The KATHERINE_BENCH_MIN_SECONDS environment variable overrides the
+// default, for the same calibration purpose as in bench_decode.
 #define BENCH_MIN_SECONDS 2.0
 
 static double g_min_seconds = BENCH_MIN_SECONDS;
@@ -73,12 +73,12 @@ now_s(void)
     return 1e-9 * (double) katherine_clock_monotonic_ns();
 }
 
-/* Bursts of MD_BURST measurement-sized datagrams sent then drained, over a
-   pinned receiver -- the shipped configuration of katherine_device_t's data
-   socket (see katherine_udp_pin_remote() in c/src/device.c). Reports
-   udp_md_dgrams and udp_md_throughput, both from the one measured run: the
-   two are the same count read out in different units, so nothing is gained
-   by timing them separately. */
+// Bursts of MD_BURST measurement-sized datagrams sent then drained, over a
+// pinned receiver -- the shipped configuration of katherine_device_t's data
+// socket (see katherine_udp_pin_remote() in c/src/device.c). Reports
+// udp_md_dgrams and udp_md_throughput, both from the one measured run: the
+// two are the same count read out in different units, so nothing is gained
+// by timing them separately.
 static int
 run_md_throughput(void)
 {
@@ -131,11 +131,11 @@ run_md_throughput(void)
     return 0;
 }
 
-/* Command-sized (8-byte) request/reply round trips between two sessions in
-   this same process: A sends, B (the "helper loop", run inline right here)
-   receives and echoes back, A receives the echo. See the file comment for
-   why this models an upper bound rather than a real slow-control
-   transaction. Reports udp_cmd_roundtrips. */
+// Command-sized (8-byte) request/reply round trips between two sessions in
+// this same process: A sends, B (the "helper loop", run inline right here)
+// receives and echoes back, A receives the echo. See the file comment for
+// why this models an upper bound rather than a real slow-control
+// transaction. Reports udp_cmd_roundtrips.
 static int
 run_cmd_roundtrips(void)
 {
@@ -165,9 +165,9 @@ run_cmd_roundtrips(void)
             break;
         }
 
-        /* The helper loop: the responder side, right here in the same
-           thread -- loopback delivery is already complete by the time
-           send_exact() above returned, so there is nothing to wait for. */
+        // The helper loop: the responder side, right here in the same
+        // thread -- loopback delivery is already complete by the time
+        // send_exact() above returned, so there is nothing to wait for.
         if (katherine_udp_recv(&b, reply, &n) || n != CMD_DGRAM_BYTES) {
             failed = 1;
             break;

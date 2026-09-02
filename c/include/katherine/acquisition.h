@@ -89,12 +89,12 @@ typedef struct katherine_acquisition_handlers {
     void (*data_received)(void *, const char *, size_t); ///< Raw, undecoded measurement data as received
 } katherine_acquisition_handlers_t;
 
-/* 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
- * 1.2.17, the argument of CMD_TYPE_SEQ_READOUT_START): at least one mature
- * client implementation of this protocol inverts its own internal enum
- * (data-driven = 0) and compensates for it when encoding the command. Do
- * not "fix" this enum to match such an implementation; its values already
- * match the wire directly. */
+// 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
+// 1.2.17, the argument of CMD_TYPE_SEQ_READOUT_START): at least one mature
+// client implementation of this protocol inverts its own internal enum
+// (data-driven = 0) and compensates for it when encoding the command. Do
+// not "fix" this enum to match such an implementation; its values already
+// match the wire directly.
 typedef enum katherine_readout_type {
     READOUT_SEQUENTIAL  = 0, ///< Frame-based mode: hits are sequentially read out from the matrix at the end of each frame, potentially resulting in dead time between frames. At most the entire matrix (65k pixels) can be hit.
     READOUT_DATA_DRIVEN = 1  ///< Data-driven mode: hits are propagated through super-pixels while the measurement is ongoing, causing local (but importantly, not global) dead time. Be careful in noisy or data-intensive environments, this mode can produce a lot of data (up to 40 Mhit/s).
@@ -167,12 +167,12 @@ typedef struct katherine_acquisition {
     int completed_frames;
     size_t dropped_measurement_data;
 
-    /* Datagrams received that exactly filled md_buffer_size, the portable
-       heuristic for a receive that may have silently truncated a longer
-       datagram (see katherine_acquisition_init()). A datagram this size can
-       overcount, so this is a signal to raise md_buffer_size, not an exact
-       loss count. Reset by katherine_acquisition_begin(), like
-       dropped_measurement_data. */
+    // Datagrams received that exactly filled md_buffer_size, the portable
+    // heuristic for a receive that may have silently truncated a longer
+    // datagram (see katherine_acquisition_init()). A datagram this size can
+    // overcount, so this is a signal to raise md_buffer_size, not an exact
+    // loss count. Reset by katherine_acquisition_begin(), like
+    // dropped_measurement_data.
     uint64_t truncated_measurement_data;
 
     time_t acq_start_time;

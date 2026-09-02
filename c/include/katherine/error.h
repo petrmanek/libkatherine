@@ -33,24 +33,24 @@ extern "C" {
 typedef enum katherine_error {
     KATHERINE_E_OK = 0, ///< Success.
 
-    /* transport */
+    // transport
     KATHERINE_E_TIMEOUT, ///< The operation did not complete within its deadline.
     KATHERINE_E_IO,      ///< A send, receive or socket setup call failed at the OS level; see katherine_udp_last_os_error().
     KATHERINE_E_CLOSED,  ///< The session is no longer usable.
     KATHERINE_E_ADDR,    ///< An address could not be resolved or bound.
 
-    /* protocol */
+    // protocol
     KATHERINE_E_BAD_CRD, ///< A command response datagram had an unexpected shape.
     KATHERINE_E_STRAY,   ///< Datagrams belonging to no request in flight were rejected until the budget for them ran out; see katherine_udp_set_strict_ack().
     KATHERINE_E_PROTO,   ///< The readout violated the wire protocol.
 
-    /* device */
+    // device
     KATHERINE_E_UNSUPPORTED, ///< The operation is not supported by this device.
     KATHERINE_E_BAD_CHIP,    ///< The sensor chip identifier is invalid or unexpected.
     KATHERINE_E_STATE,       ///< The call is not valid in the object's current state.
     KATHERINE_E_HW_UNKNOWN,  ///< The hardware reported a condition this library does not recognize.
 
-    /* generic */
+    // generic
     KATHERINE_E_INVAL,  ///< An argument was invalid.
     KATHERINE_E_NOMEM,  ///< Memory allocation failed.
     KATHERINE_E_SYSTEM, ///< Some other OS-level failure; see katherine_udp_last_os_error() where applicable.

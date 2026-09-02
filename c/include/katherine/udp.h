@@ -25,11 +25,11 @@
 // Uncomment the following line to enable network trace:
 // #define KATHERINE_DEBUG_UDP 2
 
-/* Datagrams from another host that one receive call of a pinned session
- * (see katherine_udp_pin_remote()) discards before it gives up and reports
- * -KATHERINE_E_TIMEOUT. Each discard rearms the socket's receive timeout, so
- * an unbounded loop would let a chatty stray source stretch a call of a
- * session with a 100 ms timeout for as long as it kept sending. */
+// Datagrams from another host that one receive call of a pinned session
+// (see katherine_udp_pin_remote()) discards before it gives up and reports
+// -KATHERINE_E_TIMEOUT. Each discard rearms the socket's receive timeout, so
+// an unbounded loop would let a chatty stray source stretch a call of a
+// session with a 100 ms timeout for as long as it kept sending.
 #define KATHERINE_UDP_PIN_MAX_DISCARDS 32
 
 #ifdef __cplusplus
@@ -85,8 +85,8 @@ katherine_udp_mutex_lock(katherine_udp_t *u);
 KATHERINE_EXPORTED int
 katherine_udp_mutex_unlock(katherine_udp_t *u);
 
-/* The OS-level detail behind a session's last transport failure (0 if it
- * succeeded, or failed without one -- see katherine/error.h). */
+// The OS-level detail behind a session's last transport failure (0 if it
+// succeeded, or failed without one -- see katherine/error.h).
 KATHERINE_EXPORTED int
 katherine_udp_last_os_error(const katherine_udp_t *u);
 

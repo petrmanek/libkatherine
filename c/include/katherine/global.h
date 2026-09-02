@@ -19,9 +19,8 @@
  * @{
  */
 
-/* Useful macros courtesy of:
- * https://atomheartother.github.io/c++/2018/07/12/CPPDynLib.html
- */
+// Useful macros courtesy of:
+// https://atomheartother.github.io/c++/2018/07/12/CPPDynLib.html
 
 // clang-format off
 // Define KATHERINE_EXPORTED for any platform

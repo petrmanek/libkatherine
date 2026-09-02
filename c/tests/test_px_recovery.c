@@ -70,11 +70,11 @@
 #include "ktest.h"
 #include "msleep.h"
 
-/* ------------------------------------------------------------------ */
-/* Daemon parameters, as in test_e2e_acq.c: the numeric ones are needed both
-   as text (for the daemon's command line) and as integers (for the
-   expectations), so they are spelled once and stringified where a string is
-   wanted. */
+// ------------------------------------------------------------------
+// Daemon parameters, as in test_e2e_acq.c: the numeric ones are needed both
+// as text (for the daemon's command line) and as integers (for the
+// expectations), so they are spelled once and stringified where a string is
+// wanted.
 
 #define KPX_STR_(x)       #x
 #define KPX_STR(x)        KPX_STR_(x)
@@ -84,77 +84,77 @@
 #define HITS_PER_FRAME    40
 #define LOST_PER_FRAME    3
 
-/* Response datagram the daemon drops, counted from the first
-   pixel-configuration upload command (--drop-crd in tools/ksim/main.c). The
-   upload command itself is answered by nothing, and each of the 64 chunks
-   that follow it is consumed as configuration data rather than as a
-   command, so the first response of that count is the upload's own
-   completion acknowledgement: the ordinal is 1 by construction, and needs
-   no allowance for the readiness probing above, which is over before the
-   count begins. Confirmed against the daemon's --log output, where the drop
-   is reported between the last chunk of the upload and the matrix reset
-   command that follows it. */
+// Response datagram the daemon drops, counted from the first
+// pixel-configuration upload command (--drop-crd in tools/ksim/main.c). The
+// upload command itself is answered by nothing, and each of the 64 chunks
+// that follow it is consumed as configuration data rather than as a
+// command, so the first response of that count is the upload's own
+// completion acknowledgement: the ordinal is 1 by construction, and needs
+// no allowance for the readiness probing above, which is over before the
+// count begins. Confirmed against the daemon's --log output, where the drop
+// is reported between the last chunk of the upload and the matrix reset
+// command that follows it.
 #define DROP_DONE_ACK_CRD 1
 
-/* Chunk the daemon drops in the second case, counted over every 1024-byte
-   datagram it receives (--drop-px-chunk): the 64 chunks of the first upload
-   attempt, then the 3 x 64 filler datagrams of the recovery flood (also
-   1024 bytes each), then the chunks of the retry -- so the ordinal below
-   falls inside the retry, leaving *it* incomplete as well. Any of the
-   retry's 64 chunks would do, so the fourth is picked with room on either
-   side: filler datagrams lost on the way (the flood is sent unpaced) shift
-   the ordinal deeper into the retry, never out of it. */
+// Chunk the daemon drops in the second case, counted over every 1024-byte
+// datagram it receives (--drop-px-chunk): the 64 chunks of the first upload
+// attempt, then the 3 x 64 filler datagrams of the recovery flood (also
+// 1024 bytes each), then the chunks of the retry -- so the ordinal below
+// falls inside the retry, leaving *it* incomplete as well. Any of the
+// retry's 64 chunks would do, so the fourth is picked with room on either
+// side: filler datagrams lost on the way (the flood is sent unpaced) shift
+// the ordinal deeper into the retry, never out of it.
 #define UPLOAD_CHUNKS     64
 #define FLOOD_CHUNKS      (3 * UPLOAD_CHUNKS)
 #define DROP_RETRY_CHUNK  (UPLOAD_CHUNKS + FLOOD_CHUNKS + 4)
 
-/* Readiness polling: the device's control timeout is 100 ms, so one failed
-   attempt costs that much plus the sleep below -- 80 attempts bound the wait
-   at roughly ten seconds. */
+// Readiness polling: the device's control timeout is 100 ms, so one failed
+// attempt costs that much plus the sleep below -- 80 attempts bound the wait
+// at roughly ten seconds.
 #define READY_ATTEMPTS    80
 #define READY_SLEEP_MS    25
 
-/* Chip identifier of the emulated readout, from
-   katherine_emu_profile_defaults() in c/src/emu/emulator.c. A response
-   belonging to another command decodes to something else, which is what
-   makes this inquiry a test of the session rather than of the readout. */
+// Chip identifier of the emulated readout, from
+// katherine_emu_profile_defaults() in c/src/emu/emulator.c. A response
+// belonging to another command decodes to something else, which is what
+// makes this inquiry a test of the session rather than of the readout.
 #define EXPECTED_CHIP_ID  "A1-W0001"
 
-/* Shutter short enough that the coarse time of arrival cannot wrap within a
-   frame, as in test_e2e_acq.c. */
+// Shutter short enough that the coarse time of arrival cannot wrap within a
+// frame, as in test_e2e_acq.c.
 #define SHORT_ACQ_TIME_NS 400000.0
 
-/* Acquisition buffers and timeouts, as in test_e2e_acq.c. */
+// Acquisition buffers and timeouts, as in test_e2e_acq.c.
 #define MD_BUFFER_SIZE    (KATHERINE_MD_SIZE * 4096)
 #define PIXEL_BUFFER_HITS 1024
 #define REPORT_TIMEOUT_MS 500
 #define FAIL_TIMEOUT_MS   10000
 
-/* The acquisition mode under test, and the pixel layout it delivers. */
+// The acquisition mode under test, and the pixel layout it delivers.
 typedef katherine_px_f_toa_tot_t px_t;
 
-/* ------------------------------------------------------------------ */
-/* Fixture: one daemon and one device per case, because the datagrams to
-   lose are chosen on the daemon's command line and every case wants a
-   readout that has not been talked to yet. */
+// ------------------------------------------------------------------
+// Fixture: one daemon and one device per case, because the datagrams to
+// lose are chosen on the daemon's command line and every case wants a
+// readout that has not been talked to yet.
 
 static kspawn_proc_t g_ksim = {0};
 static katherine_device_t g_device;
 static bool g_device_open = false;
 static char g_error[256];
 
-/* Spawns the daemon, told to drop the completion acknowledgement of the
-   first pixel-configuration upload and, if drop_chunk is nonzero, that
-   1024-byte datagram of the upload as well; then waits for the readout to
-   answer a chip-identifier request with its own identifier. Returns NULL
-   once it does, or a description of what went wrong.
-
-   Readiness is the *content* of the answer, not merely a successful receive,
-   and the device is torn down and recreated between attempts -- both for the
-   reasons fixture_init() in test_e2e_acq.c documents: a command sent before
-   the daemon has bound its address comes straight back to the library's own
-   wildcard-bound control socket, which then reads it as the readout's
-   acknowledgement and leaves the session addressed to itself for good. */
+// Spawns the daemon, told to drop the completion acknowledgement of the
+// first pixel-configuration upload and, if drop_chunk is nonzero, that
+// 1024-byte datagram of the upload as well; then waits for the readout to
+// answer a chip-identifier request with its own identifier. Returns NULL
+// once it does, or a description of what went wrong.
+//
+// Readiness is the *content* of the answer, not merely a successful receive,
+// and the device is torn down and recreated between attempts -- both for the
+// reasons fixture_init() in test_e2e_acq.c documents: a command sent before
+// the daemon has bound its address comes straight back to the library's own
+// wildcard-bound control socket, which then reads it as the readout's
+// acknowledgement and leaves the session addressed to itself for good.
 static const char *
 fixture_start(const char *ksim_path, uint32_t drop_chunk)
 {
@@ -174,7 +174,7 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
         (char *) "--drop-crd",
         (char *) KPX_STR(DROP_DONE_ACK_CRD),
         (char *) "--quiet",
-        /* Filled in below, or left as the terminator. */
+        // Filled in below, or left as the terminator.
         NULL,
         NULL,
         NULL,
@@ -226,8 +226,8 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
     return g_error;
 }
 
-/* Releases the device and reaps the daemon. Safe to call at any point,
-   however far fixture_start() got, and safe to call twice. */
+// Releases the device and reaps the daemon. Safe to call at any point,
+// however far fixture_start() got, and safe to call twice.
 static void
 fixture_stop(void)
 {
@@ -239,10 +239,10 @@ fixture_stop(void)
     kspawn_stop(&g_ksim);
 }
 
-/* ------------------------------------------------------------------ */
-/* Acquisition fixture. Only the hit count and the frame bookkeeping are of
-   interest here: what the hits themselves carry is the subject of
-   test_e2e_acq.c. */
+// ------------------------------------------------------------------
+// Acquisition fixture. Only the hit count and the frame bookkeeping are of
+// interest here: what the hits themselves carry is the subject of
+// test_e2e_acq.c.
 
 typedef struct acq_probe {
     uint32_t frames_started;
@@ -283,12 +283,12 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
     KT_CHECK_EQ(info->lost_pixels, LOST_PER_FRAME);
 }
 
-/* Fills in a configuration equivalent to the one c/examples/krun.c uses,
-   less the pixel matrix: the emulated readout models the upload protocol
-   (it counts the 16384 configuration words and acknowledges them) but not
-   the matrix contents, so the zeroed matrix left by the memset below is
-   uploaded and accepted like any other. Mirrors configure() in
-   test_e2e_acq.c, whose acquisitions these have to compare against. */
+// Fills in a configuration equivalent to the one c/examples/krun.c uses,
+// less the pixel matrix: the emulated readout models the upload protocol
+// (it counts the 16384 configuration words and acknowledges them) but not
+// the matrix contents, so the zeroed matrix left by the memset below is
+// uploaded and accepted like any other. Mirrors configure() in
+// test_e2e_acq.c, whose acquisitions these have to compare against.
 static void
 configure(katherine_config_t *config, double acq_time_ns, int no_frames)
 {
@@ -321,15 +321,15 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
     config->dacs.named.Ibias_CP_PLL      = 128;
     config->dacs.named.PLL_Vcntrl        = 128;
 
-    /* The triggers, the delayed start and the test pulse generator are all
-       left disabled by the memset above. */
+    // The triggers, the delayed start and the test pulse generator are all
+    // left disabled by the memset above.
 }
 
-/* Runs one bounded data-driven acquisition of one frame and checks that it
-   delivered the frame the daemon was told to produce. The pixel matrix is
-   uploaded from inside katherine_acquisition_begin(), so this single call
-   covers the lost acknowledgement, the recovery, the retry and the
-   acquisition the session has to survive them for. */
+// Runs one bounded data-driven acquisition of one frame and checks that it
+// delivered the frame the daemon was told to produce. The pixel matrix is
+// uploaded from inside katherine_acquisition_begin(), so this single call
+// covers the lost acknowledgement, the recovery, the retry and the
+// acquisition the session has to survive them for.
 static void
 check_one_frame(void)
 {
@@ -350,8 +350,8 @@ check_one_frame(void)
     acq.handlers.frame_ended     = on_frame_ended;
     acq.handlers.pixels_received = on_pixels_received;
 
-    /* One frame only: katherine_acquisition_begin() rejects a data-driven
-       acquisition of more than one frame outright (-KATHERINE_E_INVAL). */
+    // One frame only: katherine_acquisition_begin() rejects a data-driven
+    // acquisition of more than one frame outright (-KATHERINE_E_INVAL).
     KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true),
         0);
     KT_CHECK_EQ(katherine_acquisition_read(&acq), 0);
@@ -368,11 +368,11 @@ check_one_frame(void)
     katherine_acquisition_fini(&acq);
 }
 
-/* ------------------------------------------------------------------ */
-/* a) The upload's acknowledgement is lost, nothing else. The recovery and
-   its retry put the readout back in a state where it takes commands, so the
-   acquisition itself comes through; what must not survive the recovery is
-   the queue of responses it provoked.                                    */
+// ------------------------------------------------------------------
+// a) The upload's acknowledgement is lost, nothing else. The recovery and
+// its retry put the readout back in a state where it takes commands, so the
+// acquisition itself comes through; what must not survive the recovery is
+// the queue of responses it provoked.
 
 static void
 test_acquisition_after_lost_upload_ack(void)
@@ -393,19 +393,19 @@ test_session_aligned_after_recovery(void)
     KT_CHECK(temperature > 0.0f);
 }
 
-/* ------------------------------------------------------------------ */
-/* b) The acknowledgement is lost and the retry loses a chunk of its own, as
-   observed on a loaded CI runner. This is the fatal form: unless the
-   recovery leaves the response queue empty, the retry's own wait pairs with
-   a leftover response and reports success while the readout is still
-   counting configuration words -- from where it swallows the rest of the
-   session, the acquisition start included, and no measurement data ever
-   arrives.
-
-   The daemon is restarted for this case, both because the datagrams to lose
-   are named on its command line and because the readout must not have been
-   configured beforehand. Its startup can no longer be a reason to skip: the
-   first case proved the environment can host it.                          */
+// ------------------------------------------------------------------
+// b) The acknowledgement is lost and the retry loses a chunk of its own, as
+// observed on a loaded CI runner. This is the fatal form: unless the
+// recovery leaves the response queue empty, the retry's own wait pairs with
+// a leftover response and reports success while the readout is still
+// counting configuration words -- from where it swallows the rest of the
+// session, the acquisition start included, and no measurement data ever
+// arrives.
+//
+// The daemon is restarted for this case, both because the datagrams to lose
+// are named on its command line and because the readout must not have been
+// configured beforehand. Its startup can no longer be a reason to skip: the
+// first case proved the environment can host it.
 
 static const char *g_restart_error = NULL;
 
@@ -416,7 +416,7 @@ test_acquisition_after_lost_ack_and_retry_chunk(void)
     check_one_frame();
 }
 
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
 
 int
 main(int argc, char *argv[])
@@ -433,9 +433,9 @@ main(int argc, char *argv[])
         return 77;
     }
 
-    /* No KT_* macro ever exits the process -- KT_REQUIRE returns from the
-       current test at most -- so the daemon is stopped and reaped on every
-       path out of this function. */
+    // No KT_* macro ever exits the process -- KT_REQUIRE returns from the
+    // current test at most -- so the daemon is stopped and reaped on every
+    // path out of this function.
     KT_RUN(test_acquisition_after_lost_upload_ack);
     KT_RUN(test_session_aligned_after_recovery);
     fixture_stop();

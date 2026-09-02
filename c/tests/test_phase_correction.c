@@ -41,9 +41,9 @@
 
 #include "ktest.h"
 
-/* Second implementation of the offset rule, written from the description
-   rather than from the library's code: double column i is on phase i mod n,
-   each phase one nth of a coarse tick later than the last. */
+// Second implementation of the offset rule, written from the description
+// rather than from the library's code: double column i is on phase i mod n,
+// each phase one nth of a coarse tick later than the last.
 static uint8_t
 expected_offset(katherine_freq_t freq, katherine_phase_t phase, uint8_t x)
 {
@@ -56,8 +56,8 @@ expected_offset(katherine_freq_t freq, katherine_phase_t phase, uint8_t x)
     return (uint8_t) ((dc % n) * (coarse / n));
 }
 
-/* An acquisition as begin() would have left it, except that the offset table
-   is filled from expected_offset() above. */
+// An acquisition as begin() would have left it, except that the offset table
+// is filled from expected_offset() above.
 static void
 fixture(katherine_acquisition_t *acq, katherine_freq_t freq, katherine_phase_t phase, bool correct)
 {
@@ -77,12 +77,12 @@ fixture(katherine_acquisition_t *acq, katherine_freq_t freq, katherine_phase_t p
 static const katherine_freq_t FREQS[]   = {FREQ_20, FREQ_40, FREQ_80, FREQ_160};
 static const katherine_phase_t PHASES[] = {PHASE_1, PHASE_2, PHASE_4, PHASE_8, PHASE_16};
 
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
 
-/* The offsets are whole fine ticks at every setting. That is what lets a
-   timestamp stay an integer, and it holds only because the phase count is the
-   CLAMPED one: dividing a coarse tick by the enumerator's own name would give
-   a quarter of a fine tick at the shortest divider. */
+// The offsets are whole fine ticks at every setting. That is what lets a
+// timestamp stay an integer, and it holds only because the phase count is the
+// CLAMPED one: dividing a coarse tick by the enumerator's own name would give
+// a quarter of a fine tick at the shortest divider.
 static void
 test_offsets_are_whole_fine_ticks(void)
 {
@@ -99,8 +99,8 @@ test_offsets_are_whole_fine_ticks(void)
         }
     }
 
-    /* Thirteen of the twenty settings actually stagger; if that ever became
-       zero this test would pass while checking nothing. */
+    // Thirteen of the twenty settings actually stagger; if that ever became
+    // zero this test would pass while checking nothing.
     KT_CHECK_EQ(staggered, 13u);
 }
 
@@ -122,9 +122,9 @@ test_accessor_reports_the_applied_offset(void)
     }
 }
 
-/* Both halves of a double column share a clock phase, so the offsets come in
-   equal pairs. Measured on hardware: the partner column matched in every row
-   of every run. */
+// Both halves of a double column share a clock phase, so the offsets come in
+// equal pairs. Measured on hardware: the partner column matched in every row
+// of every run.
 static void
 test_double_column_halves_share_a_phase(void)
 {
@@ -139,7 +139,7 @@ test_double_column_halves_share_a_phase(void)
     }
 }
 
-/* With correction off nothing is applied, whatever the phase setting. */
+// With correction off nothing is applied, whatever the phase setting.
 static void
 test_no_offset_without_correction(void)
 {
@@ -155,8 +155,8 @@ test_no_offset_without_correction(void)
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* What the decoder does with them.                                    */
+// ------------------------------------------------------------------
+// What the decoder does with them.
 
 static uint64_t
 decode_one(const katherine_acquisition_t *acq, uint8_t x, uint16_t coarse, uint8_t ftoa)
@@ -173,11 +173,11 @@ decode_one(const katherine_acquisition_t *acq, uint8_t x, uint16_t coarse, uint8
     return dst.timestamp;
 }
 
-/* The direction, which is the claim the hardware settled and which no document
-   would have given us. A later-phased column reports a SMALLER raw timestamp,
-   so correction must make it LARGER -- the offset is added. Subtracting, as
-   the reference implementation does, would move it the wrong way and double
-   the stagger instead of removing it. */
+// The direction, which is the claim the hardware settled and which no document
+// would have given us. A later-phased column reports a SMALLER raw timestamp,
+// so correction must make it LARGER -- the offset is added. Subtracting, as
+// the reference implementation does, would move it the wrong way and double
+// the stagger instead of removing it.
 static void
 test_correction_adds(void)
 {
@@ -203,12 +203,12 @@ test_correction_adds(void)
     KT_CHECK_EQ(compared, 15u);
 }
 
-/* And what the correction is for: hits that arrived together come out
-   together. Pixels in different double columns latch against edges staggered
-   by exactly the offsets, so a simultaneous arrival appears in the raw stream
-   as a coarse/fine pair that differs per column -- and correction must
-   collapse those to one timestamp. This is the same statement the hardware
-   test makes with test pulses. */
+// And what the correction is for: hits that arrived together come out
+// together. Pixels in different double columns latch against edges staggered
+// by exactly the offsets, so a simultaneous arrival appears in the raw stream
+// as a coarse/fine pair that differs per column -- and correction must
+// collapse those to one timestamp. This is the same statement the hardware
+// test makes with test pulses.
 static void
 test_simultaneous_hits_come_out_equal(void)
 {
@@ -221,12 +221,12 @@ test_simultaneous_hits_come_out_equal(void)
         const uint8_t x   = (uint8_t) (2 * dc);
         const uint8_t phi = expected_offset(FREQ_40, PHASE_16, x);
 
-        /* A later-phased column sees the same arrival as a smaller value, by
-           exactly its offset, which the fine counter absorbs. The fine field
-           holds four bits, so the offset itself is the largest fine value that
-           can stand in for it -- anything added on top would be masked away by
-           INSERT and would quietly make this test construct a different
-           arrival instead of the same one. */
+        // A later-phased column sees the same arrival as a smaller value, by
+        // exactly its offset, which the fine counter absorbs. The fine field
+        // holds four bits, so the offset itself is the largest fine value that
+        // can stand in for it -- anything added on top would be masked away by
+        // INSERT and would quietly make this test construct a different
+        // arrival instead of the same one.
         KT_REQUIRE(phi <= 15);
         const uint64_t t = decode_one(&on, x, 1000, phi);
 
@@ -235,10 +235,10 @@ test_simultaneous_hits_come_out_equal(void)
     }
 }
 
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
 
-/* Recovery has to undo the offset, or the residue the fine term is read from
-   is corrupted -- a phase offset is not a whole coarse tick. */
+// Recovery has to undo the offset, or the residue the fine term is read from
+// is corrupted -- a phase offset is not a whole coarse tick.
 static void
 test_recovery_undoes_correction(void)
 {
@@ -261,7 +261,7 @@ test_recovery_undoes_correction(void)
         KT_CHECK_EQ(ftoa, 9u);
         ++checked;
 
-        /* Forgetting the offset is wrong wherever there is one to forget. */
+        // Forgetting the offset is wrong wherever there is one to forget.
         if (phi != 0) {
             katherine_tpx3_timestamp_to_toa_ftoa(on.toa_coarse_tick_to_fine_shift, 0, t, &toa, &ftoa);
             KT_CHECK(toa != 4321u || ftoa != 9u);

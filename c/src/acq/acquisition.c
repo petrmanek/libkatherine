@@ -32,9 +32,9 @@ flush_buffer(katherine_acquisition_t *acq)
     acq->pixel_buffer_valid = 0;
 }
 
-/* The epoch bias, resolved once per acquisition rather than per use. Its size
-   and the reasons for it live with katherine_tpx3_toa_epoch_bias(); this is
-   only the spelling the cold paths below use. */
+// The epoch bias, resolved once per acquisition rather than per use. Its size
+// and the reasons for it live with katherine_tpx3_toa_epoch_bias(); this is
+// only the spelling the cold paths below use.
 #define KATHERINE_TOA_EPOCH_BIAS(acq) \
     katherine_tpx3_toa_epoch_bias((acq)->toa_coarse_tick_to_fine_shift)
 
@@ -63,11 +63,11 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 static inline void
 handle_timestamp_offset_driven_mode(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    /* The datum counts wraps of the chip's 14-bit coarse counter; scaling by
-       the coarse tick puts the offset in the fine ticks the timestamp uses, so
-       the decoder adds it without scaling anything per hit. The product stays a
-       whole multiple of the coarse tick, which is what lets the chip's own
-       counters be recovered from a timestamp later. */
+    // The datum counts wraps of the chip's 14-bit coarse counter; scaling by
+    // the coarse tick puts the offset in the fine ticks the timestamp uses, so
+    // the decoder adds it without scaling anything per hit. The product stays a
+    // whole multiple of the coarse tick, which is what lets the chip's own
+    // counters be recovered from a timestamp later.
     acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq)
         + ((uint64_t) EXTRACT(*data, md_time_offset, offset) << (14 + acq->toa_coarse_tick_to_fine_shift));
 }
@@ -153,7 +153,7 @@ handle_trigger_info(katherine_acquisition_t *acq, const uint64_t *data)
 {
     (void) acq;
     (void) data;
-    /* The info is discarded. */
+    // The info is discarded.
 }
 
 static inline void
@@ -256,10 +256,10 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
 int
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
 {
-    /* The phase state has to be defined before begin() runs: the offset
-       accessor is readable on an initialized acquisition, and a stray
-       HARDWARE value there would shift by an indeterminate amount. begin()
-       resolves these properly; this only makes the in-between state honest. */
+    // The phase state has to be defined before begin() runs: the offset
+    // accessor is readable on an initialized acquisition, and a stray
+    // HARDWARE value there would shift by an indeterminate amount. begin()
+    // resolves these properly; this only makes the in-between state honest.
     acq->phase_correction              = KATHERINE_PHASE_CORRECTION_NONE;
     acq->phase_count                   = 0;
     acq->toa_coarse_tick_to_fine_shift = 0;
@@ -441,9 +441,9 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         } \
     }
 
-/* Timestamp-bearing modes are instantiated once per pixel-clock divider so the
-   coarse-to-fine scale is a constant in the decode loop; see md.h. The two
-   Event+iToT modes carry no timestamp and so need only one instance each. */
+// Timestamp-bearing modes are instantiated once per pixel-clock divider so the
+// coarse-to-fine scale is a constant in the decode loop; see md.h. The two
+// Event+iToT modes carry no timestamp and so need only one instance each.
 #define DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, SHIFT) DEFINE_ACQ_IMPL(SUFFIX, _s##SHIFT, pmd_##SUFFIX##_s##SHIFT##_map)
 
 #define DEFINE_ACQ_IMPL_EVERY_SHIFT(SUFFIX) \
@@ -549,10 +549,10 @@ resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_con
 uint8_t
 katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
 {
-    /* The table is filled only where the decoder does the work. Where the
-       readout did it instead, the offset is real but absent from the table, so
-       it is computed -- this is a cold path and the arithmetic is the same
-       closed form the table was built from. */
+    // The table is filled only where the decoder does the work. Where the
+    // readout did it instead, the offset is real but absent from the table, so
+    // it is computed -- this is a cold path and the arithmetic is the same
+    // closed form the table was built from.
     if (acq->phase_correction == KATHERINE_PHASE_CORRECTION_HARDWARE) {
         return katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, coord.x);
     }
@@ -584,11 +584,11 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 {
     int res;
 
-    /* Two dimensions here, not one: the pixel format, and the pixel-clock
-       divider the timestamp decoders are instantiated over. A divider outside
-       the set means the acquisition never went through
-       katherine_acquisition_begin(), and is refused rather than guessed --
-       guessing would misscale every timestamp in the run. */
+    // Two dimensions here, not one: the pixel format, and the pixel-clock
+    // divider the timestamp decoders are instantiated over. A divider outside
+    // the set means the acquisition never went through
+    // katherine_acquisition_begin(), and is refused rather than guessed --
+    // guessing would misscale every timestamp in the run.
     switch (acq->acq_mode) {
     case ACQUISITION_MODE_TOA_TOT:
         if (acq->fast_vco_enabled) {
@@ -643,9 +643,9 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
         break;
     }
 
-    /* One exit for every mode and every outcome, the aborted and timed-out
-       ones included, so the device stops reporting a measurement in flight
-       exactly once and in one place. */
+    // One exit for every mode and every outcome, the aborted and timed-out
+    // ones included, so the device stops reporting a measurement in flight
+    // exactly once and in one place.
     acq->device->acquisition = NULL;
     return res;
 }
@@ -697,10 +697,10 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
         goto err;
     }
 
-    /* Fine time stamping is not coherent at every frequency; the predicate
-       owns the criterion. Refused here rather than passed to the sensor,
-       which would answer with a stream whose fine field cannot be subtracted
-       from its coarse one. */
+    // Fine time stamping is not coherent at every frequency; the predicate
+    // owns the criterion. Refused here rather than passed to the sensor,
+    // which would answer with a stream whose fine field cannot be subtracted
+    // from its coarse one.
     if (fast_vco_enabled && !katherine_freq_is_fast_vco_supported(config->freq)) {
         res = -KATHERINE_E_INVAL;
         goto err;
@@ -730,8 +730,8 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->phase_count                   = katherine_actual_phases(config->freq, config->phase);
     acq->phase_correction              = resolve_phase_correction(acq, config);
 
-    /* Only SOFTWARE puts anything in the table. Every other outcome leaves it
-       zeroed, which is what lets the decoder add unconditionally. */
+    // Only SOFTWARE puts anything in the table. Every other outcome leaves it
+    // zeroed, which is what lets the decoder add unconditionally.
     memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
     if (acq->phase_correction == KATHERINE_PHASE_CORRECTION_SOFTWARE) {
         for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {

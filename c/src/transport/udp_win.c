@@ -92,38 +92,38 @@ dump_buffer(const char *msg, const unsigned char *buf, size_t count)
 }
 #endif /* KATHERINE_DEBUG_UDP */
 
-/* True if a datagram received from addr counts as coming from the pinned
-   remote of session u.
-
-   Only the host is compared, never the port: a readout answers commands from
-   its command port but streams measurement data from another one (1556 vs
-   1555 for the emulated readout), and no source port of the firmware is
-   specified anywhere, whereas the hazard a pin guards against -- another
-   peer's stray datagram becoming the session's remote -- is a property of
-   the host. */
+// True if a datagram received from addr counts as coming from the pinned
+// remote of session u.
+//
+// Only the host is compared, never the port: a readout answers commands from
+// its command port but streams measurement data from another one (1556 vs
+// 1555 for the emulated readout), and no source port of the firmware is
+// specified anywhere, whereas the hazard a pin guards against -- another
+// peer's stray datagram becoming the session's remote -- is a property of
+// the host.
 static bool
 from_pinned_remote(const katherine_udp_t *u, const SOCKADDR_IN *addr)
 {
     return addr->sin_addr.s_addr == u->addr_remote.sin_addr.s_addr;
 }
 
-/* Reports whether a datagram is already queued on the socket of session u,
-   without waiting for one to arrive: 0 if the recvfrom() that follows will
-   not block, -KATHERINE_E_TIMEOUT if the socket is empty -- the same code the
-   EAGAIN of a MSG_DONTWAIT receive maps to on POSIX.
-
-   Winsock has no MSG_DONTWAIT, and switching the socket to non-blocking mode
-   around a receive would disturb the SO_RCVTIMEO every other call of this
-   file relies on, so the queue is inspected instead. FIONREAD in preference
-   to a zero-timeout select(): one call, no descriptor set, and no dependency
-   on the loop the platform's FD_SET macro expands to.
-
-   One blind spot follows from asking for a byte count: a zero-length
-   datagram is indistinguishable from an empty socket, so it is not drained
-   here. Only katherine_cmd_drain() reaches this path, and it is best-effort
-   by contract -- a datagram it leaves behind is read by the correlation that
-   follows, which rejects anything that is not a whole response. The readout
-   sends no empty datagrams at all. */
+// Reports whether a datagram is already queued on the socket of session u,
+// without waiting for one to arrive: 0 if the recvfrom() that follows will
+// not block, -KATHERINE_E_TIMEOUT if the socket is empty -- the same code the
+// EAGAIN of a MSG_DONTWAIT receive maps to on POSIX.
+//
+// Winsock has no MSG_DONTWAIT, and switching the socket to non-blocking mode
+// around a receive would disturb the SO_RCVTIMEO every other call of this
+// file relies on, so the queue is inspected instead. FIONREAD in preference
+// to a zero-timeout select(): one call, no descriptor set, and no dependency
+// on the loop the platform's FD_SET macro expands to.
+//
+// One blind spot follows from asking for a byte count: a zero-length
+// datagram is indistinguishable from an empty socket, so it is not drained
+// here. Only katherine_cmd_drain() reaches this path, and it is best-effort
+// by contract -- a datagram it leaves behind is read by the correlation that
+// follows, which rejects anything that is not a whole response. The readout
+// sends no empty datagrams at all.
 static int
 recv_ready(katherine_udp_t *u)
 {
@@ -142,19 +142,19 @@ recv_ready(katherine_udp_t *u)
     return 0;
 }
 
-/* Receives one datagram from the pinned remote of session u, discarding up to
-   KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
-   Spending that budget is reported as -KATHERINE_E_TIMEOUT, the very code
-   the expired receive timeout of an idle socket yields, so that no caller
-   needs a separate path for it.
-
-   With nowait set, every receive is preceded by the queue check of
-   recv_ready() above, so the call never blocks; that is how
-   katherine_udp_recv_nowait() reaches this loop.
-
-   The pinned address is read from addr_remote itself rather than from a copy
-   taken when the pin was placed, which is what makes the pin follow
-   katherine_udp_set_remote(). */
+// Receives one datagram from the pinned remote of session u, discarding up to
+// KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
+// Spending that budget is reported as -KATHERINE_E_TIMEOUT, the very code
+// the expired receive timeout of an idle socket yields, so that no caller
+// needs a separate path for it.
+//
+// With nowait set, every receive is preceded by the queue check of
+// recv_ready() above, so the call never blocks; that is how
+// katherine_udp_recv_nowait() reaches this loop.
+//
+// The pinned address is read from addr_remote itself rather than from a copy
+// taken when the pin was placed, which is what makes the pin follow
+// katherine_udp_set_remote().
 static int
 recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, bool nowait)
 {
@@ -204,11 +204,11 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, bool
     return -KATHERINE_E_TIMEOUT;
 }
 
-/* Receives one datagram into data, honoring the pin of session u: a pinned
-   session accepts only datagrams from its remote host and leaves addr_remote
-   alone, an unpinned one accepts the next datagram from anybody and adopts
-   its sender as the remote -- the server behavior of replying to whoever
-   asked last. */
+// Receives one datagram into data, honoring the pin of session u: a pinned
+// session accepts only datagrams from its remote host and leaves addr_remote
+// alone, an unpinned one accepts the next datagram from anybody and adopts
+// its sender as the remote -- the server behavior of replying to whoever
+// asked last.
 static int
 recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bool nowait)
 {

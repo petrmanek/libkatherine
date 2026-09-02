@@ -19,27 +19,27 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-/* The one command still not listed in cmd_interface.h: opcode 0x27's
- * meaning differs between sources (this firmware lineage calls it ToA
- * calibration start; other implementations assign 0x27 to later chip
- * generations), so it keeps the emulator-local name until adjudicated. */
+// The one command still not listed in cmd_interface.h: opcode 0x27's
+// meaning differs between sources (this firmware lineage calls it ToA
+// calibration start; other implementations assign 0x27 to later chip
+// generations), so it keeps the emulator-local name until adjudicated.
 #define EMU_CMD_TYPE_TOA_CALIBRATION_START 0x27
 
-/* Communication status the emulator reports: all eight data lines up, one
- * sensor chip attached. */
+// Communication status the emulator reports: all eight data lines up, one
+// sensor chip attached.
 #define KATHERINE_EMU_COMM_LINES_MASK      0xFF
 #define KATHERINE_EMU_CHIP_COUNT           1
 
-/* Number of matrix patterns the digital test walks through; all of them
- * pass, which is what the library requires to accept the result. */
+// Number of matrix patterns the digital test walks through; all of them
+// pass, which is what the library requires to accept the result.
 #define KATHERINE_EMU_DIGITAL_TEST_PASSES  64
 
 static inline float
 load_float(const uint8_t *src)
 {
-    /* The readout is little-endian and the library reinterprets the
-       response bytes as a host float, so the payload is an IEEE-754
-       single in little-endian byte order. */
+    // The readout is little-endian and the library reinterprets the
+    // response bytes as a host float, so the payload is an IEEE-754
+    // single in little-endian byte order.
     uint32_t bits = katherine_emu_load_le32(src);
     float value;
     memcpy(&value, &bits, sizeof(value));
@@ -54,9 +54,9 @@ store_float(uint8_t *dst, float value)
     katherine_emu_store_le(dst, bits, 4);
 }
 
-/* The library prints the chip identifier as "%c%d-W000%d" from the three
- * fields packed in the response word. Encoding the profile string back
- * into that word makes the emulated readout report exactly the profile. */
+// The library prints the chip identifier as "%c%d-W000%d" from the three
+// fields packed in the response word. Encoding the profile string back
+// into that word makes the emulated readout report exactly the profile.
 static uint32_t
 encode_chip_id(const char *s)
 {
@@ -75,7 +75,7 @@ encode_chip_id(const char *s)
         y = 10 * y + (unsigned int) (*it++ - '0');
     }
 
-    /* Skip the wafer prefix, whatever separator spelling it uses. */
+    // Skip the wafer prefix, whatever separator spelling it uses.
     while (*it != '\0' && *it != 'W' && *it != 'w') ++it;
     if (*it != '\0') ++it;
 
@@ -92,7 +92,7 @@ log_cmd(katherine_emu_t *emu, const uint8_t *cmd)
     size_t slot;
 
     if (emu->log_count == KATHERINE_EMU_LOG_CAP) {
-        /* Keep the most recent commands: drop the oldest entry. */
+        // Keep the most recent commands: drop the oldest entry.
         emu->log_head = (emu->log_head + 1) % KATHERINE_EMU_LOG_CAP;
         --emu->log_count;
     }
@@ -104,9 +104,9 @@ log_cmd(katherine_emu_t *emu, const uint8_t *cmd)
     ++emu->log_count;
 }
 
-/* Queue a response datagram, released once the virtual clock reaches the
- * configured latency (plus the seeded jitter, plus any time the readout
- * spends applying the command). */
+// Queue a response datagram, released once the virtual clock reaches the
+// configured latency (plus the seeded jitter, plus any time the readout
+// spends applying the command).
 static void
 queue_crd(katherine_emu_t *emu, const uint8_t *bytes, uint64_t apply_ns)
 {
@@ -124,9 +124,9 @@ queue_crd(katherine_emu_t *emu, const uint8_t *bytes, uint64_t apply_ns)
     ++emu->crd_count;
 }
 
-/* The acknowledgement of the readout is an otherwise empty datagram with
- * the operation code of the request echoed in byte 6. Responses carrying
- * data use the same encoding for the code and fill in the payload bytes. */
+// The acknowledgement of the readout is an otherwise empty datagram with
+// the operation code of the request echoed in byte 6. Responses carrying
+// data use the same encoding for the code and fill in the payload bytes.
 static void
 queue_ack(katherine_emu_t *emu, uint8_t opcode, uint64_t apply_ns)
 {
@@ -165,7 +165,7 @@ queue_readout_status(katherine_emu_t *emu)
     val = INSERT(val, readout_status_crd, hw_serial_number, (uint64_t) emu->profile.serial);
     val = INSERT(val, readout_status_crd, fw_version, (uint64_t) emu->profile.fw_version);
 
-    /* The status fields occupy bytes 0 to 5; byte 6 carries the code. */
+    // The status fields occupy bytes 0 to 5; byte 6 carries the code.
     katherine_emu_store_le(crd, val, 6);
     crd[6] = CMD_TYPE_GET_READOUT_STATUS;
     queue_crd(emu, crd, 0);
@@ -178,10 +178,10 @@ queue_comm_status(katherine_emu_t *emu)
     uint64_t val                        = 0;
     uint64_t rate;
 
-    /* The field counts megabytes per second, which the reported rate scales
-       by eight into megabits. The emulator has no line telemetry of its own
-       and reports the configured shaping rate, which is what limits its
-       stream; an unshaped stream reports zero. */
+    // The field counts megabytes per second, which the reported rate scales
+    // by eight into megabits. The emulator has no line telemetry of its own
+    // and reports the configured shaping rate, which is what limits its
+    // stream; an unshaped stream reports zero.
     rate = emu->profile.shape_bytes_per_s / 1000000u;
     if (rate > 0xFF) rate = 0xFF;
 
@@ -190,17 +190,17 @@ queue_comm_status(katherine_emu_t *emu)
     val = INSERT(val, comm_status_crd, chip_count, (uint64_t) KATHERINE_EMU_CHIP_COUNT);
 
     katherine_emu_store_le(crd, val, 3);
-    /* Byte 3 is the measuring status, which the library discards. */
+    // Byte 3 is the measuring status, which the library discards.
     crd[3] = emu->stream.armed ? 1 : 0;
     crd[6] = CMD_TYPE_GET_COMMUNICATION_STATUS;
     queue_crd(emu, crd, 0);
 }
 
-/* Pixel configuration upload: after the command, the readout consumes raw
- * configuration words from the command socket and answers nothing until
- * it has seen all of them. Datagrams that look like commands are consumed
- * as data all the same, which is what makes the recovery path of an
- * interrupted upload -- a flood of filler commands -- work at all. */
+// Pixel configuration upload: after the command, the readout consumes raw
+// configuration words from the command socket and answers nothing until
+// it has seen all of them. Datagrams that look like commands are consumed
+// as data all the same, which is what makes the recovery path of an
+// interrupted upload -- a flood of filler commands -- work at all.
 static void
 consume_px_config(katherine_emu_t *emu, size_t len)
 {
@@ -241,8 +241,8 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_ACQUISITION_START:
-        /* Arms the data plane and answers nothing: the measurement data
-           stream is the response to this command. */
+        // Arms the data plane and answers nothing: the measurement data
+        // stream is the response to this command.
         katherine_emu_stream_arm(emu, (uint8_t) (payload & 0x1));
         break;
 
@@ -254,22 +254,22 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_SEQ_READOUT_START:
-        /* Selects the readout chain. Not acknowledged. */
+        // Selects the readout chain. Not acknowledged.
         emu->regs.readout_mode = (uint8_t) (payload & 0x1);
         break;
 
     case CMD_TYPE_ACQUISITION_STOP:
-        /* Not acknowledged either; the abort is visible in the data
-           stream instead. */
+        // Not acknowledged either; the abort is visible in the data
+        // stream instead.
         katherine_emu_stream_stop(emu);
         break;
 
     case CMD_TYPE_HW_COMMAND_START:
-        /* The sub-command number travels in byte 0. All of them,
-           including the matrix reset (5) and the pixel register load (9)
-           that follow a configuration upload, are acknowledged. */
+        // The sub-command number travels in byte 0. All of them,
+        // including the matrix reset (5) and the pixel register load (9)
+        // that follow a configuration upload, are acknowledged.
         if ((uint8_t) cmd[0] == CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE) {
-            /* The flush is what carries the register image to the sensor. */
+            // The flush is what carries the register image to the sensor.
             emu->regs.acq_mode = emu->regs.shadow_acq_mode;
             emu->regs.fast_vco = emu->regs.shadow_fast_vco;
         }
@@ -284,13 +284,13 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_ACQUISITION_MODE_SETTING:
-        /* A GeneralConfig accessor: byte 0 supplies Op_mode and byte 1 the
-           fast oscillator flag. Both land in the readout's register image
-           only, which is why they are held aside here until a
-           sensor-config-registers flush picks them up. Captured readouts
-           behave exactly so -- reading the image back after this command
-           shows the new mode, while the sensor keeps the old one until the
-           flush. */
+        // A GeneralConfig accessor: byte 0 supplies Op_mode and byte 1 the
+        // fast oscillator flag. Both land in the readout's register image
+        // only, which is why they are held aside here until a
+        // sensor-config-registers flush picks them up. Captured readouts
+        // behave exactly so -- reading the image back after this command
+        // shows the new mode, while the sensor keeps the old one until the
+        // flush.
         emu->regs.shadow_acq_mode = (uint8_t) (cmd[0] & 0x3F);
         emu->regs.shadow_fast_vco = (cmd[1] & 0x01) != 0;
         queue_ack(emu, (uint8_t) opcode, 0);
@@ -305,13 +305,13 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_GET_BIAS_CURRENT:
-        /* No current model: the emulated bias supply is unloaded. */
+        // No current model: the emulated bias supply is unloaded.
         queue_float(emu, (uint8_t) opcode, 0.0f);
         break;
 
     case CMD_TYPE_GET_ADC_VOLTAGE:
-        /* Synthetic ramp across the channels, so that a caller can tell
-           the channels apart. */
+        // Synthetic ramp across the channels, so that a caller can tell
+        // the channels apart.
         queue_float(emu, (uint8_t) opcode, 0.125f * (float) (cmd[0] + 1));
         break;
 
@@ -321,13 +321,13 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_SET_PIXEL_CONFIG:
-        /* A single configuration word; the matrix contents are not
-           modeled, only the protocol. */
+        // A single configuration word; the matrix contents are not
+        // modeled, only the protocol.
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
     case CMD_TYPE_GET_PIXEL_CONFIG: {
-        /* Matrix and DAC back-read both compare equal. */
+        // Matrix and DAC back-read both compare equal.
         uint8_t crd[KATHERINE_EMU_CRD_SIZE] = {0};
         crd[0]                              = 1;
         crd[1]                              = 1;
@@ -383,30 +383,30 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ:
-        /* Reads back the register the command above wrote -- and answers
-           under the acquisition-unit read-back's identifier rather than its
-           own. That substitution is the readout firmware's, not a
-           transcription error, and it is reproduced here so that the
-           client's tolerance for it (katherine_cmd_reply_id(),
-           protocol/cmd_interface.h) is measured against a model of the peer
-           and not only against the same table read twice.
-
-           Which register is read is taken from byte 4, where the matching
-           write puts its index; the response carries the value alone, since
-           nothing establishes that the firmware echoes the index back. Both
-           are details of a command this library does not yet issue -- only
-           the identifier is load-bearing here. */
+        // Reads back the register the command above wrote -- and answers
+        // under the acquisition-unit read-back's identifier rather than its
+        // own. That substitution is the readout firmware's, not a
+        // transcription error, and it is reproduced here so that the
+        // client's tolerance for it (katherine_cmd_reply_id(),
+        // protocol/cmd_interface.h) is measured against a model of the peer
+        // and not only against the same table read twice.
+        //
+        // Which register is read is taken from byte 4, where the matching
+        // write puts its index; the response carries the value alone, since
+        // nothing establishes that the firmware echoes the index back. Both
+        // are details of a command this library does not yet issue -- only
+        // the identifier is load-bearing here.
         queue_word(emu, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, 0,
             emu->regs.trigger_gen[subindex % KATHERINE_EMU_TRIGGER_GEN_WORDS]);
         break;
 
     case CMD_TYPE_GET_ALL_DAC_SCAN:
-        /* One response datagram per scanned DAC, every one of them carrying
-           the single-DAC scan's identifier and never this command's: both
-           the count and the identifier are the firmware's behaviour. The
-           voltages are synthetic, as the ADC ramp above is -- the register
-           code scaled into volts, and zero for the four band-gap read-backs
-           the emulator keeps no register for. */
+        // One response datagram per scanned DAC, every one of them carrying
+        // the single-DAC scan's identifier and never this command's: both
+        // the count and the identifier are the firmware's behaviour. The
+        // voltages are synthetic, as the ADC ramp above is -- the register
+        // code scaled into volts, and zero for the four band-gap read-backs
+        // the emulator keeps no register for.
         for (uint8_t i = 0; i < KATHERINE_EMU_DAC_SCAN_REPLIES; ++i) {
             float volts = i < KATHERINE_EMU_DAC_COUNT ? KATHERINE_EMU_DAC_SCAN_VOLT * (float) emu->regs.dac[i] : 0.0f;
             queue_float(emu, (uint8_t) CMD_TYPE_INTERNAL_DAC_SCAN, volts);
@@ -418,14 +418,14 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         emu->regs.tp_period_code = cmd[2];
         emu->regs.tp_phase       = cmd[3];
         emu->regs.tp_flags       = cmd[4];
-        /* The readout applies the pulse registers before acknowledging,
-           and spends about a second doing so. */
+        // The readout applies the pulse registers before acknowledging,
+        // and spends about a second doing so.
         queue_ack(emu, (uint8_t) opcode, KATHERINE_EMU_TP_APPLY_NS);
         break;
 
     case EMU_CMD_TYPE_TOA_CALIBRATION_START:
     case CMD_TYPE_TOA_CALIBRATION_SETUP:
-        /* Acknowledged, no effect modeled. */
+        // Acknowledged, no effect modeled.
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
@@ -440,13 +440,13 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_INTERFACE_SELECTION:
-        /* Switches the transport of the readout and answers nothing. */
+        // Switches the transport of the readout and answers nothing.
         break;
 
     default:
-        /* The readout's command dispatcher has no default branch: an
-           opcode it does not recognize gets no response at all. Only
-           counted here, so a caller can detect the condition. */
+        // The readout's command dispatcher has no default branch: an
+        // opcode it does not recognize gets no response at all. Only
+        // counted here, so a caller can detect the condition.
         ++emu->unknown_cmds;
         break;
     }
@@ -505,13 +505,13 @@ katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
 
     memset(emu, 0, sizeof(*emu));
 
-    /* Every sensor register, including GeneralConfig, starts at zero here.
-       The real readout firmware instead boots with GeneralConfig = 0x0058
-       (Gray_count_en, AckCommand_en and Fast_lo_en all set) -- the
-       provenance of the historical preset katherine_general_config_word()
-       (cmd_interface.h) reproduces by pinning those same three bits on
-       every write. A client that always writes GeneralConfig before first
-       use, as katherine_configure() does, never observes the difference. */
+    // Every sensor register, including GeneralConfig, starts at zero here.
+    // The real readout firmware instead boots with GeneralConfig = 0x0058
+    // (Gray_count_en, AckCommand_en and Fast_lo_en all set) -- the
+    // provenance of the historical preset katherine_general_config_word()
+    // (cmd_interface.h) reproduces by pinning those same three bits on
+    // every write. A client that always writes GeneralConfig before first
+    // use, as katherine_configure() does, never observes the difference.
 
     if (profile != NULL) {
         emu->profile = *profile;
@@ -519,8 +519,8 @@ katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
         katherine_emu_profile_defaults(&emu->profile);
     }
 
-    /* The identifier is used as a string; a caller-supplied buffer that
-       is not terminated must not be read past its end. */
+    // The identifier is used as a string; a caller-supplied buffer that
+    // is not terminated must not be read past its end.
     emu->profile.chip_id[KATHERINE_EMU_CHIP_ID_SIZE - 1] = '\0';
     emu->chip_id_word                                    = encode_chip_id(emu->profile.chip_id);
 
@@ -571,8 +571,8 @@ katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
         return 0;
     }
 
-    /* The readout reads a fixed eight bytes per command; a longer
-       datagram is truncated and a shorter one is not a command. */
+    // The readout reads a fixed eight bytes per command; a longer
+    // datagram is truncated and a shorter one is not a command.
     if (len < KATHERINE_EMU_CMD_SIZE) return -KATHERINE_E_INVAL;
 
     handle_cmd(emu, (const uint8_t *) data);

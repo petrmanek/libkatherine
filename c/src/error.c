@@ -15,8 +15,8 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-/* Indexed directly by a katherine_error_t enumerator (entry 0, KATHERINE_E_OK,
-   included so this stays a direct index rather than an off-by-one lookup). */
+// Indexed directly by a katherine_error_t enumerator (entry 0, KATHERINE_E_OK,
+// included so this stays a direct index rather than an off-by-one lookup).
 #define KATHERINE_ERROR_COUNT (KATHERINE_E_SYSTEM + 1)
 
 static const char *const KATHERINE_ERROR_STRINGS[KATHERINE_ERROR_COUNT] = {
@@ -50,8 +50,8 @@ static const char *const KATHERINE_ERROR_STRINGS[KATHERINE_ERROR_COUNT] = {
 const char *
 katherine_strerror(int error)
 {
-    /* Negating INT_MIN overflows; no real caller ever passes it, but a
-       stray value must not become undefined behavior here. */
+    // Negating INT_MIN overflows; no real caller ever passes it, but a
+    // stray value must not become undefined behavior here.
     if (error == INT_MIN) return "unknown error";
 
     int idx = error < 0 ? -error : error;

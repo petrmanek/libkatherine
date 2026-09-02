@@ -12,12 +12,11 @@
 
 #pragma once
 
-/*
- * IMPORTANT NOTICE:
- *
- * The following interface is internal.
- * It is not intended for user application access.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 

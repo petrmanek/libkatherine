@@ -26,19 +26,18 @@
 extern "C" {
 #endif
 
-/* The emulator is a pure state machine reproducing the wire behavior of a
- * readout: it consumes command datagrams, produces command response
- * datagrams (CRDs) and produces the measurement data (MD) stream. It owns
- * no memory, no sockets and no threads, and it never reads the wall clock
- * -- all timing is driven by katherine_emu_advance(). Consequently, one
- * profile, one seed and one sequence of calls always yield the same bytes,
- * which makes recorded streams comparable across runs and machines.
- *
- * Datagrams are handed over whole: katherine_emu_cmd_in() takes one
- * command datagram, katherine_emu_crd_out() returns one CRD, and
- * katherine_emu_data_out() returns whole 6-byte MDs. Transporting them
- * (over sockets or otherwise) is up to the caller.
- */
+// The emulator is a pure state machine reproducing the wire behavior of a
+// readout: it consumes command datagrams, produces command response
+// datagrams (CRDs) and produces the measurement data (MD) stream. It owns
+// no memory, no sockets and no threads, and it never reads the wall clock
+// -- all timing is driven by katherine_emu_advance(). Consequently, one
+// profile, one seed and one sequence of calls always yield the same bytes,
+// which makes recorded streams comparable across runs and machines.
+//
+// Datagrams are handed over whole: katherine_emu_cmd_in() takes one
+// command datagram, katherine_emu_crd_out() returns one CRD, and
+// katherine_emu_data_out() returns whole 6-byte MDs. Transporting them
+// (over sockets or otherwise) is up to the caller.
 
 /** Size of a command response datagram in bytes. */
 #define KATHERINE_EMU_CRD_SIZE     8
@@ -102,15 +101,14 @@ typedef struct katherine_emu_log_entry {
     uint32_t payload; ///< Payload word, bytes 0 to 3 of the datagram
 } katherine_emu_log_entry_t;
 
-/*
- * IMPORTANT NOTICE:
- *
- * The declarations from here until katherine_emu_t are internal state of
- * the emulator. They appear in this header for one reason only: so that
- * the caller can provide the storage of a katherine_emu_t (on the stack,
- * statically, or from an allocator of its choosing). Do not read or write
- * these fields; they change without notice.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The declarations from here until katherine_emu_t are internal state of
+// the emulator. They appear in this header for one reason only: so that
+// the caller can provide the storage of a katherine_emu_t (on the stack,
+// statically, or from an allocator of its choosing). Do not read or write
+// these fields; they change without notice.
 
 /** Internal: number of internal DAC registers of the sensor. */
 #define KATHERINE_EMU_DAC_COUNT         18

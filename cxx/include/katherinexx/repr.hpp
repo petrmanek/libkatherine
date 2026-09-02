@@ -62,18 +62,18 @@ stream_snprint(std::ostream& os, const T *v, Fn snprint)
 }
 }
 
-/* katherine::trigger, katherine::dacs, katherine::test_pulse_config,
-   katherine::frame_info and katherine::coord are `using` aliases of these
-   same C struct types (see config.hpp, acquisition.hpp, px_config.hpp),
-   not distinct types, so argument-dependent lookup for a value of one of
-   those alias types resolves to the global-namespace overloads below --
-   a katherine::-qualified overload would never be found, because ADL does
-   not see through an alias to a namespace that was never part of the
-   actual type. katherine::px_config likewise needs no overload of its
-   own: it publicly inherits katherine_px_config_t, and ADL for a derived
-   class's argument also searches the associated namespaces of its base
-   classes, so the katherine_px_config_t overload below is found for it
-   too. */
+// katherine::trigger, katherine::dacs, katherine::test_pulse_config,
+// katherine::frame_info and katherine::coord are `using` aliases of these
+// same C struct types (see config.hpp, acquisition.hpp, px_config.hpp),
+// not distinct types, so argument-dependent lookup for a value of one of
+// those alias types resolves to the global-namespace overloads below --
+// a katherine::-qualified overload would never be found, because ADL does
+// not see through an alias to a namespace that was never part of the
+// actual type. katherine::px_config likewise needs no overload of its
+// own: it publicly inherits katherine_px_config_t, and ADL for a derived
+// class's argument also searches the associated namespaces of its base
+// classes, so the katherine_px_config_t overload below is found for it
+// too.
 
 /** Renders a katherine_coord_t (via katherine_coord_snprint()). */
 inline std::ostream&
@@ -210,11 +210,11 @@ operator<<(std::ostream& os, const katherine_device_t& v)
 
 namespace katherine {
 
-/* Real wrapper classes: each owns its C struct by value (not by
-   inheritance) and exposes a const accessor, so a value of one of these
-   types is never implicitly convertible to the corresponding C struct --
-   unlike katherine::px_config above, these need their own overload, found
-   by ADL in this namespace. */
+// Real wrapper classes: each owns its C struct by value (not by
+// inheritance) and exposes a const accessor, so a value of one of these
+// types is never implicitly convertible to the corresponding C struct --
+// unlike katherine::px_config above, these need their own overload, found
+// by ADL in this namespace.
 
 /** Renders a katherine::udp over its c_udp() accessor. */
 inline std::ostream&

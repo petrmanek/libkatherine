@@ -58,9 +58,9 @@
 
 #define ROUND_TRIP_TEXT "compat1"
 
-/* ------------------------------------------------------------------ */
-/* ETIMEDOUT: a receive on a bound-but-silent socket runs out its timeout,
-   the same condition test_udp_pinning.c drives via an idle peer. */
+// ------------------------------------------------------------------
+// ETIMEDOUT: a receive on a bound-but-silent socket runs out its timeout,
+// the same condition test_udp_pinning.c drives via an idle peer.
 
 static void
 test_recv_timeout_maps_to_etimedout(void)
@@ -75,10 +75,10 @@ test_recv_timeout_maps_to_etimedout(void)
     katherine_udp_fini(&u);
 }
 
-/* ------------------------------------------------------------------ */
-/* EINVAL, cause 1: a DAC register outside its chip field. Vfbk (index 4) is
-   8 bits wide (Tpx3 manual Table 11, see test_dacs_validate.c), so 256 is
-   one past its maximum; every other register is left at zero. */
+// ------------------------------------------------------------------
+// EINVAL, cause 1: a DAC register outside its chip field. Vfbk (index 4) is
+// 8 bits wide (Tpx3 manual Table 11, see test_dacs_validate.c), so 256 is
+// one past its maximum; every other register is left at zero.
 
 static void
 test_dacs_validate_out_of_range_maps_to_einval(void)
@@ -88,12 +88,12 @@ test_dacs_validate_out_of_range_maps_to_einval(void)
     KT_CHECK_EQ(katherine_dacs_validate(&dacs), EINVAL);
 }
 
-/* ------------------------------------------------------------------ */
-/* EINVAL, cause 2: an address inet_pton() cannot parse. 1.x reported this
-   as EINVAL too (see katherine1.h for the 1.1.0 evidence); 2.0 names it
-   KATHERINE_E_ADDR, a separate enumerator this shim maps onto the same
-   1.x code, so this case is a distinct failure from the one above with
-   the same expected result. */
+// ------------------------------------------------------------------
+// EINVAL, cause 2: an address inet_pton() cannot parse. 1.x reported this
+// as EINVAL too (see katherine1.h for the 1.1.0 evidence); 2.0 names it
+// KATHERINE_E_ADDR, a separate enumerator this shim maps onto the same
+// 1.x code, so this case is a distinct failure from the one above with
+// the same expected result.
 
 static void
 test_udp_bad_remote_address_maps_to_einval(void)
@@ -102,10 +102,10 @@ test_udp_bad_remote_address_maps_to_einval(void)
     KT_CHECK_EQ(katherine_udp_init_bound(&u, NULL, PORT_BADADDR, "not-an-address", 0, TIMEOUT_MS), EINVAL);
 }
 
-/* ------------------------------------------------------------------ */
-/* ENOMEM: an md_buffer_size no allocator can satisfy. The device pointer is
-   never dereferenced by katherine_acquisition_init() -- only stored -- so
-   NULL is safe here; the allocation fails before anything else runs. */
+// ------------------------------------------------------------------
+// ENOMEM: an md_buffer_size no allocator can satisfy. The device pointer is
+// never dereferenced by katherine_acquisition_init() -- only stored -- so
+// NULL is safe here; the allocation fails before anything else runs.
 
 static void
 test_acquisition_init_huge_buffer_maps_to_enomem(void)
@@ -115,12 +115,12 @@ test_acquisition_init_huge_buffer_maps_to_enomem(void)
     KT_CHECK_EQ(katherine_acquisition_init(&acq, NULL, NULL, huge, 1, 0, 0), ENOMEM);
 }
 
-/* ------------------------------------------------------------------ */
-/* EIO: every katherine_error_t enumerator this shim does not name
-   explicitly. A pixel-configuration file that does not exist fails
-   fopen() with a code the library's own map_fopen_errno() does not
-   recognize either, so it falls to -KATHERINE_E_IO like the shim's own
-   default case. */
+// ------------------------------------------------------------------
+// EIO: every katherine_error_t enumerator this shim does not name
+// explicitly. A pixel-configuration file that does not exist fails
+// fopen() with a code the library's own map_fopen_errno() does not
+// recognize either, so it falls to -KATHERINE_E_IO like the shim's own
+// default case.
 
 static void
 test_px_config_missing_file_maps_to_eio(void)
@@ -129,9 +129,9 @@ test_px_config_missing_file_maps_to_eio(void)
     KT_CHECK_EQ(katherine_px_config_load_bmc_file(&px_config, "/nonexistent/path/libkatherine-test_compat1.bmc"), EIO);
 }
 
-/* ------------------------------------------------------------------ */
-/* Negative control, cause 1: an all-zero DAC vector is within every
-   register's range. */
+// ------------------------------------------------------------------
+// Negative control, cause 1: an all-zero DAC vector is within every
+// register's range.
 
 static void
 test_dacs_validate_success(void)
@@ -141,10 +141,10 @@ test_dacs_validate_success(void)
     KT_CHECK_EQ(katherine_dacs_validate(&dacs), 0);
 }
 
-/* ------------------------------------------------------------------ */
-/* Negative control, cause 2: a real send/receive round trip over loopback,
-   exercising the 1.x names of the send and receive paths together rather
-   than a single call in isolation. */
+// ------------------------------------------------------------------
+// Negative control, cause 2: a real send/receive round trip over loopback,
+// exercising the 1.x names of the send and receive paths together rather
+// than a single call in isolation.
 
 static void
 test_udp_round_trip_success(void)
@@ -165,7 +165,7 @@ test_udp_round_trip_success(void)
     katherine_udp_fini(&a);
 }
 
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
 
 int
 main(void)

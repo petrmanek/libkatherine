@@ -22,12 +22,11 @@
 #include "bitfields.h"
 #include "cmd_builder.h"
 
-/*
- * IMPORTANT NOTICE:
- *
- * The following interface is internal.
- * It is not intended for user application access.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -168,17 +167,16 @@ katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
     return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
 }
 
-/*
- * GeneralConfig sensor register (Timepix3 manual v2, sec 4.2.5.4.1, headers
- * 0h30/0h31), declared as a bitfield for INSERT(). Field names follow the
- * manual. Only the fields this library writes are declared: polarity,
- * gray_count_en follows katherine_config_t, while ackcommand_en is pinned.
- * Op_mode [2:1] and Fast_lo_en [6] belong to the acquisition-mode command,
- * which merges them into the readout's register image after this word is
- * written, so the values given here for them do not survive. Tp_en [5] and
- * the test-pulse selectors stay 0: they travel in the dedicated test-pulse
- * command instead.
- */
+//
+// GeneralConfig sensor register (Timepix3 manual v2, sec 4.2.5.4.1, headers
+// 0h30/0h31), declared as a bitfield for INSERT(). Field names follow the
+// manual. Only the fields this library writes are declared: polarity,
+// gray_count_en follows katherine_config_t, while ackcommand_en is pinned.
+// Op_mode [2:1] and Fast_lo_en [6] belong to the acquisition-mode command,
+// which merges them into the readout's register image after this word is
+// written, so the values given here for them do not survive. Tp_en [5] and
+// the test-pulse selectors stay 0: they travel in the dedicated test-pulse
+// command instead.
 #define _BITS_general_config_polarity_start      0
 #define _BITS_general_config_polarity_mask       MASK(1)
 #define _BITS_general_config_polarity_type       uint8_t
@@ -226,13 +224,12 @@ katherine_general_config_word(const katherine_config_t *config)
     return (int32_t) word;
 }
 
-/*
- * PLLConfig sensor register (Timepix3 manual Table 16, sensor register 3),
- * declared as a bitfield for INSERT(). The four one-bit fields at [3:0] are
- * pinned: the PLL is switched on, held out of reset, sourced from its own
- * Vcntrl DAC, and clocked on both edges. pll_out_config selects what leaves
- * the PLL output pad.
- */
+//
+// PLLConfig sensor register (Timepix3 manual Table 16, sensor register 3),
+// declared as a bitfield for INSERT(). The four one-bit fields at [3:0] are
+// pinned: the PLL is switched on, held out of reset, sourced from its own
+// Vcntrl DAC, and clocked on both edges. pll_out_config selects what leaves
+// the PLL output pad.
 #define _BITS_pll_config_bypass_pll_start             0
 #define _BITS_pll_config_bypass_pll_mask              MASK(1)
 #define _BITS_pll_config_bypass_pll_type              uint8_t
@@ -376,11 +373,11 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_TEST_PULSE_SETTING       = 0x26,
     CMD_TYPE_TOA_CALIBRATION_SETUP    = 0x28,
     CMD_TYPE_NUMBER_OF_TOKENS_SETTING = 0x29,
-    /* Generation-dependent: this opcode is absent from the Gen2 firmware's
-       mid-acquisition dispatcher, so it cannot be relied on during a
-       measurement there. 0x0D, the ADC channels, is present in that
-       dispatcher and reads readout-side registers only, which makes it the
-       candidate substitute for leakage monitoring mid-run. */
+    // Generation-dependent: this opcode is absent from the Gen2 firmware's
+    // mid-acquisition dispatcher, so it cannot be relied on during a
+    // measurement there. 0x0D, the ADC channels, is present in that
+    // dispatcher and reads readout-side registers only, which makes it the
+    // candidate substitute for leakage monitoring mid-run.
     CMD_TYPE_GET_BIAS_CURRENT      = 0x30,
     CMD_TYPE_INTERNAL_TDC_SETTINGS = 0x32,
 
@@ -414,13 +411,13 @@ static inline uint8_t
 katherine_cmd_reply_id(uint8_t opcode)
 {
     switch (opcode) {
-    /* The trigger-generator read-back is answered under the acquisition-unit
-       read-back's identifier -- the firmware's own copy-paste, never
-       corrected. */
+    // The trigger-generator read-back is answered under the acquisition-unit
+    // read-back's identifier -- the firmware's own copy-paste, never
+    // corrected.
     case CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ: return (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA;
 
-    /* The all-DAC scan is answered twenty-two times, every datagram carrying
-       the single-DAC scan's identifier and never its own. */
+    // The all-DAC scan is answered twenty-two times, every datagram carrying
+    // the single-DAC scan's identifier and never its own.
     case CMD_TYPE_GET_ALL_DAC_SCAN: return (uint8_t) CMD_TYPE_INTERNAL_DAC_SCAN;
 
     default: return opcode;
@@ -446,20 +443,20 @@ static inline bool
 katherine_cmd_is_acknowledged(uint8_t opcode)
 {
     switch (opcode) {
-    /* The acquisition start arms the readout; the measurement data stream is
-       the only answer it gives. */
+    // The acquisition start arms the readout; the measurement data stream is
+    // the only answer it gives.
     case CMD_TYPE_ACQUISITION_START:
 
-    /* The readout-chain selection is applied silently. */
+    // The readout-chain selection is applied silently.
     case CMD_TYPE_SEQ_READOUT_START:
 
-    /* The stop is observed through the end of the data stream instead; the
-       firmware's handler is an empty function. */
+    // The stop is observed through the end of the data stream instead; the
+    // firmware's handler is an empty function.
     case CMD_TYPE_ACQUISITION_STOP:
 
-    /* Documented as a handshake, but the firmware's acknowledgement is
-       commented out. Not sent by this library today; listed so that a future
-       caller does not wait on it. */
+    // Documented as a handshake, but the firmware's acknowledgement is
+    // commented out. Not sent by this library today; listed so that a future
+    // caller does not wait on it.
     case CMD_TYPE_INTERFACE_SELECTION: return false;
 
     default: return true;
@@ -490,8 +487,8 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
 static inline void
 katherine_cmd_drain(katherine_udp_t *udp)
 {
-    /* One byte of headroom, so that an oversized datagram is observed as
-       oversized rather than silently truncated to a plausible length. */
+    // One byte of headroom, so that an oversized datagram is observed as
+    // oversized rather than silently truncated to a plausible length.
     char crd[KATHERINE_CMD_CRD_SIZE + 1];
 
     for (uint32_t discarded = 0; discarded < KATHERINE_CMD_MAX_DRAIN; ++discarded) {
@@ -531,12 +528,12 @@ katherine_cmd_drain(katherine_udp_t *udp)
 static inline int
 katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
 {
-    /* The second identifier this wait accepts. In strict mode there is no
-       second one, so it collapses onto the request's own operation code. */
+    // The second identifier this wait accepts. In strict mode there is no
+    // second one, so it collapses onto the request's own operation code.
     const uint8_t substitute = udp->strict_ack ? opcode : katherine_cmd_reply_id(opcode);
 
-    /* One byte of headroom, so that an oversized datagram is observed as
-       oversized rather than silently truncated to a plausible length. */
+    // One byte of headroom, so that an oversized datagram is observed as
+    // oversized rather than silently truncated to a plausible length.
     char buf[KATHERINE_CMD_CRD_SIZE + 1];
 
     if (!katherine_cmd_is_acknowledged(opcode)) return -KATHERINE_E_INVAL;
@@ -548,8 +545,8 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
         int res = katherine_udp_recv(udp, buf, &received);
         if (res) return res;
 
-        /* Consumed either way, so reporting this does not leave the session
-           wedged behind the offending datagram. */
+        // Consumed either way, so reporting this does not leave the session
+        // wedged behind the offending datagram.
         if (received != KATHERINE_CMD_CRD_SIZE) return -KATHERINE_E_BAD_CRD;
 
         reply_id = (uint8_t) buf[KATHERINE_CMD_OPCODE_BYTE];

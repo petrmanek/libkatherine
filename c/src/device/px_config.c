@@ -36,10 +36,10 @@ map_fopen_errno(int err)
     }
 }
 
-/* Fields of the per-pixel configuration byte. The packed matrix stores one
-   such byte per pixel in the BMC bit layout (see the katherine_bmc_px
-   struct at the head of px_config.h; the loaders below only permute the
-   local threshold bits of the BPC format). */
+// Fields of the per-pixel configuration byte. The packed matrix stores one
+// such byte per pixel in the BMC bit layout (see the katherine_bmc_px
+// struct at the head of px_config.h; the loaders below only permute the
+// local threshold bits of the BPC format).
 #define _BITS_bmc_px_mask_start    0
 #define _BITS_bmc_px_mask_mask     MASK(1)
 #define _BITS_bmc_px_mask_type     bool
@@ -208,10 +208,10 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
     return 0;
 }
 
-/* The helpers below locate the configuration byte of a single pixel in the
-   packed matrix. Pixel coordinates follow the loaders' convention: x is the
-   column, y is the row, and hits reported during acquisition carry the same
-   coordinates. */
+// The helpers below locate the configuration byte of a single pixel in the
+// packed matrix. Pixel coordinates follow the loaders' convention: x is the
+// column, y is the row, and hits reported during acquisition carry the same
+// coordinates.
 
 static inline uint8_t
 _px_config_get_byte(const katherine_px_config_t *px_config, katherine_coord_t coord)

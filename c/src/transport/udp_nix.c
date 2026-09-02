@@ -46,15 +46,15 @@ dump_buffer(const char *msg, const unsigned char *buf, size_t count)
 }
 #endif /* KATHERINE_DEBUG_UDP */
 
-/* True if a datagram received from addr counts as coming from the pinned
-   remote of session u.
-
-   Only the host is compared, never the port: a readout answers commands from
-   its command port but streams measurement data from another one (1556 vs
-   1555 for the emulated readout), and no source port of the firmware is
-   specified anywhere, whereas the hazard a pin guards against -- another
-   peer's stray datagram becoming the session's remote -- is a property of
-   the host. */
+// True if a datagram received from addr counts as coming from the pinned
+// remote of session u.
+//
+// Only the host is compared, never the port: a readout answers commands from
+// its command port but streams measurement data from another one (1556 vs
+// 1555 for the emulated readout), and no source port of the firmware is
+// specified anywhere, whereas the hazard a pin guards against -- another
+// peer's stray datagram becoming the session's remote -- is a property of
+// the host.
 static bool
 from_pinned_remote(const katherine_udp_t *u, const struct sockaddr_in *addr)
 {
@@ -112,19 +112,19 @@ recv_failure(katherine_udp_t *u, int err)
     return -(int) mapped;
 }
 
-/* Receives one datagram from the pinned remote of session u, discarding up to
-   KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
-   Spending that budget is reported as -KATHERINE_E_TIMEOUT, the very code
-   the expired receive timeout of an idle socket yields, so that no caller
-   needs a separate path for it.
-
-   flags is passed straight to recvfrom(), which is how MSG_DONTWAIT reaches
-   it for katherine_udp_recv_nowait(); the EAGAIN an empty socket then
-   returns maps to the same -KATHERINE_E_TIMEOUT a spent timeout does.
-
-   The pinned address is read from addr_remote itself rather than from a copy
-   taken when the pin was placed, which is what makes the pin follow
-   katherine_udp_set_remote(). */
+// Receives one datagram from the pinned remote of session u, discarding up to
+// KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
+// Spending that budget is reported as -KATHERINE_E_TIMEOUT, the very code
+// the expired receive timeout of an idle socket yields, so that no caller
+// needs a separate path for it.
+//
+// flags is passed straight to recvfrom(), which is how MSG_DONTWAIT reaches
+// it for katherine_udp_recv_nowait(); the EAGAIN an empty socket then
+// returns maps to the same -KATHERINE_E_TIMEOUT a spent timeout does.
+//
+// The pinned address is read from addr_remote itself rather than from a copy
+// taken when the pin was placed, which is what makes the pin follow
+// katherine_udp_set_remote().
 static int
 recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, int flags)
 {
@@ -142,18 +142,18 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, int 
         }
     }
 
-    /* The discard budget is spent, not an OS-level failure -- reported
-       exactly like an expired receive timeout (see KATHERINE_UDP_PIN_MAX_DISCARDS
-       above), so no caller needs a separate path for it. */
+    // The discard budget is spent, not an OS-level failure -- reported
+    // exactly like an expired receive timeout (see KATHERINE_UDP_PIN_MAX_DISCARDS
+    // above), so no caller needs a separate path for it.
     u->last_os_error = 0;
     return -KATHERINE_E_TIMEOUT;
 }
 
-/* Receives one datagram into data, honoring the pin of session u: a pinned
-   session accepts only datagrams from its remote host and leaves addr_remote
-   alone, an unpinned one accepts the next datagram from anybody and adopts
-   its sender as the remote -- the server behavior of replying to whoever
-   asked last. */
+// Receives one datagram into data, honoring the pin of session u: a pinned
+// session accepts only datagrams from its remote host and leaves addr_remote
+// alone, an unpinned one accepts the next datagram from anybody and adopts
+// its sender as the remote -- the server behavior of replying to whoever
+// asked last.
 static int
 recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, int flags)
 {

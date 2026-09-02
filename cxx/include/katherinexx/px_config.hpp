@@ -40,9 +40,9 @@ struct px_config: katherine_px_config_t {
     std::uint8_t loc_thl(katherine::coord coord) const { return katherine_px_config_get_loc_thl(this, coord); }
 };
 
-/* The member functions above are the only addition; the C struct remains
-   the sole (standard-layout) subobject, which config.hpp relies upon when
-   viewing katherine_config_t::pixel_config through this type. */
+// The member functions above are the only addition; the C struct remains
+// the sole (standard-layout) subobject, which config.hpp relies upon when
+// viewing katherine_config_t::pixel_config through this type.
 static_assert(sizeof(px_config) == sizeof(katherine_px_config_t),
     "katherine::px_config must not add data members");
 

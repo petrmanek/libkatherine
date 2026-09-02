@@ -43,8 +43,8 @@
 
 #include "ktest.h"
 
-/* Table 11 maxima, in katherine_dacs_named_t / array index order -- see the
-   file header for the DAC each index names. */
+// Table 11 maxima, in katherine_dacs_named_t / array index order -- see the
+// file header for the DAC each index names.
 static const uint16_t DAC_MAX[18] = {
     255,
     15,

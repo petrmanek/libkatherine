@@ -17,46 +17,45 @@
 #include <stdint.h>
 #include <katherine/emulator.h>
 
-/*
- * IMPORTANT NOTICE:
- *
- * The following interface is internal.
- * It is not intended for user application access.
- *
- * The state of the emulator is declared in katherine/emulator.h, so that
- * the caller can provide its storage. What remains here are the constants,
- * helpers and cross-file interfaces of the implementation.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
+//
+// The state of the emulator is declared in katherine/emulator.h, so that
+// the caller can provide its storage. What remains here are the constants,
+// helpers and cross-file interfaces of the implementation.
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-/* Length of a command datagram: the readout reads a fixed eight bytes. */
+// Length of a command datagram: the readout reads a fixed eight bytes.
 #define KATHERINE_EMU_CMD_SIZE          8
 
-/* The pixel configuration matrix is uploaded as raw words following the
- * 0x12 command; the readout consumes exactly this many of them before it
- * looks at datagrams as commands again. */
+// The pixel configuration matrix is uploaded as raw words following the
+// 0x12 command; the readout consumes exactly this many of them before it
+// looks at datagrams as commands again.
 #define KATHERINE_EMU_PX_CONFIG_WORDS   16384
 
-/* The readout applies the test pulse settings before acknowledging them,
- * which takes about a second of its time. */
+// The readout applies the test pulse settings before acknowledging them,
+// which takes about a second of its time.
 #define KATHERINE_EMU_TP_APPLY_NS       1000000000ull
 
-/* Response datagrams the all-DAC scan answers with: one per scanned DAC,
- * i.e. the chip's eighteen named DACs plus its four band-gap read-backs. */
+// Response datagrams the all-DAC scan answers with: one per scanned DAC,
+// i.e. the chip's eighteen named DACs plus its four band-gap read-backs.
 #define KATHERINE_EMU_DAC_SCAN_REPLIES  22
 
-/* Volts per register step of the emulated DAC scan. Synthetic, like the ADC
- * ramp: the emulator models no analog front end, only the protocol. */
+// Volts per register step of the emulated DAC scan. Synthetic, like the ADC
+// ramp: the emulator models no analog front end, only the protocol.
 #define KATHERINE_EMU_DAC_SCAN_VOLT     0.001f
 
-/* Data plane geometry. */
+// Data plane geometry.
 #define KATHERINE_EMU_MATRIX_SIZE       256
 #define KATHERINE_EMU_TICK_NS           25 /* readout timer period at 40 MHz */
 #define KATHERINE_EMU_TOA_OFFSET_PERIOD 64 /* hits between timestamp offset MDs */
 #define KATHERINE_EMU_SHAPE_BURST_BYTES 65536
 
-/* Measurement data headers, as recognized by the acquisition decoder. */
+// Measurement data headers, as recognized by the acquisition decoder.
 #define KATHERINE_EMU_MD_PIXEL          0x4
 #define KATHERINE_EMU_MD_TIME_OFFSET    0x5
 #define KATHERINE_EMU_MD_NEW_FRAME      0x7
@@ -68,9 +67,9 @@
 #define KATHERINE_EMU_MD_LOST_PX        0xD
 #define KATHERINE_EMU_MD_ABORTED        0xE
 
-/* Datagram fields are little-endian on the wire, as the readout writes
- * them; the conversion is explicit so that the emulator produces the same
- * bytes on either host byte order. */
+// Datagram fields are little-endian on the wire, as the readout writes
+// them; the conversion is explicit so that the emulator produces the same
+// bytes on either host byte order.
 static inline uint32_t
 katherine_emu_load_le32(const uint8_t *src)
 {
@@ -85,8 +84,8 @@ katherine_emu_store_le(uint8_t *dst, uint64_t value, size_t count)
     }
 }
 
-/* Splitmix64. Hand-rolled so that the generated streams do not depend on
- * the host C library, which the determinism requirement rules out. */
+// Splitmix64. Hand-rolled so that the generated streams do not depend on
+// the host C library, which the determinism requirement rules out.
 static inline uint64_t
 katherine_emu_prng_next(katherine_emu_prng_t *prng)
 {
@@ -99,15 +98,15 @@ katherine_emu_prng_next(katherine_emu_prng_t *prng)
 static inline uint64_t
 katherine_emu_prng_below(katherine_emu_prng_t *prng, uint64_t bound)
 {
-    /* Modulo bias is irrelevant for synthetic hit patterns and keeps the
-       draw a single unconditional step, hence reproducible. */
+    // Modulo bias is irrelevant for synthetic hit patterns and keeps the
+    // draw a single unconditional step, hence reproducible.
     if (bound == 0) return 0;
     return katherine_emu_prng_next(prng) % bound;
 }
 
-/* Interfaces between the command responder (emulator.c) and the
- * measurement data generator (emu_stream.c). They cross a translation unit
- * boundary but not the library boundary, so they stay out of the ABI. */
+// Interfaces between the command responder (emulator.c) and the
+// measurement data generator (emu_stream.c). They cross a translation unit
+// boundary but not the library boundary, so they stay out of the ABI.
 
 KATHERINE_NOT_EXPORTED void
 katherine_emu_stream_reset(katherine_emu_t *emu);

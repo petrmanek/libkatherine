@@ -12,31 +12,30 @@
 
 #pragma once
 
-/*
- * Tests are plain functions:
- *
- *   static void test_foo(void) { KT_CHECK(1 + 1 == 2); }
- *
- * A test program looks like:
- *
- *   int main(void) {
- *       KT_RUN(test_foo);
- *       KT_RUN(test_bar);
- *       return kt_summary();
- *   }
- *
- * KT_CHECK / KT_CHECK_EQ / KT_CHECK_MEM_EQ record a failed assertion and let
- * the test keep running to completion. KT_REQUIRE is the same, except it
- * additionally returns from the current (void) test function on failure --
- * use it after a setup step whose failure would make later checks in the
- * same test memory-unsafe (e.g. a NULL allocation the test then derefs).
- * Nothing here ever exits the process: every KT_RUN'd test always runs, and
- * kt_summary() reports the aggregate outcome at the end.
- *
- * Everything a test needs is the handful of KT_* macros and kt_summary()
- * below; the counters and TAP output are an internal detail that can be
- * swapped out later without touching any test logic.
- */
+//
+// Tests are plain functions:
+//
+// static void test_foo(void) { KT_CHECK(1 + 1 == 2); }
+//
+// A test program looks like:
+//
+// int main(void) {
+// KT_RUN(test_foo);
+// KT_RUN(test_bar);
+// return kt_summary();
+// }
+//
+// KT_CHECK / KT_CHECK_EQ / KT_CHECK_MEM_EQ record a failed assertion and let
+// the test keep running to completion. KT_REQUIRE is the same, except it
+// additionally returns from the current (void) test function on failure --
+// use it after a setup step whose failure would make later checks in the
+// same test memory-unsafe (e.g. a NULL allocation the test then derefs).
+// Nothing here ever exits the process: every KT_RUN'd test always runs, and
+// kt_summary() reports the aggregate outcome at the end.
+//
+// Everything a test needs is the handful of KT_* macros and kt_summary()
+// below; the counters and TAP output are an internal detail that can be
+// swapped out later without touching any test logic.
 
 #include <float.h>
 #include <math.h>
@@ -81,17 +80,17 @@ kt_report_fail(const char *file, int line, const char *expr)
         } \
     } while (0)
 
-/* Floating-point comparison, in units of representable values rather than of
-   an epsilon picked by hand. nextafter() walks to the neighbouring double, so
-   the tolerance scales with magnitude automatically -- one ULP near 1e-300 and
-   one ULP near 1e300 are both "the next value the type can hold", which is the
-   question a test usually means to ask.
-
-   Equality is checked first, so infinities compare equal to themselves; NaN
-   compares equal to nothing, itself included.
-
-   KT_CHECK_EQ is unsuitable here: it casts both sides to unsigned long long,
-   which truncates a double rather than comparing it. */
+// Floating-point comparison, in units of representable values rather than of
+// an epsilon picked by hand. nextafter() walks to the neighbouring double, so
+// the tolerance scales with magnitude automatically -- one ULP near 1e-300 and
+// one ULP near 1e300 are both "the next value the type can hold", which is the
+// question a test usually means to ask.
+//
+// Equality is checked first, so infinities compare equal to themselves; NaN
+// compares equal to nothing, itself included.
+//
+// KT_CHECK_EQ is unsuitable here: it casts both sides to unsigned long long,
+// which truncates a double rather than comparing it.
 static inline int
 kt_double_within_ulps(double a, double b, unsigned ulps)
 {
@@ -107,8 +106,8 @@ kt_double_within_ulps(double a, double b, unsigned ulps)
     return b >= lo && b <= hi;
 }
 
-/* Within a few representable values of each other: the check for a quantity
-   that should be the same number, arrived at by a different route. */
+// Within a few representable values of each other: the check for a quantity
+// that should be the same number, arrived at by a different route.
 #define KT_CHECK_CLOSE(a, b) \
     do { \
         double kt_a_ = (double) (a); \
@@ -119,8 +118,8 @@ kt_double_within_ulps(double a, double b, unsigned ulps)
         } \
     } while (0)
 
-/* Within an absolute tolerance, for quantities compared against zero or across
-   a scale change, where ULPs are the wrong unit. */
+// Within an absolute tolerance, for quantities compared against zero or across
+// a scale change, where ULPs are the wrong unit.
 #define KT_CHECK_NEAR(a, b, tol) \
     do { \
         double kt_a_ = (double) (a); \
@@ -133,9 +132,9 @@ kt_double_within_ulps(double a, double b, unsigned ulps)
         } \
     } while (0)
 
-/* Bit-for-bit equality of two doubles. Reserved for the cases where exactness
-   is the property under test rather than an accident of rounding -- naming it
-   says the "==" was meant, which a bare comparison cannot. */
+// Bit-for-bit equality of two doubles. Reserved for the cases where exactness
+// is the property under test rather than an accident of rounding -- naming it
+// says the "==" was meant, which a bare comparison cannot.
 #define KT_CHECK_EXACT(a, b) \
     do { \
         double kt_a_ = (double) (a); \

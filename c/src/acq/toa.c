@@ -14,20 +14,20 @@
 
 #include <katherine/toa.h>
 
-/* log2 of the number of fine-oscillator ticks in one coarse tick, indexed by
- * katherine_freq_t.
- *
- * The fine oscillator is fixed at 640 MHz while the pixel clock is the same
- * PLL divided down, so every ratio is a whole number and a power of two. That
- * is what lets a timestamp be carried as an integer count of fine ticks with
- * no rounding at any frequency, and what makes the per-double-column phase
- * step -- a coarse tick divided by the phase count -- a whole number of them
- * as well.
- *
- * The shift is stored rather than the ratio, and the ratio derived from it, so
- * the two cannot disagree. The decoder wants the shift: a ratio read from
- * memory is not a compile-time constant, so multiplying by it emits a real
- * multiply rather than the shift its value would allow. */
+// log2 of the number of fine-oscillator ticks in one coarse tick, indexed by
+// katherine_freq_t.
+//
+// The fine oscillator is fixed at 640 MHz while the pixel clock is the same
+// PLL divided down, so every ratio is a whole number and a power of two. That
+// is what lets a timestamp be carried as an integer count of fine ticks with
+// no rounding at any frequency, and what makes the per-double-column phase
+// step -- a coarse tick divided by the phase count -- a whole number of them
+// as well.
+//
+// The shift is stored rather than the ratio, and the ratio derived from it, so
+// the two cannot disagree. The decoder wants the shift: a ratio read from
+// memory is not a compile-time constant, so multiplying by it emits a real
+// multiply rather than the shift its value would allow.
 static const uint8_t KATHERINE_TOA_FINE_SHIFT[4] = {
     /* FREQ_20  */ 5, /* 32 fine ticks */
     /* FREQ_40  */ 4, /* 16 */
@@ -38,9 +38,9 @@ static const uint8_t KATHERINE_TOA_FINE_SHIFT[4] = {
 static bool
 katherine_toa_freq_in_range(katherine_freq_t freq)
 {
-    /* Signed comparison on purpose: the parameter is an enumeration, and a
-       caller passing a negative value would otherwise index far outside the
-       table after conversion to an unsigned index. */
+    // Signed comparison on purpose: the parameter is an enumeration, and a
+    // caller passing a negative value would otherwise index far outside the
+    // table after conversion to an unsigned index.
     return (int) freq >= 0 && (int) freq <= FREQ_160;
 }
 
@@ -86,14 +86,14 @@ katherine_tpx3_toa_coarse_tick_to_fine_shift(katherine_freq_t freq)
     return KATHERINE_TOA_FINE_SHIFT[freq];
 }
 
-/* Fine-oscillator ticks in one second. The oscillator is fixed at 640 MHz, so
-   this needs no configuration -- unlike the coarse tick, which the divider
-   moves. Exactly 640e6, and a whole number, which is what makes the split
-   below exact rather than merely close. */
+// Fine-oscillator ticks in one second. The oscillator is fixed at 640 MHz, so
+// this needs no configuration -- unlike the coarse tick, which the divider
+// moves. Exactly 640e6, and a whole number, which is what makes the split
+// below exact rather than merely close.
 #define KATHERINE_TOA_FINE_TICKS_PER_SECOND 640000000u
 
-/* The epoch bias katherine_acquisition_begin() applies, as a shift. Larger of
-   the coarse tick and the fine field's span; see the timestamp notes in px.h. */
+// The epoch bias katherine_acquisition_begin() applies, as a shift. Larger of
+// the coarse tick and the fine field's span; see the timestamp notes in px.h.
 #define KATHERINE_TOA_FINE_SPAN_SHIFT       4u
 
 static uint8_t
@@ -197,16 +197,16 @@ katherine_tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t 
     const uint8_t bias_shift = katherine_toa_epoch_bias_shift(coarse_tick_to_fine_shift);
     const uint64_t fine_mask = ((uint64_t) 1 << coarse_tick_to_fine_shift) - 1u;
 
-    /* The phase offset was added, so undoing it comes first: it is not a whole
-       coarse tick and would otherwise corrupt the residue carrying the fine
-       term. This cannot go below zero -- the same offset was added to this
-       very value. */
+    // The phase offset was added, so undoing it comes first: it is not a whole
+    // coarse tick and would otherwise corrupt the residue carrying the fine
+    // term. This cannot go below zero -- the same offset was added to this
+    // very value.
     const uint64_t t = timestamp - phase_offset;
 
-    /* How far short of the next coarse tick the value falls, which is exactly
-       what was subtracted from it. Written as a subtraction rather than as a
-       negation of an unsigned value: the two are identical for a power-of-two
-       modulus, but MSVC rightly warns about the latter (C4146). */
+    // How far short of the next coarse tick the value falls, which is exactly
+    // what was subtracted from it. Written as a subtraction rather than as a
+    // negation of an unsigned value: the two are identical for a power-of-two
+    // modulus, but MSVC rightly warns about the latter (C4146).
     const uint64_t fine = ((fine_mask + 1u) - (t & fine_mask)) & fine_mask;
 
     if (ftoa != NULL) *ftoa = (uint8_t) fine;

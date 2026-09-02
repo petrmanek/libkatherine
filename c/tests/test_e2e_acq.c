@@ -76,10 +76,10 @@
 #include "ktest.h"
 #include "msleep.h"
 
-/* ------------------------------------------------------------------ */
-/* Daemon parameters. The numeric ones are needed both as text (for the
-   daemon's command line) and as integers (for the expectations), so they are
-   spelled once and stringified where a string is wanted. */
+// ------------------------------------------------------------------
+// Daemon parameters. The numeric ones are needed both as text (for the
+// daemon's command line) and as integers (for the expectations), so they are
+// spelled once and stringified where a string is wanted.
 
 #define E2E_STR_(x)          #x
 #define E2E_STR(x)           E2E_STR_(x)
@@ -89,14 +89,14 @@
 #define HITS_PER_FRAME       40
 #define LOST_PER_FRAME       3
 
-/* Readiness polling: the device's control timeout is 100 ms, so one failed
-   attempt costs that much plus the sleep below -- 80 attempts bound the wait
-   at roughly ten seconds. */
+// Readiness polling: the device's control timeout is 100 ms, so one failed
+// attempt costs that much plus the sleep below -- 80 attempts bound the wait
+// at roughly ten seconds.
 #define READY_ATTEMPTS       80
 #define READY_SLEEP_MS       25
 
-/* Emulated readout profile defaults, from katherine_emu_profile_defaults()
-   in c/src/emu/emulator.c. */
+// Emulated readout profile defaults, from katherine_emu_profile_defaults()
+// in c/src/emu/emulator.c.
 #define EXPECTED_CHIP_ID     "A1-W0001"
 #define EXPECTED_HW_TYPE     0x01
 #define EXPECTED_HW_REVISION 0x01
@@ -105,101 +105,101 @@
 #define EXPECTED_READOUT_T   30.0f
 #define EXPECTED_SENSOR_T    40.0f
 
-/* Communication status of the emulated readout: all eight data lines up, one
-   sensor chip attached, and a reported data rate of zero because the daemon
-   is started without --rate and therefore does not shape its stream
-   (queue_comm_status() in c/src/emu/emulator.c). */
+// Communication status of the emulated readout: all eight data lines up, one
+// sensor chip attached, and a reported data rate of zero because the daemon
+// is started without --rate and therefore does not shape its stream
+// (queue_comm_status() in c/src/emu/emulator.c).
 #define EXPECTED_COMM_LINES  0xFF
 #define EXPECTED_DATA_RATE   0
 
-/* The ADC channels answer a synthetic ramp of 0.125 V per channel, so a
-   caller can tell them apart (CMD_TYPE_GET_ADC_VOLTAGE in emulator.c). */
+// The ADC channels answer a synthetic ramp of 0.125 V per channel, so a
+// caller can tell them apart (CMD_TYPE_GET_ADC_VOLTAGE in emulator.c).
 #define ADC_CHANNEL          3
 #define EXPECTED_ADC_VOLTAGE 0.5f
 
-/* Period of the emulated readout timer, i.e. the unit of every timestamp in
-   the measurement data stream (KATHERINE_EMU_TICK_NS in c/src/emu/emu.h). */
+// Period of the emulated readout timer, i.e. the unit of every timestamp in
+// the measurement data stream (KATHERINE_EMU_TICK_NS in c/src/emu/emu.h).
 #define TICK_NS              25
 
-/* Width of the coarse time-of-arrival field, in the emulator and in the
-   pixel layouts of c/src/md.h alike. */
+// Width of the coarse time-of-arrival field, in the emulator and in the
+// pixel layouts of c/src/md.h alike.
 #define TOA_LIMIT            (1u << 14)
 
-/* Timestamps arrive in fine-oscillator ticks, so the chip's coarse field maps
-   onto TOA_LIMIT * FINE_TICKS of them. Pinned rather than derived per hit; the
-   test asserts it against the library's own ratio before relying on it. */
+// Timestamps arrive in fine-oscillator ticks, so the chip's coarse field maps
+// onto TOA_LIMIT * FINE_TICKS of them. Pinned rather than derived per hit; the
+// test asserts it against the library's own ratio before relying on it.
 #define FINE_TICKS           16u
 
-/* Shutter short enough that the coarse ToA cannot wrap within a frame: 0.4 ms
-   is 16000 readout ticks, just inside the 16384 the field holds. That keeps
-   the arrival times of a frame strictly increasing and leaves the timestamp
-   offset the data-driven chain interleaves at zero, so the two chains under
-   test below deliver the same ToA values. */
+// Shutter short enough that the coarse ToA cannot wrap within a frame: 0.4 ms
+// is 16000 readout ticks, just inside the 16384 the field holds. That keeps
+// the arrival times of a frame strictly increasing and leaves the timestamp
+// offset the data-driven chain interleaves at zero, so the two chains under
+// test below deliver the same ToA values.
 #define SHORT_ACQ_TIME_NS    400000.0
 
-/* Long enough that the daemon keeps trickling hits out while the abort is
-   issued and takes effect. */
+// Long enough that the daemon keeps trickling hits out while the abort is
+// issued and takes effect.
 #define LONG_ACQ_TIME_NS     200000000.0
 
-/* Frames requested by the sequential-readout case. Data-driven acquisitions
-   are limited to one frame by katherine_acquisition_begin() itself. */
+// Frames requested by the sequential-readout case. Data-driven acquisitions
+// are limited to one frame by katherine_acquisition_begin() itself.
 #define SEQ_FRAMES           3
 
-/* Deliberately not a local address: it must black-hole the datagram rather
-   than have it delivered back to the sender. Every 127.0.0.0/8 address is
-   local on Linux, so a command sent to (say) 127.0.0.9:1555 is delivered to
-   the library's own wildcard-bound control socket and read back as if it
-   were the readout's acknowledgement. 192.0.2.1 is TEST-NET-1 (RFC 5737),
-   reserved for documentation and never assigned, so nothing answers. */
+// Deliberately not a local address: it must black-hole the datagram rather
+// than have it delivered back to the sender. Every 127.0.0.0/8 address is
+// local on Linux, so a command sent to (say) 127.0.0.9:1555 is delivered to
+// the library's own wildcard-bound control socket and read back as if it
+// were the readout's acknowledgement. 192.0.2.1 is TEST-NET-1 (RFC 5737),
+// reserved for documentation and never assigned, so nothing answers.
 #define DEAD_ADDR            "192.0.2.1"
 
-/* Deliberately the opposite of DEAD_ADDR: a local address nobody is bound
-   to, so that a command sent there comes straight back to the sender (all
-   of 127.0.0.0/8 is local) and exercises the faux-echo rejection. */
+// Deliberately the opposite of DEAD_ADDR: a local address nobody is bound
+// to, so that a command sent there comes straight back to the sender (all
+// of 127.0.0.0/8 is local) and exercises the faux-echo rejection.
 #define SILENT_LOOPBACK_ADDR "127.0.0.9"
 
-/* Bounds the timeout case: the control timeout is 100 ms, and time(NULL) has
-   one-second granularity, so anything at or under two seconds of difference
-   proves the call did not hang. */
+// Bounds the timeout case: the control timeout is 100 ms, and time(NULL) has
+// one-second granularity, so anything at or under two seconds of difference
+// proves the call did not hang.
 #define TIMEOUT_BUDGET_S     2.0
 
-/* Acquisition buffers. ksim's own datagrams are far smaller than this (at
-   most 226 data at a time), but katherine_acquisition_init() documents 65536
-   bytes as the minimum for real hardware -- the readout sends one datagram
-   per SDRAM slot, up to about 65 kB -- so the test models that contract
-   instead of the daemon's actual traffic. */
+// Acquisition buffers. ksim's own datagrams are far smaller than this (at
+// most 226 data at a time), but katherine_acquisition_init() documents 65536
+// bytes as the minimum for real hardware -- the readout sends one datagram
+// per SDRAM slot, up to about 65 kB -- so the test models that contract
+// instead of the daemon's actual traffic.
 #define MD_BUFFER_SIZE       65536
 #define PIXEL_BUFFER_HITS    1024
 #define REPORT_TIMEOUT_MS    500
 #define FAIL_TIMEOUT_MS      10000
 
-/* The acquisition mode under test, and the pixel layout it delivers. */
+// The acquisition mode under test, and the pixel layout it delivers.
 typedef katherine_px_f_toa_tot_t px_t;
 
-/* ------------------------------------------------------------------ */
-/* Shared fixture: one daemon and one device for every case that talks to
-   the emulated readout. Fixed UDP ports make the daemon a global resource,
-   hence the RUN_SERIAL property on the CTest side and a single daemon here. */
+// ------------------------------------------------------------------
+// Shared fixture: one daemon and one device for every case that talks to
+// the emulated readout. Fixed UDP ports make the daemon a global resource,
+// hence the RUN_SERIAL property on the CTest side and a single daemon here.
 
 static kspawn_proc_t g_ksim = {0};
 static katherine_device_t g_device;
 static char g_skip_reason[256];
 
-/* Spawns the daemon and waits for it to answer a chip-identifier request with
-   its own identifier. Returns NULL once the readout is reachable, or a
-   description of why the environment cannot host it -- the only failure this
-   program is allowed to treat as a skip.
-
-   Readiness is the *content* of the answer, not merely a successful receive,
-   and the device is torn down and recreated between attempts. Both follow
-   from the same hazard: a command sent before the daemon has bound its
-   address is not lost, because the whole of 127.0.0.0/8 is local, but
-   delivered straight back to the library's own wildcard-bound control
-   socket -- which then reads its own 8-byte command as the readout's
-   acknowledgement. The device's sessions pin their remote address, so the
-   echo cannot retarget them (it once could, and then no amount of retrying
-   on the same device would recover); recreating the device between attempts
-   still sheds anything else a failed attempt may have left queued. */
+// Spawns the daemon and waits for it to answer a chip-identifier request with
+// its own identifier. Returns NULL once the readout is reachable, or a
+// description of why the environment cannot host it -- the only failure this
+// program is allowed to treat as a skip.
+//
+// Readiness is the *content* of the answer, not merely a successful receive,
+// and the device is torn down and recreated between attempts. Both follow
+// from the same hazard: a command sent before the daemon has bound its
+// address is not lost, because the whole of 127.0.0.0/8 is local, but
+// delivered straight back to the library's own wildcard-bound control
+// socket -- which then reads its own 8-byte command as the readout's
+// acknowledgement. The device's sessions pin their remote address, so the
+// echo cannot retarget them (it once could, and then no amount of retrying
+// on the same device would recover); recreating the device between attempts
+// still sheds anything else a failed attempt may have left queued.
 static const char *
 fixture_init(const char *ksim_path)
 {
@@ -256,8 +256,8 @@ fixture_init(const char *ksim_path)
     return g_skip_reason;
 }
 
-/* ------------------------------------------------------------------ */
-/* b) Slow control round trips.                                        */
+// ------------------------------------------------------------------
+// b) Slow control round trips.
 
 static void
 test_slow_control(void)
@@ -279,8 +279,8 @@ test_slow_control(void)
     KT_CHECK_EQ(comm.data_rate, EXPECTED_DATA_RATE);
     KT_CHECK(comm.chip_count > 0);
 
-    /* The temperatures travel as IEEE-754 singles in the response payload
-       and are reinterpreted, not converted, so they compare exactly. */
+    // The temperatures travel as IEEE-754 singles in the response payload
+    // and are reinterpreted, not converted, so they compare exactly.
     float temperature = 0.0f;
     KT_CHECK_EQ(katherine_get_readout_temperature(&g_device, &temperature), 0);
     KT_CHECK(temperature == EXPECTED_READOUT_T);
@@ -293,23 +293,23 @@ test_slow_control(void)
     KT_CHECK_EQ(katherine_get_adc_voltage(&g_device, ADC_CHANNEL, &voltage), 0);
     KT_CHECK(voltage == EXPECTED_ADC_VOLTAGE);
 
-    /* The emulated readout reports all matrix patterns passing, which is
-       what the library requires to accept the result. */
+    // The emulated readout reports all matrix patterns passing, which is
+    // what the library requires to accept the result.
     KT_CHECK_EQ(katherine_perform_digital_test(&g_device), 0);
 }
 
-/* ------------------------------------------------------------------ */
-/* The probe above converts between coarse and fine ticks with a constant.
-   If the library's ratio for this configuration ever changes, that constant
-   is silently wrong and every derived check goes quietly green, so pin the
-   two together rather than trusting the comment. */
+// ------------------------------------------------------------------
+// The probe above converts between coarse and fine ticks with a constant.
+// If the library's ratio for this configuration ever changes, that constant
+// is silently wrong and every derived check goes quietly green, so pin the
+// two together rather than trusting the comment.
 static void
 test_fine_ticks_pin(void)
 {
     KT_CHECK_EQ(katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40), FINE_TICKS);
 }
 
-/* Acquisition fixture shared by the remaining cases.                  */
+// Acquisition fixture shared by the remaining cases.
 
 typedef struct acq_probe {
     katherine_acquisition_t *acq; /* the running acquisition, for abort from a handler */
@@ -340,9 +340,9 @@ typedef struct acq_probe {
     int abort_result;
 } acq_probe_t;
 
-/* Aborts the acquisition in progress, once, if this run is one of the abort
-   cases. Runs on the read loop's own thread, from inside the loop, and takes
-   the control socket -- not the data socket the loop holds. */
+// Aborts the acquisition in progress, once, if this run is one of the abort
+// cases. Runs on the read loop's own thread, from inside the loop, and takes
+// the control socket -- not the data socket the loop holds.
 static void
 request_abort(acq_probe_t *probe)
 {
@@ -363,10 +363,10 @@ on_frame_started(void *ctx, int frame_idx)
     probe->hits_in_frame = 0;
     probe->prev_toa      = 0;
 
-    /* This is invoked by the new-frame datum, the first datum of the frame,
-       so the shutter is open by the time it runs: aborting here aborts a
-       frame in progress. It is the decoding chain's counterpart of the abort
-       from on_data_received below, which decoding never calls. */
+    // This is invoked by the new-frame datum, the first datum of the frame,
+    // so the shutter is open by the time it runs: aborting here aborts a
+    // frame in progress. It is the decoding chain's counterpart of the abort
+    // from on_data_received below, which decoding never calls.
     request_abort(probe);
 }
 
@@ -388,21 +388,21 @@ on_pixels_received(void *ctx, const void *px, size_t count)
 
         if (hits[i].coord.y != (uint8_t) probe->hits_in_frame) ++probe->bad_row;
 
-        /* Strictly increasing within a frame, and inside the 14-bit field:
-           the arrival times are spread evenly over a shutter chosen short
-           enough not to wrap the field, so any offset misapplied on top of
-           them shows up here. */
+        // Strictly increasing within a frame, and inside the 14-bit field:
+        // the arrival times are spread evenly over a shutter chosen short
+        // enough not to wrap the field, so any offset misapplied on top of
+        // them shows up here.
         if (hits[i].timestamp >= (uint64_t) TOA_LIMIT * FINE_TICKS) ++probe->bad_toa;
         if (probe->hits_in_frame > 0 && hits[i].timestamp <= probe->prev_toa) ++probe->bad_toa;
 
         if (hits[i].tot > 1023) ++probe->bad_tot;
 
-        /* Combining is invertible, so the chip's own counters come back out of
-           the timestamp by division and both must land inside their fields.
-           This says more than the range check on the fine field it replaces:
-           it exercises the arithmetic rather than the storage, and would catch
-           a ratio applied in the wrong direction, which a range check would
-           not. */
+        // Combining is invertible, so the chip's own counters come back out of
+        // the timestamp by division and both must land inside their fields.
+        // This says more than the range check on the fine field it replaces:
+        // it exercises the arithmetic rather than the storage, and would catch
+        // a ratio applied in the wrong direction, which a range check would
+        // not.
         {
             const uint64_t fine   = (FINE_TICKS - hits[i].timestamp % FINE_TICKS) % FINE_TICKS;
             const uint64_t coarse = (hits[i].timestamp + fine) / FINE_TICKS;
@@ -423,10 +423,10 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
     ++probe->frames_ended;
     if (completed) ++probe->frames_completed;
 
-    /* A frame an abort cut short carries neither the frame-finished datum
-       nor the end timestamp, so how many hits it was to deliver and when it
-       was to close are not knowable: only a frame that ran to its end is
-       held against the ground truth below. */
+    // A frame an abort cut short carries neither the frame-finished datum
+    // nor the end timestamp, so how many hits it was to deliver and when it
+    // was to close are not knowable: only a frame that ran to its end is
+    // held against the ground truth below.
     if (!completed) return;
 
     KT_CHECK_EQ(info->sent_pixels, HITS_PER_FRAME);
@@ -434,14 +434,14 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
     KT_CHECK_EQ(info->lost_pixels, LOST_PER_FRAME);
     KT_CHECK_EQ(probe->hits_in_frame, HITS_PER_FRAME);
 
-    /* The timestamps are a wall-clock quantity -- the frame opens at
-       whatever the daemon's virtual clock reads -- so what is pinned down
-       is their relation: a frame lasts exactly the configured shutter, in
-       25 ns ticks. Asserting through the composite .d member (and not the
-       raw halves) is deliberate: it regresses if the union's field order
-       ever again disagrees with little-endian composition, the defect that
-       once made .d read as (lsb << 32) | msb. The halves are also checked
-       to agree with the composite by name. */
+    // The timestamps are a wall-clock quantity -- the frame opens at
+    // whatever the daemon's virtual clock reads -- so what is pinned down
+    // is their relation: a frame lasts exactly the configured shutter, in
+    // 25 ns ticks. Asserting through the composite .d member (and not the
+    // raw halves) is deliberate: it regresses if the union's field order
+    // ever again disagrees with little-endian composition, the defect that
+    // once made .d read as (lsb << 32) | msb. The halves are also checked
+    // to agree with the composite by name.
     KT_CHECK_EQ(info->end_time.d - info->start_time.d, probe->frame_ticks);
     KT_CHECK_EQ(info->start_time.d, ((uint64_t) info->start_time.b.msb << 32) | info->start_time.b.lsb);
     KT_CHECK_EQ(info->end_time.b.msb, 0);
@@ -458,17 +458,17 @@ on_data_received(void *ctx, const char *data, size_t count)
     probe->data_bytes += count;
     KT_CHECK_EQ(count % KATHERINE_MD_SIZE, 0);
 
-    /* The first datagram of a frame necessarily opens with the new-frame
-       datum, so the shutter is open by the time this runs: aborting here
-       aborts a frame in progress. */
+    // The first datagram of a frame necessarily opens with the new-frame
+    // datum, so the shutter is open by the time this runs: aborting here
+    // aborts a frame in progress.
     request_abort(probe);
 }
 
-/* Fills in a configuration equivalent to the one c/examples/krun.c uses,
-   less the pixel matrix: the emulated readout models the upload protocol
-   (it counts the 16384 configuration words and acknowledges them) but not
-   the matrix contents, so the zeroed matrix left by the memset below is
-   uploaded and accepted like any other. */
+// Fills in a configuration equivalent to the one c/examples/krun.c uses,
+// less the pixel matrix: the emulated readout models the upload protocol
+// (it counts the 16384 configuration words and acknowledges them) but not
+// the matrix contents, so the zeroed matrix left by the memset below is
+// uploaded and accepted like any other.
 static void
 configure(katherine_config_t *config, double acq_time_ns, int no_frames)
 {
@@ -501,16 +501,16 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
     config->dacs.named.Ibias_CP_PLL      = 128;
     config->dacs.named.PLL_Vcntrl        = 128;
 
-    /* The triggers, the delayed start and the test pulse generator are all
-       left disabled by the memset above. */
+    // The triggers, the delayed start and the test pulse generator are all
+    // left disabled by the memset above.
 }
 
-/* Configures the readout, runs one bounded acquisition to completion and
-   returns what katherine_acquisition_read() returned. The acquisition is
-   left initialized (and zeroed beforehand, so finalizing it is safe on
-   every path) for the caller to inspect and finalize. With abort_enabled,
-   the run is instead cut short from inside the read loop, by the first
-   handler of the selected chain that reports the shutter open. */
+// Configures the readout, runs one bounded acquisition to completion and
+// returns what katherine_acquisition_read() returned. The acquisition is
+// left initialized (and zeroed beforehand, so finalizing it is safe on
+// every path) for the caller to inspect and finalize. With abort_enabled,
+// the run is instead cut short from inside the read loop, by the first
+// handler of the selected chain that reports the shutter open.
 static int
 acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, double acq_time_ns, int no_frames,
     bool decode_data, bool abort_enabled)
@@ -535,18 +535,18 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     acq->handlers.pixels_received = on_pixels_received;
     acq->handlers.data_received   = on_data_received;
 
-    /* Idle before we start: after katherine_device_init() because it says so,
-       and after any earlier acquisition because read() cleared it. */
+    // Idle before we start: after katherine_device_init() because it says so,
+    // and after any earlier acquisition because read() cleared it.
     KT_CHECK(g_device.acquisition == NULL);
 
     res = katherine_acquisition_begin(acq, &config, readout_mode, ACQUISITION_MODE_TOA_TOT, true, decode_data);
     if (res != 0) return res;
 
-    /* The device reports a measurement in flight for exactly the span between
-       these two calls, which is what makes the sensor temperature refuse in
-       between. Asserted around a real acquisition because the guard's unit
-       test can only reach the refusal itself, not the bookkeeping that arms
-       it. */
+    // The device reports a measurement in flight for exactly the span between
+    // these two calls, which is what makes the sensor temperature refuse in
+    // between. Asserted around a real acquisition because the guard's unit
+    // test can only reach the refusal itself, not the bookkeeping that arms
+    // it.
     KT_CHECK(g_device.acquisition == acq);
     float refused = 0.0f;
     KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, &refused), -KATHERINE_E_STATE);
@@ -557,8 +557,8 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     return res;
 }
 
-/* ------------------------------------------------------------------ */
-/* c) Data-driven acquisition against the daemon's ground truth.       */
+// ------------------------------------------------------------------
+// c) Data-driven acquisition against the daemon's ground truth.
 
 static void
 test_data_driven_frame(void)
@@ -566,9 +566,9 @@ test_data_driven_frame(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    /* One frame only: katherine_acquisition_begin() rejects a data-driven
-       acquisition of more than one frame outright (-KATHERINE_E_INVAL), which
-       is what bounds this case. */
+    // One frame only: katherine_acquisition_begin() rejects a data-driven
+    // acquisition of more than one frame outright (-KATHERINE_E_INVAL), which
+    // is what bounds this case.
     KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
 
     KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
@@ -591,11 +591,11 @@ test_data_driven_frame(void)
     katherine_acquisition_fini(&acq);
 }
 
-/* ------------------------------------------------------------------ */
-/* c') The same ground truth over several frames. Sequential readout is
-   the only mode the 1.x API lets a caller bound by a frame count above
-   one; the emulated readout serves it from the same generator, minus the
-   timestamp-offset data the data-driven chain interleaves.              */
+// ------------------------------------------------------------------
+// c') The same ground truth over several frames. Sequential readout is
+// the only mode the 1.x API lets a caller bound by a frame count above
+// one; the emulated readout serves it from the same generator, minus the
+// timestamp-offset data the data-driven chain interleaves.
 
 static void
 test_sequential_frames(void)
@@ -623,13 +623,13 @@ test_sequential_frames(void)
     katherine_acquisition_fini(&acq);
 }
 
-/* ------------------------------------------------------------------ */
-/* d) Abort path. Once the abort is requested, the read loop drains
-   whatever the readout has already sent -- including the aborted
-   measurement datum that closes the interrupted frame -- and ends the
-   acquisition as soon as the stream dries up. That is one behavior, not
-   two: the pair of cases below differ only in which chain carries the
-   data, and assert the same outcome.                                    */
+// ------------------------------------------------------------------
+// d) Abort path. Once the abort is requested, the read loop drains
+// whatever the readout has already sent -- including the aborted
+// measurement datum that closes the interrupted frame -- and ends the
+// acquisition as soon as the stream dries up. That is one behavior, not
+// two: the pair of cases below differ only in which chain carries the
+// data, and assert the same outcome.
 
 static void
 test_abort_undecoded(void)
@@ -646,9 +646,9 @@ test_abort_undecoded(void)
     KT_CHECK(acq.aborted);
     KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
 
-    /* The shutter was still open, so no frame ever finished; and with
-       decoding off, no frame ever started as far as the library is
-       concerned either. */
+    // The shutter was still open, so no frame ever finished; and with
+    // decoding off, no frame ever started as far as the library is
+    // concerned either.
     KT_CHECK_EQ(acq.completed_frames, 0);
     KT_CHECK_EQ(probe.frames_started, 0);
     KT_CHECK_EQ(probe.frames_ended, 0);
@@ -664,8 +664,8 @@ test_abort_decoded(void)
 
     KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, true, true), 0);
 
-    /* The undecoded chain is not consulted at all here: the abort came from
-       the frame-started handler instead. */
+    // The undecoded chain is not consulted at all here: the abort came from
+    // the frame-started handler instead.
     KT_CHECK_EQ(probe.data_callbacks, 0);
     KT_CHECK(probe.abort_requested);
     KT_CHECK_EQ(probe.abort_result, 0);
@@ -673,9 +673,9 @@ test_abort_decoded(void)
     KT_CHECK(acq.aborted);
     KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
 
-    /* The shutter was still open, so the frame the abort interrupted is
-       reported ended and incomplete, and it delivered fewer hits than a
-       whole frame carries. */
+    // The shutter was still open, so the frame the abort interrupted is
+    // reported ended and incomplete, and it delivered fewer hits than a
+    // whole frame carries.
     KT_CHECK_EQ(acq.completed_frames, 0);
     KT_CHECK_EQ(probe.frames_started, 1);
     KT_CHECK_EQ(probe.frames_ended, 1);
@@ -685,10 +685,10 @@ test_abort_decoded(void)
     katherine_acquisition_fini(&acq);
 }
 
-/* ------------------------------------------------------------------ */
-/* e) Timeout path. Runs after the shared device has been finalized and
-   the daemon stopped, so this device has the local ports to itself and
-   no late response from the emulated readout can be mistaken for one.   */
+// ------------------------------------------------------------------
+// e) Timeout path. Runs after the shared device has been finalized and
+// the daemon stopped, so this device has the local ports to itself and
+// no late response from the emulated readout can be mistaken for one.
 
 static void
 test_control_timeout(void)
@@ -701,25 +701,25 @@ test_control_timeout(void)
     int res        = katherine_get_chip_id(&device, chip_id);
     double elapsed = difftime(time(NULL), started);
 
-    /* Any nonzero code counts: a receive timeout on POSIX, but possibly
-       WSAECONNRESET on Windows, where the ICMP port-unreachable of a
-       refusing host is reported on the socket that provoked it, or an
-       immediate send failure on a host with no route to the address. */
+    // Any nonzero code counts: a receive timeout on POSIX, but possibly
+    // WSAECONNRESET on Windows, where the ICMP port-unreachable of a
+    // refusing host is reported on the socket that provoked it, or an
+    // immediate send failure on a host with no route to the address.
     KT_CHECK(res != 0);
     KT_CHECK(elapsed <= TIMEOUT_BUDGET_S);
 
     katherine_device_fini(&device);
 }
 
-/* ------------------------------------------------------------------ */
-/* f) Faux-echo path. A loopback address nobody is bound to delivers a
-   command straight back to the library's own wildcard-bound control
-   socket, where it parses as a response with all identifier fields
-   zeroed -- once mistaken for a genuine answer, discovery over an
-   address range reported a phantom readout "@0-W0000" on the host's
-   own addresses. The library must treat it like a timeout. Where the
-   platform does not deliver to self, the inquiry fails anyway (timeout
-   or no route), so this asserts the same outcome either way.           */
+// ------------------------------------------------------------------
+// f) Faux-echo path. A loopback address nobody is bound to delivers a
+// command straight back to the library's own wildcard-bound control
+// socket, where it parses as a response with all identifier fields
+// zeroed -- once mistaken for a genuine answer, discovery over an
+// address range reported a phantom readout "@0-W0000" on the host's
+// own addresses. The library must treat it like a timeout. Where the
+// platform does not deliver to self, the inquiry fails anyway (timeout
+// or no route), so this asserts the same outcome either way.
 
 static void
 test_faux_echo_rejected(void)
@@ -733,15 +733,15 @@ test_faux_echo_rejected(void)
     katherine_device_fini(&device);
 }
 
-/* ------------------------------------------------------------------ */
-/* What katherine_acquisition_begin() resolves a phase request into.    */
+// ------------------------------------------------------------------
+// What katherine_acquisition_begin() resolves a phase request into.
 
-/* The resolution is the one part of phase correction that a hand-built
-   acquisition cannot reach: it happens inside begin(), which needs a readout.
-   Driven here against the emulator, over the inputs that decide it. The offset
-   values themselves are checked in test_phase_correction.c; what matters here
-   is which of the three outcomes begin() picks, and whether it fills the table
-   to match. */
+// The resolution is the one part of phase correction that a hand-built
+// acquisition cannot reach: it happens inside begin(), which needs a readout.
+// Driven here against the emulator, over the inputs that decide it. The offset
+// values themselves are checked in test_phase_correction.c; what matters here
+// is which of the three outcomes begin() picks, and whether it fills the table
+// to match.
 static void
 check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
     katherine_phase_correction_t expect)
@@ -763,8 +763,8 @@ check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
                    PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
         == 0);
 
-    /* Sequential readout so the run ends on its own; the hits are irrelevant
-       here, only the state begin() left behind. */
+    // Sequential readout so the run ends on its own; the hits are irrelevant
+    // here, only the state begin() left behind.
     KT_REQUIRE(katherine_acquisition_begin(
                    &acq, &config, READOUT_SEQUENTIAL, ACQUISITION_MODE_TOA_TOT, false, true)
         == 0);
@@ -772,16 +772,16 @@ check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
     KT_CHECK_EQ(acq.phase_correction, expect);
     KT_CHECK_EQ(acq.phase_count, katherine_actual_phases(freq, phase));
 
-    /* The table is the mechanism, so it must agree with the outcome: filled
-       only for SOFTWARE, zero everywhere else -- which is what lets the decoder
-       add unconditionally.
-
-       Checked entry by entry against a formula written out here, not against
-       the library's. This is the ONLY place a library-built table is in scope:
-       the fill happens inside begin(), and the closed form behind it is static.
-       Counting nonzero entries instead would accept a table that paired the
-       wrong columns, or used the wrong step, or repeated with the wrong
-       period. */
+    // The table is the mechanism, so it must agree with the outcome: filled
+    // only for SOFTWARE, zero everywhere else -- which is what lets the decoder
+    // add unconditionally.
+    //
+    // Checked entry by entry against a formula written out here, not against
+    // the library's. This is the ONLY place a library-built table is in scope:
+    // the fill happens inside begin(), and the closed form behind it is static.
+    // Counting nonzero entries instead would accept a table that paired the
+    // wrong columns, or used the wrong step, or repeated with the wrong
+    // period.
     const uint8_t n     = katherine_actual_phases(freq, phase);
     const unsigned fine = katherine_tpx3_toa_coarse_tick_to_fine_ticks(freq);
     unsigned mismatched = 0, nonzero = 0;
@@ -798,8 +798,8 @@ check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
     KT_CHECK_EQ(mismatched, 0u);
 
     if (expect == KATHERINE_PHASE_CORRECTION_SOFTWARE) {
-        /* And it must not be uniformly zero, or the comparison above would
-           hold vacuously for a table that was never filled. */
+        // And it must not be uniformly zero, or the comparison above would
+        // hold vacuously for a table that was never filled.
         KT_CHECK(nonzero > 0);
     } else {
         KT_CHECK_EQ(nonzero, 0u);
@@ -812,30 +812,30 @@ check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
 static void
 test_phase_request_resolution(void)
 {
-    /* Not asked for: nothing happens, however many phases there are. */
+    // Not asked for: nothing happens, however many phases there are.
     check_resolution(FREQ_40, PHASE_16, false, KATHERINE_PHASE_CORRECTION_NONE);
 
-    /* Asked for, and there is something to correct. */
+    // Asked for, and there is something to correct.
     check_resolution(FREQ_40, PHASE_16, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
     check_resolution(FREQ_40, PHASE_2, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
 
-    /* Asked for, but the configuration yields a single phase, so there is
-       genuinely nothing to correct. Reported as NONE rather than as SOFTWARE
-       over a table of zeroes: the caller is told, not reassured. */
+    // Asked for, but the configuration yields a single phase, so there is
+    // genuinely nothing to correct. Reported as NONE rather than as SOFTWARE
+    // over a table of zeroes: the caller is told, not reassured.
     check_resolution(FREQ_40, PHASE_1, true, KATHERINE_PHASE_CORRECTION_NONE);
 
-    /* And where the divider clamps the phase count to one, likewise -- the
-       enumerator asked for more than the clock grants. */
+    // And where the divider clamps the phase count to one, likewise -- the
+    // enumerator asked for more than the clock grants.
     KT_REQUIRE(katherine_actual_phases(FREQ_160, PHASE_2) == 1);
     check_resolution(FREQ_160, PHASE_2, true, KATHERINE_PHASE_CORRECTION_NONE);
 
-    /* HARDWARE is unreachable until a readout reports the capability, so it is
-       not exercised here; katherine_device_can_correct_timestamp_phase()
-       answers false throughout. */
+    // HARDWARE is unreachable until a readout reports the capability, so it is
+    // not exercised here; katherine_device_can_correct_timestamp_phase()
+    // answers false throughout.
     KT_CHECK(!katherine_device_can_correct_timestamp_phase(&g_device));
 }
 
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
 
 int
 main(int argc, char *argv[])
@@ -852,9 +852,9 @@ main(int argc, char *argv[])
         return 77;
     }
 
-    /* No KT_* macro ever exits the process -- KT_REQUIRE returns from the
-       current test at most -- so the daemon is stopped and reaped on every
-       path out of this function. */
+    // No KT_* macro ever exits the process -- KT_REQUIRE returns from the
+    // current test at most -- so the daemon is stopped and reaped on every
+    // path out of this function.
     KT_RUN(test_fine_ticks_pin);
     KT_RUN(test_slow_control);
     KT_RUN(test_data_driven_frame);

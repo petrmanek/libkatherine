@@ -42,26 +42,26 @@ test_sensor_temperature_refused_while_running(void)
 
     float temperature = 0.0f;
 
-    /* Idle devices are not exercised here: with the guard passed, the call
-       would go on to lock and use sockets this device does not have. Only the
-       refusal is reachable without a readout, and only the refusal is the
-       behaviour under test. */
+    // Idle devices are not exercised here: with the guard passed, the call
+    // would go on to lock and use sockets this device does not have. Only the
+    // refusal is reachable without a readout, and only the refusal is the
+    // behaviour under test.
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
     device.acquisition = &acq;
     KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &temperature), -KATHERINE_E_STATE);
 
-    /* The out parameter is left alone when the call is refused. */
+    // The out parameter is left alone when the call is refused.
     KT_CHECK_EXACT(temperature, 0.0f);
 }
 
 static void
 test_guard_is_the_first_thing_the_call_does(void)
 {
-    /* A device that is all zeroes has no usable sockets, so reaching the lock
-       at all would be observable as something other than a clean return. Two
-       further refusals, to pin that the guard does not depend on any field
-       having been initialized. */
+    // A device that is all zeroes has no usable sockets, so reaching the lock
+    // at all would be observable as something other than a clean return. Two
+    // further refusals, to pin that the guard does not depend on any field
+    // having been initialized.
     katherine_device_t device;
     katherine_acquisition_t acq;
     memset(&device, 0, sizeof(device));
@@ -73,14 +73,14 @@ test_guard_is_the_first_thing_the_call_does(void)
     KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &second), -KATHERINE_E_STATE);
 }
 
-/* A begin that fails must not leave the device claiming a measurement. The
-   flag is set on the success path only, after the start command is away, so
-   every early return out of katherine_acquisition_begin() -- the argument
-   check here, and equally the session lock and the start command further down,
-   which this test cannot provoke without a readout -- leaves the device idle.
-   Were it set before those, a caller whose begin failed would be refused
-   inquiries indefinitely: it has no reason to call read(), and read() is what
-   clears the flag. */
+// A begin that fails must not leave the device claiming a measurement. The
+// flag is set on the success path only, after the start command is away, so
+// every early return out of katherine_acquisition_begin() -- the argument
+// check here, and equally the session lock and the start command further down,
+// which this test cannot provoke without a readout -- leaves the device idle.
+// Were it set before those, a caller whose begin failed would be refused
+// inquiries indefinitely: it has no reason to call read(), and read() is what
+// clears the flag.
 static void
 test_failed_begin_leaves_the_device_idle(void)
 {
@@ -94,32 +94,32 @@ test_failed_begin_leaves_the_device_idle(void)
 
     acq.device = &device;
 
-    /* Data-driven readout with more than one frame is rejected before any
-       socket is touched, which is what makes this reachable with a device
-       that has none. */
+    // Data-driven readout with more than one frame is rejected before any
+    // socket is touched, which is what makes this reachable with a device
+    // that has none.
     config.no_frames = 2;
 
-    /* Fast time stamping is left off deliberately. A zeroed config selects
-       whichever frequency is enumerated first, which need not be one where
-       fine time stamping is coherent; asking for it could then trip that guard
-       instead, and this test would pass while exercising something other than
-       the frame-count check it names. Switching it off decouples the two
-       without pinning a frequency here. */
+    // Fast time stamping is left off deliberately. A zeroed config selects
+    // whichever frequency is enumerated first, which need not be one where
+    // fine time stamping is coherent; asking for it could then trip that guard
+    // instead, and this test would pass while exercising something other than
+    // the frame-count check it names. Switching it off decouples the two
+    // without pinning a frequency here.
     KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_DATA_DRIVEN,
                     ACQUISITION_MODE_TOA_TOT, false, true),
         -KATHERINE_E_INVAL);
     KT_CHECK(device.acquisition == NULL);
 }
 
-/* Asking for fine time stamping where it is not coherent is a configuration
-   error, refused rather than turned into a stream whose Timestamp = ToA - fToA
-   has no meaning. Reachable without a readout for the same reason as the checks
-   above: the guard precedes every socket.
-
-   The expectation is derived from katherine_freq_is_fast_vco_supported rather
-   than from a list of frequencies written out here, so this keeps testing that
-   the guard agrees with the predicate instead of testing a frozen copy of the
-   predicate's current answer. */
+// Asking for fine time stamping where it is not coherent is a configuration
+// error, refused rather than turned into a stream whose Timestamp = ToA - fToA
+// has no meaning. Reachable without a readout for the same reason as the checks
+// above: the guard precedes every socket.
+//
+// The expectation is derived from katherine_freq_is_fast_vco_supported rather
+// than from a list of frequencies written out here, so this keeps testing that
+// the guard agrees with the predicate instead of testing a frozen copy of the
+// predicate's current answer.
 static void
 test_fast_vco_refused_where_incoherent(void)
 {
@@ -131,9 +131,9 @@ test_fast_vco_refused_where_incoherent(void)
     unsigned refused             = 0;
 
     for (size_t i = 0; i < sizeof(all) / sizeof(all[0]); ++i) {
-        /* Coherent frequencies are skipped rather than asserted: with the
-           guard passed, begin() would go on to sockets a zeroed device does
-           not have. */
+        // Coherent frequencies are skipped rather than asserted: with the
+        // guard passed, begin() would go on to sockets a zeroed device does
+        // not have.
         if (katherine_freq_is_fast_vco_supported(all[i])) continue;
 
         memset(&device, 0, sizeof(device));
@@ -150,16 +150,16 @@ test_fast_vco_refused_where_incoherent(void)
         ++refused;
     }
 
-    /* A derived loop can pass by running zero times. If every frequency ever
-       becomes coherent, this test has nothing left to say and should fail
-       loudly rather than go green in silence. */
+    // A derived loop can pass by running zero times. If every frequency ever
+    // becomes coherent, this test has nothing left to say and should fail
+    // loudly rather than go green in silence.
     KT_CHECK(refused > 0);
 }
 
-/* The mirror case -- that slow time stamping is accepted at every frequency --
-   is not testable here: with the guard passed, begin() goes on to the sockets
-   a zeroed device does not have. The predicate itself is covered by
-   test_clock_phases.c. */
+// The mirror case -- that slow time stamping is accepted at every frequency --
+// is not testable here: with the guard passed, begin() goes on to the sockets
+// a zeroed device does not have. The predicate itself is covered by
+// test_clock_phases.c.
 
 int
 main(void)

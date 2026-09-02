@@ -48,29 +48,29 @@
 #include <katherine/acquisition.h>
 #include <katherine/toa.h>
 
-/* Internal headers, provided by the katherine_private interface target --
-   see the file comment. md.h pulls in "bitfields.h" (EXTRACT/INSERT)
-   itself, the same way it does for c/src/acquisition.c; monoclock.h wraps
-   the platform monotonic clock. */
+// Internal headers, provided by the katherine_private interface target --
+// see the file comment. md.h pulls in "bitfields.h" (EXTRACT/INSERT)
+// itself, the same way it does for c/src/acquisition.c; monoclock.h wraps
+// the platform monotonic clock.
 #include "protocol/md.h"
 #include "monoclock.h"
 
-/* Size of the canned buffer, in whole six-byte words: several MB, comfortably
-   past L1/L2 but not so large a run wastes time or memory. */
+// Size of the canned buffer, in whole six-byte words: several MB, comfortably
+// past L1/L2 but not so large a run wastes time or memory.
 #define BENCH_BUFFER_MB   8u
 
-/* Per-variant wraparound pixel slot, sized in bytes like the library's own
-   pixel_buffer_size is (see katherine_acquisition_init()); its capacity in
-   items is this divided by the variant's own struct size. Matches the
-   65536-byte slot of the validated toy model. */
+// Per-variant wraparound pixel slot, sized in bytes like the library's own
+// pixel_buffer_size is (see katherine_acquisition_init()); its capacity in
+// items is this divided by the variant's own struct size. Matches the
+// 65536-byte slot of the validated toy model.
 #define BENCH_SLOT_BYTES  65536u
 
-/* Every benchmark keeps re-running its loop until it has measured at least
-   this many seconds, so that short variants still get a stable rate. The
-   KATHERINE_BENCH_MIN_SECONDS environment variable overrides the default.
-   The default comes from a duration sweep on the recording host: medians
-   are stable from 0.2 s and the run-to-run spread only settles into the
-   few-percent regime from about 1 s, so twice that is used for margin. */
+// Every benchmark keeps re-running its loop until it has measured at least
+// this many seconds, so that short variants still get a stable rate. The
+// KATHERINE_BENCH_MIN_SECONDS environment variable overrides the default.
+// The default comes from a duration sweep on the recording host: medians
+// are stable from 0.2 s and the run-to-run spread only settles into the
+// few-percent regime from about 1 s, so twice that is used for margin.
 #define BENCH_MIN_SECONDS 2.0
 
 static double g_min_seconds = BENCH_MIN_SECONDS;
@@ -83,10 +83,10 @@ now_s(void)
     return 1e-9 * (double) katherine_clock_monotonic_ns();
 }
 
-/* xorshift64: fast, deterministic, and good enough to scatter every field
-   read back below without needing a "real" PRNG or any external state. The
-   seed is a fixed constant, so successive runs decode the exact same buffer
-   and land on the exact same checksums. */
+// xorshift64: fast, deterministic, and good enough to scatter every field
+// read back below without needing a "real" PRNG or any external state. The
+// seed is a fixed constant, so successive runs decode the exact same buffer
+// and land on the exact same checksums.
 static uint64_t
 next_rand(uint64_t *state)
 {
@@ -98,18 +98,18 @@ next_rand(uint64_t *state)
     return x;
 }
 
-/* Fills `words` consecutive six-byte pixel measurement data, header 0x4, with
-   deterministic pseudo-random field values built through the very
-   INSERT()/_BITS_pmd_* triads md.h's decoders read them back with -- the
-   same principle c/tests/test_md_decode.c uses, so buffer and decoder can
-   never disagree. The toa_tot field names are used to reach the full 44
-   non-header bits of the word; every other variant below reads some subset
-   of those same bit positions, exactly as the real hardware's fixed wire
-   layout is reinterpreted differently per acquisition mode. Written and
-   later read back with memcpy() of a host-native uint64_t rather than a
-   manual byte order, so the benchmark is self-consistent regardless of host
-   endianness -- it never leaves this process, so wire byte order does not
-   apply. */
+// Fills `words` consecutive six-byte pixel measurement data, header 0x4, with
+// deterministic pseudo-random field values built through the very
+// INSERT()/_BITS_pmd_* triads md.h's decoders read them back with -- the
+// same principle c/tests/test_md_decode.c uses, so buffer and decoder can
+// never disagree. The toa_tot field names are used to reach the full 44
+// non-header bits of the word; every other variant below reads some subset
+// of those same bit positions, exactly as the real hardware's fixed wire
+// layout is reinterpreted differently per acquisition mode. Written and
+// later read back with memcpy() of a host-native uint64_t rather than a
+// manual byte order, so the benchmark is self-consistent regardless of host
+// endianness -- it never leaves this process, so wire byte order does not
+// apply.
 static void
 build_canned_buffer(uint8_t *buf, size_t words)
 {
@@ -127,14 +127,14 @@ build_canned_buffer(uint8_t *buf, size_t words)
     }
 }
 
-/* One pass over the canned buffer for pixel variant SUFFIX: the same
-   dispatch, EXTRACTs and struct store as acquisition_read_##SUFFIX()'s inner
-   loop, minus the transport and the flush handler -- there is no data source
-   or consumer here, only the decode itself. CHECKSUM sums the fields
-   pmd_##SUFFIX##_map() just wrote, so the store cannot be optimized into a
-   dead one; the running total is folded into the volatile g_sink exactly
-   once per pass rather than per hit, so the sink itself never becomes the
-   bottleneck it exists to prevent. */
+// One pass over the canned buffer for pixel variant SUFFIX: the same
+// dispatch, EXTRACTs and struct store as acquisition_read_##SUFFIX()'s inner
+// loop, minus the transport and the flush handler -- there is no data source
+// or consumer here, only the decode itself. CHECKSUM sums the fields
+// pmd_##SUFFIX##_map() just wrote, so the store cannot be optimized into a
+// dead one; the running total is folded into the volatile g_sink exactly
+// once per pass rather than per hit, so the sink itself never becomes the
+// bottleneck it exists to prevent.
 #define DEFINE_BENCH_DECODE(SUFFIX, MAP, CHECKSUM) \
     static void \
     bench_decode_##SUFFIX(const uint8_t *buf, size_t words, uint64_t *out_checksum) \
@@ -175,24 +175,24 @@ build_canned_buffer(uint8_t *buf, size_t words)
         *out_checksum = acc; \
     }
 
-/* clang-format off */
+// clang-format off
 DEFINE_BENCH_DECODE(f_toa_tot, pmd_f_toa_tot_s4_map,    (uint64_t) dst->coord.x + dst->coord.y + dst->tot + dst->timestamp)
 DEFINE_BENCH_DECODE(toa_tot, pmd_toa_tot_s4_map,      (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot)
 DEFINE_BENCH_DECODE(f_toa_only, pmd_f_toa_only_s4_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp)
 DEFINE_BENCH_DECODE(toa_only, pmd_toa_only_s4_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count)
 DEFINE_BENCH_DECODE(f_event_itot, pmd_f_event_itot_map, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
 DEFINE_BENCH_DECODE(event_itot, pmd_event_itot_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
-/* clang-format on */
+// clang-format on
 
 #undef DEFINE_BENCH_DECODE
 
 typedef void (*bench_decode_fn)(const uint8_t *, size_t, uint64_t *);
 
-/* Reference figure: a plain memcpy() of the same buffer, normalized to hits
-   like every decode_* figure is, so that a ratio of the two is meaningful.
-   Reads back one byte per page-ish stride of the copy into the checksum, an
-   observable use of the destination that keeps the copy from being proven
-   dead. */
+// Reference figure: a plain memcpy() of the same buffer, normalized to hits
+// like every decode_* figure is, so that a ratio of the two is meaningful.
+// Reads back one byte per page-ish stride of the copy into the checksum, an
+// observable use of the destination that keeps the copy from being proven
+// dead.
 static uint8_t *g_memcpy_scratch;
 
 static void
@@ -210,11 +210,11 @@ bench_decode_memcpy(const uint8_t *buf, size_t words, uint64_t *out_checksum)
     *out_checksum = acc;
 }
 
-/* Runs `fn` over the buffer repeatedly until at least BENCH_MIN_SECONDS have
-   elapsed, then reports one {"bench":...} JSON line with the achieved
-   Mhit/s, followed by a "# " comment line naming the checksum of the last
-   pass -- informational only, and deliberately not JSON, so a JSON-line
-   reader can skip it unharmed. */
+// Runs `fn` over the buffer repeatedly until at least BENCH_MIN_SECONDS have
+// elapsed, then reports one {"bench":...} JSON line with the achieved
+// Mhit/s, followed by a "# " comment line naming the checksum of the last
+// pass -- informational only, and deliberately not JSON, so a JSON-line
+// reader can skip it unharmed.
 static void
 run_bench(const char *name, bench_decode_fn fn, const uint8_t *buf, size_t words)
 {
@@ -250,11 +250,11 @@ main(void)
     size_t words = ((size_t) BENCH_BUFFER_MB << 20) / KATHERINE_MD_SIZE;
     size_t bytes = words * KATHERINE_MD_SIZE;
 
-    /* One extra word past the last whole one: the loop above reads each word
-       through an 8-byte memcpy() (matching the unaligned uint64_t load the
-       real read loop performs), so the last word's load reaches 2 bytes past
-       the canned data -- exactly the margin katherine_acquisition_init()
-       reserves on the real md_buffer for the same reason. */
+    // One extra word past the last whole one: the loop above reads each word
+    // through an 8-byte memcpy() (matching the unaligned uint64_t load the
+    // real read loop performs), so the last word's load reaches 2 bytes past
+    // the canned data -- exactly the margin katherine_acquisition_init()
+    // reserves on the real md_buffer for the same reason.
     uint8_t *buf = (uint8_t *) malloc(bytes + sizeof(uint64_t));
     if (buf == NULL) return 1;
     build_canned_buffer(buf, words);

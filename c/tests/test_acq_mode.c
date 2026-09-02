@@ -46,8 +46,8 @@
 #include "kthread.h"
 #include "ktest.h"
 
-/* Pure headroom against scheduling jitter, as in test_tp.c: on the happy path
-   each command reaches the mock within microseconds. */
+// Pure headroom against scheduling jitter, as in test_tp.c: on the happy path
+// each command reaches the mock within microseconds.
 #define MOCK_TIMEOUT_MS    5000
 
 /** Number of datagrams one katherine_set_acq_mode() call is expected to send. */
@@ -66,9 +66,9 @@ mock_readout(void *arg)
         size_t n = sizeof(mock_captured[mock_count]);
         int res  = katherine_udp_recv(&mock_endpoint, mock_captured[mock_count], &n);
         if (res != 0 || n != 8) {
-            /* Stop rather than exit: a library that sends only the first
-               command leaves the count short, and the assertions below name
-               that failure better than an abort from this thread would. */
+            // Stop rather than exit: a library that sends only the first
+            // command leaves the count short, and the assertions below name
+            // that failure better than an abort from this thread would.
             fprintf(stderr, "mock readout: datagram %zu missing (res=%d, size=%zu)\n", mock_count, res, n);
             return NULL;
         }
@@ -85,9 +85,9 @@ static void
 set_and_capture(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled,
     const unsigned char expected_mode[8])
 {
-    /* The flush carries the sub-command number in byte 0, and
-       CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE is 0, so the whole datagram is
-       zero but for the opcode. */
+    // The flush carries the sub-command number in byte 0, and
+    // CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE is 0, so the whole datagram is
+    // zero but for the opcode.
     static const unsigned char expected_flush[8] = {0, 0, 0, 0, 0, 0, 0x07, 0};
 
     kthread_t thread;
@@ -113,27 +113,27 @@ test_datagrams(void)
         katherine_udp_init_bound(&mock_endpoint, "127.0.0.1", MOCK_PORT, "127.0.0.1", LOCAL_PORT, MOCK_TIMEOUT_MS)
         == 0);
 
-    /* A failed init leaves the control socket indeterminate -- its mutex is
-       never constructed on that path -- so bail out rather than destroy it
-       later, exactly as test_tp.c does. */
+    // A failed init leaves the control socket indeterminate -- its mutex is
+    // never constructed on that path -- so bail out rather than destroy it
+    // later, exactly as test_tp.c does.
     katherine_device_t device;
-    /* Zeroed whole: this device is built by hand rather than by
-       katherine_device_init(), and katherine_device_t carries fields beyond
-       the two sessions -- the borrowed acquisition among them, which
-       katherine_device_fini() acts on. */
+    // Zeroed whole: this device is built by hand rather than by
+    // katherine_device_init(), and katherine_device_t carries fields beyond
+    // the two sessions -- the borrowed acquisition among them, which
+    // katherine_device_fini() acts on.
     memset(&device, 0, sizeof(device));
     KT_REQUIRE(katherine_udp_init(&device.control_socket, LOCAL_PORT, "127.0.0.1", MOCK_PORT, 2000) == 0);
 
-    /* Mode in byte 0, oscillator flag in byte 1. The three mode vectors are
-       the ones whose register readbacks were 0x58, 0x5a and 0x5c. */
+    // Mode in byte 0, oscillator flag in byte 1. The three mode vectors are
+    // the ones whose register readbacks were 0x58, 0x5a and 0x5c.
     set_and_capture(&device, ACQUISITION_MODE_TOA_TOT, true, (const unsigned char[8]) {0x00, 0x01, 0, 0, 0, 0, 0x09, 0});
     set_and_capture(
         &device, ACQUISITION_MODE_ONLY_TOA, true, (const unsigned char[8]) {0x01, 0x01, 0, 0, 0, 0, 0x09, 0});
     set_and_capture(
         &device, ACQUISITION_MODE_EVENT_ITOT, true, (const unsigned char[8]) {0x02, 0x01, 0, 0, 0, 0, 0x09, 0});
 
-    /* Oscillator off clears byte 1 and nothing else; byte 0 bit 7 stays
-       clear, where an earlier encoding had wrongly put this flag. */
+    // Oscillator off clears byte 1 and nothing else; byte 0 bit 7 stays
+    // clear, where an earlier encoding had wrongly put this flag.
     set_and_capture(
         &device, ACQUISITION_MODE_TOA_TOT, false, (const unsigned char[8]) {0x00, 0x00, 0, 0, 0, 0, 0x09, 0});
     set_and_capture(

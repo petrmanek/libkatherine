@@ -29,7 +29,7 @@ static void
 test_failed(const char *addr)
 {
     (void) addr;
-    /* Ignored */
+    // Ignored
 }
 
 static void

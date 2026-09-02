@@ -28,7 +28,7 @@ namespace katherine {
 using trigger = katherine_trigger_t;
 
 static constexpr trigger no_trigger{
-    /* TODO: uncomment in C++2a */
+    // TODO: uncomment in C++2a
     /* .enabled = */ false,
     /* .channel = */ 0,
     /* .use_falling_edge = */ 0,
@@ -53,10 +53,10 @@ enum class freq : int {
     f160 = FREQ_160
 };
 
-/* Lives here rather than in acquisition.hpp (which also uses it, via this
-   header) because katherine_acquisition_mode_t is itself declared in
-   katherine/config.h; keeping the two together lets katherine::device use
-   the enum class without pulling in acquisition.hpp. */
+// Lives here rather than in acquisition.hpp (which also uses it, via this
+// header) because katherine_acquisition_mode_t is itself declared in
+// katherine/config.h; keeping the two together lets katherine::device use
+// the enum class without pulling in acquisition.hpp.
 enum class acq_mode : int {
     toa_tot    = ACQUISITION_MODE_TOA_TOT,
     only_toa   = ACQUISITION_MODE_ONLY_TOA,
@@ -73,9 +73,9 @@ public:
     katherine_config_t *c_config() { return &conf_; }
     const katherine_config_t *c_config() const { return &conf_; }
 
-    /* Note: katherine::px_config is a standard-layout type whose only
-       subobject is the katherine_px_config_t stored in conf_, hence the
-       downcasts below (see the static_assert in px_config.hpp). */
+    // Note: katherine::px_config is a standard-layout type whose only
+    // subobject is the katherine_px_config_t stored in conf_, hence the
+    // downcasts below (see the static_assert in px_config.hpp).
     const katherine::px_config& pixel_config() const { return static_cast<const katherine::px_config&>(conf_.pixel_config); }
     katherine::px_config& pixel_config() { return static_cast<katherine::px_config&>(conf_.pixel_config); }
     void set_pixel_config(const katherine::px_config& pixel_config) { conf_.pixel_config = pixel_config; }
@@ -123,9 +123,9 @@ public:
     bool polarity_holes() const { return conf_.polarity_holes; }
     void set_polarity_holes(bool val) { conf_.polarity_holes = val; }
 
-    /* A request only: what actually happens depends on the device and on the
-       phase count, and is reported after the fact by
-       katherine::base_acquisition::phase_correction(), not by this getter. */
+    // A request only: what actually happens depends on the device and on the
+    // phase count, and is reported after the fact by
+    // katherine::base_acquisition::phase_correction(), not by this getter.
     bool correct_phase() const { return conf_.correct_phase; }
     void set_correct_phase(bool val) { conf_.correct_phase = val; }
 
