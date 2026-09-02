@@ -1154,7 +1154,11 @@ katherine_freq_is_fast_vco_supported(katherine_freq_t freq)
  * choice; it does not change katherine_set_dacs()'s own behavior.
  *
  * \param v DAC register values to validate.
- * \return 0 if every value fits its DAC's range, KATHERINE_E_INVAL otherwise.
+ *
+ * \retval KATHERINE_E_OK if every value fits its DAC's range.
+ * \retval KATHERINE_E_INVAL if any value is wider than its DAC's field, the
+ *   array being in katherine_dacs_named_t order. Which one is not reported:
+ *   the caller holds the values and the widths are in the manual.
  */
 katherine_error_t
 katherine_dacs_validate(const katherine_dacs_t *v)

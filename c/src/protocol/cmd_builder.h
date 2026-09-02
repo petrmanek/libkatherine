@@ -194,8 +194,12 @@ static const uint8_t KATHERINE_CHIP_ENVELOPE[256] = {
  * \param cmd Command to modify.
  * \param opcode Opcode of the command, as passed to katherine_cmd_create().
  * \param chip Chip index to place.
- * \return 0 on success, KATHERINE_E_BAD_CHIP for a nonzero chip index on an
- *   opcode that has no slot for one.
+ *
+ * \retval KATHERINE_E_OK on success, which includes chip 0 on an opcode with
+ *   no slot: there is nothing to place, so nothing is written.
+ * \retval KATHERINE_E_BAD_CHIP if the index is nonzero and the opcode has no
+ *   slot to put it in. Rejected rather than dropped, a dropped index being a
+ *   wire-format error the caller could not see.
  */
 static inline katherine_error_t
 katherine_cmd_payload_set_chip(katherine_cmd_t *cmd, uint8_t opcode, uint8_t chip)
