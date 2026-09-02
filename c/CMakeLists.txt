@@ -63,9 +63,13 @@ configure_file(include/katherine/version.h.in "${KATHERINE_VERSION_HEADER}" @ONL
 # The project-wide documentation build in docs/ documents these files.
 set(KATHERINE_DOCUMENTED_FILES ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
 list(TRANSFORM KATHERINE_DOCUMENTED_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
-# version.h is generated (its .in template is not valid C due to the
-# @VAR@ substitution placeholders), so the generated copy is documented
-# instead, from its location in the build tree.
+# version.h is generated, and it is the generated copy that is documented, so
+# that the version macros show the values they were built with rather than the
+# @VAR@ placeholders the template carries. Doxygen would parse the template
+# too, given EXTENSION_MAPPING, but that mapping would claim every .in file in
+# the tree is C -- katherine.pc.in among them -- so it is not asked for. The
+# build directory is stripped from documented paths in docs/CMakeLists.txt,
+# which is what keeps it out of the output.
 list(APPEND KATHERINE_DOCUMENTED_FILES "${KATHERINE_VERSION_HEADER}")
 set(KATHERINE_DOCUMENTED_FILES "${KATHERINE_DOCUMENTED_FILES}" PARENT_SCOPE)
 

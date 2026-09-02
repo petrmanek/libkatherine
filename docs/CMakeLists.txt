@@ -42,7 +42,11 @@ HAVE_DOT = @KATHERINE_DOXYGEN_HAVE_DOT@
 DOT_PATH = "@KATHERINE_DOXYGEN_DOT_DIR@"
 INPUT = @KATHERINE_DOXYGEN_INPUT_LINE@
 USE_MDFILE_AS_MAINPAGE = "@PROJECT_SOURCE_DIR@/README.md"
-STRIP_FROM_PATH = "@PROJECT_SOURCE_DIR@"
+# The binary directory is stripped as well as the source one, because the
+# generated version.h is documented from where it is generated. Without it an
+# in-tree build names a "build" directory in the output and an out-of-tree one
+# embeds the absolute path of whoever generated the documentation.
+STRIP_FROM_PATH = "@PROJECT_SOURCE_DIR@" "@PROJECT_BINARY_DIR@"
 STRIP_FROM_INC_PATH = "@PROJECT_SOURCE_DIR@/c/include" "@PROJECT_SOURCE_DIR@/cxx/include"
 ]] @ONLY)
 
