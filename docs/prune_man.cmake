@@ -20,6 +20,13 @@
 #
 # Usage: cmake -DMAN_DIR=<dir>/man3 -P prune_man.cmake
 
+# Script mode has no project to inherit policies from, so they sit at their
+# OLD defaults and IN_LIST below is not recognized as an operator -- on a
+# CMake whose defaults differ from the one this was written on, that is a hard
+# error rather than a warning. Declaring the same minimum as the top-level
+# project keeps the script and the build agreeing about which CMake they need.
+cmake_minimum_required(VERSION 3.21)
+
 if(NOT MAN_DIR)
     message(FATAL_ERROR "MAN_DIR is required")
 endif()
