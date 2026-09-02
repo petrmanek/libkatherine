@@ -250,7 +250,22 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
  * \param remote_addr Remote IP address
  * \param remote_port Remote port number
  * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_ADDR if remote_addr is not a valid dotted-quad IPv4
+ *   address, or local_port could not be bound on the wildcard address --
+ *   another socket already holds it, or it is excluded from use; see
+ *   inet_pton() and bind(). Only the bind failure records an OS error for
+ *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_IO if the socket could not be created, or -- when
+ *   timeout_ms is nonzero -- its receive timeout could not be set; see
+ *   socket(), setsockopt() and katherine_udp_last_os_error(), which reports
+ *   the WSAGetLastError() code.
+ * \retval KATHERINE_E_SYSTEM if Winsock could not be started for this
+ *   process, or the session's mutex could not be created; see WSAStartup(),
+ *   CreateMutex() and katherine_udp_last_os_error(), which reports
+ *   WSAStartup()'s own return value in the first case and the
+ *   GetLastError() code in the second.
  */
 katherine_error_t
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -272,7 +287,23 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  * \param remote_addr Remote IP address
  * \param remote_port Remote port number
  * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_ADDR if local_addr (when not NULL) or remote_addr is
+ *   not a valid dotted-quad IPv4 address, or that local address and port
+ *   could not be bound -- another socket already holds them, the address is
+ *   not local to this host, or the port is excluded from use; see
+ *   inet_pton() and bind(). Only the bind failure records an OS error for
+ *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_IO if the socket could not be created, or -- when
+ *   timeout_ms is nonzero -- its receive timeout could not be set; see
+ *   socket(), setsockopt() and katherine_udp_last_os_error(), which reports
+ *   the WSAGetLastError() code.
+ * \retval KATHERINE_E_SYSTEM if Winsock could not be started for this
+ *   process, or the session's mutex could not be created; see WSAStartup(),
+ *   CreateMutex() and katherine_udp_last_os_error(), which reports
+ *   WSAStartup()'s own return value in the first case and the
+ *   GetLastError() code in the second.
  */
 katherine_error_t
 katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -381,7 +412,16 @@ katherine_udp_fini(katherine_udp_t *u)
  * \param u UDP session
  * \param data Message start
  * \param count Message length in bytes
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, the whole message having been handed to
+ *   the network stack.
+ * \retval KATHERINE_E_IO if the message could not be handed to the network
+ *   stack -- no route to the session's remote host, a datagram too large to
+ *   send in one piece, or a send buffer with no room for it. Every Winsock
+ *   error arrives as this one code, none of them coinciding numerically with
+ *   the `<errno.h>` values this transport singles out; see sendto() and
+ *   katherine_udp_last_os_error(), which reports the WSAGetLastError() code
+ *   itself.
  */
 katherine_error_t
 katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
@@ -412,7 +452,26 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
  * \param u UDP session
  * \param data Inbound buffer start
  * \param count Inbound buffer size in bytes
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, with count bytes in the buffer, taken
+ *   from as many datagrams as it took to fill it. A datagram longer than the
+ *   space left fills it and the rest of that datagram is dropped: Winsock
+ *   fails such a receive with WSAEMSGSIZE after consuming the datagram, and
+ *   this transport reports it back as the full buffer POSIX reports, not as
+ *   an error.
+ * \retval KATHERINE_E_TIMEOUT if a datagram of the message did not arrive
+ *   within the session's receive timeout (the timeout_ms of
+ *   katherine_udp_init(), which zero disables), or -- on a pinned session,
+ *   see katherine_udp_pin_remote() -- if KATHERINE_UDP_PIN_MAX_DISCARDS
+ *   datagrams from other hosts arrived in its place. Both are deliberately
+ *   the same code, so no caller needs a separate path for either; the bytes
+ *   received so far are left in the buffer, uncounted. An expired timeout
+ *   leaves katherine_udp_last_os_error() reporting the EAGAIN this file
+ *   translates WSAETIMEDOUT into; a spent discard budget clears it to zero.
+ * \retval KATHERINE_E_IO if a receive failed at the OS level -- every
+ *   Winsock error other than the two cases above arrives as this one code;
+ *   see recvfrom() and katherine_udp_last_os_error(), which reports the
+ *   WSAGetLastError() code, or EINTR where the receive was interrupted.
  */
 katherine_error_t
 katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
@@ -444,7 +503,24 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
  * \param u UDP session
  * \param data Inbound buffer start
  * \param count Inbound buffer size in bytes
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, with *count set to the bytes received.
+ *   A datagram longer than the buffer fills it and the rest of that datagram
+ *   is dropped: Winsock fails such a receive with WSAEMSGSIZE after
+ *   consuming the datagram, and this transport reports it back as the full
+ *   buffer POSIX reports, not as an error.
+ * \retval KATHERINE_E_TIMEOUT if no datagram arrived within the session's
+ *   receive timeout (the timeout_ms of katherine_udp_init(), which zero
+ *   disables), or -- on a pinned session, see katherine_udp_pin_remote() --
+ *   if KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts arrived
+ *   instead. Both are deliberately the same code, so no caller needs a
+ *   separate path for either. An expired timeout leaves
+ *   katherine_udp_last_os_error() reporting the EAGAIN this file translates
+ *   WSAETIMEDOUT into; a spent discard budget clears it to zero.
+ * \retval KATHERINE_E_IO if the receive failed at the OS level -- every
+ *   Winsock error other than the two cases above arrives as this one code;
+ *   see recvfrom() and katherine_udp_last_os_error(), which reports the
+ *   WSAGetLastError() code, or EINTR where the receive was interrupted.
  */
 katherine_error_t
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
@@ -478,7 +554,31 @@ katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
  * \param data Inbound buffer start
  * \param count Inbound buffer size in bytes on entry, bytes received on
  *   success
- * \return Error code. KATHERINE_E_TIMEOUT if nothing was queued.
+ *
+ * \retval KATHERINE_E_OK on success, with *count set to the bytes received.
+ *   A datagram longer than the buffer fills it and the rest of that datagram
+ *   is dropped: Winsock fails such a receive with WSAEMSGSIZE after
+ *   consuming the datagram, and this transport reports it back as the full
+ *   buffer POSIX reports, not as an error.
+ * \retval KATHERINE_E_TIMEOUT if the socket had no bytes queued, or -- on a
+ *   pinned session, see katherine_udp_pin_remote() -- if what was queued
+ *   came only from other hosts, whether the queue or the
+ *   KATHERINE_UDP_PIN_MAX_DISCARDS discard budget ran out first. No case
+ *   here waits, and each reports the code an expired receive timeout would,
+ *   so no caller needs a separate path for any of them; the readiness check
+ *   and the discard budget both clear katherine_udp_last_os_error() to zero.
+ *   Winsock has no MSG_DONTWAIT, so readiness is decided by the byte count
+ *   ioctlsocket() reports for FIONREAD, and a queued zero-length datagram is
+ *   therefore indistinguishable from an empty socket: this code means
+ *   nothing readable was found, not that the socket was left empty. The
+ *   readout sends no empty datagrams, and the library's own use of this
+ *   function -- the pre-command flush of katherine_cmd_drain() -- is
+ *   best-effort by contract.
+ * \retval KATHERINE_E_IO if the readiness check or the receive failed at the
+ *   OS level -- every Winsock error other than the two cases above arrives
+ *   as this one code; see ioctlsocket(), recvfrom() and
+ *   katherine_udp_last_os_error(), which reports the WSAGetLastError() code,
+ *   or EINTR where the receive was interrupted.
  */
 katherine_error_t
 katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
@@ -513,7 +613,12 @@ katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
  * \param u UDP session
  * \param remote_addr Remote IP address
  * \param remote_port Remote port number
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_ADDR if remote_addr is not a valid dotted-quad IPv4
+ *   address, in which case the session keeps the remote address it had; see
+ *   inet_pton(). No system call fails here, so
+ *   katherine_udp_last_os_error() is left reporting zero.
  */
 katherine_error_t
 katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
@@ -587,7 +692,16 @@ katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict)
 /**
  * Lock mutual exclusion synchronization primitive.
  * \param u UDP session
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, with the session's mutex held by the
+ *   calling thread. A mutex abandoned by a thread that exited while holding
+ *   it counts as ownership too (WAIT_ABANDONED), and is reported as taken
+ *   rather than as a failure.
+ * \retval KATHERINE_E_SYSTEM if the wait itself failed, which for a mutex
+ *   waited on without a timeout means an unusable handle -- a session
+ *   katherine_udp_init() never initialized, or one already finalized by
+ *   katherine_udp_fini(); see WaitForSingleObject() and
+ *   katherine_udp_last_os_error(), which reports the GetLastError() code.
  */
 katherine_error_t
 katherine_udp_mutex_lock(katherine_udp_t *u)
@@ -608,7 +722,14 @@ katherine_udp_mutex_lock(katherine_udp_t *u)
 /**
  * Unlock mutual exclusion synchronization primitive.
  * \param u UDP session
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_SYSTEM if the mutex could not be released -- the
+ *   calling thread is not the one holding it (ERROR_NOT_OWNER), or the
+ *   handle is unusable, as on a session katherine_udp_init() never
+ *   initialized or katherine_udp_fini() already finalized; see
+ *   ReleaseMutex() and katherine_udp_last_os_error(), which reports the
+ *   GetLastError() code.
  */
 katherine_error_t
 katherine_udp_mutex_unlock(katherine_udp_t *u)
@@ -626,8 +747,11 @@ katherine_udp_mutex_unlock(katherine_udp_t *u)
 /**
  * Read the OS-level detail of a UDP session's most recent transport failure.
  * \param u UDP session
- * \return The raw OS error code behind the session's last failure, or 0 if
- *   it succeeded, or failed without one (e.g. a malformed address argument).
+ * \return The raw OS error code behind the session's last failure -- a
+ *   WSAGetLastError() or GetLastError() code, except on the receive path,
+ *   which substitutes the portable `<errno.h>` value it translated a
+ *   timeout or an interruption into -- or 0 if the session succeeded, or
+ *   failed without an OS error (e.g. a malformed address argument).
  */
 int
 katherine_udp_last_os_error(const katherine_udp_t *u)
