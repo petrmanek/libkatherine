@@ -23,7 +23,7 @@
 #include <katherinexx/udp.hpp>
 
 /**
- * \addtogroup cxx_api
+ * \addtogroup katherine_cxx_api
  * \{
  */
 

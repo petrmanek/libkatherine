@@ -15,7 +15,7 @@
 #include <katherine/global.h>
 
 /**
- * \addtogroup c_api
+ * \addtogroup katherine_udp
  * \{
  */
 

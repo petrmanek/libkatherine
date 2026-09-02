@@ -15,7 +15,13 @@
 #include <katherine/global.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_error Errors
+ * \ingroup katherine_c_api
+ * \brief The library's error domain and its descriptions.
+ */
+
+/**
+ * \addtogroup katherine_error
  * \{
  */
 

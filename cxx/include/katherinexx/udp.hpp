@@ -23,7 +23,7 @@
 namespace katherine {
 
 /**
- * \addtogroup cxx_api
+ * \addtogroup katherine_cxx_api
  * \{
  */
 

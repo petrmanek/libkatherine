@@ -24,7 +24,7 @@
 namespace katherine {
 
 /**
- * \addtogroup cxx_api
+ * \addtogroup katherine_cxx_api
  * \{
  */
 
@@ -203,7 +203,7 @@ public:
 namespace acq {
 
 /**
- * \addtogroup cxx_api
+ * \addtogroup katherine_cxx_api
  * \{
  */
 

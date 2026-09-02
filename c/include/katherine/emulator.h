@@ -19,7 +19,13 @@
 #include <katherine/error.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_emulator Emulator
+ * \ingroup katherine_c_api
+ * \brief An in-process readout, for tests and for running without hardware.
+ */
+
+/**
+ * \addtogroup katherine_emulator
  * \{
  */
 

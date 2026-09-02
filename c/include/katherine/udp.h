@@ -19,7 +19,13 @@
 #include <katherine/udp_win.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_udp UDP transport
+ * \ingroup katherine_c_api
+ * \brief The datagram sessions carrying the control and data planes.
+ */
+
+/**
+ * \addtogroup katherine_udp
  * \{
  */
 

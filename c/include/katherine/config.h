@@ -20,7 +20,13 @@
 #include <katherine/px_config.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_config Configuration
+ * \ingroup katherine_c_api
+ * \brief Building a configuration and applying it to a readout.
+ */
+
+/**
+ * \addtogroup katherine_config
  * \{
  */
 
@@ -28,7 +34,11 @@
 extern "C" {
 #endif
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+// Forward declaration, to avoid a circular include with device.h. The
+// definition, and its documentation, live there.
 typedef struct katherine_device katherine_device_t;
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 
 typedef enum katherine_acquisition_mode {
@@ -183,8 +193,27 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_seq_readout_start(katherine_device_t *device, int arg);
 
+// Declared here, with the rest of the configuration calls, but documented
+// with the acquisition it sets up. The enclosing group has to be closed and
+// reopened around it: \ingroup on the declaration would add a second
+// membership rather than replace the first, and the function would then
+// appear on both pages.
+/** \} */
+
+/**
+ * \addtogroup katherine_acquisition
+ * \{
+ */
+
 KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger);
+
+/** \} */
+
+/**
+ * \addtogroup katherine_config
+ * \{
+ */
 
 typedef enum katherine_tpx3_reg {
     TPX3_REG_TEST_PULSE_METHOD = 0,

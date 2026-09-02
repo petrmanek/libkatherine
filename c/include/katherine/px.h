@@ -17,7 +17,13 @@
 #include <katherine/global.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_px Pixels
+ * \ingroup katherine_c_api
+ * \brief Decoded pixel types and the coordinate helpers over them.
+ */
+
+/**
+ * \addtogroup katherine_px
  * \{
  */
 

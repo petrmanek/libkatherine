@@ -11,7 +11,7 @@
  */
 
 /**
- * \defgroup c_api C API
+ * \defgroup katherine_c_api C API
  * \brief Native C interface of the Katherine control library.
  */
 

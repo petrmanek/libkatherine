@@ -19,7 +19,13 @@
 #include <katherine/udp.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_device Device
+ * \ingroup katherine_c_api
+ * \brief Opening a readout, learning what it is, and closing it again.
+ */
+
+/**
+ * \addtogroup katherine_device
  * \{
  */
 

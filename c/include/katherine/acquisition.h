@@ -23,7 +23,13 @@
 #include <katherine/px.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_acquisition Acquisition
+ * \ingroup katherine_c_api
+ * \brief Running an acquisition and decoding the measurement data it returns.
+ */
+
+/**
+ * \addtogroup katherine_acquisition
  * \{
  */
 

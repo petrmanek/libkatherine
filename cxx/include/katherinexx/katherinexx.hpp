@@ -11,7 +11,7 @@
  */
 
 /**
- * \defgroup cxx_api C++ Wrapper
+ * \defgroup katherine_cxx_api C++ Wrapper
  * \brief Header-only C++ interface wrapping the C API.
  */
 

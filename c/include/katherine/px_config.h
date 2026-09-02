@@ -20,7 +20,13 @@
 #include <katherine/px.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_px_config Pixel configuration
+ * \ingroup katherine_c_api
+ * \brief The per-pixel threshold and mask matrix uploaded to an ASIC.
+ */
+
+/**
+ * \addtogroup katherine_px_config
  * \{
  */
 

@@ -19,7 +19,13 @@
 #include <katherine/error.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_status Status
+ * \ingroup katherine_c_api
+ * \brief Asking a readout about its state, sensors and chips.
+ */
+
+/**
+ * \addtogroup katherine_status
  * \{
  */
 
@@ -27,7 +33,11 @@
 extern "C" {
 #endif
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+// Forward declaration, to avoid a circular include with device.h. The
+// definition, and its documentation, live there.
 typedef struct katherine_device katherine_device_t;
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 typedef struct katherine_readout_status {
     int hw_type;

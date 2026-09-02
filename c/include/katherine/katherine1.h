@@ -18,7 +18,7 @@
 #include <katherine/katherine.h>
 
 /**
- * \defgroup c_legacy_api Legacy C API
+ * \defgroup katherine_c_legacy_api Legacy C API
  * \brief Deprecated 1.x C interface, kept so that sources predating 2.0 keep
  *   compiling.
  *
@@ -63,7 +63,7 @@
  */
 
 /**
- * \addtogroup c_legacy_api
+ * \addtogroup katherine_c_legacy_api
  * \{
  */
 
@@ -125,7 +125,7 @@ katherine1_map_result(int result)
 
 // device.h
 
-/** 1.x-named wrapper for katherine_device_init(). */
+/** \legacy1{katherine_device_init} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_device_init(katherine_device_t *device, const char *addr)
@@ -135,7 +135,7 @@ katherine1_device_init(katherine_device_t *device, const char *addr)
 
 // config.h
 
-/** 1.x-named wrapper for katherine_dacs_validate(). */
+/** \legacy1{katherine_dacs_validate} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_dacs_validate(const katherine_dacs_t *v)
@@ -143,7 +143,7 @@ katherine1_dacs_validate(const katherine_dacs_t *v)
     return katherine1_map_result(katherine_dacs_validate(v));
 }
 
-/** 1.x-named wrapper for katherine_configure(). */
+/** \legacy1{katherine_configure} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_configure(katherine_device_t *device, const katherine_config_t *config)
@@ -151,7 +151,7 @@ katherine1_configure(katherine_device_t *device, const katherine_config_t *confi
     return katherine1_map_result(katherine_configure(device, config));
 }
 
-/** 1.x-named wrapper for katherine_set_all_pixel_config(). */
+/** \legacy1{katherine_set_all_pixel_config} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
@@ -159,7 +159,7 @@ katherine1_set_all_pixel_config(katherine_device_t *device, const katherine_px_c
     return katherine1_map_result(katherine_set_all_pixel_config(device, px_config));
 }
 
-/** 1.x-named wrapper for katherine_set_acq_time(). */
+/** \legacy1{katherine_set_acq_time} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_acq_time(katherine_device_t *device, double ns)
@@ -167,7 +167,7 @@ katherine1_set_acq_time(katherine_device_t *device, double ns)
     return katherine1_map_result(katherine_set_acq_time(device, ns));
 }
 
-/** 1.x-named wrapper for katherine_set_acq_mode(). */
+/** \legacy1{katherine_set_acq_mode} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
@@ -175,7 +175,7 @@ katherine1_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t
     return katherine1_map_result(katherine_set_acq_mode(device, acq_mode, fast_vco_enabled));
 }
 
-/** 1.x-named wrapper for katherine_set_no_frames(). */
+/** \legacy1{katherine_set_no_frames} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_no_frames(katherine_device_t *device, int no_frames)
@@ -183,7 +183,7 @@ katherine1_set_no_frames(katherine_device_t *device, int no_frames)
     return katherine1_map_result(katherine_set_no_frames(device, no_frames));
 }
 
-/** 1.x-named wrapper for katherine_set_bias(). */
+/** \legacy1{katherine_set_bias} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
@@ -191,7 +191,7 @@ katherine1_set_bias(katherine_device_t *device, unsigned char bias_id, float bia
     return katherine1_map_result(katherine_set_bias(device, bias_id, bias_value));
 }
 
-/** 1.x-named wrapper for katherine_set_seq_readout_start(). */
+/** \legacy1{katherine_set_seq_readout_start} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_seq_readout_start(katherine_device_t *device, int arg)
@@ -199,7 +199,7 @@ katherine1_set_seq_readout_start(katherine_device_t *device, int arg)
     return katherine1_map_result(katherine_set_seq_readout_start(device, arg));
 }
 
-/** 1.x-named wrapper for katherine_acquisition_setup(). */
+/** \legacy1{katherine_acquisition_setup} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
@@ -207,7 +207,7 @@ katherine1_acquisition_setup(katherine_device_t *device, const katherine_trigger
     return katherine1_map_result(katherine_acquisition_setup(device, start_trigger, delayed_start, end_trigger));
 }
 
-/** 1.x-named wrapper for katherine_set_sensor_register(). */
+/** \legacy1{katherine_set_sensor_register} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
@@ -215,7 +215,7 @@ katherine1_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t
     return katherine1_map_result(katherine_set_sensor_register(device, reg_idx, reg_value));
 }
 
-/** 1.x-named wrapper for katherine_update_sensor_registers(). */
+/** \legacy1{katherine_update_sensor_registers} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_update_sensor_registers(katherine_device_t *device)
@@ -223,7 +223,7 @@ katherine1_update_sensor_registers(katherine_device_t *device)
     return katherine1_map_result(katherine_update_sensor_registers(device));
 }
 
-/** 1.x-named wrapper for katherine_output_block_config_update(). */
+/** \legacy1{katherine_output_block_config_update} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_output_block_config_update(katherine_device_t *device)
@@ -231,7 +231,7 @@ katherine1_output_block_config_update(katherine_device_t *device)
     return katherine1_map_result(katherine_output_block_config_update(device));
 }
 
-/** 1.x-named wrapper for katherine_timer_set(). */
+/** \legacy1{katherine_timer_set} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_timer_set(katherine_device_t *device)
@@ -239,7 +239,7 @@ katherine1_timer_set(katherine_device_t *device)
     return katherine1_map_result(katherine_timer_set(device));
 }
 
-/** 1.x-named wrapper for katherine_set_dacs(). */
+/** \legacy1{katherine_set_dacs} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
@@ -247,7 +247,7 @@ katherine1_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     return katherine1_map_result(katherine_set_dacs(device, dacs));
 }
 
-/** 1.x-named wrapper for katherine_set_test_pulses(). */
+/** \legacy1{katherine_set_test_pulses} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config)
@@ -257,7 +257,7 @@ katherine1_set_test_pulses(katherine_device_t *device, const katherine_test_puls
 
 // px_config.h
 
-/** 1.x-named wrapper for katherine_px_config_load_bmc_file(). */
+/** \legacy1{katherine_px_config_load_bmc_file} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path)
@@ -265,7 +265,7 @@ katherine1_px_config_load_bmc_file(katherine_px_config_t *px_config, const char 
     return katherine1_map_result(katherine_px_config_load_bmc_file(px_config, file_path));
 }
 
-/** 1.x-named wrapper for katherine_px_config_load_bmc_data(). */
+/** \legacy1{katherine_px_config_load_bmc_data} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc)
@@ -273,7 +273,7 @@ katherine1_px_config_load_bmc_data(katherine_px_config_t *px_config, const kathe
     return katherine1_map_result(katherine_px_config_load_bmc_data(px_config, bmc));
 }
 
-/** 1.x-named wrapper for katherine_px_config_load_bpc_file(). */
+/** \legacy1{katherine_px_config_load_bpc_file} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path)
@@ -281,7 +281,7 @@ katherine1_px_config_load_bpc_file(katherine_px_config_t *px_config, const char 
     return katherine1_map_result(katherine_px_config_load_bpc_file(px_config, file_path));
 }
 
-/** 1.x-named wrapper for katherine_px_config_load_bpc_data(). */
+/** \legacy1{katherine_px_config_load_bpc_data} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc)
@@ -291,7 +291,7 @@ katherine1_px_config_load_bpc_data(katherine_px_config_t *px_config, const kathe
 
 // status.h
 
-/** 1.x-named wrapper for katherine_get_readout_status(). */
+/** \legacy1{katherine_get_readout_status} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status)
@@ -306,7 +306,7 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
 /// this header, which is what this header is for.
 #define chip_detected chip_count
 
-/** 1.x-named wrapper for katherine_get_comm_status(). */
+/** \legacy1{katherine_get_comm_status} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status)
@@ -314,7 +314,7 @@ katherine1_get_comm_status(katherine_device_t *device, katherine_comm_status_t *
     return katherine1_map_result(katherine_get_comm_status(device, status));
 }
 
-/** 1.x-named wrapper for katherine_get_chip_id(). */
+/** \legacy1{katherine_get_chip_id} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_chip_id(katherine_device_t *device, char *s_chip_id)
@@ -322,7 +322,7 @@ katherine1_get_chip_id(katherine_device_t *device, char *s_chip_id)
     return katherine1_map_result(katherine_get_chip_id(device, s_chip_id));
 }
 
-/** 1.x-named wrapper for katherine_get_readout_temperature(). */
+/** \legacy1{katherine_get_readout_temperature} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_readout_temperature(katherine_device_t *device, float *temperature)
@@ -330,7 +330,7 @@ katherine1_get_readout_temperature(katherine_device_t *device, float *temperatur
     return katherine1_map_result(katherine_get_readout_temperature(device, temperature));
 }
 
-/** 1.x-named wrapper for katherine_get_sensor_temperature(). */
+/** \legacy1{katherine_get_sensor_temperature} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_sensor_temperature(katherine_device_t *device, float *temperature)
@@ -338,7 +338,7 @@ katherine1_get_sensor_temperature(katherine_device_t *device, float *temperature
     return katherine1_map_result(katherine_get_sensor_temperature(device, temperature));
 }
 
-/** 1.x-named wrapper for katherine_perform_digital_test(). */
+/** \legacy1{katherine_perform_digital_test} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_perform_digital_test(katherine_device_t *device)
@@ -346,7 +346,7 @@ katherine1_perform_digital_test(katherine_device_t *device)
     return katherine1_map_result(katherine_perform_digital_test(device));
 }
 
-/** 1.x-named wrapper for katherine_get_adc_voltage(). */
+/** \legacy1{katherine_get_adc_voltage} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
@@ -356,7 +356,7 @@ katherine1_get_adc_voltage(katherine_device_t *device, unsigned char channel_id,
 
 // acquisition.h
 
-/** 1.x-named wrapper for katherine_acquisition_init(). */
+/** \legacy1{katherine_acquisition_init} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
@@ -364,7 +364,7 @@ katherine1_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *de
     return katherine1_map_result(katherine_acquisition_init(acq, device, ctx, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout));
 }
 
-/** 1.x-named wrapper for katherine_acquisition_begin(). */
+/** \legacy1{katherine_acquisition_begin} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
@@ -372,7 +372,7 @@ katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine_confi
     return katherine1_map_result(katherine_acquisition_begin(acq, config, readout_mode, acq_mode, fast_vco_enabled, decode_data));
 }
 
-/** 1.x-named wrapper for katherine_acquisition_abort(). */
+/** \legacy1{katherine_acquisition_abort} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_abort(katherine_acquisition_t *acq)
@@ -380,7 +380,7 @@ katherine1_acquisition_abort(katherine_acquisition_t *acq)
     return katherine1_map_result(katherine_acquisition_abort(acq));
 }
 
-/** 1.x-named wrapper for katherine_acquisition_stop(). */
+/** \legacy1{katherine_acquisition_stop} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_stop(katherine_acquisition_t *acq)
@@ -388,7 +388,7 @@ katherine1_acquisition_stop(katherine_acquisition_t *acq)
     return katherine1_map_result(katherine_acquisition_stop(acq));
 }
 
-/** 1.x-named wrapper for katherine_acquisition_read(). */
+/** \legacy1{katherine_acquisition_read} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_read(katherine_acquisition_t *acq)
@@ -398,7 +398,7 @@ katherine1_acquisition_read(katherine_acquisition_t *acq)
 
 // udp.h
 
-/** 1.x-named wrapper for katherine_udp_init(). */
+/** \legacy1{katherine_udp_init} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -406,7 +406,7 @@ katherine1_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_
     return katherine1_map_result(katherine_udp_init(u, local_port, remote_addr, remote_port, timeout_ms));
 }
 
-/** 1.x-named wrapper for katherine_udp_init_bound(). */
+/** \legacy1{katherine_udp_init_bound} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -414,7 +414,7 @@ katherine1_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t l
     return katherine1_map_result(katherine_udp_init_bound(u, local_addr, local_port, remote_addr, remote_port, timeout_ms));
 }
 
-/** 1.x-named wrapper for katherine_udp_send_exact(). */
+/** \legacy1{katherine_udp_send_exact} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
@@ -422,7 +422,7 @@ katherine1_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
     return katherine1_map_result(katherine_udp_send_exact(u, data, count));
 }
 
-/** 1.x-named wrapper for katherine_udp_recv_exact(). */
+/** \legacy1{katherine_udp_recv_exact} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
@@ -430,7 +430,7 @@ katherine1_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
     return katherine1_map_result(katherine_udp_recv_exact(u, data, count));
 }
 
-/** 1.x-named wrapper for katherine_udp_recv(). */
+/** \legacy1{katherine_udp_recv} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_recv(katherine_udp_t *u, void *data, size_t *count)
@@ -438,7 +438,7 @@ katherine1_udp_recv(katherine_udp_t *u, void *data, size_t *count)
     return katherine1_map_result(katherine_udp_recv(u, data, count));
 }
 
-/** 1.x-named wrapper for katherine_udp_set_remote(). */
+/** \legacy1{katherine_udp_set_remote} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
@@ -446,7 +446,7 @@ katherine1_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t 
     return katherine1_map_result(katherine_udp_set_remote(u, remote_addr, remote_port));
 }
 
-/** 1.x-named wrapper for katherine_udp_mutex_lock(). */
+/** \legacy1{katherine_udp_mutex_lock} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_mutex_lock(katherine_udp_t *u)
@@ -454,7 +454,7 @@ katherine1_udp_mutex_lock(katherine_udp_t *u)
     return katherine1_map_result(katherine_udp_mutex_lock(u));
 }
 
-/** 1.x-named wrapper for katherine_udp_mutex_unlock(). */
+/** \legacy1{katherine_udp_mutex_unlock} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_mutex_unlock(katherine_udp_t *u)
@@ -465,7 +465,7 @@ katherine1_udp_mutex_unlock(katherine_udp_t *u)
 // emulator.h -- see the file header for why this is conditional.
 #ifdef KATHERINE_EMU_CRD_SIZE
 
-/** 1.x-named wrapper for katherine_emu_init(). */
+/** \legacy1{katherine_emu_init} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
@@ -473,7 +473,7 @@ katherine1_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile
     return katherine1_map_result(katherine_emu_init(emu, profile));
 }
 
-/** 1.x-named wrapper for katherine_emu_cmd_in(). */
+/** \legacy1{katherine_emu_cmd_in} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
@@ -481,7 +481,7 @@ katherine1_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
     return katherine1_map_result(katherine_emu_cmd_in(emu, data, len));
 }
 
-/** 1.x-named wrapper for katherine_emu_crd_out(). */
+/** \legacy1{katherine_emu_crd_out} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_emu_crd_out(katherine_emu_t *emu, void *crd8, size_t *len)
@@ -489,7 +489,7 @@ katherine1_emu_crd_out(katherine_emu_t *emu, void *crd8, size_t *len)
     return katherine1_map_result(katherine_emu_crd_out(emu, crd8, len));
 }
 
-/** 1.x-named wrapper for katherine_emu_data_out(). */
+/** \legacy1{katherine_emu_data_out} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len)

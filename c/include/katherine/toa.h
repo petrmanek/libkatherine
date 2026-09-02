@@ -17,7 +17,13 @@
 #include <katherine/global.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_toa Time of arrival
+ * \ingroup katherine_c_api
+ * \brief Converting Timepix3 timestamps between clock ticks and seconds.
+ */
+
+/**
+ * \addtogroup katherine_toa
  * \{
  */
 

@@ -16,7 +16,13 @@
 #include <katherine/global.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_version Version
+ * \ingroup katherine_c_api
+ * \brief Compile-time and run-time version queries.
+ */
+
+/**
+ * \addtogroup katherine_version
  * \{
  */
 

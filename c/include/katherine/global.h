@@ -15,7 +15,13 @@
 #include <stdbool.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup katherine_global Common definitions
+ * \ingroup katherine_c_api
+ * \brief Export macros and small helpers shared across the library.
+ */
+
+/**
+ * \addtogroup katherine_global
  * \{
  */
 
