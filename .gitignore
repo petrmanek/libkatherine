@@ -93,3 +93,7 @@ CTestTestfile.cmake
 
 # Python bytecode cache, from the tools in tools/
 __pycache__/
+
+# Claude Code local settings: per-machine permission state, not project
+# configuration. The skills under .claude/skills/ are tracked.
+.claude/settings.local.json
