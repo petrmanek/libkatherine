@@ -37,7 +37,7 @@ rm -f build/docs/docs.stamp
 cmake --build build --target docs 2>&1 | grep -c warning:
 ```
 
-At the time of writing the suite is 20 tests and Doxygen emits 318 warnings,
+At the time of writing the suite is 20 tests and Doxygen emits 314 warnings,
 all pre-existing. Take your own baseline rather than trusting those numbers:
 the `grep -c` above is the number to beat, and the `rm` is required because the
 target is stamp-guarded and will otherwise print nothing at all.
