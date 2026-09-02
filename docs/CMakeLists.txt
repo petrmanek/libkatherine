@@ -50,7 +50,10 @@ STRIP_FROM_PATH = "@PROJECT_SOURCE_DIR@" "@PROJECT_BINARY_DIR@"
 STRIP_FROM_INC_PATH = "@PROJECT_SOURCE_DIR@/c/include" "@PROJECT_SOURCE_DIR@/cxx/include"
 ]] @ONLY)
 
-# The manual pages come from a second run, over the C sources alone.
+# The manual pages come from a second run, over the C sources alone, and
+# only where they can be used: WIN32 has no man hierarchy to install them
+# into and no man to read them with, so the run is skipped there rather
+# than generating pages the install step then discards.
 #
 # man3 is one flat namespace, and MAN_LINKS -- which is what makes `man 3
 # katherine_device_init` resolve at all -- adds a page per documented entity,
@@ -72,10 +75,11 @@ STRIP_FROM_INC_PATH = "@PROJECT_SOURCE_DIR@/c/include" "@PROJECT_SOURCE_DIR@/cxx
 #
 # -M names the root of a man hierarchy, which is the directory holding man3,
 # so the `.so man3/...` redirects resolve exactly as they will once installed.
-set(KATHERINE_DOXYGEN_MAN_INPUTS ${KATHERINE_DOCUMENTED_FILES})
-list(JOIN KATHERINE_DOXYGEN_MAN_INPUTS "\" \"" KATHERINE_DOXYGEN_MAN_INPUT_LINE)
-set(KATHERINE_DOXYGEN_MAN_INPUT_LINE "\"${KATHERINE_DOXYGEN_MAN_INPUT_LINE}\"")
-file(CONFIGURE OUTPUT katherine-man.doxyfile CONTENT [[
+if(NOT WIN32)
+    set(KATHERINE_DOXYGEN_MAN_INPUTS ${KATHERINE_DOCUMENTED_FILES})
+    list(JOIN KATHERINE_DOXYGEN_MAN_INPUTS "\" \"" KATHERINE_DOXYGEN_MAN_INPUT_LINE)
+    set(KATHERINE_DOXYGEN_MAN_INPUT_LINE "\"${KATHERINE_DOXYGEN_MAN_INPUT_LINE}\"")
+    file(CONFIGURE OUTPUT katherine-man.doxyfile CONTENT [[
 @INCLUDE = "@CMAKE_CURRENT_SOURCE_DIR@/Doxyfile"
 OUTPUT_DIRECTORY = "@KATHERINE_DOXYGEN_OUTPUT_DIR@"
 PROJECT_NUMBER = @PROJECT_VERSION@
@@ -98,6 +102,7 @@ WARN_IF_UNDOCUMENTED = NO
 WARN_IF_DOC_ERROR = NO
 WARN_LOGFILE = "@KATHERINE_DOXYGEN_OUTPUT_DIR@/doxygen-man.log"
 ]] @ONLY)
+endif()
 
 # Snapshot the input list; only rewritten when the set of files changes.
 # Depending on it reruns doxygen also when a documented file is deleted
@@ -111,24 +116,48 @@ set(KATHERINE_DOXYGEN_STAMP "${CMAKE_CURRENT_BINARY_DIR}/docs.stamp")
 add_custom_command(
     OUTPUT "${KATHERINE_DOXYGEN_STAMP}"
     COMMAND Doxygen::doxygen "${CMAKE_CURRENT_BINARY_DIR}/katherine.doxyfile"
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "${KATHERINE_DOXYGEN_OUTPUT_DIR}/man"
-    COMMAND Doxygen::doxygen "${CMAKE_CURRENT_BINARY_DIR}/katherine-man.doxyfile"
-    COMMAND ${CMAKE_COMMAND} -DMAN_DIR=${KATHERINE_DOXYGEN_OUTPUT_DIR}/man/man3
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/prune_man.cmake"
     COMMAND ${CMAKE_COMMAND} -E touch "${KATHERINE_DOXYGEN_STAMP}"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     DEPENDS
         ${KATHERINE_DOXYGEN_INPUTS}
         Doxyfile
         DoxygenLayout.xml
-        prune_man.cmake
         "${CMAKE_CURRENT_BINARY_DIR}/katherine.doxyfile"
-        "${CMAKE_CURRENT_BINARY_DIR}/katherine-man.doxyfile"
         "${CMAKE_CURRENT_BINARY_DIR}/doxygen_inputs.txt"
     COMMENT "Building API documentation with Doxygen"
     VERBATIM
 )
-add_custom_target(docs ALL DEPENDS "${KATHERINE_DOXYGEN_STAMP}")
+set(KATHERINE_DOCS_STAMPS "${KATHERINE_DOXYGEN_STAMP}")
+
+# The manual pages get a command of their own, so that the platforms which
+# cannot use them do not run it. Its stamp depends on the HTML one, which
+# orders the two doxygen invocations instead of letting the build run them
+# at once: they share an output directory, and the man run begins by
+# removing a subdirectory of it.
+if(NOT WIN32)
+    set(KATHERINE_DOXYGEN_MAN_STAMP "${CMAKE_CURRENT_BINARY_DIR}/docs-man.stamp")
+    add_custom_command(
+        OUTPUT "${KATHERINE_DOXYGEN_MAN_STAMP}"
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "${KATHERINE_DOXYGEN_OUTPUT_DIR}/man"
+        COMMAND Doxygen::doxygen "${CMAKE_CURRENT_BINARY_DIR}/katherine-man.doxyfile"
+        COMMAND ${CMAKE_COMMAND} -DMAN_DIR=${KATHERINE_DOXYGEN_OUTPUT_DIR}/man/man3
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/prune_man.cmake"
+        COMMAND ${CMAKE_COMMAND} -E touch "${KATHERINE_DOXYGEN_MAN_STAMP}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        DEPENDS
+            ${KATHERINE_DOXYGEN_MAN_INPUTS}
+            Doxyfile
+            prune_man.cmake
+            "${CMAKE_CURRENT_BINARY_DIR}/katherine-man.doxyfile"
+            "${CMAKE_CURRENT_BINARY_DIR}/doxygen_inputs.txt"
+            "${KATHERINE_DOXYGEN_STAMP}"
+        COMMENT "Building manual pages with Doxygen"
+        VERBATIM
+    )
+    list(APPEND KATHERINE_DOCS_STAMPS "${KATHERINE_DOXYGEN_MAN_STAMP}")
+endif()
+
+add_custom_target(docs ALL DEPENDS ${KATHERINE_DOCS_STAMPS})
 
 install(DIRECTORY "${KATHERINE_DOXYGEN_OUTPUT_DIR}/html"
         DESTINATION ${CMAKE_INSTALL_DOCDIR})
