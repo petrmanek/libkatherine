@@ -75,9 +75,26 @@ reverse_nibble(uint8_t nibble)
 
 /**
  * Load pixel configuration from a BMC file (in BurdaMan format).
+ *
+ * The file is expected to hold sizeof(katherine_bmc_t) = 65536 bytes, one
+ * configuration byte per pixel of the 256x256 matrix, and the length check is
+ * one-sided: exactly that many bytes are read, so a longer file loads with its
+ * tail silently ignored, while a shorter one -- a matrix exported for a smaller
+ * sensor, or a truncated copy -- fails with KATHERINE_E_IO.
+ *
  * \param px_config Target configuration matrix.
  * \param file_path BMC file path.
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_IO if the file could not be opened -- it does not exist,
+ *   this process may not read it, the path names a directory, or no descriptor
+ *   was free, these being the errno values fopen(3) sets that the two codes
+ *   below do not name -- or if it opened but yielded fewer than 65536 bytes.
+ * \retval KATHERINE_E_NOMEM if the 65536-byte read buffer could not be
+ *   allocated, or if fopen(3) itself ran out of memory for the stream.
+ * \retval KATHERINE_E_INVAL if the filesystem rejected the path -- the mode is
+ *   hard-coded, so the only EINVAL left to fopen(3) here is a final path
+ *   component the filesystem does not permit; see open(2).
  */
 katherine_error_t
 katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path)
@@ -115,9 +132,17 @@ err_fopen:
 
 /**
  * Load pixel configuration from a BMC file contents (in BurdaMan format).
+ *
+ * The buffer must be a complete katherine_bmc_t: all 65536 of its bytes are
+ * read and transposed into the packed matrix. No length is passed, so there is
+ * nothing to check, and every byte value is a legal configuration byte in the
+ * BMC layout -- the conversion therefore has no failure path. Handing it a
+ * shorter buffer is a bounds violation, not a reportable error.
+ *
  * \param px_config Target configuration matrix.
  * \param bmc BMC file data.
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, which is the only outcome.
  */
 katherine_error_t
 katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc)
@@ -141,9 +166,26 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
 
 /**
  * Load pixel configuration from a BPC file (in Pixet format).
+ *
+ * The file is expected to hold sizeof(katherine_bpc_t) = 65536 bytes, one
+ * configuration byte per pixel of the 256x256 matrix, and the length check is
+ * one-sided: exactly that many bytes are read, so a longer file loads with its
+ * tail silently ignored, while a shorter one -- a matrix exported for a smaller
+ * sensor, or a truncated copy -- fails with KATHERINE_E_IO.
+ *
  * \param px_config Target configuration matrix.
  * \param file_path BPC file path.
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_IO if the file could not be opened -- it does not exist,
+ *   this process may not read it, the path names a directory, or no descriptor
+ *   was free, these being the errno values fopen(3) sets that the two codes
+ *   below do not name -- or if it opened but yielded fewer than 65536 bytes.
+ * \retval KATHERINE_E_NOMEM if the 65536-byte read buffer could not be
+ *   allocated, or if fopen(3) itself ran out of memory for the stream.
+ * \retval KATHERINE_E_INVAL if the filesystem rejected the path -- the mode is
+ *   hard-coded, so the only EINVAL left to fopen(3) here is a final path
+ *   component the filesystem does not permit; see open(2).
  */
 katherine_error_t
 katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path)
@@ -181,9 +223,18 @@ err_fopen:
 
 /**
  * Load pixel configuration from a BPC file contents (in Pixet format).
+ *
+ * The buffer must be a complete katherine_bpc_t: all 65536 of its bytes are
+ * read, the threshold nibble of each is permuted into storage order (see
+ * reverse_nibble()), and the result is transposed into the packed matrix. No
+ * length is passed, so there is nothing to check, and every byte value maps to
+ * a legal configuration byte -- the conversion therefore has no failure path.
+ * Handing it a shorter buffer is a bounds violation, not a reportable error.
+ *
  * \param px_config Target configuration matrix.
  * \param bpc BPC file data.
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, which is the only outcome.
  */
 katherine_error_t
 katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc)
