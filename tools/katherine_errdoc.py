@@ -50,7 +50,12 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(REPO, "build", "compile_commands.json")
 
 # The marker that says a function reports failure through its return value.
-ERR_MARKER = re.compile(r"\\return\s+Error code\.")
+# The full stop is not required: three doc blocks continue the sentence with
+# a comma or a semicolon, and requiring it left those functions unchecked.
+# "\\return The raw OS error code" must still not match -- it is an errno,
+# not one of these codes -- hence anchoring on "Error code" right after the
+# command.
+ERR_MARKER = re.compile(r"\\return\s+Error code\b")
 RETVAL = re.compile(r"\\retval\s+(KATHERINE_E_[A-Z_]+)")
 CODE = re.compile(r"\bKATHERINE_E_[A-Z_]+\b")
 
@@ -145,15 +150,68 @@ def returned_names(fn_node):
     return names
 
 
+def init_of_returned(node, returned):
+    """The initializer of a `T res = <expr>;` whose variable reaches a return.
+
+    Three shapes carry an error code out of a function: a call inside a
+    return, a call assigned to such a variable, and this one -- a variable
+    DECLARED with the call as its initializer. Only the first two were
+    recognized, so `katherine_error_t res = katherine_udp_recv(...)` was
+    invisible and every code the receive path raises went unindexed. That was
+    reported as `unreachable` against docs that were in fact correct.
+    """
+    if node.kind != ci.CursorKind.VAR_DECL or node.spelling not in returned:
+        return None
+    kids = list(node.get_children())
+    return kids[-1] if kids else None
+
+
+def doc_above(node):
+    """The documentation block physically above a definition, or None.
+
+    libclang attaches a comment to the canonical declaration, so a function
+    declared in a public header under a `\\addtogroup` marker reports that
+    marker as its raw_comment -- at the definition as well as at the
+    declaration. The real block then never reaches the index, and the
+    function is treated as undocumented however carefully it was written.
+
+    Reading the block that physically precedes the definition recovers it.
+    This is deliberately not a parser: it accepts only a /** ... */ block
+    ending on the line above (blank lines allowed between), which is the one
+    shape the house style puts there.
+    """
+    loc = node.location
+    if not node.is_definition() or loc.file is None:
+        return None
+    try:
+        lines = open(loc.file.name, errors="replace").read().split("\n")
+    except OSError:
+        return None
+
+    i = node.extent.start.line - 2          # 0-based, line above the signature
+    while i >= 0 and not lines[i].strip():
+        i -= 1
+    if i < 0 or not lines[i].rstrip().endswith("*/"):
+        return None
+    end = i
+    while i >= 0 and not lines[i].lstrip().startswith("/**"):
+        if lines[i].lstrip().startswith("/*") and i != end:
+            return None                     # a different comment, not a doc block
+        i -= 1
+    if i < 0:
+        return None
+    return "\n".join(lines[i:end + 1])
+
+
 def calls_with_sites(fn_node):
     """(callee, file:line) for calls whose result can reach this function's return.
 
     Only those calls propagate an error code. A result that is discarded --
     `(void) katherine_udp_mutex_unlock(...)` is the common case here -- cannot,
     and counting it would credit a function with codes it can never return.
-    The two shapes that do propagate are the same ones direct_codes() looks
-    for: a call inside a return, and a call assigned to a variable that a
-    return names.
+    The three shapes that do propagate are the same ones direct_codes() looks
+    for: a call inside a return, a call assigned to a variable that a return
+    names, and a call initializing such a variable at its declaration.
     """
     returned = returned_names(fn_node)
     out = []
@@ -166,6 +224,11 @@ def calls_with_sites(fn_node):
     for n in fn_node.walk_preorder():
         if n.kind == ci.CursorKind.RETURN_STMT:
             collect(n)
+            continue
+
+        init = init_of_returned(n, returned)
+        if init is not None:
+            collect(init)
             continue
 
         if n.kind != ci.CursorKind.BINARY_OPERATOR:
@@ -335,6 +398,11 @@ def direct_codes(fn_node):
             record(n, CODE.findall(" ".join(tokens_of(n))))
             continue
 
+        init = init_of_returned(n, returned)
+        if init is not None:
+            record(n, CODE.findall(" ".join(tokens_of(init))))
+            continue
+
         if n.kind != ci.CursorKind.BINARY_OPERATOR:
             continue
 
@@ -447,7 +515,7 @@ class Index:
                     self.sites[(name, callee)].append(where)
 
     def _record_doc(self, node):
-        raw = node.raw_comment
+        raw = doc_above(node) or node.raw_comment
         if not raw:
             return
         prev = self.doc.get(node.spelling)
