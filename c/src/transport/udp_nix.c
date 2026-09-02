@@ -101,7 +101,16 @@ map_syscall_error(int err, katherine_error_t fallback)
  *
  * \param u UDP session
  * \param err errno of the failed syscall
- * \return Error code.
+ *
+ * \retval KATHERINE_E_TIMEOUT if err says the receive found nothing --
+ *   EAGAIN, EWOULDBLOCK or ETIMEDOUT -- which is the expired receive
+ *   timeout of an idle socket, or the EAGAIN of a MSG_DONTWAIT receive on an
+ *   empty one. This is the case that leaves last_os_error cleared.
+ * \retval KATHERINE_E_INVAL if err is EINVAL; see recvfrom(2).
+ * \retval KATHERINE_E_NOMEM if err is ENOMEM; see recvfrom(2).
+ * \retval KATHERINE_E_IO for any other errno, this function's fallback.
+ * \retval KATHERINE_E_OK never: this is a failure path, and err is the errno
+ *   of a syscall that has already failed.
  */
 static katherine_error_t
 recv_failure(katherine_udp_t *u, int err)
@@ -178,7 +187,29 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, in
  * \param remote_addr Remote IP address
  * \param remote_port Remote port number
  * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_ADDR if remote_addr is not a valid dotted-quad IPv4
+ *   address, or local_port could not be bound on the wildcard address --
+ *   another socket already holds it, or it is a privileged port; see
+ *   inet_pton(3) and bind(2). Only the bind failure records an OS error for
+ *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_IO if the socket could not be created, or its address
+ *   reuse or receive timeout option could not be set, for a reason none of
+ *   the other codes cover -- the process being out of file descriptors, for
+ *   one; see socket(2), setsockopt(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if creating the socket, setting its options, or
+ *   initializing its mutex reported an invalid argument; see socket(2),
+ *   setsockopt(2), pthread_mutex_init(3), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if creating the socket, setting its options, or
+ *   initializing its mutex ran out of memory; see socket(2), setsockopt(2),
+ *   pthread_mutex_init(3), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the session's mutex could not be initialized
+ *   for a reason none of the other codes cover; see pthread_mutex_init(3)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if the session's mutex could not be
+ *   initialized for lack of a non-memory system resource; see
+ *   pthread_mutex_init(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -200,7 +231,30 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  * \param remote_addr Remote IP address
  * \param remote_port Remote port number
  * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_ADDR if local_addr (when not NULL) or remote_addr is
+ *   not a valid dotted-quad IPv4 address, or that local address and port
+ *   could not be bound -- another socket already holds them, the address is
+ *   not local to this host, or the port is privileged; see inet_pton(3) and
+ *   bind(2). Only the bind failure records an OS error for
+ *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_IO if the socket could not be created, or its address
+ *   reuse or receive timeout option could not be set, for a reason none of
+ *   the other codes cover -- the process being out of file descriptors, for
+ *   one; see socket(2), setsockopt(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if creating the socket, setting its options, or
+ *   initializing its mutex reported an invalid argument; see socket(2),
+ *   setsockopt(2), pthread_mutex_init(3), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if creating the socket, setting its options, or
+ *   initializing its mutex ran out of memory; see socket(2), setsockopt(2),
+ *   pthread_mutex_init(3), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the session's mutex could not be initialized
+ *   for a reason none of the other codes cover; see pthread_mutex_init(3)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if the session's mutex could not be
+ *   initialized for lack of a non-memory system resource; see
+ *   pthread_mutex_init(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -312,7 +366,18 @@ katherine_udp_fini(katherine_udp_t *u)
  * \param u UDP session
  * \param data Message start
  * \param count Message length in bytes
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, the whole message having been handed to
+ *   the network stack.
+ * \retval KATHERINE_E_IO if the message could not be handed to the network
+ *   stack -- no route to the session's remote host, a datagram too large to
+ *   send in one piece, or any other OS-level failure none of the other codes
+ *   cover; see sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if sendto(2) rejected an argument of the send,
+ *   as it does for a datagram addressed into a blackhole route; see ip(7)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the network stack had no memory to queue the
+ *   datagram; see sendto(2) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
@@ -342,7 +407,23 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
  * \param u UDP session
  * \param data Inbound buffer start
  * \param count Inbound buffer size in bytes
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, with count bytes in the buffer, taken
+ *   from as many datagrams as it took to fill it.
+ * \retval KATHERINE_E_TIMEOUT if a datagram of the message did not arrive
+ *   within the session's receive timeout (the timeout_ms of
+ *   katherine_udp_init(), which zero disables), or -- on a pinned session,
+ *   see katherine_udp_pin_remote() -- if KATHERINE_UDP_PIN_MAX_DISCARDS
+ *   datagrams from other hosts arrived in its place. Both are deliberately
+ *   the same code, so no caller needs a separate path for either; the bytes
+ *   received so far are left in the buffer, uncounted.
+ * \retval KATHERINE_E_IO if a receive failed at the OS level for a reason
+ *   none of the other codes cover; see recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if recvfrom(2) rejected an argument of the
+ *   receive; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the receive; see
+ *   recvfrom(2) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
@@ -374,7 +455,23 @@ katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
  * \param u UDP session
  * \param data Inbound buffer start
  * \param count Inbound buffer size in bytes
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, with *count set to the bytes received.
+ *   A datagram longer than the buffer fills it and the rest of that datagram
+ *   is dropped: a full buffer, not a failure.
+ * \retval KATHERINE_E_TIMEOUT if no datagram arrived within the session's
+ *   receive timeout (the timeout_ms of katherine_udp_init(), which zero
+ *   disables), or -- on a pinned session, see katherine_udp_pin_remote() --
+ *   if KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts arrived
+ *   instead. Both are deliberately the same code, so no caller needs a
+ *   separate path for either.
+ * \retval KATHERINE_E_IO if the receive failed at the OS level for a reason
+ *   none of the other codes cover; see recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if recvfrom(2) rejected an argument of the
+ *   receive; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the receive; see
+ *   recvfrom(2) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
@@ -408,7 +505,23 @@ katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
  * \param data Inbound buffer start
  * \param count Inbound buffer size in bytes on entry, bytes received on
  *   success
- * \return Error code. KATHERINE_E_TIMEOUT if nothing was queued.
+ *
+ * \retval KATHERINE_E_OK on success, with *count set to the bytes received.
+ *   A datagram longer than the buffer fills it and the rest of that datagram
+ *   is dropped: a full buffer, not a failure.
+ * \retval KATHERINE_E_TIMEOUT if the socket had nothing queued, or -- on a
+ *   pinned session, see katherine_udp_pin_remote() -- if what was queued
+ *   came only from other hosts, whether the queue or the
+ *   KATHERINE_UDP_PIN_MAX_DISCARDS discard budget ran out first. No case
+ *   here waits, and each reports the code an expired receive timeout would,
+ *   so no caller needs a separate path for any of them.
+ * \retval KATHERINE_E_IO if the receive failed at the OS level for a reason
+ *   none of the other codes cover; see recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if recvfrom(2) rejected an argument of the
+ *   receive; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the receive; see
+ *   recvfrom(2) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
@@ -443,7 +556,12 @@ katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
  * \param u UDP session
  * \param remote_addr Remote IP address
  * \param remote_port Remote port number
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_ADDR if remote_addr is not a valid dotted-quad IPv4
+ *   address, in which case the session keeps the remote address it had; see
+ *   inet_pton(3). No system call fails here, so
+ *   katherine_udp_last_os_error() is left reporting zero.
  */
 katherine_error_t
 katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
@@ -517,7 +635,16 @@ katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict)
 /**
  * Lock mutual exclusion synchronization primitive.
  * \param u UDP session
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, with the session's lock held by the
+ *   calling thread.
+ * \retval KATHERINE_E_INVAL if the session's mutex was not in a lockable
+ *   state -- a session katherine_udp_init() never initialized, or one
+ *   already finalized by katherine_udp_fini(); see pthread_mutex_lock(3)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason
+ *   none of the other codes cover; see pthread_mutex_lock(3) and
+ *   katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_mutex_lock(katherine_udp_t *u)
@@ -534,7 +661,16 @@ katherine_udp_mutex_lock(katherine_udp_t *u)
 /**
  * Unlock mutual exclusion synchronization primitive.
  * \param u UDP session
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the session's mutex was not in an unlockable
+ *   state -- a session katherine_udp_init() never initialized, or one
+ *   already finalized by katherine_udp_fini(); see pthread_mutex_unlock(3)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the lock could not be released for a reason
+ *   none of the other codes cover, such as this thread not being the one
+ *   holding it; see pthread_mutex_unlock(3) and
+ *   katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_udp_mutex_unlock(katherine_udp_t *u)
