@@ -425,7 +425,17 @@ katherine_emu_stream_advance(katherine_emu_t *emu, uint64_t ns)
  * \param buf Start of the destination buffer
  * \param cap Capacity of the destination buffer in bytes
  * \param len Number of bytes written (optional)
- * \return Error code, or KATHERINE_E_TIMEOUT if no data are available yet.
+ *
+ * \retval KATHERINE_E_OK on success: at least one whole datum was copied
+ *   out.
+ * \retval KATHERINE_E_TIMEOUT if nothing whole can be handed over yet --
+ *   the stream is idle, the buffer is shorter than one datum, or the
+ *   configured rate has not released enough tokens. This is the ordinary
+ *   idle answer rather than a failure, and advancing the virtual clock is
+ *   what turns it into data.
+ * \retval KATHERINE_E_INVAL if no emulator or no buffer was given, that is,
+ *   if emu or buf is NULL. A zero capacity is not an error: it reports
+ *   KATHERINE_E_TIMEOUT, having room for no whole datum.
  */
 katherine_error_t
 katherine_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len)

@@ -496,7 +496,12 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
  *
  * \param emu Emulator to initialize
  * \param profile Properties of the readout, or NULL for the defaults
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if no emulator was given, that is, if emu is
+ *   NULL. The profile is not validated: NULL selects the defaults, and any
+ *   other profile is copied as given -- a chip identifier that does not
+ *   parse yields a zero identifier word rather than an error.
  */
 katherine_error_t
 katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
@@ -559,7 +564,17 @@ katherine_emu_fini(katherine_emu_t *emu)
  * \param emu Emulator
  * \param data Start of the datagram
  * \param len Length of the datagram in bytes
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success: the command was dispatched, or
+ *   consumed as pixel configuration data while an upload is in progress.
+ *   An opcode the emulated readout does not implement succeeds as well --
+ *   it is recorded in the log and counted by
+ *   katherine_emu_unknown_cmd_count(), and left unanswered, as the readout
+ *   leaves it.
+ * \retval KATHERINE_E_INVAL if no emulator or no datagram was given, or if
+ *   the datagram is shorter than the eight bytes a command occupies; a
+ *   longer one is accepted and truncated. Datagrams consumed by a pixel
+ *   configuration upload are not length checked at all.
  */
 katherine_error_t
 katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
@@ -584,7 +599,17 @@ katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
  * \param emu Emulator
  * \param crd8 Start of a buffer of `KATHERINE_EMU_CRD_SIZE` bytes
  * \param len Number of bytes written (optional)
- * \return Error code, or KATHERINE_E_TIMEOUT if no response is due yet.
+ *
+ * \retval KATHERINE_E_OK on success: one response was copied out and removed
+ *   from the queue.
+ * \retval KATHERINE_E_TIMEOUT if no response is due, either because the
+ *   queue is empty or because the head of it falls due later than the
+ *   virtual clock now reads. This is the ordinary idle answer, not a
+ *   failure: it is what an emulated readout with nothing to say returns, and
+ *   it is what katherine_emu_advance() turns into a response.
+ * \retval KATHERINE_E_INVAL if no emulator or no buffer was given, that is,
+ *   if emu or crd8 is NULL. The buffer's length is not passed and so cannot
+ *   be checked: it must hold KATHERINE_EMU_CRD_SIZE bytes.
  */
 katherine_error_t
 katherine_emu_crd_out(katherine_emu_t *emu, void *crd8, size_t *len)
