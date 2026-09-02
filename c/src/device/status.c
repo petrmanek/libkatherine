@@ -23,7 +23,28 @@
  * Inquire the status of the readout.
  * \param device Katherine device
  * \param status Retrieved status information
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer the status
+ *   request within the control session's receive timeout, or if datagrams from
+ *   other hosts kept arriving until the pinned session's discard budget ran
+ *   out.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
+ *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
+ * \retval KATHERINE_E_STRAY if responses identified as some other command's
+ *   kept arriving until the discard budget ran out before this one's did.
+ * \retval KATHERINE_E_INVAL if taking the control session's lock, sending the
+ *   status request, or receiving its reply reported an invalid argument; see
+ *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if sending the status request or receiving its reply
+ *   failed at the OS level for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the status request or receiving its
+ *   reply ran out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status)
@@ -65,7 +86,28 @@ err:
  * Inquire the communication status of the readout.
  * \param device Katherine device
  * \param status Retrieve status information
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer the
+ *   communication-status request within the control session's receive
+ *   timeout, or if datagrams from other hosts kept arriving until the pinned
+ *   session's discard budget ran out.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
+ *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
+ * \retval KATHERINE_E_STRAY if responses identified as some other command's
+ *   kept arriving until the discard budget ran out before this one's did.
+ * \retval KATHERINE_E_INVAL if taking the control session's lock, sending the
+ *   request, or receiving its reply reported an invalid argument; see
+ *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
+ *   at the OS level for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
+ *   out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status)
@@ -107,7 +149,34 @@ err:
  * Retrieve Timepix3 chip identifier.
  * \param device Katherine device
  * \param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer the
+ *   chip-identifier request within the control session's receive timeout, or
+ *   if datagrams from other hosts kept arriving until the pinned session's
+ *   discard budget ran out.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
+ *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
+ * \retval KATHERINE_E_STRAY if responses identified as some other command's
+ *   kept arriving until the discard budget ran out before this one's did.
+ * \retval KATHERINE_E_PROTO if the answer's identifier word was zero, which
+ *   no readout sends -- the chip letter is encoded one-based, so a real
+ *   identifier has a nonzero low nibble. In practice this is the request
+ *   itself delivered back to the sender, which response correlation cannot
+ *   reject because the echo carries the request's own operation code; see the
+ *   comment at the check.
+ * \retval KATHERINE_E_INVAL if taking the control session's lock, sending the
+ *   request, or receiving its reply reported an invalid argument; see
+ *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
+ *   at the OS level for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
+ *   out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
@@ -169,7 +238,28 @@ err:
  *
  * \param device Katherine device
  * \param temperature Measured temperature in Celsius.
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer the temperature
+ *   request within the control session's receive timeout, or if datagrams
+ *   from other hosts kept arriving until the pinned session's discard budget
+ *   ran out.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
+ *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
+ * \retval KATHERINE_E_STRAY if responses identified as some other command's
+ *   kept arriving until the discard budget ran out before this one's did.
+ * \retval KATHERINE_E_INVAL if taking the control session's lock, sending the
+ *   request, or receiving its reply reported an invalid argument; see
+ *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
+ *   at the OS level for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
+ *   out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_get_readout_temperature(katherine_device_t *device, float *temperature)
@@ -213,7 +303,35 @@ err:
  *
  * \param device Katherine device
  * \param temperature Measured temperature in Celsius.
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_STATE if an acquisition is currently started on this
+ *   device. This is a precondition, not a communication failure: it is
+ *   checked before the session lock is taken and before anything is sent, so
+ *   the readout is left untouched. The caller must not have an acquisition in
+ *   flight -- none started yet, or the last one already read to its end or
+ *   aborted -- and should poll katherine_get_readout_temperature() instead
+ *   while one is running.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer the temperature
+ *   request within the control session's receive timeout, or if datagrams
+ *   from other hosts kept arriving until the pinned session's discard budget
+ *   ran out.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
+ *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
+ * \retval KATHERINE_E_STRAY if responses identified as some other command's
+ *   kept arriving until the discard budget ran out before this one's did.
+ * \retval KATHERINE_E_INVAL if taking the control session's lock, sending the
+ *   request, or receiving its reply reported an invalid argument; see
+ *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
+ *   at the OS level for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
+ *   out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
@@ -248,8 +366,40 @@ err:
 
 /**
  * Test communication between the readout and the sensor chip (may take several seconds).
+ *
+ * The wait for the result is retried up to a hundred times, because the test
+ * itself outlasts the control session's receive timeout by far. A code raised
+ * in the wait is therefore the hundredth attempt's and arrives some ten
+ * seconds in, not at the first timeout.
+ *
  * \param device Katherine device
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success, meaning the test ran and passed.
+ * \retval KATHERINE_E_HW_UNKNOWN if the test ran but did not pass. The sensor
+ *   answered, and byte 0 of its answer carries the result: only the value 64,
+ *   every one of the 64 matrix patterns returned correct, counts as a pass.
+ *   Any other value is a fault on the readout-to-sensor link that the
+ *   protocol does not break down further, so nothing here says which pattern
+ *   failed or how.
+ * \retval KATHERINE_E_TIMEOUT if none of the hundred attempts saw an answer
+ *   within the control session's receive timeout, or if datagrams from other
+ *   hosts kept arriving until the pinned session's discard budget ran out.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
+ *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
+ * \retval KATHERINE_E_STRAY if responses identified as some other command's
+ *   kept arriving until the discard budget ran out before this one's did.
+ * \retval KATHERINE_E_INVAL if taking the control session's lock, sending the
+ *   request, or receiving its reply reported an invalid argument; see
+ *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
+ *   at the OS level for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
+ *   out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_perform_digital_test(katherine_device_t *device)
@@ -295,7 +445,29 @@ err:
  * \param device Katherine device
  * \param channel_id Index of the measured ADC channel
  * \param voltage Retrieved voltage
- * \return Error code.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer the voltage
+ *   request within the control session's receive timeout, or if datagrams
+ *   from other hosts kept arriving until the pinned session's discard budget
+ *   ran out.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
+ *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
+ * \retval KATHERINE_E_STRAY if responses identified as some other command's
+ *   kept arriving until the discard budget ran out before this one's did.
+ * \retval KATHERINE_E_INVAL if taking the control session's lock, sending the
+ *   request, or receiving its reply reported an invalid argument -- never for
+ *   an out-of-range \p channel_id, which is not validated here; see
+ *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
+ *   at the OS level for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
+ *   out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
