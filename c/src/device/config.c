@@ -31,10 +31,10 @@
  * \param config Detector configuration to set
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_set_all_pixel_config(device, &config->pixel_config);
     if (res) goto err;
@@ -91,7 +91,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
         if (res) goto err;
     }
 
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     return res;
@@ -152,10 +152,10 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  * \param px_config Configuration matrix to set
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -212,7 +212,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
             do {
                 --ack_attempts;
                 res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_SET_ALL_PIXEL_CONFIG);
-            } while (res == -KATHERINE_E_TIMEOUT && ack_attempts > 0);
+            } while (res == KATHERINE_E_TIMEOUT && ack_attempts > 0);
         }
 
         if (!res) {
@@ -251,7 +251,7 @@ katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_co
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -264,10 +264,10 @@ err:
  * \param ns Acquisition time in nanoseconds
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -293,7 +293,7 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -307,10 +307,10 @@ err:
  * \param fast_vco_enabled Flag indicating the use of fast clock signal
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -341,7 +341,7 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -355,12 +355,12 @@ err:
  * \param bias_value Bias voltage in Volts
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
 {
     (void) bias_id;
 
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -376,7 +376,7 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -389,10 +389,10 @@ err:
  * \param no_frames Number of frames
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_no_frames(katherine_device_t *device, int no_frames)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -406,7 +406,7 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -419,10 +419,10 @@ err:
  * \param arg Implementation-defined argument
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_seq_readout_start(katherine_device_t *device, int arg)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -433,7 +433,7 @@ katherine_set_seq_readout_start(katherine_device_t *device, int arg)
     // Note: this command does _not_ produce an acknowledgement.
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -448,10 +448,10 @@ err:
  * \param end_trigger I/O trigger signalling acquisition end
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -484,7 +484,7 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -512,10 +512,10 @@ err:
  * \param tp_config Test pulse configuration to set
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config)
 {
-    int res;
+    katherine_error_t res;
 
     char cmd[8] = {0};
     cmd[6]      = CMD_TYPE_TEST_PULSE_SETTING;
@@ -525,7 +525,7 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
             if (tp_config->count == 0
                 || tp_config->period < 65 || tp_config->period > 16321
                 || tp_config->phase > 15) {
-                return -KATHERINE_E_INVAL;
+                return KATHERINE_E_INVAL;
             }
 
             cmd[0] = tp_config->count & 0xFF;
@@ -560,11 +560,11 @@ katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse
     do {
         --attempts;
         res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_TEST_PULSE_SETTING);
-    } while (res == -KATHERINE_E_TIMEOUT && attempts > 0);
+    } while (res == KATHERINE_E_TIMEOUT && attempts > 0);
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -586,10 +586,10 @@ err:
  * \return Error code.
  * \see katherine_update_sensor_registers
  */
-int
+katherine_error_t
 katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -604,7 +604,7 @@ katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t 
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -624,10 +624,10 @@ err:
  * \return Error code.
  * \see katherine_set_sensor_register
  */
-int
+katherine_error_t
 katherine_update_sensor_registers(katherine_device_t *device)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -641,7 +641,7 @@ katherine_update_sensor_registers(katherine_device_t *device)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -653,10 +653,10 @@ err:
  * \param device Katherine device
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_output_block_config_update(katherine_device_t *device)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -670,7 +670,7 @@ katherine_output_block_config_update(katherine_device_t *device)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -682,10 +682,10 @@ err:
  * \param device Katherine device
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_timer_set(katherine_device_t *device)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -699,7 +699,7 @@ katherine_timer_set(katherine_device_t *device)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -718,10 +718,10 @@ err:
  * \param dacs DAC register values to set
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -747,7 +747,7 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -864,14 +864,14 @@ katherine_freq_is_fast_vco_supported(katherine_freq_t freq)
  * choice; it does not change katherine_set_dacs()'s own behavior.
  *
  * \param v DAC register values to validate.
- * \return 0 if every value fits its DAC's range, -KATHERINE_E_INVAL otherwise.
+ * \return 0 if every value fits its DAC's range, KATHERINE_E_INVAL otherwise.
  */
-int
+katherine_error_t
 katherine_dacs_validate(const katherine_dacs_t *v)
 {
     for (int i = 0; i < 18; ++i) {
-        if (v->array[i] > KATHERINE_DAC_MAX[i]) return -KATHERINE_E_INVAL;
+        if (v->array[i] > KATHERINE_DAC_MAX[i]) return KATHERINE_E_INVAL;
     }
 
-    return 0;
+    return KATHERINE_E_OK;
 }

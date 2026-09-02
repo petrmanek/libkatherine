@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <katherine/global.h>
+#include <katherine/error.h>
 
 /**
  * \addtogroup c_api
@@ -263,19 +264,19 @@ typedef struct katherine_emu {
 KATHERINE_EXPORTED void
 katherine_emu_profile_defaults(katherine_emu_profile_t *profile);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile);
 
 KATHERINE_EXPORTED void
 katherine_emu_fini(katherine_emu_t *emu);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_emu_crd_out(katherine_emu_t *emu, void *crd8, size_t *len);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len);
 
 KATHERINE_EXPORTED void

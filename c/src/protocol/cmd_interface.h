@@ -48,7 +48,7 @@
 
 /**
  * Non-correlating response datagrams one katherine_cmd_wait_ack_crd() call
- * discards before it gives up with -KATHERINE_E_STRAY.
+ * discards before it gives up with KATHERINE_E_STRAY.
  *
  * Every discard is a datagram that really arrived, so spending the budget
  * costs no receive timeout and a quiet peer never reaches it; the bound is
@@ -76,15 +76,15 @@
  * \param count Number of bytes to send.
  * \return Error code.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_send(katherine_udp_t *udp, const void *buffer, size_t count)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_send_exact(udp, buffer, count);
     if (res) goto err;
 
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     return res;
@@ -96,7 +96,7 @@ err:
  * \param val6 Command opcode.
  * \return Error code.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
@@ -111,7 +111,7 @@ katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
  * \param val0 Argument byte.
  * \return Error code.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
@@ -128,7 +128,7 @@ katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
  * \param value Payload; only its low 32 bits reach the wire.
  * \return Error code.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64_t value)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
@@ -144,7 +144,7 @@ katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64
  * \param value Payload; only its low 32 bits reach the wire.
  * \return Error code.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
@@ -159,7 +159,7 @@ katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
  * \param value Payload, transmitted as its IEEE-754 bytes.
  * \return Error code.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
@@ -300,7 +300,7 @@ katherine_pll_config_word(const katherine_config_t *config)
  * \param ... Leading arguments of the sender, typically the opcode.
  */
 #define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...) \
-    static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp) \
+    static inline katherine_error_t katherine_cmd_##CMD_NAME(katherine_udp_t *udp) \
     { \
         return katherine_##A(udp, __VA_ARGS__); \
     }
@@ -316,7 +316,7 @@ katherine_pll_config_word(const katherine_config_t *config)
  *   follows.
  */
 #define K_DEFINE_CMD_ARG1(A, CMD_NAME, ARG1_TYPE, ...) \
-    static inline int katherine_cmd_##CMD_NAME(katherine_udp_t *udp, ARG1_TYPE arg1) \
+    static inline katherine_error_t katherine_cmd_##CMD_NAME(katherine_udp_t *udp, ARG1_TYPE arg1) \
     { \
         return katherine_##A(udp, __VA_ARGS__, arg1); \
     }
@@ -517,15 +517,15 @@ katherine_cmd_drain(katherine_udp_t *udp)
  * \param opcode Operation code of the request whose response this is.
  * \param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
  *   to discard them.
- * \return Error code. -KATHERINE_E_INVAL if the readout does not answer this
- *   command at all, -KATHERINE_E_BAD_CRD for a datagram whose length is not
- *   KATHERINE_CMD_CRD_SIZE, -KATHERINE_E_STRAY once
+ * \return Error code. KATHERINE_E_INVAL if the readout does not answer this
+ *   command at all, KATHERINE_E_BAD_CRD for a datagram whose length is not
+ *   KATHERINE_CMD_CRD_SIZE, KATHERINE_E_STRAY once
  *   KATHERINE_CMD_MAX_STRAY_DISCARDS non-correlating datagrams have been
  *   discarded without the response arriving, or whatever the transport
- *   reported -- notably -KATHERINE_E_TIMEOUT, which the retrying callers of
+ *   reported -- notably KATHERINE_E_TIMEOUT, which the retrying callers of
  *   the slow commands depend on seeing unchanged.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
 {
     // The second identifier this wait accepts. In strict mode there is no
@@ -536,29 +536,29 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
     // oversized rather than silently truncated to a plausible length.
     char buf[KATHERINE_CMD_CRD_SIZE + 1];
 
-    if (!katherine_cmd_is_acknowledged(opcode)) return -KATHERINE_E_INVAL;
+    if (!katherine_cmd_is_acknowledged(opcode)) return KATHERINE_E_INVAL;
 
     for (uint32_t discarded = 0; discarded < KATHERINE_CMD_MAX_STRAY_DISCARDS; ++discarded) {
         size_t received = sizeof(buf);
         uint8_t reply_id;
 
-        int res = katherine_udp_recv(udp, buf, &received);
+        katherine_error_t res = katherine_udp_recv(udp, buf, &received);
         if (res) return res;
 
         // Consumed either way, so reporting this does not leave the session
         // wedged behind the offending datagram.
-        if (received != KATHERINE_CMD_CRD_SIZE) return -KATHERINE_E_BAD_CRD;
+        if (received != KATHERINE_CMD_CRD_SIZE) return KATHERINE_E_BAD_CRD;
 
         reply_id = (uint8_t) buf[KATHERINE_CMD_OPCODE_BYTE];
         if (reply_id == opcode || reply_id == substitute) {
             if (crd != NULL) memcpy(crd, buf, KATHERINE_CMD_CRD_SIZE);
-            return 0;
+            return KATHERINE_E_OK;
         }
 
         ++udp->stray_command_responses;
     }
 
-    return -KATHERINE_E_STRAY;
+    return KATHERINE_E_STRAY;
 }
 
 /**
@@ -568,7 +568,7 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
  * \param opcode Operation code of the request whose response this is.
  * \return Error code; see katherine_cmd_wait_ack_crd().
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
 {
     return katherine_cmd_wait_ack_crd(udp, opcode, NULL);
@@ -592,22 +592,22 @@ katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
  *   datagram carries no operation code.
  * \param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
  *   to discard them.
- * \return Error code. -KATHERINE_E_INVAL for a command too short to carry an
+ * \return Error code. KATHERINE_E_INVAL for a command too short to carry an
  *   operation code, or one the readout never answers -- reported before
  *   anything is sent, so the readout is left untouched. Otherwise as
  *   katherine_cmd_wait_ack_crd().
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_transact(katherine_udp_t *udp, const void *buffer, size_t count, char *crd)
 {
     const uint8_t *bytes = (const uint8_t *) buffer;
     uint8_t opcode;
-    int res;
+    katherine_error_t res;
 
-    if (count < KATHERINE_CMD_CRD_SIZE) return -KATHERINE_E_INVAL;
+    if (count < KATHERINE_CMD_CRD_SIZE) return KATHERINE_E_INVAL;
 
     opcode = bytes[KATHERINE_CMD_OPCODE_BYTE];
-    if (!katherine_cmd_is_acknowledged(opcode)) return -KATHERINE_E_INVAL;
+    if (!katherine_cmd_is_acknowledged(opcode)) return KATHERINE_E_INVAL;
 
     katherine_cmd_drain(udp);
 

@@ -498,10 +498,10 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
  * \param profile Properties of the readout, or NULL for the defaults
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
 {
-    if (emu == NULL) return -KATHERINE_E_INVAL;
+    if (emu == NULL) return KATHERINE_E_INVAL;
 
     memset(emu, 0, sizeof(*emu));
 
@@ -528,7 +528,7 @@ katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
 
     katherine_emu_stream_reset(emu);
 
-    return 0;
+    return KATHERINE_E_OK;
 }
 
 /**
@@ -561,22 +561,22 @@ katherine_emu_fini(katherine_emu_t *emu)
  * \param len Length of the datagram in bytes
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
 {
-    if (emu == NULL || data == NULL) return -KATHERINE_E_INVAL;
+    if (emu == NULL || data == NULL) return KATHERINE_E_INVAL;
 
     if (emu->px_upload_active) {
         consume_px_config(emu, len);
-        return 0;
+        return KATHERINE_E_OK;
     }
 
     // The readout reads a fixed eight bytes per command; a longer
     // datagram is truncated and a shorter one is not a command.
-    if (len < KATHERINE_EMU_CMD_SIZE) return -KATHERINE_E_INVAL;
+    if (len < KATHERINE_EMU_CMD_SIZE) return KATHERINE_E_INVAL;
 
     handle_cmd(emu, (const uint8_t *) data);
-    return 0;
+    return KATHERINE_E_OK;
 }
 
 /**
@@ -584,22 +584,22 @@ katherine_emu_cmd_in(katherine_emu_t *emu, const void *data, size_t len)
  * \param emu Emulator
  * \param crd8 Start of a buffer of `KATHERINE_EMU_CRD_SIZE` bytes
  * \param len Number of bytes written (optional)
- * \return Error code, or -KATHERINE_E_TIMEOUT if no response is due yet.
+ * \return Error code, or KATHERINE_E_TIMEOUT if no response is due yet.
  */
-int
+katherine_error_t
 katherine_emu_crd_out(katherine_emu_t *emu, void *crd8, size_t *len)
 {
-    if (emu == NULL || crd8 == NULL) return -KATHERINE_E_INVAL;
+    if (emu == NULL || crd8 == NULL) return KATHERINE_E_INVAL;
 
-    if (emu->crd_count == 0) return -KATHERINE_E_TIMEOUT;
-    if (emu->crd[emu->crd_head].due_ns > emu->now_ns) return -KATHERINE_E_TIMEOUT;
+    if (emu->crd_count == 0) return KATHERINE_E_TIMEOUT;
+    if (emu->crd[emu->crd_head].due_ns > emu->now_ns) return KATHERINE_E_TIMEOUT;
 
     memcpy(crd8, emu->crd[emu->crd_head].bytes, KATHERINE_EMU_CRD_SIZE);
     emu->crd_head = (emu->crd_head + 1) % KATHERINE_EMU_CRD_QUEUE_CAP;
     --emu->crd_count;
 
     if (len != NULL) *len = KATHERINE_EMU_CRD_SIZE;
-    return 0;
+    return KATHERINE_E_OK;
 }
 
 /**

@@ -24,11 +24,16 @@ extern "C" {
 #endif
 
 /**
- * Error domain of the library. Every public function that used to return
- * 0 on success and a positive `<errno.h>` value on failure now returns 0
- * on success and the negative of one of these enumerators on failure;
- * katherine_strerror() renders either form (and, for convenience, the bare
- * positive enumerator too) into a human-readable description.
+ * Error domain of the library. Every function that can fail returns one of
+ * these enumerators: KATHERINE_E_OK, which is zero, or the code describing
+ * what went wrong. Codes are positive, following the userspace convention --
+ * negative values are the kernel's idiom for the same purpose, and this is a
+ * userspace library. So `if (res)` still reads as "it failed", while
+ * `res == KATHERINE_E_TIMEOUT` reads as the specific case.
+ *
+ * katherine_strerror() renders a code into a human-readable description. It
+ * also accepts the negated form libkatherine 1.x returned, so that code being
+ * ported reports something sensible either way.
  */
 typedef enum katherine_error {
     KATHERINE_E_OK = 0, ///< Success.
@@ -56,14 +61,6 @@ typedef enum katherine_error {
     KATHERINE_E_SYSTEM, ///< Some other OS-level failure; see katherine_udp_last_os_error() where applicable.
 } katherine_error_t;
 
-/**
- * Describe an error code.
- * \param error 0, the negative of a katherine_error_t enumerator (the form
- *   every public function of this library now returns), or the bare
- *   positive enumerator.
- * \return A statically allocated, NUL-terminated, lowercase description.
- *   Never NULL: a value outside the domain renders as "unknown error".
- */
 KATHERINE_EXPORTED const char *
 katherine_strerror(int error);
 

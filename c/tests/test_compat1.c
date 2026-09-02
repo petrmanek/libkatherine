@@ -15,9 +15,9 @@
  *
  *   - ETIMEDOUT: a receive on a bound-but-silent socket runs out its timeout.
  *   - EINVAL:    a DAC register value outside its chip field
- *                (katherine_dacs_validate(), -KATHERINE_E_INVAL); and,
+ *                (katherine_dacs_validate(), KATHERINE_E_INVAL); and,
  *                because 1.x reported this the same way, an unparsable
- *                remote address (-KATHERINE_E_ADDR, see katherine1.h for
+ *                remote address (KATHERINE_E_ADDR, see katherine1.h for
  *                where that is attested against the 1.1.0 sources).
  *   - ENOMEM:    an acquisition buffer too large for any allocator to satisfy.
  *   - EIO:       every katherine_error_t enumerator this shim does not name
@@ -119,7 +119,7 @@ test_acquisition_init_huge_buffer_maps_to_enomem(void)
 // EIO: every katherine_error_t enumerator this shim does not name
 // explicitly. A pixel-configuration file that does not exist fails
 // fopen() with a code the library's own map_fopen_errno() does not
-// recognize either, so it falls to -KATHERINE_E_IO like the shim's own
+// recognize either, so it falls to KATHERINE_E_IO like the shim's own
 // default case.
 
 static void

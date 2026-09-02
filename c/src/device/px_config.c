@@ -79,27 +79,27 @@ reverse_nibble(uint8_t nibble)
  * \param file_path BMC file path.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path)
 {
-    int res = 0;
+    katherine_error_t res = 0;
 
     const size_t expected_size = sizeof(katherine_bmc_t);
     FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
-        res = -(int) map_fopen_errno(errno);
+        res = map_fopen_errno(errno);
         goto err_fopen;
     }
 
     katherine_bmc_t *buffer = (katherine_bmc_t *) malloc(expected_size);
     if (buffer == NULL) {
-        res = -KATHERINE_E_NOMEM;
+        res = KATHERINE_E_NOMEM;
         goto err_buffer;
     }
 
     const size_t actual_size = fread(buffer, 1, expected_size, file);
     if (expected_size != actual_size) {
-        res = -KATHERINE_E_IO;
+        res = KATHERINE_E_IO;
         goto err_fread;
     }
 
@@ -119,7 +119,7 @@ err_fopen:
  * \param bmc BMC file data.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc)
 {
     // Reset the pixel values.
@@ -136,7 +136,7 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
         dest[(64 * x) + (y >> 2)] |= (uint32_t) (src[i] << (8 * (3 - (y % 4))));
     }
 
-    return 0;
+    return KATHERINE_E_OK;
 }
 
 /**
@@ -145,27 +145,27 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
  * \param file_path BPC file path.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path)
 {
-    int res = 0;
+    katherine_error_t res = 0;
 
     const size_t expected_size = sizeof(katherine_bpc_t);
     FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
-        res = -(int) map_fopen_errno(errno);
+        res = map_fopen_errno(errno);
         goto err_fopen;
     }
 
     katherine_bpc_t *buffer = (katherine_bpc_t *) malloc(expected_size);
     if (buffer == NULL) {
-        res = -KATHERINE_E_NOMEM;
+        res = KATHERINE_E_NOMEM;
         goto err_buffer;
     }
 
     const size_t actual_size = fread(buffer, 1, expected_size, file);
     if (expected_size != actual_size) {
-        res = -KATHERINE_E_IO;
+        res = KATHERINE_E_IO;
         goto err_fread;
     }
 
@@ -185,7 +185,7 @@ err_fopen:
  * \param bpc BPC file data.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc)
 {
     // Reset the pixel values.
@@ -205,7 +205,7 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
         dest[(64 * x) + (y >> 2)] |= (uint32_t) (val << (8 * (3 - (y % 4))));
     }
 
-    return 0;
+    return KATHERINE_E_OK;
 }
 
 // The helpers below locate the configuration byte of a single pixel in the

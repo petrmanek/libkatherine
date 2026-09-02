@@ -91,10 +91,10 @@ katherine_device_info_recognize(uint8_t hw_type)
  * \param addr IP address
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_device_init(katherine_device_t *device, const char *addr)
 {
-    int res;
+    katherine_error_t res;
 
     // Ensure the pointer is zeroed and not garbage.
     device->acquisition = NULL;
@@ -134,7 +134,7 @@ katherine_device_init(katherine_device_t *device, const char *addr)
     // TODO: future extension point, here we could have a DEFER_ENUMERATE flag that could suppress this call
     (void) katherine_device_enumerate(device);
 
-    return 0;
+    return KATHERINE_E_OK;
 
 err_data:
     katherine_udp_fini(&device->control_socket);
@@ -195,10 +195,10 @@ katherine_device_fini(katherine_device_t *device)
  * \param device Device to enumerate.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_device_enumerate(katherine_device_t *device)
 {
-    int res = 0;
+    katherine_error_t res = 0;
 
     // Ask the device to tell us about itself.
     katherine_readout_status_t status;
@@ -210,7 +210,7 @@ katherine_device_enumerate(katherine_device_t *device)
     device->device_info = katherine_device_info_recognize((uint8_t) status.hw_type);
     device->fw_version  = (uint32_t) status.fw_version;
 
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     return res;

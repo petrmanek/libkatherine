@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <katherine/global.h>
+#include <katherine/error.h>
 #include <katherine/px.h>
 
 /**
@@ -63,16 +64,16 @@ typedef struct katherine_bpc {
 
 // Loading full matrix configuration en masse (either from a binary file or a memory buffer):
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc);
 
 

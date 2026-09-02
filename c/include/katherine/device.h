@@ -15,6 +15,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <katherine/global.h>
+#include <katherine/error.h>
 #include <katherine/udp.h>
 
 /**
@@ -83,7 +84,7 @@ typedef struct katherine_device {
 KATHERINE_EXPORTED int
 katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_device_init(katherine_device_t *device, const char *addr);
 
 KATHERINE_EXPORTED void
@@ -92,7 +93,7 @@ katherine_device_fini(katherine_device_t *device);
 KATHERINE_EXPORTED bool
 katherine_device_can_correct_timestamp_phase(const katherine_device_t *device);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_device_enumerate(katherine_device_t *device);
 
 #ifdef __cplusplus

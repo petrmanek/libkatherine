@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <katherine/global.h>
+#include <katherine/error.h>
 #include <katherine/px_config.h>
 
 /**
@@ -93,7 +94,7 @@ typedef union katherine_dacs {
 KATHERINE_EXPORTED int
 katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_dacs_validate(const katherine_dacs_t *v);
 
 
@@ -161,28 +162,28 @@ KATHERINE_EXPORTED int
 katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v);
 
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_no_frames(katherine_device_t *device, int no_frames);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_seq_readout_start(katherine_device_t *device, int arg);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger);
 
 typedef enum katherine_tpx3_reg {
@@ -205,22 +206,22 @@ typedef enum katherine_tpx3_reg {
     TPX3_REG_EXT_DAC_SELECTOR      = 11,
 } katherine_tpx3_reg_t;
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_update_sensor_registers(katherine_device_t *device);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_output_block_config_update(katherine_device_t *device);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_timer_set(katherine_device_t *device);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs);
 
-KATHERINE_EXPORTED int
+KATHERINE_EXPORTED katherine_error_t
 katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config);
 
 #ifdef __cplusplus

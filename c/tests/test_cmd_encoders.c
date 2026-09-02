@@ -115,7 +115,7 @@ fixture_fini(void)
 static bool
 is_timeout(int res)
 {
-    return res == -KATHERINE_E_TIMEOUT;
+    return res == KATHERINE_E_TIMEOUT;
 }
 
 // Captures the next datagram sent by g_sender into got[8]. The recv buffer
@@ -123,7 +123,7 @@ is_timeout(int res)
 // exactly 8, so an encoder that emits a short or long datagram fails here
 // instead of being silently truncated or padded into a false match. Once
 // the datagram is read, the endpoint must be empty: a second recv is
-// required to time out (a short-timeout recv reporting -KATHERINE_E_TIMEOUT
+// required to time out (a short-timeout recv reporting KATHERINE_E_TIMEOUT
 // proving emptiness, in place of the MSG_DONTWAIT drain-check a raw socket
 // would use), so a future two-datagram encoder is caught at its own
 // CHECK_CMD instead of desynchronizing every case that runs after it.
@@ -465,7 +465,7 @@ static void
 check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const katherine_trigger_t *start,
     bool delayed_start, const katherine_trigger_t *end, unsigned char b0, unsigned char b1)
 {
-    KT_CHECK_EQ(katherine_acquisition_setup(dev, start, delayed_start, end), -KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_acquisition_setup(dev, start, delayed_start, end), KATHERINE_E_TIMEOUT);
 
     unsigned char got[8];
     size_t n = sizeof(got);
@@ -625,7 +625,7 @@ test_cmd_chip_envelope(void)
     KT_CHECK_MEM_EQ(cmd.b, expect_unknown_chip0, 8);
 
     cmd = katherine_cmd_create((uint8_t) 0x99);
-    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x99, 1), -KATHERINE_E_BAD_CHIP);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0x99, 1), KATHERINE_E_BAD_CHIP);
 
     // The highest opcode there is, answered from the same table without a
     // range test: it holds an entry for every value a uint8_t opcode can
@@ -636,7 +636,7 @@ test_cmd_chip_envelope(void)
     KT_CHECK_MEM_EQ(cmd.b, expect_top_chip0, 8);
 
     cmd = katherine_cmd_create((uint8_t) 0xFF);
-    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0xFF, 1), -KATHERINE_E_BAD_CHIP);
+    KT_CHECK_EQ(katherine_cmd_payload_set_chip(&cmd, 0xFF, 1), KATHERINE_E_BAD_CHIP);
 }
 
 int

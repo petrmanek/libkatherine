@@ -184,7 +184,7 @@ test_case_interrupted(void)
         s.last_completed_arg, s.last_completed_info,
         (unsigned long long) s.last_received_pixels);
 
-    KT_CHECK(res == -KATHERINE_E_TIMEOUT);
+    KT_CHECK(res == KATHERINE_E_TIMEOUT);
     KT_CHECK(s.pixels_received_total == 5); /* previously 0: pixels were dropped */
     KT_CHECK(s.frames_started == 1);
     KT_CHECK(s.frames_ended == 1); /* previously 0: unbalanced handlers */

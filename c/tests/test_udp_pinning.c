@@ -154,7 +154,7 @@ host_other_available(void)
 static bool
 is_timeout(int res)
 {
-    return res == -KATHERINE_E_TIMEOUT;
+    return res == KATHERINE_E_TIMEOUT;
 }
 
 static void

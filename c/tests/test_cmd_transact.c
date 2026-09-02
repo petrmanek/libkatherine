@@ -192,7 +192,7 @@ load_payload(const char *crd)
 }
 
 // Requires the session to hold nothing more: a short-timeout receive
-// reporting -KATHERINE_E_TIMEOUT stands in for the non-blocking drain check
+// reporting KATHERINE_E_TIMEOUT stands in for the non-blocking drain check
 // a raw socket would do with MSG_DONTWAIT.
 static void
 expect_quiet(katherine_udp_t *u)
@@ -200,7 +200,7 @@ expect_quiet(katherine_udp_t *u)
     unsigned char buf[64];
     size_t count = sizeof(buf);
 
-    KT_CHECK_EQ(katherine_udp_recv(u, buf, &count), -KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_udp_recv(u, buf, &count), KATHERINE_E_TIMEOUT);
 }
 
 // ------------------------------------------------------------------
@@ -248,19 +248,19 @@ test_unacknowledged_command_table(void)
 static void
 test_unacknowledged_commands_never_wait(void)
 {
-    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, CMD_TYPE_ACQUISITION_START), -KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, CMD_TYPE_SEQ_READOUT_START), -KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, CMD_TYPE_ACQUISITION_STOP), -KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, CMD_TYPE_ACQUISITION_START), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, CMD_TYPE_SEQ_READOUT_START), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, CMD_TYPE_ACQUISITION_STOP), KATHERINE_E_INVAL);
 
     // The transaction primitive refuses before it sends, so the peer sees
     // nothing at all: a caller who reaches for it by mistake gets a
     // diagnosis, not a half-issued command.
     katherine_cmd_t cmd = katherine_cmd_create((uint8_t) CMD_TYPE_ACQUISITION_STOP);
-    KT_CHECK_EQ(katherine_cmd_transact(&g_client, cmd.b, sizeof(cmd.b), NULL), -KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_cmd_transact(&g_client, cmd.b, sizeof(cmd.b), NULL), KATHERINE_E_INVAL);
     expect_quiet(&g_mock);
 
     // A datagram too short to carry an operation code is no command.
-    KT_CHECK_EQ(katherine_cmd_transact(&g_client, cmd.b, KATHERINE_CMD_CRD_SIZE - 1, NULL), -KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_cmd_transact(&g_client, cmd.b, KATHERINE_CMD_CRD_SIZE - 1, NULL), KATHERINE_E_INVAL);
     expect_quiet(&g_mock);
 }
 
@@ -300,7 +300,7 @@ test_stray_budget_bounds_the_wait(void)
     }
 
     time_t started = time(NULL);
-    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), -KATHERINE_E_STRAY);
+    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), KATHERINE_E_STRAY);
     KT_CHECK(difftime(time(NULL), started) <= BOUNDED_WAIT_S);
 
     KT_CHECK_EQ(g_client.stray_command_responses - before, KATHERINE_CMD_MAX_STRAY_DISCARDS);
@@ -321,12 +321,12 @@ test_malformed_response_rejected(void)
     unsigned char oversized[KATHERINE_CMD_CRD_SIZE + 4];
 
     KT_CHECK_EQ(katherine_udp_send_exact(&g_mock, SHORT, sizeof(SHORT)), 0);
-    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), -KATHERINE_E_BAD_CRD);
+    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), KATHERINE_E_BAD_CRD);
 
     memset(oversized, 0, sizeof(oversized));
     oversized[KATHERINE_CMD_OPCODE_BYTE] = (unsigned char) CMD_TYPE_GET_READOUT_STATUS;
     KT_CHECK_EQ(katherine_udp_send_exact(&g_mock, oversized, sizeof(oversized)), 0);
-    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), -KATHERINE_E_BAD_CRD);
+    KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), KATHERINE_E_BAD_CRD);
 
     expect_quiet(&g_client);
 }
@@ -382,7 +382,7 @@ test_strict_mode_rejects_documented_reply_identifiers(void)
 
     mock_reply(&g_mock, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, 0xCAFEu);
     KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client, (uint8_t) CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ),
-        -KATHERINE_E_TIMEOUT);
+        KATHERINE_E_TIMEOUT);
     KT_CHECK_EQ(g_client.stray_command_responses - before, 1);
 
     // A peer that does echo the operation code satisfies strict mode.
@@ -511,7 +511,7 @@ test_emulated_readout_reproduces_reply_identifiers(void)
     KT_CHECK_EQ(katherine_emu_crd_out(&emu, crd, &len), 0);
     KT_CHECK_EQ(len, KATHERINE_EMU_CRD_SIZE);
     KT_CHECK_EQ(crd[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_GET_ACQUISITION_UNIT_DATA);
-    KT_CHECK_EQ(katherine_emu_crd_out(&emu, crd, &len), -KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_emu_crd_out(&emu, crd, &len), KATHERINE_E_TIMEOUT);
 
     katherine_cmd_t scan = katherine_cmd_create((uint8_t) CMD_TYPE_GET_ALL_DAC_SCAN);
     KT_CHECK_EQ(katherine_emu_cmd_in(&emu, scan.b, sizeof(scan.b)), 0);
@@ -519,7 +519,7 @@ test_emulated_readout_reproduces_reply_identifiers(void)
         KT_CHECK_EQ(katherine_emu_crd_out(&emu, crd, &len), 0);
         KT_CHECK_EQ(crd[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_INTERNAL_DAC_SCAN);
     }
-    KT_CHECK_EQ(katherine_emu_crd_out(&emu, crd, &len), -KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_emu_crd_out(&emu, crd, &len), KATHERINE_E_TIMEOUT);
 
     KT_CHECK_EQ(katherine_emu_unknown_cmd_count(&emu), 0);
 

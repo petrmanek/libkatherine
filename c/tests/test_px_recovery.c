@@ -351,7 +351,7 @@ check_one_frame(void)
     acq.handlers.pixels_received = on_pixels_received;
 
     // One frame only: katherine_acquisition_begin() rejects a data-driven
-    // acquisition of more than one frame outright (-KATHERINE_E_INVAL).
+    // acquisition of more than one frame outright (KATHERINE_E_INVAL).
     KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true),
         0);
     KT_CHECK_EQ(katherine_acquisition_read(&acq), 0);

@@ -25,10 +25,10 @@
  * \param status Retrieved status information
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -54,7 +54,7 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     status->fw_version         = EXTRACT(*status_crd, readout_status_crd, fw_version);
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -67,10 +67,10 @@ err:
  * \param status Retrieve status information
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -96,7 +96,7 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     status->chip_count = EXTRACT(*status_crd, comm_status_crd, chip_count);
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -109,10 +109,10 @@ err:
  * \param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -141,7 +141,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     // protocol-level condition, not a communication failure, so it is
     // reported as one.
     if (chip_id == 0) {
-        res = -KATHERINE_E_PROTO;
+        res = KATHERINE_E_PROTO;
         goto err;
     }
 
@@ -153,7 +153,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     snprintf(s_chip_id, KATHERINE_CHIP_ID_STR_SIZE, "%c%d-W%04d", 65 + x, y, w);
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -171,10 +171,10 @@ err:
  * \param temperature Measured temperature in Celsius.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_get_readout_temperature(katherine_device_t *device, float *temperature)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -191,7 +191,7 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
     *temperature = *(float *) crd;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -215,14 +215,14 @@ err:
  * \param temperature Measured temperature in Celsius.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 {
-    int res;
+    katherine_error_t res;
 
     // Before the lock and before any I/O: nothing about this call is safe to
     // begin while a measurement is in flight.
-    if (device->acquisition != NULL) return -KATHERINE_E_STATE;
+    if (device->acquisition != NULL) return KATHERINE_E_STATE;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -239,7 +239,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     *temperature = *(float *) crd;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -251,10 +251,10 @@ err:
  * \param device Katherine device
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_perform_digital_test(katherine_device_t *device)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -278,12 +278,12 @@ katherine_perform_digital_test(katherine_device_t *device)
     if (crd[0] != 64) {
         // The test did not go well: the sensor answered, but not with the
         // expected result, and no enumerator names the specific failure.
-        res = -KATHERINE_E_HW_UNKNOWN;
+        res = KATHERINE_E_HW_UNKNOWN;
         goto err;
     }
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
@@ -297,10 +297,10 @@ err:
  * \param voltage Retrieved voltage
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -317,7 +317,7 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
     *voltage = *(float *) crd;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);

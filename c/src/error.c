@@ -41,9 +41,9 @@ static const char *const KATHERINE_ERROR_STRINGS[KATHERINE_ERROR_COUNT] = {
 
 /**
  * Describe an error code.
- * \param error 0, the negative of a katherine_error_t enumerator (the form
- *   every public function of this library now returns), or the bare
- *   positive enumerator.
+ * \param error A katherine_error_t enumerator, which is what every function
+ *   of this library returns, or its negation, which is what libkatherine 1.x
+ *   returned.
  * \return A statically allocated, NUL-terminated, lowercase description.
  *   Never NULL: a value outside the domain renders as "unknown error".
  */

@@ -13,6 +13,7 @@
 #pragma once
 
 #include <errno.h>
+#include <katherine/error.h>
 
 #include <katherine/katherine.h>
 
@@ -104,7 +105,7 @@ katherine1_map_result(int result)
 {
     if (result == 0) return 0;
 
-    switch (-result) {
+    switch (result) {
     case KATHERINE_E_TIMEOUT: return ETIMEDOUT;
     case KATHERINE_E_NOMEM:   return ENOMEM;
     case KATHERINE_E_INVAL:   return EINVAL;

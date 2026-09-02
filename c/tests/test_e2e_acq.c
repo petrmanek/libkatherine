@@ -549,7 +549,7 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     // it.
     KT_CHECK(g_device.acquisition == acq);
     float refused = 0.0f;
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, &refused), -KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, &refused), KATHERINE_E_STATE);
 
     res = katherine_acquisition_read(acq);
 
@@ -567,7 +567,7 @@ test_data_driven_frame(void)
     acq_probe_t probe;
 
     // One frame only: katherine_acquisition_begin() rejects a data-driven
-    // acquisition of more than one frame outright (-KATHERINE_E_INVAL), which
+    // acquisition of more than one frame outright (KATHERINE_E_INVAL), which
     // is what bounds this case.
     KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
 

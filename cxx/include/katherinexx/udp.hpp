@@ -96,7 +96,7 @@ public:
      * Receive one datagram without waiting for one to arrive.
      * \param data Inbound buffer start
      * \param count Buffer capacity in, bytes received out, exactly as in the C call
-     * \throws katherine::system_error -KATHERINE_E_TIMEOUT if nothing is queued, rather
+     * \throws katherine::system_error KATHERINE_E_TIMEOUT if nothing is queued, rather
      *   than waiting for the session's receive timeout
      */
     void

@@ -253,7 +253,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
  * \param fail_timeout Timeout for any device communication (ms). Set zero to disable.
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
 {
     // The phase state has to be defined before begin() runs: the offset
@@ -265,7 +265,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->toa_coarse_tick_to_fine_shift = 0;
     memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
 
-    int res = 0;
+    katherine_error_t res = 0;
 
     acq->device       = device;
     acq->user_ctx     = ctx;
@@ -287,7 +287,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // requested size, including multiples of 8.
     acq->md_buffer = (char *) malloc(md_buffer_size + sizeof(uint64_t));
     if (acq->md_buffer == NULL) {
-        res = -KATHERINE_E_NOMEM;
+        res = KATHERINE_E_NOMEM;
         goto err_datagram_buffer;
     }
 
@@ -295,7 +295,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->pixel_buffer       = (char *) malloc(acq->pixel_buffer_size);
     acq->pixel_buffer_valid = 0;
     if (acq->pixel_buffer == NULL) {
-        res = -KATHERINE_E_NOMEM;
+        res = KATHERINE_E_NOMEM;
         goto err_pixel_buffer;
     }
 
@@ -355,7 +355,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         } \
     } \
 \
-    static int \
+    static katherine_error_t \
     acquisition_read_##SUFFIX##TAG(katherine_acquisition_t *acq) \
     { \
         static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
@@ -431,13 +431,13 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 \
         (void) katherine_udp_mutex_unlock(&acq->device->data_socket); \
         switch (acq->state) { \
-        case ACQUISITION_SUCCEEDED: return 0; \
-        case ACQUISITION_TIMED_OUT: return -KATHERINE_E_TIMEOUT; \
+        case ACQUISITION_SUCCEEDED: return KATHERINE_E_OK; \
+        case ACQUISITION_TIMED_OUT: return KATHERINE_E_TIMEOUT; \
         /* Reachable only if the read loop above never ran at all, i.e. \
            katherine_acquisition_read() was called on an acquisition that \
            katherine_acquisition_begin() never brought to ACQUISITION_RUNNING: \
            the two other terminal states are the explicit cases above. */ \
-        default: return -KATHERINE_E_STATE; \
+        default: return KATHERINE_E_STATE; \
         } \
     }
 
@@ -579,10 +579,10 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * \param acq Acquisition
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_acquisition_read(katherine_acquisition_t *acq)
 {
-    int res;
+    katherine_error_t res;
 
     // Two dimensions here, not one: the pixel format, and the pixel-clock
     // divider the timestamp decoders are instantiated over. A divider outside
@@ -597,7 +597,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
             case 3:  res = acquisition_read_f_toa_tot_s3(acq); break;
             case 4:  res = acquisition_read_f_toa_tot_s4(acq); break;
             case 5:  res = acquisition_read_f_toa_tot_s5(acq); break;
-            default: res = -KATHERINE_E_INVAL; break;
+            default: res = KATHERINE_E_INVAL; break;
             }
         } else {
             switch (acq->toa_coarse_tick_to_fine_shift) {
@@ -605,7 +605,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
             case 3:  res = acquisition_read_toa_tot_s3(acq); break;
             case 4:  res = acquisition_read_toa_tot_s4(acq); break;
             case 5:  res = acquisition_read_toa_tot_s5(acq); break;
-            default: res = -KATHERINE_E_INVAL; break;
+            default: res = KATHERINE_E_INVAL; break;
             }
         }
         break;
@@ -617,7 +617,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
             case 3:  res = acquisition_read_f_toa_only_s3(acq); break;
             case 4:  res = acquisition_read_f_toa_only_s4(acq); break;
             case 5:  res = acquisition_read_f_toa_only_s5(acq); break;
-            default: res = -KATHERINE_E_INVAL; break;
+            default: res = KATHERINE_E_INVAL; break;
             }
         } else {
             switch (acq->toa_coarse_tick_to_fine_shift) {
@@ -625,7 +625,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
             case 3:  res = acquisition_read_toa_only_s3(acq); break;
             case 4:  res = acquisition_read_toa_only_s4(acq); break;
             case 5:  res = acquisition_read_toa_only_s5(acq); break;
-            default: res = -KATHERINE_E_INVAL; break;
+            default: res = KATHERINE_E_INVAL; break;
             }
         }
         break;
@@ -639,7 +639,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
         break;
 
     default:
-        res = -KATHERINE_E_INVAL;
+        res = KATHERINE_E_INVAL;
         break;
     }
 
@@ -657,7 +657,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  * acquisition, because nothing in the read loop will: see the field's
  * description in acquisition.h. katherine_acquisition_abort() is how.
  *
- * fast_vco_enabled is refused with -KATHERINE_E_INVAL at any config->freq
+ * fast_vco_enabled is refused with KATHERINE_E_INVAL at any config->freq
  * where fine time stamping is not coherent, since the resulting stream would
  * carry a fine field that cannot be subtracted from its coarse one.
  * katherine_freq_is_fast_vco_supported reports which frequencies qualify, and
@@ -678,10 +678,10 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  * \param fast_vco_enabled Enable fast voltage-controlled oscillators
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
 {
-    int res = 0;
+    katherine_error_t res = 0;
 
     acq->acq_mode         = acq_mode;
     acq->readout_mode     = readout_mode;
@@ -693,7 +693,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 #endif /* KATHERINE_DEBUG_ACQ */
 
     if (readout_mode == READOUT_DATA_DRIVEN && config->no_frames > 1) {
-        res = -KATHERINE_E_INVAL;
+        res = KATHERINE_E_INVAL;
         goto err;
     }
 
@@ -702,7 +702,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     // which would answer with a stream whose fine field cannot be subtracted
     // from its coarse one.
     if (fast_vco_enabled && !katherine_freq_is_fast_vco_supported(config->freq)) {
-        res = -KATHERINE_E_INVAL;
+        res = KATHERINE_E_INVAL;
         goto err;
     }
 
@@ -753,7 +753,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 
     // This creates user obligation to either stop or read the data.
     acq->device->acquisition = acq;
-    return 0;
+    return KATHERINE_E_OK;
 
 err_cmd:
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
@@ -768,10 +768,10 @@ err:
  * \param acq Acquisition
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_acquisition_stop(katherine_acquisition_t *acq)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
     if (res) return res;
@@ -780,7 +780,7 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
     if (res) goto err;
 
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
@@ -804,10 +804,10 @@ err:
  * \param acq Acquisition
  * \return Error code.
  */
-int
+katherine_error_t
 katherine_acquisition_abort(katherine_acquisition_t *acq)
 {
-    int res;
+    katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&acq->device->control_socket);
     if (res) return res;
@@ -818,7 +818,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
 
     acq->aborted = true;
-    return 0;
+    return KATHERINE_E_OK;
 
 err:
     (void) katherine_udp_mutex_unlock(&acq->device->control_socket);

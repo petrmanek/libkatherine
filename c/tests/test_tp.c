@@ -3,7 +3,7 @@
  * \brief Validation tests for the libkatherine test pulse feature.
  *
  * 1. Pixel test-bit helpers vs. the proven BMC/BPC loader packing.
- * 2. -KATHERINE_E_INVAL validation rules of katherine_set_test_pulses.
+ * 2. KATHERINE_E_INVAL validation rules of katherine_set_test_pulses.
  * 3. Byte-exact 0x26 datagram check against the vendor C# reference,
  *    using a mock readout on a localhost UDP socket.
  *
@@ -177,7 +177,7 @@ test_px_helpers(void)
 }
 
 // ------------------------------------------------------------------
-// Test 2: parameter validation (device is never touched on -KATHERINE_E_INVAL)
+// Test 2: parameter validation (device is never touched on KATHERINE_E_INVAL)
 
 static void
 test_validation(void)
@@ -195,19 +195,19 @@ test_validation(void)
 
     bad       = tp;
     bad.count = 0;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == -KATHERINE_E_INVAL);
+    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 
     bad        = tp;
     bad.period = 64;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == -KATHERINE_E_INVAL);
+    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 
     bad        = tp;
     bad.period = 16322;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == -KATHERINE_E_INVAL);
+    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 
     bad       = tp;
     bad.phase = 16;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == -KATHERINE_E_INVAL);
+    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 }
 
 // ------------------------------------------------------------------

@@ -194,21 +194,21 @@ static const uint8_t KATHERINE_CHIP_ENVELOPE[256] = {
  * \param cmd Command to modify.
  * \param opcode Opcode of the command, as passed to katherine_cmd_create().
  * \param chip Chip index to place.
- * \return 0 on success, -KATHERINE_E_BAD_CHIP for a nonzero chip index on an
+ * \return 0 on success, KATHERINE_E_BAD_CHIP for a nonzero chip index on an
  *   opcode that has no slot for one.
  */
-static inline int
+static inline katherine_error_t
 katherine_cmd_payload_set_chip(katherine_cmd_t *cmd, uint8_t opcode, uint8_t chip)
 {
     const uint8_t slot = KATHERINE_CHIP_ENVELOPE[opcode];
 
     if (slot == KATHERINE_CHIP_SLOT_NONE) {
-        if (chip != 0) return -KATHERINE_E_BAD_CHIP;
-        return 0;
+        if (chip != 0) return KATHERINE_E_BAD_CHIP;
+        return KATHERINE_E_OK;
     }
 
     cmd->b[KATHERINE_CHIP_SLOT_BYTE(slot)] = chip;
-    return 0;
+    return KATHERINE_E_OK;
 }
 
 #undef KATHERINE_CHIP_SLOT
