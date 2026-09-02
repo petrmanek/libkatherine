@@ -627,13 +627,13 @@ main(int argc, char *argv[])
             int rres = katherine_udp_recv(&ctl_udp, buf, &n);
 
             if (rres != 0) {
-                if (rres == -KATHERINE_E_TIMEOUT) break;
+                if (rres == KATHERINE_E_TIMEOUT) break;
                 // A signal-interrupted recv (the stop handler unwinding it
                 // promptly, see stopsig.h) collapses into the generic
-                // -KATHERINE_E_IO above; the OS-level detail survives
+                // KATHERINE_E_IO above; the OS-level detail survives
                 // separately, in katherine_udp_last_os_error(), which is the
                 // only way left to tell it apart from a real I/O failure.
-                if (rres == -KATHERINE_E_IO && katherine_udp_last_os_error(&ctl_udp) == EINTR) continue;
+                if (rres == KATHERINE_E_IO && katherine_udp_last_os_error(&ctl_udp) == EINTR) continue;
                 fprintf(stderr, "ksim: recvfrom failed: %s\n", katherine_strerror(rres));
                 break;
             }

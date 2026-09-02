@@ -34,11 +34,11 @@ def check_return_code(int res):
 
     message = cerror.katherine_strerror(res).decode('UTF-8')
 
-    if res == -cerror.KATHERINE_E_TIMEOUT:
+    if res == cerror.KATHERINE_E_TIMEOUT:
         raise TimeoutError(message)
-    elif res == -cerror.KATHERINE_E_INVAL:
+    elif res == cerror.KATHERINE_E_INVAL:
         raise ValueError(message)
-    elif res == -cerror.KATHERINE_E_NOMEM:
+    elif res == cerror.KATHERINE_E_NOMEM:
         raise MemoryError()
     else:
         raise RuntimeError(message)

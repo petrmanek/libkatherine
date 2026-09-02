@@ -18,48 +18,55 @@
 #include <katherine/katherine.h>
 
 /**
- * \addtogroup c_api
+ * \defgroup c_legacy_api Legacy C API
+ * \brief Deprecated 1.x C interface, kept so that sources predating 2.0 keep
+ *   compiling.
+ *
+ * \details
+ * 2.0 replaced the return convention of every function in this group: each
+ * used to return 0 on success and a `<errno.h>` value on failure, and now
+ * returns 0 or a katherine_error_t enumerator (see katherine/error.h). This
+ * header lets source written against 1.x keep compiling unmodified against
+ * the 2.0 library: for each affected function, it defines a
+ * `katherine1_<name>()` wrapper that calls the 2.0 function and translates
+ * the result back to the 1.x convention, then renames the 1.x symbol onto
+ * that wrapper with a function-like macro. Nothing here changes behavior
+ * beyond the return value -- arguments, semantics and struct layouts are
+ * exactly the 2.0 ones.
+ *
+ * Not every 1.x function needs a wrapper: `katherine_*_snprint()` (a
+ * snprintf()-style length, never an error code), the `str_*()` lookups, and
+ * the plain getters/setters of px_config.h never used the errno convention
+ * and are unaffected. Functions with no 1.x history at all -- e.g.
+ * katherine_udp_last_os_error(), katherine_strerror(), katherine_version()
+ * -- have no 1.x name to preserve and so are not wrapped either.
+ *
+ * This header exports no new symbols of its own: every wrapper is `static
+ * inline`, so linking 1.x source against the 2.0 library needs nothing this
+ * header did not already provide as C source. The ABI break itself is
+ * announced by the SONAME bump to libkatherine.so.2, not by anything here.
+ *
+ * Each wrapper also carries a deprecation attribute, so a consumer still
+ * calling it under its 1.x name sees a compiler warning at its own call site
+ * (see KATHERINE1_DEPRECATED in this header). This header, and the
+ * compatibility it provides, is removed in libkatherine 3.0.
+ *
+ * The wrappers for katherine/emulator.h are declared only if that header was
+ * already included before this one (KATHERINE_EMU_CRD_SIZE is defined):
+ * emulator.h is not pulled in by katherine/katherine.h, and is not installed
+ * at all unless the library was built with KATHERINE_BUILD_EMULATOR, so this
+ * header cannot include it unconditionally itself. A consumer of the
+ * emulator therefore has to include emulator.h *before* this header to get
+ * 1.x return values from it; the other order compiles just as well but
+ * leaves the emulator's own calls on the 2.0 convention, without a
+ * diagnostic to say so.
+ */
+
+/**
+ * \addtogroup c_legacy_api
  * \{
  */
 
-//
-// 2.0 replaced the return convention of every function below: each used to
-// return 0 on success and a positive `<errno.h>` value on failure, and now
-// returns 0 or the negative of a katherine_error_t enumerator (see
-// katherine/error.h). This header lets source written against 1.x keep
-// compiling unmodified against the 2.0 library: for each affected function,
-// it defines a katherine1_<name>() wrapper that calls the 2.0 function and
-// translates the result back to the 1.x convention, then renames the 1.x
-// symbol onto that wrapper with a function-like macro. Nothing here changes
-// behavior beyond the return value -- arguments, semantics and struct
-// layouts are exactly the 2.0 ones.
-//
-// Not every 1.x function needs a wrapper: katherine_*_snprint() (a
-// snprintf()-style length, never an error code), the str_*() lookups, and
-// the plain getters/setters of px_config.h never used the errno convention
-// and are unaffected. Functions with no 1.x history at all -- e.g.
-// katherine_udp_last_os_error(), katherine_strerror(), katherine_version()
-// -- have no 1.x name to preserve and so are not wrapped either.
-//
-// This header exports no new symbols of its own: every wrapper is `static
-// inline`, so linking 1.x source against the 2.0 library needs nothing this
-// header did not already provide as C source. The ABI break itself is
-// announced by the SONAME bump to libkatherine.so.2, not by anything here.
-//
-// Each wrapper also carries a deprecation attribute, so a consumer still
-// calling it under its 1.x name sees a compiler warning at its own call
-// site (see KATHERINE1_DEPRECATED below). This header, and the
-// compatibility it provides, is removed in libkatherine 3.0.
-//
-// The wrappers for katherine/emulator.h are declared only if that header
-// was already included before this one (KATHERINE_EMU_CRD_SIZE is defined):
-// emulator.h is not pulled in by katherine/katherine.h above, and is not
-// installed at all unless the library was built with KATHERINE_BUILD_EMULATOR,
-// so this header cannot include it unconditionally itself. A consumer of the
-// emulator therefore has to include emulator.h *before* this header to get
-// 1.x return values from it; the other order compiles just as well but
-// leaves the emulator's own calls on the 2.0 convention, without a
-// diagnostic to say so.
 //
 // The #define renames below are ordered after every wrapper definition in
 // this file on purpose: each wrapper's body calls the real 2.0 function by
@@ -82,10 +89,10 @@
 #define KATHERINE1_DEPRECATED
 #endif
 
-// Single point of translation from the 2.0 return convention (0, or the
-// negative of a katherine_error_t enumerator) to the 1.x one (0, or a
-// positive <errno.h> value); every wrapper below funnels its result through
-// this rather than repeating the mapping.
+// Single point of translation from the 2.0 return convention (0, or a
+// katherine_error_t enumerator) to the 1.x one (0, or a <errno.h> value);
+// every wrapper below funnels its result through this rather than repeating
+// the mapping.
 //
 // 1.x reported a failed address resolution or bind as EINVAL, not a
 // dedicated code of its own (see katherine_udp_init_bound() as of the

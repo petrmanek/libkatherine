@@ -132,7 +132,7 @@ def tokens_of(node):
 def returned_names(fn_node):
     """Variables this function returns, by name.
 
-    Most of this library reports failure as `res = -KATHERINE_E_X; goto err;`
+    Most of this library reports failure as `res = KATHERINE_E_X; goto err;`
     with a single `return res;` at the bottom, so the code never appears in a
     return statement at all. Knowing which variables reach a return is what
     makes those assignments attributable.
