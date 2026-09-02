@@ -94,6 +94,67 @@ jobs:
             "$bin"
           done
 
+  # Nothing built the documentation until now, so its whole configuration --
+  # two doxygen runs, the manual-page prune, the macro predefines -- was
+  # verified on one developer machine at one doxygen version, while the
+  # declared minimum is far older and the Windows VM has no doxygen at all.
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen and Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Configure
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DKATHERINE_BUILD_CXX=ON
+          -DKATHERINE_BUILD_DOXYGEN=ON
+
+      # The point of the job: the documentation has to build at all, on a
+      # doxygen this project has never seen.
+      - name: Build the documentation
+        run: cmake --build build --target docs
+
+      # The manual pages must be safe to install, and that is a property
+      # rather than a number, so it is worth failing on. MAN_LINKS gives every
+      # documented entity a page named after it alone, struct fields included,
+      # which without the prune puts an abort.3 and a read.3 into man3 to
+      # shadow the libc pages of those names. Every surviving page must carry
+      # the library's own prefix.
+      - name: Check the manual pages are namespaced
+        shell: bash
+        run: |
+          pages=$(ls build/docs/man/man3 | wc -l)
+          if [ "$pages" -eq 0 ]; then
+            echo "no manual pages were generated"
+            exit 1
+          fi
+          stray=$(ls build/docs/man/man3 | grep -vE '^(katherine|KATHERINE)' || true)
+          if [ -n "$stray" ]; then
+            echo "manual pages without the library prefix, which would shadow"
+            echo "system pages of the same name:"
+            echo "$stray"
+            exit 1
+          fi
+          echo "$pages pages, all namespaced"
+
+      # Observation mode, for the reason the benchmark step below gives: the
+      # warning count moves with the doxygen version, so a number calibrated
+      # on one machine would fail here for a reason that is not a regression.
+      # Printed so a ceiling can be set from real runner data.
+      - name: Warning count (observation)
+        shell: bash
+        run: |
+          rm -f build/docs/docs.stamp build/docs/docs-man.stamp
+          cmake --build build --target docs 2>&1 | grep -c 'warning:' || true
+          doxygen --version
+
   # The build honors -DCMAKE_C_STANDARD / -DCMAKE_CXX_STANDARD from C11 and
   # C++11 up (see "Language standards" in the README). The two extremes
   # bracket the whole range: the strict oldest dialect catches code leaning
