@@ -101,9 +101,10 @@ katherine_device_info_recognize(uint8_t hw_type)
  * \retval KATHERINE_E_INVAL if opening the socket, setting its options, or
  *   initializing its mutex reported an invalid argument; see socket(2),
  *   setsockopt(2), pthread_mutex_init(3), and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if opening the socket, setting its options, or
- *   initializing its mutex ran out of memory; see socket(2), setsockopt(2),
- *   pthread_mutex_init(3), and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if opening the socket or initializing its mutex
+ *   ran out of memory; see socket(2), pthread_mutex_init(3), and
+ *   katherine_udp_last_os_error(). Setting the socket options cannot produce
+ *   this, setsockopt(2) documenting no ENOMEM.
  * \retval KATHERINE_E_SYSTEM if the socket's mutex could not be
  *   initialized, for a reason none of the other codes cover; see
  *   pthread_mutex_init(3) and katherine_udp_last_os_error().
@@ -228,10 +229,10 @@ katherine_device_fini(katherine_device_t *device)
  * \retval KATHERINE_E_IO if sending the status request or receiving its
  *   reply failed at the OS level for a reason none of the other codes
  *   cover; see sendto(2), recvfrom(2), and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if taking the control session's lock, sending
- *   the status request, or receiving its reply ran out of memory; see
- *   pthread_mutex_lock(3), sendto(2), recvfrom(2), and
- *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if sending the status request or receiving its
+ *   reply ran out of memory; see sendto(2), recvfrom(2), and
+ *   katherine_udp_last_os_error(). Taking the session lock cannot produce
+ *   this: pthread_mutex_lock(3) does not document ENOMEM.
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
