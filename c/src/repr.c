@@ -131,6 +131,40 @@ katherine_str_readout_type(katherine_readout_type_t type)
     }
 }
 
+/** @copydoc katherine_str_readout_type */
+const char *
+katherine_str_asic(katherine_asic_t v)
+{
+    switch (v) {
+    case KATHERINE_ASIC_TPX2:    return "Timepix2";
+    case KATHERINE_ASIC_TPX3:    return "Timepix3";
+    case KATHERINE_ASIC_TPX4:    return "Timepix4";
+    case KATHERINE_ASIC_UNKNOWN: return "(unknown)";
+    default:                     return "(unknown)";
+    }
+}
+
+/** @copydoc katherine_coord_snprint */
+int
+katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info_t *v)
+{
+    size_t off = 0;
+
+    // An unpopulated structure prints as such rather than as a row of zeroes
+    // and a null name, which would read as a readout that answered with
+    // nothing.
+    if (v->hw_type == 0) {
+        REPR_APPENDF(buf, cap, off, "device_info{not populated}");
+        return (int) off;
+    }
+
+    REPR_APPENDF(buf, cap, off,
+        "device_info{hw_type: 0x%02x, name: %s, asic: %s, gen: %u, max_chip_count: %u, supported: %s}",
+        (unsigned) v->hw_type, v->name, katherine_str_asic(v->asic), (unsigned) v->gen,
+        (unsigned) v->max_chip_count, katherine_str_bool(v->supported));
+    return (int) off;
+}
+
 /**
  * Describe what a phase-correction request resolved to.
  *
@@ -427,8 +461,8 @@ int
 katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "comm_status{comm_lines_mask: 0x%02x, data_rate: %u Mb/s, chip_detected: %s}",
-        (unsigned) v->comm_lines_mask, (unsigned) v->data_rate, katherine_str_bool(v->chip_detected));
+    REPR_APPENDF(buf, cap, off, "comm_status{comm_lines_mask: 0x%02x, data_rate: %u Mb/s, chip_count: %u}",
+        (unsigned) v->comm_lines_mask, (unsigned) v->data_rate, (unsigned) v->chip_count);
     return (int) off;
 }
 

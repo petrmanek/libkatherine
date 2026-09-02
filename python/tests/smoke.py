@@ -354,7 +354,7 @@ def run_checks(tap, katherine, device):
     comm = device.get_comm_status()
     tap.check_eq('comm status: comm_lines_mask', comm.comm_lines_mask, EXPECTED_COMM_LINES)
     tap.check_eq('comm status: data_rate', comm.data_rate, EXPECTED_DATA_RATE)
-    tap.check('comm status: chip_detected', comm.chip_detected)
+    tap.check('comm status: chip_count', comm.chip_count > 0)
 
     tap.check_eq('readout temperature', device.get_readout_temperature(), EXPECTED_READOUT_T)
     tap.check_eq('sensor temperature', device.get_sensor_temperature(), EXPECTED_SENSOR_T)

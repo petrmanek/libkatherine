@@ -292,6 +292,13 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
     return katherine1_map_result(katherine_get_readout_status(device, status));
 }
 
+/// 1.x read the readout's chip count as a boolean. The field is now the count
+/// it always was, and an alias is safe here in a way the polarity one is not:
+/// nonzero is truthy, so `if (status.chip_detected)` keeps meaning what it
+/// meant. Aliasing a field re-pollutes the namespace for anyone who opts into
+/// this header, which is what this header is for.
+#define chip_detected chip_count
+
 /** 1.x-named wrapper for katherine_get_comm_status(). */
 KATHERINE1_DEPRECATED
 static inline int

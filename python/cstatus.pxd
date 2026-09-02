@@ -22,7 +22,7 @@ cdef extern from 'katherine/status.h':
     ctypedef struct katherine_comm_status_t:
         uint8_t comm_lines_mask
         uint32_t data_rate
-        bool chip_detected
+        uint8_t chip_count
 
     int katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status_t *v)
 

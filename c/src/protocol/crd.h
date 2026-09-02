@@ -59,9 +59,9 @@
 #define _BITS_comm_status_crd_total_data_rate_mask      MASK(8)
 #define _BITS_comm_status_crd_total_data_rate_type      uint8_t
 
-// Define field: chip_detected_flag
-#define _BITS_comm_status_crd_chip_detected_flag_start  16
-#define _BITS_comm_status_crd_chip_detected_flag_mask   MASK(8)
-#define _BITS_comm_status_crd_chip_detected_flag_type   uint8_t
+// Define field: chip_count
+#define _BITS_comm_status_crd_chip_count_start          16
+#define _BITS_comm_status_crd_chip_count_mask           MASK(8)
+#define _BITS_comm_status_crd_chip_count_type           uint8_t
 
 #endif

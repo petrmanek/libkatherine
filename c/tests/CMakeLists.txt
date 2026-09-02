@@ -20,6 +20,8 @@ katherine_add_test(NAME test_timestamp SOURCES test_timestamp.c LABELS unit)
 
 katherine_add_test(NAME test_phase_correction SOURCES test_phase_correction.c LABELS unit)
 
+katherine_add_test(NAME test_device_info SOURCES test_device_info.c LABELS unit)
+
 # Golden byte-vector tests for the command encoders. Sockets, but only
 # through the public katherine_udp_* API and on uncommon high ports of its
 # own (see the file for the exact pair), so it builds everywhere and claims

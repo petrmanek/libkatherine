@@ -187,7 +187,7 @@ queue_comm_status(katherine_emu_t *emu)
 
     val = INSERT(val, comm_status_crd, comm_lines_mask, (uint64_t) KATHERINE_EMU_COMM_LINES_MASK);
     val = INSERT(val, comm_status_crd, total_data_rate, rate);
-    val = INSERT(val, comm_status_crd, chip_detected_flag, (uint64_t) KATHERINE_EMU_CHIP_COUNT);
+    val = INSERT(val, comm_status_crd, chip_count, (uint64_t) KATHERINE_EMU_CHIP_COUNT);
 
     katherine_emu_store_le(crd, val, 3);
     /* Byte 3 is the measuring status, which the library discards. */

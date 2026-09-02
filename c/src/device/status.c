@@ -92,8 +92,8 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     // 160 here has an output-block register of 0x0981, i.e. two active links
     // at 320 MHz dual-edge, and two links of 640 Mb/s are 1280 Mb/s, not 800.
     // Nor can 1280 be reached by fives from any 8-bit value at all.
-    status->data_rate     = 8u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
-    status->chip_detected = EXTRACT(*status_crd, comm_status_crd, chip_detected_flag);
+    status->data_rate  = 8u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
+    status->chip_count = EXTRACT(*status_crd, comm_status_crd, chip_count);
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return 0;

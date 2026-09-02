@@ -11,8 +11,10 @@
  */
 
 #include <stdint.h>
+#include <string.h>
 #include <katherine/device.h>
 #include <katherine/acquisition.h>
+#include <katherine/status.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -24,6 +26,64 @@ static const uint32_t CONTROL_TIMEOUT = 100; // ms
 static const uint32_t DATA_TIMEOUT    = 100; // ms
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+/// Hardware types a readout can report, and what each one is.
+///
+/// The recognition map is ported from the reference implementation, which is
+/// the only upstream source for it. Note what that source does NOT contain: it
+/// carries presentation metadata only -- code, chip name, display name, icon.
+/// Every behavioural difference between generations lives in its slow-control
+/// layer as method splits, not in a table. So the fields here are limited to
+/// what can be stated from the map itself plus the layer counts its own
+/// comments give, and nothing is asserted about how a readout behaves.
+///
+/// `gen` is 0 wherever the generation is not established. The reference names
+/// only the Katherine readouts by generation; for HardPix, Monique, RFPix and
+/// Timepix2-Lite it says nothing, and guessing would put an unverifiable
+/// number in a field callers would reasonably trust.
+///
+/// `supported` is true for the one readout this library drives and has been
+/// tested against. The rest are recognized so that an unsupported device can
+/// say what it is rather than nothing at all -- which is the difference
+/// between "a Katherine for Timepix3 Gen2, not supported yet" and silence.
+static const katherine_device_info_t KATHERINE_DEVICE_INFO[] = {
+    // clang-format off
+    /* hw_type, name,                         ASIC,                gen, max_chips, supported */
+    {0x01, "Katherine for Timepix3",      KATHERINE_ASIC_TPX3, 1,   1,         true},
+    {0x02, "Katherine for Timepix2",      KATHERINE_ASIC_TPX2, 1,   1,         false},
+    {0x03, "Katherine for Timepix3",      KATHERINE_ASIC_TPX3, 2,   8,         false},
+    {0x0A, "Katherine for Timepix4",      KATHERINE_ASIC_TPX4, 1,   1,         false},
+    {0x20, "HardPix for Timepix3",        KATHERINE_ASIC_TPX3, 0,   2,         false},
+    {0x21, "HardPix for Timepix2",        KATHERINE_ASIC_TPX2, 0,   2,         false},
+    {0x24, "Timepix2-Lite",               KATHERINE_ASIC_TPX2, 0,   1,         false},
+    {0x25, "Monique",                     KATHERINE_ASIC_TPX3, 0,   1,         false},
+    {0x26, "RFPix",                       KATHERINE_ASIC_TPX2, 0,   1,         false},
+    {0x27, "HardPix2 for Timepix2",       KATHERINE_ASIC_TPX2, 0,   2,         false},
+    // clang-format on
+};
+
+/**
+ * Recognize a readout from the hardware type it reports.
+ *
+ * @param hw_type Hardware type as katherine_readout_status_t reports it.
+ * @return What that readout is, or a structure whose hw_type is 0 if this
+ *   version does not know the type.
+ */
+katherine_device_info_t
+katherine_device_info_recognize(uint8_t hw_type)
+{
+    const size_t n = sizeof(KATHERINE_DEVICE_INFO) / sizeof(KATHERINE_DEVICE_INFO[0]);
+
+    // Match the hardware type in O(n)
+    for (size_t i = 0; i < n; ++i) {
+        if (KATHERINE_DEVICE_INFO[i].hw_type == hw_type) return KATHERINE_DEVICE_INFO[i];
+    }
+
+    // Deliberately not an error: an unknown readout is a readout this version
+    // predates, and reporting hw_type 0 lets a caller say so.
+    const katherine_device_info_t unknown = {0};
+    return unknown;
+}
 
 /**
  * Initialize Katherine device.
@@ -38,6 +98,11 @@ katherine_device_init(katherine_device_t *device, const char *addr)
 
     // Ensure the pointer is zeroed and not garbage.
     device->acquisition = NULL;
+
+    // Zeroed before the probe below, so a readout that never answers leaves
+    // hw_type 0 rather than whatever the caller's stack held.
+    memset(&device->device_info, 0, sizeof(device->device_info));
+    device->fw_version = 0;
 
     if ((res = katherine_udp_init(&device->control_socket, CONTROL_PORT, addr, REMOTE_PORT, CONTROL_TIMEOUT)) != 0) {
         goto err_control;
@@ -58,6 +123,16 @@ katherine_device_init(katherine_device_t *device, const char *addr)
     }
 
     katherine_udp_pin_remote(&device->data_socket);
+
+    // Ask the readout what it is. Deliberately not fatal: opening a device has
+    // never required one to be listening, and callers rely on that -- discovery
+    // and the tests both construct devices against addresses that may answer
+    // nothing. A readout that does not reply leaves device_info zeroed, which
+    // is the same state an unrecognized type produces, and hw_type 0 says so.
+    // The user can call katherine_device_enumerate() at an arbitrary time
+    // later in the future.
+    // TODO: future extension point, here we could have a DEFER_ENUMERATE flag that could suppress this call
+    (void) katherine_device_enumerate(device);
 
     return 0;
 
@@ -109,4 +184,34 @@ katherine_device_fini(katherine_device_t *device)
 
     katherine_udp_fini(&device->data_socket);
     katherine_udp_fini(&device->control_socket);
+}
+
+/**
+ * Enumerate device by asking it about its hardware model and firmware version.
+ * If the device successfully answers all calls, the found information is
+ * persisted in committed in katherine_device_t, otherwise the result of the
+ * previous successful enumeration is retained.
+ *
+ * @param device Device to enumerate.
+ * @return Error code.
+ */
+int
+katherine_device_enumerate(katherine_device_t *device)
+{
+    int res = 0;
+
+    // Ask the device to tell us about itself.
+    katherine_readout_status_t status;
+    if ((res = katherine_get_readout_status(device, &status))) {
+        goto err;
+    }
+
+    // Persist what we found in the device struct.
+    device->device_info = katherine_device_info_recognize((uint8_t) status.hw_type);
+    device->fw_version  = (uint32_t) status.fw_version;
+
+    return 0;
+
+err:
+    return res;
 }

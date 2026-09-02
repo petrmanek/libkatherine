@@ -277,7 +277,7 @@ test_slow_control(void)
     KT_CHECK_EQ(katherine_get_comm_status(&g_device, &comm), 0);
     KT_CHECK_EQ(comm.comm_lines_mask, EXPECTED_COMM_LINES);
     KT_CHECK_EQ(comm.data_rate, EXPECTED_DATA_RATE);
-    KT_CHECK(comm.chip_detected);
+    KT_CHECK(comm.chip_count > 0);
 
     /* The temperatures travel as IEEE-754 singles in the response payload
        and are reinterpreted, not converted, so they compare exactly. */

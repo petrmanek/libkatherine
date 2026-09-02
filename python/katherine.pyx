@@ -316,8 +316,8 @@ cdef class CommStatus:
        return self._c_status.data_rate
 
     @property
-    def chip_detected(self):
-       return self._c_status.chip_detected
+    def chip_count(self):
+       return self._c_status.chip_count
 
 
 cdef class Trigger:

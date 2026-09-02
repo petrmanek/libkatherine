@@ -354,7 +354,7 @@ test_comm_status_crd_extract(void)
 
     KT_CHECK_EQ(EXTRACT(w, comm_status_crd, comm_lines_mask), 0x81u);
     KT_CHECK_EQ(EXTRACT(w, comm_status_crd, total_data_rate), 160u);
-    KT_CHECK_EQ(EXTRACT(w, comm_status_crd, chip_detected_flag), 1u);
+    KT_CHECK_EQ(EXTRACT(w, comm_status_crd, chip_count), 1u);
 }
 
 int

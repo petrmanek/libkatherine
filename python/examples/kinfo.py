@@ -62,7 +62,7 @@ def print_info(device):
     print('Comm status')
     print('  %-13s: 0x%02x' % ('Comm lines', comm_status.comm_lines_mask))
     print('  %-13s: %d Mb/s' % ('Data rate', comm_status.data_rate))
-    print('  %-13s: %s' % ('Chip detected', 'yes' if comm_status.chip_detected else 'no'))
+    print('  %-13s: %d' % ('Chips', comm_status.chip_count))
 
     return True
 

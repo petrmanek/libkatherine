@@ -274,7 +274,7 @@ test_comm_status(void)
     katherine_comm_status_t v = {0xFF, 123456, true};
     char buf[128];
     int n = katherine_comm_status_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "comm_status{comm_lines_mask: 0xff, data_rate: 123456 Mb/s, chip_detected: true}");
+    CHECK_GOLDEN(n, buf, "comm_status{comm_lines_mask: 0xff, data_rate: 123456 Mb/s, chip_count: 1}");
 }
 
 /* ------------------------------------------------------------------ */
