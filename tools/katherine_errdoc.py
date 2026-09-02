@@ -593,7 +593,14 @@ def build(paths):
     index = Index()
     idx = ci.Index.create()
     for p in paths:
-        args = compile_args(db, p)
+        if os.path.basename(p) == TRANSPORTS["windows"]:
+            args = windows_args()
+            if args is None:
+                print("  ! skipping %s: no %s headers, install mingw-w64-headers"
+                      % (os.path.relpath(p, REPO), MINGW_TARGET), file=sys.stderr)
+                continue
+        else:
+            args = compile_args(db, p)
         tu = idx.parse(p, args=args, options=ci.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
         fatal = [d for d in tu.diagnostics if d.severity >= ci.Diagnostic.Error]
         if fatal:
@@ -604,11 +611,77 @@ def build(paths):
     return index
 
 
-def sources():
+# The two UDP transports are alternative implementations of one API, so they
+# define the same function names. Indexing both at once would merge their
+# codes and demand that each document the union, so a run picks one.
+TRANSPORTS = {"posix": "udp_nix.c", "windows": "udp_win.c"}
+
+# The Windows transport is the one translation unit the host compiler cannot
+# see: its whole body sits inside #ifdef KATHERINE_WIN and it needs the
+# winsock headers. Under the host's own flags it parses to an empty
+# translation unit and its functions vanish from the index silently, which is
+# how they went undocumented for as long as they did. A mingw target and its
+# headers make it an ordinary source file.
+MINGW_TARGET = "x86_64-w64-mingw32"
+MINGW_INCLUDE = "/usr/%s/include" % MINGW_TARGET
+
+
+def target_includes(target):
+    """The include search path clang's driver computes for a target.
+
+    libclang parses at the frontend, below the driver, so it does not work out
+    a target's system include directories for itself: passing --target alone
+    leaves stdbool.h and errno.h unfindable even though the same flags on the
+    clang command line succeed. Asking the driver keeps the answer correct
+    across clang versions and sysroot layouts, neither of which should be
+    written down here.
+    """
+    import subprocess
+    try:
+        out = subprocess.run(["clang", "--target=" + target, "-E", "-v", "-x", "c", os.devnull],
+                             capture_output=True, text=True, check=True).stderr
+    except Exception:
+        return []
+    dirs, collecting = [], False
+    for line in out.split("\n"):
+        if line.startswith("#include <...> search starts here:"):
+            collecting = True
+        elif line.startswith("End of search list."):
+            break
+        elif collecting and line.strip():
+            dirs.append(line.strip())
+    return [a for d in dirs for a in ("-isystem", d)]
+
+
+def windows_args():
+    """Flags to parse the Windows transport, or None without a mingw sysroot."""
+    if not os.path.isdir(MINGW_INCLUDE):
+        return None
+    # The system includes are as load-bearing here as the host's are for the
+    # database's own flags, and for the reason given at
+    # clang_builtin_includes(): without them stdbool.h and errno.h are not
+    # found, `bool` becomes an unknown type, every helper taking one fails to
+    # parse, and the calls into them cannot be resolved -- so the file indexes
+    # with most of its codes missing, announced by nothing but a stray
+    # diagnostic.
+    #
+    # The standard matches the compilation database rather than being chosen
+    # here, so this file is read under the same dialect as every other.
+    #
+    # katherine_EXPORTS is CMake's own define for building the shared library;
+    # without it every declaration is dllimport and the definitions conflict.
+    return ["--target=" + MINGW_TARGET, "-std=gnu2x", "-Dkatherine_EXPORTS",
+            "-I", os.path.join(REPO, "c", "include"),
+            "-I", os.path.join(REPO, "build", "c", "include"),
+            "-I", os.path.join(REPO, "c", "src")] + target_includes(MINGW_TARGET)
+
+
+def sources(platform="posix"):
+    skip = {v for k, v in TRANSPORTS.items() if k != platform}
     out = []
     for root, _dirs, files in os.walk(os.path.join(REPO, "c", "src")):
         for f in files:
-            if f.endswith(".c"):
+            if f.endswith(".c") and f not in skip:
                 out.append(os.path.join(root, f))
     return sorted(out)
 
@@ -622,9 +695,11 @@ def main():
     g.add_argument("--diff", action="store_true", help="propose docstring edits")
     g.add_argument("--paths", action="store_true",
                    help="print, for each code, the call chain that produces it")
+    ap.add_argument("--platform", choices=sorted(TRANSPORTS), default="posix",
+                    help="which UDP transport to index (default: posix)")
     args = ap.parse_args()
 
-    index = build(sources())
+    index = build(sources(args.platform))
 
     names = sorted(n for n in index.total if index.total[n] and n in index.defined)
 
