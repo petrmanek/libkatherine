@@ -22,6 +22,11 @@ katherine_add_test(NAME test_phase_correction SOURCES test_phase_correction.c LA
 
 katherine_add_test(NAME test_device_info SOURCES test_device_info.c LABELS unit)
 
+# Length checking of the pixel-configuration loaders. Writes a scratch file
+# next to the test binary and removes it, so it claims no global resource and
+# two build trees cannot collide.
+katherine_add_test(NAME test_px_config_load SOURCES test_px_config_load.c LABELS unit)
+
 # Golden byte-vector tests for the command encoders. Sockets, but only
 # through the public katherine_udp_* API and on uncommon high ports of its
 # own (see the file for the exact pair), so it builds everywhere and claims

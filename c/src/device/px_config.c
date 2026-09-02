@@ -76,11 +76,11 @@ reverse_nibble(uint8_t nibble)
 /**
  * Load pixel configuration from a BMC file (in BurdaMan format).
  *
- * The file is expected to hold sizeof(katherine_bmc_t) = 65536 bytes, one
- * configuration byte per pixel of the 256x256 matrix, and the length check is
- * one-sided: exactly that many bytes are read, so a longer file loads with its
- * tail silently ignored, while a shorter one -- a matrix exported for a smaller
- * sensor, or a truncated copy -- fails with KATHERINE_E_IO.
+ * The file must hold exactly sizeof(katherine_bmc_t) = 65536 bytes, one
+ * configuration byte per pixel of the 256x256 matrix. Any other length fails
+ * with KATHERINE_E_IO: a shorter file is a matrix exported for a smaller
+ * sensor or a truncated copy, and a longer one belongs to another sensor or
+ * another format.
  *
  * \param px_config Target configuration matrix.
  * \param file_path BMC file path.
@@ -89,7 +89,9 @@ reverse_nibble(uint8_t nibble)
  * \retval KATHERINE_E_IO if the file could not be opened -- it does not exist,
  *   this process may not read it, the path names a directory, or no descriptor
  *   was free, these being the errno values fopen(3) sets that the two codes
- *   below do not name -- or if it opened but yielded fewer than 65536 bytes.
+ *   below do not name -- or if it opened and proved not to be 65536 bytes
+ *   long. The length failure records no OS error, being a property of the
+ *   file rather than of a failed call.
  * \retval KATHERINE_E_NOMEM if the 65536-byte read buffer could not be
  *   allocated, or if fopen(3) itself ran out of memory for the stream.
  * \retval KATHERINE_E_INVAL if the filesystem rejected the path -- the mode is
@@ -120,8 +122,18 @@ katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *
         goto err_fread;
     }
 
+    // A longer file is a wrong file rather than a file with a tail to ignore:
+    // the matrix belongs to another sensor or another format. fread() stops at
+    // the count it was given and so cannot report this, hence asking for one
+    // byte more.
+    if (fgetc(file) != EOF) {
+        res = KATHERINE_E_IO;
+        goto err_fgetc;
+    }
+
     res = katherine_px_config_load_bmc_data(px_config, buffer);
 
+err_fgetc:
 err_fread:
     free(buffer);
 err_buffer:
@@ -167,11 +179,11 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
 /**
  * Load pixel configuration from a BPC file (in Pixet format).
  *
- * The file is expected to hold sizeof(katherine_bpc_t) = 65536 bytes, one
- * configuration byte per pixel of the 256x256 matrix, and the length check is
- * one-sided: exactly that many bytes are read, so a longer file loads with its
- * tail silently ignored, while a shorter one -- a matrix exported for a smaller
- * sensor, or a truncated copy -- fails with KATHERINE_E_IO.
+ * The file must hold exactly sizeof(katherine_bpc_t) = 65536 bytes, one
+ * configuration byte per pixel of the 256x256 matrix. Any other length fails
+ * with KATHERINE_E_IO: a shorter file is a matrix exported for a smaller
+ * sensor or a truncated copy, and a longer one belongs to another sensor or
+ * another format.
  *
  * \param px_config Target configuration matrix.
  * \param file_path BPC file path.
@@ -180,7 +192,9 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
  * \retval KATHERINE_E_IO if the file could not be opened -- it does not exist,
  *   this process may not read it, the path names a directory, or no descriptor
  *   was free, these being the errno values fopen(3) sets that the two codes
- *   below do not name -- or if it opened but yielded fewer than 65536 bytes.
+ *   below do not name -- or if it opened and proved not to be 65536 bytes
+ *   long. The length failure records no OS error, being a property of the
+ *   file rather than of a failed call.
  * \retval KATHERINE_E_NOMEM if the 65536-byte read buffer could not be
  *   allocated, or if fopen(3) itself ran out of memory for the stream.
  * \retval KATHERINE_E_INVAL if the filesystem rejected the path -- the mode is
@@ -211,8 +225,18 @@ katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *
         goto err_fread;
     }
 
+    // A longer file is a wrong file rather than a file with a tail to ignore:
+    // the matrix belongs to another sensor or another format. fread() stops at
+    // the count it was given and so cannot report this, hence asking for one
+    // byte more.
+    if (fgetc(file) != EOF) {
+        res = KATHERINE_E_IO;
+        goto err_fgetc;
+    }
+
     res = katherine_px_config_load_bpc_data(px_config, buffer);
 
+err_fgetc:
 err_fread:
     free(buffer);
 err_buffer:
