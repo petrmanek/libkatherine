@@ -367,7 +367,7 @@ katherine1_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *de
 /** \legacy1{katherine_acquisition_begin} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
+katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
 {
     return katherine1_map_result(katherine_acquisition_begin(acq, config, readout_mode, px_mode, fast_vco_enabled, decode_data));
 }

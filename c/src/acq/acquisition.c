@@ -742,7 +742,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
 {
     katherine_error_t res = 0;
 
@@ -941,13 +941,13 @@ err:
  * function used to return "not started" and "timed out" (with a space);
  * it now returns "not_started" and "timed_out" to match.
  *
- * \param status Status to describe
+ * \param state State to describe
  * \return Null-terminated string.
  */
 const char *
-katherine_str_acquisition_state(char status)
+katherine_str_acquisition_state(katherine_acquisition_state_t state)
 {
-    switch (status) {
+    switch (state) {
     case KATHERINE_ACQUISITION_STATE_NOT_STARTED: return "not_started";
     case KATHERINE_ACQUISITION_STATE_SUCCEEDED:   return "succeeded";
     case KATHERINE_ACQUISITION_STATE_RUNNING:     return "running";

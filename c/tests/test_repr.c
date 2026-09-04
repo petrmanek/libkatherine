@@ -362,7 +362,7 @@ test_str_enums(void)
     // Updated (2026-08-24) to underscore-separated tokens; see acquisition.c.
     KT_CHECK(strcmp(katherine_str_acquisition_state(KATHERINE_ACQUISITION_STATE_NOT_STARTED), "not_started") == 0);
     KT_CHECK(strcmp(katherine_str_acquisition_state(KATHERINE_ACQUISITION_STATE_TIMED_OUT), "timed_out") == 0);
-    KT_CHECK(strcmp(katherine_str_acquisition_state((char) 99), "unknown") == 0);
+    KT_CHECK(strcmp(katherine_str_acquisition_state((katherine_acquisition_state_t) 99), "unknown") == 0);
 
     KT_CHECK(strcmp(katherine_str_bool(true), "true") == 0);
     KT_CHECK(strcmp(katherine_str_bool(false), "false") == 0);

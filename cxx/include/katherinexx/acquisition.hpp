@@ -285,7 +285,7 @@ public:
 static inline const char *
 str_acq_state(acq_state state)
 {
-    return katherine_str_acquisition_state((char) state);
+    return katherine_str_acquisition_state((katherine_acquisition_state_t) state);
 }
 
 static inline const char *

@@ -53,10 +53,10 @@ cdef extern from 'katherine/acquisition.h':
         katherine_device_t *device
         void *user_ctx
 
-        char state
+        katherine_acquisition_state_t state
         bool aborted
-        char readout_mode
-        char px_mode
+        katherine_tpx3_readout_mode_t readout_mode
+        katherine_tpx3_px_mode_t px_mode
         bool fast_vco_enabled
 
         char *md_buffer
@@ -106,8 +106,8 @@ cdef extern from 'katherine/acquisition.h':
 
     int katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
     void katherine_acquisition_fini(katherine_acquisition_t *acq)
-    int katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
+    int katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
     int katherine_acquisition_abort(katherine_acquisition_t *acq)
     int katherine_acquisition_stop(katherine_acquisition_t *acq)
     int katherine_acquisition_read(katherine_acquisition_t *acq)
-    const char *katherine_str_acquisition_state(char status)
+    const char *katherine_str_acquisition_state(katherine_acquisition_state_t state)

@@ -135,10 +135,17 @@ typedef struct katherine_acquisition {
     katherine_device_t *device;
     void *user_ctx;
 
-    char state;
+    katherine_acquisition_state_t state;
     bool aborted;
-    char readout_mode;
-    char px_mode;
+
+    // PINNED for the ASIC work (Petr, 2026-09-04): nothing in an acquisition
+    // should be chip-type aware, and these two are Timepix3's. They belong in
+    // the device's own record of what it last configured -- written by
+    // katherine_configure(), read back by katherine_acquisition_begin() --
+    // which is where the configuration restructure puts them. Left here until
+    // Timepix2 or Timepix4 lands and forces the issue.
+    katherine_tpx3_readout_mode_t readout_mode;
+    katherine_tpx3_px_mode_t px_mode;
     bool fast_vco_enabled;
 
     char *md_buffer;
@@ -227,7 +234,7 @@ KATHERINE_EXPORTED void
 katherine_acquisition_fini(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data);
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_abort(katherine_acquisition_t *acq);
@@ -239,7 +246,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_read(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED const char *
-katherine_str_acquisition_state(char status);
+katherine_str_acquisition_state(katherine_acquisition_state_t state);
 
 #ifdef __cplusplus
 }
