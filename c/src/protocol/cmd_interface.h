@@ -283,7 +283,7 @@ static inline int32_t
 katherine_general_config_word(const katherine_config_t *config)
 {
     uint64_t word = 0;
-    word          = INSERT(word, general_config, polarity, !config->polarity_holes);
+    word          = INSERT(word, general_config, polarity, config->polarity);
     word          = INSERT(word, general_config, gray_count_en, !config->gray_disable);
     word          = INSERT(word, general_config, ackcommand_en, 1);
     word          = INSERT(word, general_config, fast_lo_en, 1);

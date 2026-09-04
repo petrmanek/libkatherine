@@ -219,7 +219,7 @@ def build_config(katherine):
     c.delayed_start = False
 
     c.gray_disable = False
-    c.polarity_holes = False
+    c.polarity = katherine.Polarity.ELECTRONS
 
     c.phase = katherine.Tpx3Phase.PHASE_1
     c.freq = katherine.Tpx3Freq.FREQ_40
@@ -347,6 +347,12 @@ def check_enums(tap, katherine):
     tap.check_eq('AcquisitionState enumerates every state',
                  [(m.name, m.value) for m in katherine.AcquisitionState],
                  [('NOT_STARTED', 0), ('RUNNING', 1), ('SUCCEEDED', 2), ('TIMED_OUT', 3)])
+    # HOLES is zero, and must stay zero: a zeroed configuration has to select
+    # the polarity that cannot destroy the chip. Checked by value here, not
+    # only by name.
+    tap.check_eq('Polarity enumerates every carrier',
+                 [(m.name, m.value) for m in katherine.Polarity],
+                 [('HOLES', 0), ('ELECTRONS', 1)])
     tap.check_eq('PhaseCorrection enumerates every outcome',
                  [(m.name, m.value) for m in katherine.PhaseCorrection],
                  [('NONE', 0), ('SOFTWARE', 1), ('HARDWARE', 2)])

@@ -655,6 +655,12 @@ cdef class PxConfig:
       return cpx_config.katherine_px_config_get_loc_thl(&self._c_px_config, PxConfig._coord(x, y))
 
 @unique
+class Polarity(Enum):
+    HOLES     = cconfig.katherine_polarity_t.KATHERINE_POLARITY_HOLES
+    ELECTRONS = cconfig.katherine_polarity_t.KATHERINE_POLARITY_ELECTRONS
+
+
+@unique
 class Tpx3Phase(Enum):
     PHASE_1          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_1
     PHASE_2          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_2
@@ -793,12 +799,12 @@ cdef class Config:
        self._c_config.gray_disable = val
 
     @property
-    def polarity_holes(self):
-       return self._c_config.polarity_holes
+    def polarity(self):
+       return Polarity(self._c_config.polarity)
 
-    @polarity_holes.setter
-    def polarity_holes(self, val):
-       self._c_config.polarity_holes = val
+    @polarity.setter
+    def polarity(self, val):
+       self._c_config.polarity = Polarity(val).value
 
     # A request only: what actually happens depends on the device and on the
     # phase count, and is reported afterwards by Acquisition.phase_correction,

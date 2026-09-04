@@ -62,7 +62,7 @@ def configure():
     c.stop_trigger      = k.Trigger(enabled=False)
 
     c.gray_disable      = False
-    c.polarity_holes    = False
+    c.polarity          = k.Polarity.ELECTRONS
 
     c.phase             = k.Tpx3Phase.PHASE_1
     c.freq              = k.Tpx3Freq.FREQ_40

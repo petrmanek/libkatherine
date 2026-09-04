@@ -91,7 +91,7 @@ configure(katherine::config& config)
     config.set_stop_trigger(katherine::no_trigger);
 
     config.set_gray_disable(false);
-    config.set_polarity_holes(false);
+    config.set_polarity(katherine::polarity::electrons);
 
     config.set_phase(katherine::tpx3::phase::p1);
     config.set_freq(katherine::tpx3::freq::f40);

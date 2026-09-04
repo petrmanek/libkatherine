@@ -147,6 +147,29 @@ KATHERINE_EXPORTED bool
 katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq);
 
 
+/// Charge carriers the sensor collects, and therefore the bias polarity the
+/// assembly is operated at.
+///
+/// Values are the Polarity[0] bit of GeneralConfig itself (Timepix3 manual
+/// Table 18: 0 collects holes, 1 collects electrons), so the setting can be
+/// compared against a register read-back without translation.
+///
+/// Hole collection is zero deliberately. A configuration is often zeroed
+/// before its fields are filled, and the wrong polarity destroys the chip, so
+/// the value a forgotten field takes must be the conservative one.
+typedef enum katherine_polarity {
+    KATHERINE_POLARITY_HOLES     = 0, ///< Collect holes (h+).
+    KATHERINE_POLARITY_ELECTRONS = 1, ///< Collect electrons (e-).
+} katherine_polarity_t;
+
+/**
+ * Get stable, lowercase description of a carrier polarity.
+ * \param polarity Polarity to describe
+ * \return Null-terminated string. "unknown" for a value outside the enum.
+ */
+KATHERINE_EXPORTED const char *
+katherine_str_polarity(katherine_polarity_t polarity);
+
 typedef struct katherine_config {
     katherine_px_config_t pixel_config;
 
@@ -161,7 +184,11 @@ typedef struct katherine_config {
     katherine_trigger_t stop_trigger;
 
     bool gray_disable;
-    bool polarity_holes;
+
+    /// Carriers the sensor collects. Zero is KATHERINE_POLARITY_HOLES, so a
+    /// configuration whose fields are not all filled in selects the polarity
+    /// that cannot destroy the chip.
+    katherine_polarity_t polarity;
 
     /// Phase distribution of clock signals across the ASIC. A single phase
     /// (KATHERINE_TPX3_PHASE_1) means that all timestamps are recorded

@@ -215,6 +215,21 @@ katherine_str_phase(katherine_tpx3_phase_t phase)
 }
 
 /**
+ * Get stable, lowercase description of a carrier polarity.
+ * \param polarity Polarity to describe
+ * \return Null-terminated string. "unknown" for a value outside the enum.
+ */
+const char *
+katherine_str_polarity(katherine_polarity_t polarity)
+{
+    switch (polarity) {
+    case KATHERINE_POLARITY_HOLES:     return "holes";
+    case KATHERINE_POLARITY_ELECTRONS: return "electrons";
+    default:                           return "unknown";
+    }
+}
+
+/**
  * Get stable, lowercase description of a pixel clock frequency.
  * \param freq Frequency to describe
  * \return Null-terminated string. "unknown" for a value outside the enum.
@@ -385,8 +400,8 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->start_trigger);
     REPR_APPENDF(buf, cap, off, ", delayed_start: %s, stop_trigger: ", katherine_str_bool(v->delayed_start));
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->stop_trigger);
-    REPR_APPENDF(buf, cap, off, ", gray_disable: %s, polarity_holes: %s, phase: %s, freq: %s, dacs: ",
-        katherine_str_bool(v->gray_disable), katherine_str_bool(v->polarity_holes), katherine_str_phase(v->phase),
+    REPR_APPENDF(buf, cap, off, ", gray_disable: %s, polarity: %s, phase: %s, freq: %s, dacs: ",
+        katherine_str_bool(v->gray_disable), katherine_str_polarity(v->polarity), katherine_str_phase(v->phase),
         katherine_str_freq(v->freq));
     REPR_NEST(buf, cap, off, katherine_dacs_snprint, &v->dacs);
     REPR_APPENDF(buf, cap, off, ", test_pulse_config: ");

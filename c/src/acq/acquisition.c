@@ -191,7 +191,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("\n");
 
     printf("Gray Coding:            %s\n",      config->gray_disable ? "disabled" : "enabled");
-    printf("Polarity:               %s\n",      config->polarity_holes ? "holes (h+)" : "electrons (e-)");
+    printf("Polarity:               %s\n",      katherine_str_polarity(config->polarity));
     printf("Phase:                  %d\n",      config->phase);
     printf("Clock Frequency:        %d\n",      config->freq);
     printf("\n");

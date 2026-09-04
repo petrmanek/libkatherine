@@ -13,6 +13,44 @@ the deprecated `katherine/katherine1.h` shim header, planned for removal
 in 3.0. The 1.x line ends with 1.1.0; no further 1.x releases are
 planned.
 
+The public identifiers are renamed once, here, and then frozen. Everything
+2.0 added carries a `KATHERINE_` prefix and everything inherited from 1.x
+did not, so `PHASE_1`, `FREQ_40`, `ACQUISITION_RUNNING` and
+`READOUT_SEQUENTIAL` -- short enough that a data-acquisition program might
+define them itself -- become `KATHERINE_TPX3_PHASE_1`,
+`KATHERINE_TPX3_FREQ_40_MHZ`, `KATHERINE_ACQUISITION_STATE_RUNNING` and
+`KATHERINE_TPX3_READOUT_SEQUENTIAL`. The names are the final ones, ASIC
+prefix included: the clock, pixel-mode and register enumerations are
+Timepix3's and take `tpx3_`, while the acquisition lifecycle is generic and
+stays bare. `katherine_asic_t` becomes `katherine_chip_type_t`, an ASIC
+being the technology a chip is built in while the chip is what a readout
+carries and addresses. The stringifiers named after the renamed types
+follow. No value moved; every 1.x spelling is aliased in
+`katherine/katherine1.h`.
+
+One field is renamed without an alias, deliberately. `katherine_config_t`'s
+`bool polarity_holes` becomes `katherine_polarity_t polarity`, with
+`KATHERINE_POLARITY_HOLES` zero and `KATHERINE_POLARITY_ELECTRONS` one --
+the Polarity[0] bit of GeneralConfig itself, so the setting can be compared
+against a register read-back without translation.
+
+Zero had to change meaning for this. Configurations are routinely zeroed
+before their fields are filled, and biasing an assembly for the carrier it
+does not collect destroys the chip, so the value a forgotten field takes
+must be the conservative one; under `polarity_holes` it was not, zero
+meaning "not holes" and therefore electrons. It now means holes. The
+encoder's golden vectors assert this directly: an all-zero configuration
+must produce `0x58`, and reading `0x59` again means the safe default has
+been lost.
+
+That is also why the shim leaves this one field out. A field can be aliased
+there -- `chip_detected` is -- but only where both spellings agree on what a
+value means, and these do not: `polarity_holes = false` selected electrons
+while `polarity = false` selects holes. A 1.x source under an alias would
+keep compiling and bias the wrong way, so instead it fails to compile at
+every site, and each has to be read and converted by hand. The wire encoding
+is unchanged for anyone who set the field explicitly.
+
 Command responses are now correlated with the request that provoked them,
 instead of the next datagram to arrive being taken as the answer: a
 session flushes what an earlier exchange left behind before it sends,

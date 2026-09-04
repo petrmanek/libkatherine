@@ -100,8 +100,8 @@ configure(katherine_config_t *config)
     config->stop_trigger.channel           = 0;
     config->stop_trigger.use_falling_edge  = false;
 
-    config->gray_disable   = false;
-    config->polarity_holes = false;
+    config->gray_disable = false;
+    config->polarity     = KATHERINE_POLARITY_ELECTRONS;
 
     config->phase         = KATHERINE_TPX3_PHASE_1;
     config->correct_phase = false; // only makes sense to correct phase offset when we request more than 1 phase

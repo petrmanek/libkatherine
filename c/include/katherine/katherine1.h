@@ -573,6 +573,17 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 // because they did not move: the first is a generic lifecycle, the second was
 // already stemmed. Their ENUMERATORS did move, and are here.
 //
+// katherine_config_t's polarity_holes field is absent for the strongest reason
+// of the three: a shim for it would be actively dangerous. A field CAN be
+// aliased here -- chip_detected above is -- but only where the old spelling and
+// the new one agree on what a value means, and this pair does not. The 1.x name
+// carried the opposite sense: polarity_holes = false selected electrons, while
+// polarity = false is KATHERINE_POLARITY_HOLES. Under an alias, a 1.x source
+// would keep compiling and would bias the assembly for the carrier it does not
+// collect, destroying the chip. There is no safe translation, so the only
+// correct behaviour is the one a missing field already gives: a compile error at
+// every site, each of which has to be read and converted by hand.
+//
 // The chip-type names are absent for a different reason: katherine_asic_t and
 // KATHERINE_ASIC_* are 2.0's own, added with the device-recognition table, so
 // no 1.x source can contain them and aliasing them would re-pollute the

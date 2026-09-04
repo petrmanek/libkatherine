@@ -60,6 +60,12 @@ cdef extern from 'katherine/config.h':
 
     int katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
 
+    ctypedef enum katherine_polarity_t:
+        KATHERINE_POLARITY_HOLES
+        KATHERINE_POLARITY_ELECTRONS
+
+    const char *katherine_str_polarity(katherine_polarity_t polarity)
+
     ctypedef enum katherine_tpx3_phase_t:
         KATHERINE_TPX3_PHASE_1
         KATHERINE_TPX3_PHASE_2
@@ -87,7 +93,7 @@ cdef extern from 'katherine/config.h':
         katherine_trigger_t stop_trigger
 
         bool gray_disable
-        bool polarity_holes
+        katherine_polarity_t polarity
 
         bool correct_phase
 

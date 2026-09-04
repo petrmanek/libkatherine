@@ -379,7 +379,7 @@ static const char *CONFIG_GOLDEN = "config{pixel_config: px_config{words: 16384,
                                    "start_trigger: trigger{enabled: true, channel: 3, use_falling_edge: false}, "
                                    "delayed_start: false, "
                                    "stop_trigger: trigger{enabled: false, channel: 0, use_falling_edge: true}, "
-                                   "gray_disable: true, polarity_holes: false, phase: phase_1, freq: freq_40, "
+                                   "gray_disable: true, polarity: electrons, phase: phase_1, freq: freq_40, "
                                    "dacs: dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, VPReamp_NCAS: 128, "
                                    "Ibias_Ikrum: 15, Vfbk: 164, Vthreshold_fine: 476, Vthreshold_coarse: 8, "
                                    "Ibias_DiscS1_ON: 100, Ibias_DiscS1_OFF: 8, Ibias_DiscS2_ON: 128, "
@@ -395,17 +395,17 @@ build_config(katherine_config_t *c)
     memset(c, 0, sizeof(*c));
 
     fill_px_config(&c->pixel_config);
-    c->bias_id        = 7;
-    c->acq_time       = 400000.0;
-    c->no_frames      = 1;
-    c->bias           = 230.0f;
-    c->start_trigger  = g_start_trigger;
-    c->delayed_start  = false;
-    c->stop_trigger   = g_stop_trigger;
-    c->gray_disable   = true;
-    c->polarity_holes = false;
-    c->phase          = KATHERINE_TPX3_PHASE_1;
-    c->freq           = KATHERINE_TPX3_FREQ_40_MHZ;
+    c->bias_id       = 7;
+    c->acq_time      = 400000.0;
+    c->no_frames     = 1;
+    c->bias          = 230.0f;
+    c->start_trigger = g_start_trigger;
+    c->delayed_start = false;
+    c->stop_trigger  = g_stop_trigger;
+    c->gray_disable  = true;
+    c->polarity      = KATHERINE_POLARITY_ELECTRONS;
+    c->phase         = KATHERINE_TPX3_PHASE_1;
+    c->freq          = KATHERINE_TPX3_FREQ_40_MHZ;
     fill_dacs(&c->dacs);
     c->test_pulse_config = g_tp_config;
 }
