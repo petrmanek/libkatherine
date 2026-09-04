@@ -24,6 +24,10 @@ namespace katherine {
  * \addtogroup katherine_cxx_api
  * \{
  */
+/// The Timepix3 timestamp surface. Namespaced rather than prefixed: C spells
+/// the same distinction as katherine_tpx3_*, which C++ can express properly,
+/// and a second ASIC then adds a namespace instead of overloading these.
+namespace tpx3 {
 
 /** katherine_tpx3_timestamp_to_seconds() split into whole seconds and the fractional remainder. */
 struct timestamp_seconds {
@@ -43,7 +47,7 @@ struct toa_ftoa {
  * \return Fine ticks per coarse tick.
  */
 static inline std::uint8_t
-tpx3_toa_coarse_tick_to_fine_ticks(katherine::freq freq)
+toa_coarse_tick_to_fine_ticks(freq freq)
 {
     return katherine_tpx3_toa_coarse_tick_to_fine_ticks((katherine_tpx3_freq_t) freq);
 }
@@ -54,7 +58,7 @@ tpx3_toa_coarse_tick_to_fine_ticks(katherine::freq freq)
  * \return Shift taking coarse ticks to fine ticks.
  */
 static inline std::uint8_t
-tpx3_toa_coarse_tick_to_fine_shift(katherine::freq freq)
+toa_coarse_tick_to_fine_shift(freq freq)
 {
     return katherine_tpx3_toa_coarse_tick_to_fine_shift((katherine_tpx3_freq_t) freq);
 }
@@ -65,7 +69,7 @@ tpx3_toa_coarse_tick_to_fine_shift(katherine::freq freq)
  * \return Bias in fine-oscillator ticks.
  */
 static inline std::uint64_t
-tpx3_toa_epoch_bias(std::uint8_t coarse_tick_to_fine_shift)
+toa_epoch_bias(std::uint8_t coarse_tick_to_fine_shift)
 {
     return katherine_tpx3_toa_epoch_bias(coarse_tick_to_fine_shift);
 }
@@ -75,8 +79,8 @@ tpx3_toa_epoch_bias(std::uint8_t coarse_tick_to_fine_shift)
  * \param timestamp Timestamp in fine-oscillator ticks.
  * \return Whole seconds and the remainder within that second, in nanoseconds.
  */
-static inline katherine::timestamp_seconds
-tpx3_timestamp_to_seconds(std::uint64_t timestamp)
+static inline timestamp_seconds
+timestamp_to_seconds(std::uint64_t timestamp)
 {
     timestamp_seconds result{};
     katherine_tpx3_timestamp_to_seconds(timestamp, &result.sec, &result.nsec);
@@ -90,13 +94,15 @@ tpx3_timestamp_to_seconds(std::uint64_t timestamp)
  * \param timestamp Timestamp in fine-oscillator ticks.
  * \return Coarse ticks since the epoch (toa) and the fine ticks the hit preceded its coarse tick by (ftoa).
  */
-static inline katherine::toa_ftoa
-tpx3_timestamp_to_toa_ftoa(std::uint8_t coarse_tick_to_fine_shift, std::uint8_t phase_offset, std::uint64_t timestamp)
+static inline toa_ftoa
+timestamp_to_toa_ftoa(std::uint8_t coarse_tick_to_fine_shift, std::uint8_t phase_offset, std::uint64_t timestamp)
 {
     toa_ftoa result{};
     katherine_tpx3_timestamp_to_toa_ftoa(coarse_tick_to_fine_shift, phase_offset, timestamp, &result.toa, &result.ftoa);
     return result;
 }
+
+} // namespace tpx3
 
 /** \} */
 

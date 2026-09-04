@@ -38,6 +38,12 @@ using dacs = katherine_dacs_t;
 
 using test_pulse_config = katherine_test_pulse_config_t;
 
+/// Settings whose meaning is Timepix3's, gathered so that a second ASIC adds
+/// a namespace of its own rather than overloading these names. The C surface
+/// spells the same distinction with a tpx3_ prefix, which C++ can express
+/// properly.
+namespace tpx3 {
+
 enum class phase : int {
     p1  = KATHERINE_TPX3_PHASE_1,
     p2  = KATHERINE_TPX3_PHASE_2,
@@ -63,6 +69,7 @@ enum class px_mode : int {
     event_count_itot = KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 };
 
+} // namespace tpx3
 
 class config {
     katherine_config_t conf_;
@@ -130,11 +137,11 @@ public:
     bool correct_phase() const { return conf_.correct_phase; }
     void set_correct_phase(bool val) { conf_.correct_phase = val; }
 
-    katherine::phase phase() const { return (katherine::phase) conf_.phase; }
-    void set_phase(katherine::phase val) { conf_.phase = (katherine_tpx3_phase_t) val; }
+    katherine::tpx3::phase phase() const { return (katherine::tpx3::phase) conf_.phase; }
+    void set_phase(katherine::tpx3::phase val) { conf_.phase = (katherine_tpx3_phase_t) val; }
 
-    katherine::freq freq() const { return (katherine::freq) conf_.freq; }
-    void set_freq(katherine::freq val) { conf_.freq = (katherine_tpx3_freq_t) val; }
+    katherine::tpx3::freq freq() const { return (katherine::tpx3::freq) conf_.freq; }
+    void set_freq(katherine::tpx3::freq val) { conf_.freq = (katherine_tpx3_freq_t) val; }
 
     const katherine::dacs& dacs() const { return conf_.dacs; }
     katherine::dacs& dacs() { return conf_.dacs; }

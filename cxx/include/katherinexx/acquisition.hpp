@@ -30,10 +30,16 @@ namespace katherine {
 
 static constexpr std::size_t md_size = KATHERINE_MD_SIZE;
 
-enum class readout_type {
+// Timepix3's, like phase, freq and px_mode in config.hpp, and named for the C
+// side's katherine_tpx3_readout_mode_t rather than the 1.x "type".
+namespace tpx3 {
+
+enum class readout_mode {
     sequential  = KATHERINE_TPX3_READOUT_SEQUENTIAL,
     data_driven = KATHERINE_TPX3_READOUT_DATA_DRIVEN
 };
+
+} // namespace tpx3
 
 enum class acq_state {
     not_started = KATHERINE_ACQUISITION_STATE_NOT_STARTED,
@@ -66,7 +72,7 @@ protected:
     katherine_acquisition_t acq_;
 
 private:
-    px_mode mode_;
+    tpx3::px_mode mode_;
     bool fast_vco_enabled_;
     bool decode_data_;
 
@@ -97,7 +103,7 @@ private:
 
 public:
     template<typename Rep1, typename Period1, typename Rep2, typename Period2>
-    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout, px_mode mode, bool fast_vco_enabled, bool decode_data)
+    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout, tpx3::px_mode mode, bool fast_vco_enabled, bool decode_data)
         : acq_{},
           mode_{mode},
           fast_vco_enabled_{fast_vco_enabled},
@@ -146,10 +152,10 @@ public:
     }
 
     void
-    begin(const katherine::config& config, katherine::readout_type readout_type)
+    begin(const katherine::config& config, katherine::tpx3::readout_mode readout_mode)
     {
         int res = katherine_acquisition_begin(&acq_, config.c_config(),
-            (katherine_tpx3_readout_mode_t) readout_type,
+            (katherine_tpx3_readout_mode_t) readout_mode,
             (katherine_tpx3_px_mode_t) mode_, fast_vco_enabled_, decode_data_);
 
         if (res != 0) {
@@ -210,37 +216,37 @@ namespace acq {
 
 struct f_toa_tot {
     using pixel_type                       = katherine_px_f_toa_tot_t;
-    static constexpr px_mode mode    = px_mode::toa_tot;
+    static constexpr tpx3::px_mode mode    = tpx3::px_mode::toa_tot;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct toa_tot {
     using pixel_type                       = katherine_px_toa_tot_t;
-    static constexpr px_mode mode    = px_mode::toa_tot;
+    static constexpr tpx3::px_mode mode    = tpx3::px_mode::toa_tot;
     static constexpr bool fast_vco_enabled = false;
 };
 
 struct f_toa_only {
     using pixel_type                       = katherine_px_f_toa_only_t;
-    static constexpr px_mode mode    = px_mode::only_toa;
+    static constexpr tpx3::px_mode mode    = tpx3::px_mode::only_toa;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct toa_only {
     using pixel_type                       = katherine_px_toa_only_t;
-    static constexpr px_mode mode    = px_mode::only_toa;
+    static constexpr tpx3::px_mode mode    = tpx3::px_mode::only_toa;
     static constexpr bool fast_vco_enabled = false;
 };
 
 struct f_event_count_itot {
     using pixel_type                       = katherine_px_f_event_count_itot_t;
-    static constexpr px_mode mode    = px_mode::event_count_itot;
+    static constexpr tpx3::px_mode mode    = tpx3::px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct event_count_itot {
     using pixel_type                       = katherine_px_event_count_itot_t;
-    static constexpr px_mode mode    = px_mode::event_count_itot;
+    static constexpr tpx3::px_mode mode    = tpx3::px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = false;
 };
 

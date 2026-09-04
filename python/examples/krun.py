@@ -64,8 +64,8 @@ def configure():
     c.gray_disable      = False
     c.polarity_holes    = False
 
-    c.phase             = k.Phase.PHASE_1
-    c.freq              = k.Freq.FREQ_40
+    c.phase             = k.Tpx3Phase.PHASE_1
+    c.freq              = k.Tpx3Freq.FREQ_40
 
     dacs = k.Dacs()
     dacs.Ibias_Preamp_ON       = 128
@@ -147,7 +147,7 @@ def run_acquisition(dev, c):
     acq.observer = MyObserver()
 
     print('Acquisition started')
-    acq.begin(c, k.ReadoutType.DATA_DRIVEN, k.AcquisitionMode.TOA_TOT, True)
+    acq.begin(c, k.Tpx3ReadoutMode.DATA_DRIVEN, k.Tpx3PxMode.TOA_TOT, True)
 
     tic = timer()
     acq.read()

@@ -655,7 +655,7 @@ cdef class PxConfig:
       return cpx_config.katherine_px_config_get_loc_thl(&self._c_px_config, PxConfig._coord(x, y))
 
 @unique
-class Phase(Enum):
+class Tpx3Phase(Enum):
     PHASE_1          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_1
     PHASE_2          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_2
     PHASE_4          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_4
@@ -664,7 +664,7 @@ class Phase(Enum):
 
 
 @unique
-class Freq(Enum):
+class Tpx3Freq(Enum):
     FREQ_20          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_20_MHZ
     FREQ_40          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_40_MHZ
     FREQ_80          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_80_MHZ
@@ -813,7 +813,7 @@ cdef class Config:
 
     @property
     def phase(self):
-       return Phase(self._c_config.phase)
+       return Tpx3Phase(self._c_config.phase)
 
     @phase.setter
     def phase(self, val):
@@ -821,7 +821,7 @@ cdef class Config:
 
     @property
     def freq(self):
-       return Freq(self._c_config.freq)
+       return Tpx3Freq(self._c_config.freq)
 
     @freq.setter
     def freq(self, val):
@@ -862,7 +862,7 @@ cdef class Config:
 
 
 @unique
-class AcquisitionMode(Enum):
+class Tpx3PxMode(Enum):
     TOA_TOT          = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_TOA_TOT
     ONLY_TOA         = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_ONLY_TOA
     EVENT_COUNT_ITOT = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
@@ -898,7 +898,7 @@ def str_phase_correction(v):
 
 
 @unique
-class ReadoutType(Enum):
+class Tpx3ReadoutMode(Enum):
     FRAME_BASED         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_SEQUENTIAL
     DATA_DRIVEN         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_DATA_DRIVEN
 
@@ -1175,18 +1175,18 @@ cdef class Acquisition:
 
     def begin(self, Config config, readout_type, px_mode, bool fast_vco_enabled, bool decode_data=True):
       if fast_vco_enabled:
-        if px_mode == AcquisitionMode.TOA_TOT:
+        if px_mode == Tpx3PxMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_tot
-        elif px_mode == AcquisitionMode.ONLY_TOA:
+        elif px_mode == Tpx3PxMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_only
-        elif px_mode == AcquisitionMode.EVENT_COUNT_ITOT:
+        elif px_mode == Tpx3PxMode.EVENT_COUNT_ITOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_event_count_itot
       else:
-        if px_mode == AcquisitionMode.TOA_TOT:
+        if px_mode == Tpx3PxMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_tot
-        elif px_mode == AcquisitionMode.ONLY_TOA:
+        elif px_mode == Tpx3PxMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_only
-        elif px_mode == AcquisitionMode.EVENT_COUNT_ITOT:
+        elif px_mode == Tpx3PxMode.EVENT_COUNT_ITOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_event_count_itot
 
       res = cacquisition.katherine_acquisition_begin(self._c_acq, &config._c_config, readout_type.value, px_mode.value, fast_vco_enabled, decode_data)
@@ -1230,11 +1230,11 @@ cdef class Acquisition:
 
     @property
     def readout_mode(self):
-       return ReadoutType(self._c_acq.readout_mode)
+       return Tpx3ReadoutMode(self._c_acq.readout_mode)
 
     @property
     def px_mode(self):
-       return AcquisitionMode(self._c_acq.px_mode)
+       return Tpx3PxMode(self._c_acq.px_mode)
 
     @property
     def fast_vco_enabled(self):

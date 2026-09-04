@@ -221,8 +221,8 @@ def build_config(katherine):
     c.gray_disable = False
     c.polarity_holes = False
 
-    c.phase = katherine.Phase.PHASE_1
-    c.freq = katherine.Freq.FREQ_40
+    c.phase = katherine.Tpx3Phase.PHASE_1
+    c.freq = katherine.Tpx3Freq.FREQ_40
 
     dacs = katherine.Dacs()
     dacs.Ibias_Preamp_ON = 128
@@ -283,7 +283,7 @@ def run_acquisition(katherine, device):
     probe = make_probe(katherine)
     acq.observer = probe
 
-    acq.begin(config, katherine.ReadoutType.DATA_DRIVEN, katherine.AcquisitionMode.TOA_TOT, True)
+    acq.begin(config, katherine.Tpx3ReadoutMode.DATA_DRIVEN, katherine.Tpx3PxMode.TOA_TOT, True)
     acq.read()
 
     return acq, probe
@@ -328,16 +328,39 @@ def check_enums(tap, katherine):
 
     Guards one specific way the bindings rot: the C enum grows and this layer
     does not follow, leaving a setting nameless from Python while everything
-    still compiles and every other test passes. Freq lost FREQ_20 that way.
+    still compiles and every other test passes. Tpx3Freq lost FREQ_20 that way.
     Spelled out as names and values rather than counted, so a member that is
     renamed or given the wrong value fails too.
     """
-    tap.check_eq('Freq enumerates every frequency',
-                 [(m.name, m.value) for m in katherine.Freq],
+    tap.check_eq('Tpx3Freq enumerates every frequency',
+                 [(m.name, m.value) for m in katherine.Tpx3Freq],
                  [('FREQ_20', 0), ('FREQ_40', 1), ('FREQ_80', 2), ('FREQ_160', 3)])
-    tap.check_eq('Phase enumerates every phase count',
-                 [(m.name, m.value) for m in katherine.Phase],
+    tap.check_eq('Tpx3Phase enumerates every phase count',
+                 [(m.name, m.value) for m in katherine.Tpx3Phase],
                  [('PHASE_1', 0), ('PHASE_2', 1), ('PHASE_4', 2), ('PHASE_8', 3), ('PHASE_16', 4)])
+    tap.check_eq('Tpx3PxMode enumerates every pixel mode',
+                 [(m.name, m.value) for m in katherine.Tpx3PxMode],
+                 [('TOA_TOT', 0), ('ONLY_TOA', 1), ('EVENT_COUNT_ITOT', 2)])
+    tap.check_eq('Tpx3ReadoutMode enumerates every readout mode',
+                 [(m.name, m.value) for m in katherine.Tpx3ReadoutMode],
+                 [('FRAME_BASED', 0), ('DATA_DRIVEN', 1)])
+    tap.check_eq('AcquisitionState enumerates every state',
+                 [(m.name, m.value) for m in katherine.AcquisitionState],
+                 [('NOT_STARTED', 0), ('RUNNING', 1), ('SUCCEEDED', 2), ('TIMED_OUT', 3)])
+    tap.check_eq('PhaseCorrection enumerates every outcome',
+                 [(m.name, m.value) for m in katherine.PhaseCorrection],
+                 [('NONE', 0), ('SOFTWARE', 1), ('HARDWARE', 2)])
+    # TEST_PULSE_PERIOD is absent on purpose: C aliases it to
+    # TEST_PULSE_METHOD, both naming register 0, and @unique forbids an alias.
+    # Python would not iterate it even without @unique, so this list is the
+    # whole of the enumeration either way.
+    tap.check_eq('Tpx3Reg enumerates every sensor register',
+                 [(m.name, m.value) for m in katherine.Tpx3Reg],
+                 [('TEST_PULSE_METHOD', 0), ('NUMBER_TEST_PULSES', 1),
+                  ('OUT_BLOCK_CONFIG', 2), ('PLL_CONFIG', 3), ('GENERAL_CONFIG', 4),
+                  ('SLVS_CONFIG', 5), ('POWER_PULSING_PATTERN', 6),
+                  ('SET_TIMER_LOW', 7), ('SET_TIMER_MID', 8), ('SET_TIMER_HIGH', 9),
+                  ('SENSE_DAC_SELECTOR', 10), ('EXT_DAC_SELECTOR', 11)])
 
 
 def run_checks(tap, katherine, device):

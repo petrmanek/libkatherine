@@ -93,8 +93,8 @@ configure(katherine::config& config)
     config.set_gray_disable(false);
     config.set_polarity_holes(false);
 
-    config.set_phase(katherine::phase::p1);
-    config.set_freq(katherine::freq::f40);
+    config.set_phase(katherine::tpx3::phase::p1);
+    config.set_freq(katherine::tpx3::freq::f40);
 
     katherine::dacs dacs{};
     dacs.named.Ibias_Preamp_ON   = 128;
@@ -200,7 +200,7 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
     acq.set_frame_ended_handler(frame_ended);
     acq.set_pixels_received_handler(pixels_received);
 
-    acq.begin(c, katherine::readout_type::data_driven);
+    acq.begin(c, katherine::tpx3::readout_mode::data_driven);
     std::cerr << "Acquisition started." << std::endl;
 
     auto tic = steady_clock::now();

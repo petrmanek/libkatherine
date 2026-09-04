@@ -202,7 +202,7 @@ public:
     }
 
     void
-    set_acq_mode(katherine::px_mode mode, bool fast_vco_enabled)
+    set_acq_mode(katherine::tpx3::px_mode mode, bool fast_vco_enabled)
     {
         int res = katherine_set_acq_mode(&dev_, (katherine_tpx3_px_mode_t) mode, fast_vco_enabled);
 
