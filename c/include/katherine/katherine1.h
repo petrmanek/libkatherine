@@ -170,9 +170,9 @@ katherine1_set_acq_time(katherine_device_t *device, double ns)
 /** \legacy1{katherine_set_acq_mode} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
+katherine1_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
 {
-    return katherine1_map_result(katherine_set_acq_mode(device, acq_mode, fast_vco_enabled));
+    return katherine1_map_result(katherine_set_acq_mode(device, px_mode, fast_vco_enabled));
 }
 
 /** \legacy1{katherine_set_no_frames} */
@@ -367,9 +367,9 @@ katherine1_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *de
 /** \legacy1{katherine_acquisition_begin} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
+katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
 {
-    return katherine1_map_result(katherine_acquisition_begin(acq, config, readout_mode, acq_mode, fast_vco_enabled, decode_data));
+    return katherine1_map_result(katherine_acquisition_begin(acq, config, readout_mode, px_mode, fast_vco_enabled, decode_data));
 }
 
 /** \legacy1{katherine_acquisition_abort} */
@@ -557,6 +557,77 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 #define katherine_emu_crd_out(...)  katherine1_emu_crd_out(__VA_ARGS__)
 #define katherine_emu_data_out(...) katherine1_emu_data_out(__VA_ARGS__)
 #endif /* KATHERINE_EMU_CRD_SIZE */
+
+//
+// The 2.0 enumeration renames, aliased back to their 1.x spellings. Object-like
+// macros rather than the function-like ones above, since these name types and
+// values rather than calls.
+//
+// This deliberately re-pollutes the namespace a 2.0 consumer keeps clear:
+// PHASE_1, FREQ_40 and READOUT_SEQUENTIAL are short enough that a
+// data-acquisition program might define them itself, which is exactly why 2.0
+// prefixes them -- and exactly what a 1.x source expects to find. Opting into
+// this header is opting into that, for the shim's lifetime.
+//
+// katherine_acquisition_state{,_t} and katherine_tpx3_reg{,_t} are absent
+// because they did not move: the first is a generic lifecycle, the second was
+// already stemmed. Their ENUMERATORS did move, and are here.
+//
+// The chip-type names are absent for a different reason: katherine_asic_t and
+// KATHERINE_ASIC_* are 2.0's own, added with the device-recognition table, so
+// no 1.x source can contain them and aliasing them would re-pollute the
+// namespace for a compatibility nobody can need.
+
+#define katherine_readout_type                katherine_tpx3_readout_mode
+#define katherine_readout_type_t              katherine_tpx3_readout_mode_t
+#define katherine_acquisition_mode            katherine_tpx3_px_mode
+#define katherine_acquisition_mode_t          katherine_tpx3_px_mode_t
+#define katherine_phase                       katherine_tpx3_phase
+#define katherine_phase_t                     katherine_tpx3_phase_t
+#define katherine_freq                        katherine_tpx3_freq
+#define katherine_freq_t                      katherine_tpx3_freq_t
+
+#define katherine_str_acquisition_mode(...)   katherine_str_px_mode(__VA_ARGS__)
+#define katherine_str_readout_type(...)       katherine_str_readout_mode(__VA_ARGS__)
+#define katherine_str_acquisition_status(...) katherine_str_acquisition_state(__VA_ARGS__)
+
+
+#define READOUT_SEQUENTIAL                    KATHERINE_TPX3_READOUT_SEQUENTIAL
+#define READOUT_DATA_DRIVEN                   KATHERINE_TPX3_READOUT_DATA_DRIVEN
+
+#define ACQUISITION_NOT_STARTED               KATHERINE_ACQUISITION_STATE_NOT_STARTED
+#define ACQUISITION_RUNNING                   KATHERINE_ACQUISITION_STATE_RUNNING
+#define ACQUISITION_SUCCEEDED                 KATHERINE_ACQUISITION_STATE_SUCCEEDED
+#define ACQUISITION_TIMED_OUT                 KATHERINE_ACQUISITION_STATE_TIMED_OUT
+
+#define ACQUISITION_MODE_TOA_TOT              KATHERINE_TPX3_PX_TOA_TOT
+#define ACQUISITION_MODE_ONLY_TOA             KATHERINE_TPX3_PX_ONLY_TOA
+#define ACQUISITION_MODE_EVENT_ITOT           KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
+
+#define PHASE_1                               KATHERINE_TPX3_PHASE_1
+#define PHASE_2                               KATHERINE_TPX3_PHASE_2
+#define PHASE_4                               KATHERINE_TPX3_PHASE_4
+#define PHASE_8                               KATHERINE_TPX3_PHASE_8
+#define PHASE_16                              KATHERINE_TPX3_PHASE_16
+
+#define FREQ_20                               KATHERINE_TPX3_FREQ_20_MHZ
+#define FREQ_40                               KATHERINE_TPX3_FREQ_40_MHZ
+#define FREQ_80                               KATHERINE_TPX3_FREQ_80_MHZ
+#define FREQ_160                              KATHERINE_TPX3_FREQ_160_MHZ
+
+#define TPX3_REG_TEST_PULSE_METHOD            KATHERINE_TPX3_REG_TEST_PULSE_METHOD
+#define TPX3_REG_TEST_PULSE_PERIOD            KATHERINE_TPX3_REG_TEST_PULSE_PERIOD
+#define TPX3_REG_NUMBER_TEST_PULSES           KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
+#define TPX3_REG_OUT_BLOCK_CONFIG             KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
+#define TPX3_REG_PLL_CONFIG                   KATHERINE_TPX3_REG_PLL_CONFIG
+#define TPX3_REG_GENERAL_CONFIG               KATHERINE_TPX3_REG_GENERAL_CONFIG
+#define TPX3_REG_SLVS_CONFIG                  KATHERINE_TPX3_REG_SLVS_CONFIG
+#define TPX3_REG_POWER_PULSING_PATTERN        KATHERINE_TPX3_REG_POWER_PULSING_PATTERN
+#define TPX3_REG_SET_TIMER_LOW                KATHERINE_TPX3_REG_SET_TIMER_LOW
+#define TPX3_REG_SET_TIMER_MID                KATHERINE_TPX3_REG_SET_TIMER_MID
+#define TPX3_REG_SET_TIMER_HIGH               KATHERINE_TPX3_REG_SET_TIMER_HIGH
+#define TPX3_REG_SENSE_DAC_SELECTOR           KATHERINE_TPX3_REG_SENSE_DAC_SELECTOR
+#define TPX3_REG_EXT_DAC_SELECTOR             KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

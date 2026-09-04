@@ -299,8 +299,8 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
     config->no_frames = no_frames;
     config->bias      = 230;
 
-    config->phase = PHASE_1;
-    config->freq  = FREQ_40;
+    config->phase = KATHERINE_TPX3_PHASE_1;
+    config->freq  = KATHERINE_TPX3_FREQ_40_MHZ;
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;
@@ -352,11 +352,11 @@ check_one_frame(void)
 
     // One frame only: katherine_acquisition_begin() rejects a data-driven
     // acquisition of more than one frame outright (KATHERINE_E_INVAL).
-    KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true),
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_DATA_DRIVEN, KATHERINE_TPX3_PX_TOA_TOT, true, true),
         0);
     KT_CHECK_EQ(katherine_acquisition_read(&acq), 0);
 
-    KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, 1);
     KT_CHECK_EQ(acq.dropped_measurement_data, 0);
 

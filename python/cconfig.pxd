@@ -12,10 +12,10 @@ from cdevice cimport katherine_device_t
 from cpx_config cimport katherine_px_config_t
 
 cdef extern from 'katherine/config.h':
-    ctypedef enum katherine_acquisition_mode_t:
-        ACQUISITION_MODE_TOA_TOT
-        ACQUISITION_MODE_ONLY_TOA
-        ACQUISITION_MODE_EVENT_ITOT
+    ctypedef enum katherine_tpx3_px_mode_t:
+        KATHERINE_TPX3_PX_TOA_TOT
+        KATHERINE_TPX3_PX_ONLY_TOA
+        KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 
     ctypedef struct katherine_trigger_t:
         bool enabled
@@ -60,18 +60,18 @@ cdef extern from 'katherine/config.h':
 
     int katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
 
-    ctypedef enum katherine_phase_t:
-        PHASE_1
-        PHASE_2
-        PHASE_4
-        PHASE_8
-        PHASE_16   
+    ctypedef enum katherine_tpx3_phase_t:
+        KATHERINE_TPX3_PHASE_1
+        KATHERINE_TPX3_PHASE_2
+        KATHERINE_TPX3_PHASE_4
+        KATHERINE_TPX3_PHASE_8
+        KATHERINE_TPX3_PHASE_16
 
-    ctypedef enum katherine_freq_t:
-        FREQ_20
-        FREQ_40
-        FREQ_80
-        FREQ_160        
+    ctypedef enum katherine_tpx3_freq_t:
+        KATHERINE_TPX3_FREQ_20_MHZ
+        KATHERINE_TPX3_FREQ_40_MHZ
+        KATHERINE_TPX3_FREQ_80_MHZ
+        KATHERINE_TPX3_FREQ_160_MHZ
 
     ctypedef struct katherine_config_t:
         katherine_px_config_t pixel_config
@@ -91,8 +91,8 @@ cdef extern from 'katherine/config.h':
 
         bool correct_phase
 
-        katherine_phase_t phase
-        katherine_freq_t freq
+        katherine_tpx3_phase_t phase
+        katherine_tpx3_freq_t freq
         katherine_dacs_t dacs
 
         katherine_test_pulse_config_t test_pulse_config
@@ -100,23 +100,23 @@ cdef extern from 'katherine/config.h':
     int katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 
     ctypedef enum katherine_tpx3_reg_t:
-        TPX3_REG_TEST_PULSE_METHOD
-        TPX3_REG_NUMBER_TEST_PULSES
-        TPX3_REG_OUT_BLOCK_CONFIG
-        TPX3_REG_PLL_CONFIG
-        TPX3_REG_GENERAL_CONFIG
-        TPX3_REG_SLVS_CONFIG
-        TPX3_REG_POWER_PULSING_PATTERN
-        TPX3_REG_SET_TIMER_LOW
-        TPX3_REG_SET_TIMER_MID
-        TPX3_REG_SET_TIMER_HIGH
-        TPX3_REG_SENSE_DAC_SELECTOR
-        TPX3_REG_EXT_DAC_SELECTOR
+        KATHERINE_TPX3_REG_TEST_PULSE_METHOD
+        KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
+        KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
+        KATHERINE_TPX3_REG_PLL_CONFIG
+        KATHERINE_TPX3_REG_GENERAL_CONFIG
+        KATHERINE_TPX3_REG_SLVS_CONFIG
+        KATHERINE_TPX3_REG_POWER_PULSING_PATTERN
+        KATHERINE_TPX3_REG_SET_TIMER_LOW
+        KATHERINE_TPX3_REG_SET_TIMER_MID
+        KATHERINE_TPX3_REG_SET_TIMER_HIGH
+        KATHERINE_TPX3_REG_SENSE_DAC_SELECTOR
+        KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
     int katherine_configure(katherine_device_t *device, const katherine_config_t *config)
     int katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
     int katherine_set_acq_time(katherine_device_t *device, double ns)
-    int katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
+    int katherine_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
     int katherine_set_no_frames(katherine_device_t *device, int no_frames)
     int katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
     int katherine_set_seq_readout_start(katherine_device_t *device, int arg)

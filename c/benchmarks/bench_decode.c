@@ -145,8 +145,8 @@ build_canned_buffer(uint8_t *buf, size_t words)
         katherine_acquisition_t acq = {0}; \
         /* Zero would let the compiler fold the coarse-tick multiply away and \
            measure a decoder that does less work than the real one. */ \
-        acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(FREQ_40); \
-        acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40); \
+        acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ); \
+        acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ); \
         uint64_t acc                      = 0; \
         const uint8_t *p                  = buf; \
         for (size_t i = 0; i < words; ++i, p += KATHERINE_MD_SIZE) { \

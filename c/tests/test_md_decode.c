@@ -59,7 +59,7 @@
 // Timestamps are decoded into fine-oscillator ticks, so every coarse quantity
 // below is compared after scaling by the ratio for the configured frequency.
 // Named once here and asserted against the library in test_fine_ticks_pin.
-#define TOA_FREQ              FREQ_40
+#define TOA_FREQ              KATHERINE_TPX3_FREQ_40_MHZ
 #define TOA_FINE              16ull
 #define TOA_FINE_SHIFT        4u
 
@@ -223,8 +223,8 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     // loop refuses a divider it was not built for rather than guessing one.
     acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(TOA_FREQ);
     acq.last_toa_offset               = TOA_FINE;
-    acq.state                         = ACQUISITION_RUNNING;
-    acq.acq_mode                      = ACQUISITION_MODE_TOA_TOT;
+    acq.state                         = KATHERINE_ACQUISITION_STATE_RUNNING;
+    acq.px_mode                       = KATHERINE_TPX3_PX_TOA_TOT;
     acq.fast_vco_enabled              = false;
     acq.decode_data                   = true;
     acq.requested_frames              = frames;
@@ -263,7 +263,7 @@ test_fine_ticks_pin(void)
 
     // The two accessors describe the same ratio, so the shift must reproduce
     // it exactly -- at every frequency, not only the one used here.
-    const katherine_freq_t every[] = {FREQ_20, FREQ_40, FREQ_80, FREQ_160};
+    const katherine_tpx3_freq_t every[] = {KATHERINE_TPX3_FREQ_20_MHZ, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_FREQ_80_MHZ, KATHERINE_TPX3_FREQ_160_MHZ};
     for (size_t i = 0; i < sizeof(every) / sizeof(every[0]); ++i) {
         KT_CHECK_EQ(1u << katherine_tpx3_toa_coarse_tick_to_fine_shift(every[i]),
             katherine_tpx3_toa_coarse_tick_to_fine_ticks(every[i]));
@@ -411,7 +411,7 @@ test_toa_offset_reset(void)
     decode_probe_t probe;
     KT_CHECK_EQ(run_stream(stream, &datagram_len, 1, 2, &probe), 0);
 
-    KT_CHECK_EQ(probe.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(probe.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(probe.completed_frames, 2);
     KT_CHECK_EQ(probe.dropped, 0);
     KT_CHECK_EQ(probe.frames_started, 2);
@@ -466,7 +466,7 @@ test_partial_datum_ignored(void)
     decode_probe_t probe;
     KT_CHECK_EQ(run_stream(stream, datagram_len, 2, 2, &probe), 0);
 
-    KT_CHECK_EQ(probe.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(probe.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(probe.completed_frames, 2);
     KT_CHECK_EQ(probe.dropped, 0);
     KT_CHECK_EQ(probe.frames_started, 2);

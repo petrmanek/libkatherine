@@ -111,29 +111,33 @@ format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *addr)
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
- * Get stable, lowercase description of a readout type.
- * \param type Readout type to describe
+ * Get stable, lowercase description of a readout mode.
+ * \param mode Readout mode to describe
  * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
-katherine_str_readout_type(katherine_readout_type_t type)
+katherine_str_readout_mode(katherine_tpx3_readout_mode_t mode)
 {
-    switch (type) {
-    case READOUT_SEQUENTIAL:  return "sequential";
-    case READOUT_DATA_DRIVEN: return "data_driven";
-    default:                  return "unknown";
+    switch (mode) {
+    case KATHERINE_TPX3_READOUT_SEQUENTIAL:  return "sequential";
+    case KATHERINE_TPX3_READOUT_DATA_DRIVEN: return "data_driven";
+    default:                                 return "unknown";
     }
 }
 
-/** \copydoc katherine_str_readout_type */
+/**
+ * Get the human-readable name of a chip type.
+ * \param v Chip type to name
+ * \return Null-terminated string. "(unknown)" for a value outside the enum.
+ */
 const char *
-katherine_str_asic(katherine_asic_t v)
+katherine_str_chip_type(katherine_chip_type_t v)
 {
     switch (v) {
-    case KATHERINE_ASIC_TPX2:    return "Timepix2";
-    case KATHERINE_ASIC_TPX3:    return "Timepix3";
-    case KATHERINE_ASIC_TPX4:    return "Timepix4";
-    case KATHERINE_ASIC_UNKNOWN: return "(unknown)";
+    case KATHERINE_CHIP_TPX2:    return "Timepix2";
+    case KATHERINE_CHIP_TPX3:    return "Timepix3";
+    case KATHERINE_CHIP_TPX4:    return "Timepix4";
+    case KATHERINE_CHIP_UNKNOWN: return "(unknown)";
     default:                     return "(unknown)";
     }
 }
@@ -153,8 +157,8 @@ katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info
     }
 
     REPR_APPENDF(buf, cap, off,
-        "device_info{hw_type: 0x%02x, name: %s, asic: %s, gen: %u, max_chip_count: %u, supported: %s}",
-        (unsigned) v->hw_type, v->name, katherine_str_asic(v->asic), (unsigned) v->gen,
+        "device_info{hw_type: 0x%02x, name: %s, chip_type: %s, gen: %u, max_chip_count: %u, supported: %s}",
+        (unsigned) v->hw_type, v->name, katherine_str_chip_type(v->chip_type), (unsigned) v->gen,
         (unsigned) v->max_chip_count, katherine_str_bool(v->supported));
     return (int) off;
 }
@@ -182,13 +186,13 @@ katherine_str_phase_correction(katherine_phase_correction_t v)
  * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
-katherine_str_acquisition_mode(katherine_acquisition_mode_t mode)
+katherine_str_px_mode(katherine_tpx3_px_mode_t mode)
 {
     switch (mode) {
-    case ACQUISITION_MODE_TOA_TOT:    return "toa_tot";
-    case ACQUISITION_MODE_ONLY_TOA:   return "only_toa";
-    case ACQUISITION_MODE_EVENT_ITOT: return "event_itot";
-    default:                          return "unknown";
+    case KATHERINE_TPX3_PX_TOA_TOT:          return "toa_tot";
+    case KATHERINE_TPX3_PX_ONLY_TOA:         return "only_toa";
+    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT: return "event_itot";
+    default:                                 return "unknown";
     }
 }
 
@@ -198,15 +202,15 @@ katherine_str_acquisition_mode(katherine_acquisition_mode_t mode)
  * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
-katherine_str_phase(katherine_phase_t phase)
+katherine_str_phase(katherine_tpx3_phase_t phase)
 {
     switch (phase) {
-    case PHASE_1:  return "phase_1";
-    case PHASE_2:  return "phase_2";
-    case PHASE_4:  return "phase_4";
-    case PHASE_8:  return "phase_8";
-    case PHASE_16: return "phase_16";
-    default:       return "unknown";
+    case KATHERINE_TPX3_PHASE_1:  return "phase_1";
+    case KATHERINE_TPX3_PHASE_2:  return "phase_2";
+    case KATHERINE_TPX3_PHASE_4:  return "phase_4";
+    case KATHERINE_TPX3_PHASE_8:  return "phase_8";
+    case KATHERINE_TPX3_PHASE_16: return "phase_16";
+    default:                      return "unknown";
     }
 }
 
@@ -216,14 +220,14 @@ katherine_str_phase(katherine_phase_t phase)
  * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
-katherine_str_freq(katherine_freq_t freq)
+katherine_str_freq(katherine_tpx3_freq_t freq)
 {
     switch (freq) {
-    case FREQ_20:  return "freq_20";
-    case FREQ_40:  return "freq_40";
-    case FREQ_80:  return "freq_80";
-    case FREQ_160: return "freq_160";
-    default:       return "unknown";
+    case KATHERINE_TPX3_FREQ_20_MHZ:  return "freq_20";
+    case KATHERINE_TPX3_FREQ_40_MHZ:  return "freq_40";
+    case KATHERINE_TPX3_FREQ_80_MHZ:  return "freq_80";
+    case KATHERINE_TPX3_FREQ_160_MHZ: return "freq_160";
+    default:                          return "unknown";
     }
 }
 
@@ -431,10 +435,10 @@ katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off,
-        "acquisition{state: %s, readout_mode: %s, acq_mode: %s, aborted: %s, requested_frames: %d, completed_frames: %d, "
+        "acquisition{state: %s, readout_mode: %s, px_mode: %s, aborted: %s, requested_frames: %d, completed_frames: %d, "
         "dropped_measurement_data: %zu, truncated_measurement_data: %llu, md_buffer_size: %zu, pixel_buffer_size: %zu}",
-        katherine_str_acquisition_status(v->state), katherine_str_readout_type((katherine_readout_type_t) v->readout_mode),
-        katherine_str_acquisition_mode((katherine_acquisition_mode_t) v->acq_mode), katherine_str_bool(v->aborted),
+        katherine_str_acquisition_state(v->state), katherine_str_readout_mode((katherine_tpx3_readout_mode_t) v->readout_mode),
+        katherine_str_px_mode((katherine_tpx3_px_mode_t) v->px_mode), katherine_str_bool(v->aborted),
         v->requested_frames, v->completed_frames, v->dropped_measurement_data,
         (unsigned long long) v->truncated_measurement_data, v->md_buffer_size, v->pixel_buffer_size);
     return (int) off;

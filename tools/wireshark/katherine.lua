@@ -161,11 +161,11 @@ local SENSOR_REG_NAMES = {
     [11] = "EXT_DAC_SELECTOR",
 }
 
--- katherine_acquisition_mode_t, c/include/katherine/config.h (opcode 0x09, byte[0] bits 0-6)
+-- katherine_tpx3_px_mode_t, c/include/katherine/config.h (opcode 0x09, byte[0] bits 0-6)
 local ACQ_MODE_NAMES = {
-    [0] = "ACQUISITION_MODE_TOA_TOT",
-    [1] = "ACQUISITION_MODE_ONLY_TOA",
-    [2] = "ACQUISITION_MODE_EVENT_ITOT",
+    [0] = "KATHERINE_TPX3_PX_TOA_TOT",
+    [1] = "KATHERINE_TPX3_PX_ONLY_TOA",
+    [2] = "KATHERINE_TPX3_PX_EVENT_COUNT_ITOT",
 }
 
 local YES_NO = { [0] = "No", [1] = "Yes" }
@@ -231,7 +231,7 @@ local f_payload_float    = ProtoField.float("katherine.payload_float", "Payload 
 local f_payload_uint     = ProtoField.uint32("katherine.payload_uint", "Payload (unsigned integer)")
 
 -- opcode 0x09: acquisition mode setting (byte[0] packed flags)
-local f_acq_mode         = ProtoField.uint8("katherine.acq_mode", "Acquisition mode", base.DEC, ACQ_MODE_NAMES, 0x7F)
+local f_acq_mode         = ProtoField.uint8("katherine.px_mode", "Acquisition mode", base.DEC, ACQ_MODE_NAMES, 0x7F)
 local f_fast_vco         = ProtoField.uint8("katherine.fast_vco_enabled", "Fast VCO enabled", base.DEC, YES_NO, 0x80)
 
 -- opcode 0x21: acquisition setup (byte[0]/byte[1] packed trigger flags)

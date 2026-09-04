@@ -306,7 +306,7 @@ test_slow_control(void)
 static void
 test_fine_ticks_pin(void)
 {
-    KT_CHECK_EQ(katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40), FINE_TICKS);
+    KT_CHECK_EQ(katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ), FINE_TICKS);
 }
 
 // Acquisition fixture shared by the remaining cases.
@@ -479,8 +479,8 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
     config->no_frames = no_frames;
     config->bias      = 230;
 
-    config->phase = PHASE_1;
-    config->freq  = FREQ_40;
+    config->phase = KATHERINE_TPX3_PHASE_1;
+    config->freq  = KATHERINE_TPX3_FREQ_40_MHZ;
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;
@@ -539,7 +539,7 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     // and after any earlier acquisition because read() cleared it.
     KT_CHECK(g_device.acquisition == NULL);
 
-    res = katherine_acquisition_begin(acq, &config, readout_mode, ACQUISITION_MODE_TOA_TOT, true, decode_data);
+    res = katherine_acquisition_begin(acq, &config, readout_mode, KATHERINE_TPX3_PX_TOA_TOT, true, decode_data);
     if (res != 0) return res;
 
     // The device reports a measurement in flight for exactly the span between
@@ -569,9 +569,9 @@ test_data_driven_frame(void)
     // One frame only: katherine_acquisition_begin() rejects a data-driven
     // acquisition of more than one frame outright (KATHERINE_E_INVAL), which
     // is what bounds this case.
-    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
 
-    KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, 1);
     KT_CHECK_EQ(acq.dropped_measurement_data, 0);
     KT_CHECK(!acq.aborted);
@@ -603,9 +603,9 @@ test_sequential_frames(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_SEQUENTIAL, SHORT_ACQ_TIME_NS, SEQ_FRAMES, true, false), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_SEQUENTIAL, SHORT_ACQ_TIME_NS, SEQ_FRAMES, true, false), 0);
 
-    KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, SEQ_FRAMES);
     KT_CHECK_EQ(acq.dropped_measurement_data, 0);
 
@@ -637,14 +637,14 @@ test_abort_undecoded(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, false, true), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, false, true), 0);
 
     KT_CHECK(probe.data_callbacks > 0);
     KT_CHECK(probe.abort_requested);
     KT_CHECK_EQ(probe.abort_result, 0);
 
     KT_CHECK(acq.aborted);
-    KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
 
     // The shutter was still open, so no frame ever finished; and with
     // decoding off, no frame ever started as far as the library is
@@ -662,7 +662,7 @@ test_abort_decoded(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, true, true), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, true, true), 0);
 
     // The undecoded chain is not consulted at all here: the abort came from
     // the frame-started handler instead.
@@ -671,7 +671,7 @@ test_abort_decoded(void)
     KT_CHECK_EQ(probe.abort_result, 0);
 
     KT_CHECK(acq.aborted);
-    KT_CHECK_EQ(acq.state, ACQUISITION_SUCCEEDED);
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
 
     // The shutter was still open, so the frame the abort interrupted is
     // reported ended and incomplete, and it delivered fewer hits than a
@@ -743,7 +743,7 @@ test_faux_echo_rejected(void)
 // is which of the three outcomes begin() picks, and whether it fills the table
 // to match.
 static void
-check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
+check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool request,
     katherine_phase_correction_t expect)
 {
     katherine_acquisition_t acq;
@@ -766,7 +766,7 @@ check_resolution(katherine_freq_t freq, katherine_phase_t phase, bool request,
     // Sequential readout so the run ends on its own; the hits are irrelevant
     // here, only the state begin() left behind.
     KT_REQUIRE(katherine_acquisition_begin(
-                   &acq, &config, READOUT_SEQUENTIAL, ACQUISITION_MODE_TOA_TOT, false, true)
+                   &acq, &config, KATHERINE_TPX3_READOUT_SEQUENTIAL, KATHERINE_TPX3_PX_TOA_TOT, false, true)
         == 0);
 
     KT_CHECK_EQ(acq.phase_correction, expect);
@@ -813,21 +813,21 @@ static void
 test_phase_request_resolution(void)
 {
     // Not asked for: nothing happens, however many phases there are.
-    check_resolution(FREQ_40, PHASE_16, false, KATHERINE_PHASE_CORRECTION_NONE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, false, KATHERINE_PHASE_CORRECTION_NONE);
 
     // Asked for, and there is something to correct.
-    check_resolution(FREQ_40, PHASE_16, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
-    check_resolution(FREQ_40, PHASE_2, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_2, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
 
     // Asked for, but the configuration yields a single phase, so there is
     // genuinely nothing to correct. Reported as NONE rather than as SOFTWARE
     // over a table of zeroes: the caller is told, not reassured.
-    check_resolution(FREQ_40, PHASE_1, true, KATHERINE_PHASE_CORRECTION_NONE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_1, true, KATHERINE_PHASE_CORRECTION_NONE);
 
     // And where the divider clamps the phase count to one, likewise -- the
     // enumerator asked for more than the clock grants.
-    KT_REQUIRE(katherine_actual_phases(FREQ_160, PHASE_2) == 1);
-    check_resolution(FREQ_160, PHASE_2, true, KATHERINE_PHASE_CORRECTION_NONE);
+    KT_REQUIRE(katherine_actual_phases(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2) == 1);
+    check_resolution(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2, true, KATHERINE_PHASE_CORRECTION_NONE);
 
     // HARDWARE is unreachable until a readout reports the capability, so it is
     // not exercised here; katherine_device_can_correct_timestamp_phase()

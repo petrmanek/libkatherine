@@ -38,9 +38,10 @@ The Event+iToT hit counter moves to the variant that actually carries it.
 Timepix3 manual Figure 1 gives bits [3:0] of an Event+iToT word as dummy with
 the fast oscillator on and as the pixel hit counter with it off -- the one mode
 whose fast variant carries less than its slow one, there being no fine ToA to
-report. `katherine_px_f_event_itot_t` exposed a `hit_count` that read the dummy
-field, and `katherine_px_event_itot_t` omitted one and discarded a real counter.
-The field swaps between them, so both structs change size.
+report. `katherine_px_f_event_itot_t` exposed a `hit_count` that read
+the dummy field, and `katherine_px_event_itot_t` omitted one and
+discarded a real counter. The field swaps between them, so both structs
+change size.
 
 Measured on a Gen1 readout rather than taken from the figure. With the
 oscillator on, 3012 pixels at high occupancy read zero throughout while the

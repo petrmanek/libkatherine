@@ -114,12 +114,12 @@ run_case(bool send_frame_finished, struct stats *s)
     acq.handlers.frame_ended     = frame_ended;
 
     // Stand in for katherine_acquisition_begin (which needs hardware).
-    acq.state = ACQUISITION_RUNNING;
+    acq.state = KATHERINE_ACQUISITION_STATE_RUNNING;
     // Resolved by katherine_acquisition_begin() in a real run; the decoder is
     // instantiated per pixel-clock divider and refuses to guess one.
-    acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(FREQ_40);
-    acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQ_40);
-    acq.acq_mode                      = ACQUISITION_MODE_TOA_TOT;
+    acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ);
+    acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ);
+    acq.px_mode                       = KATHERINE_TPX3_PX_TOA_TOT;
     acq.fast_vco_enabled              = false;
     acq.decode_data                   = true;
     acq.requested_frames              = 1;

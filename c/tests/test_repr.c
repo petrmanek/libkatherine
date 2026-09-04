@@ -231,7 +231,7 @@ test_frame_info(void)
         "start_time_observed: 1700000000, end_time_observed: 1700000001, completed: true}");
 }
 
-// acq_mode/readout_mode are 'char' fields storing enum values; only_toa and
+// px_mode/readout_mode are 'char' fields storing enum values; only_toa and
 // data_driven give this a second and third enum token beyond phase_1/freq_40
 // in test_config() and succeeded in test_str_acquisition_status_tokens().
 static void
@@ -240,9 +240,9 @@ test_acquisition(void)
     katherine_acquisition_t v;
     memset(&v, 0, sizeof(v));
 
-    v.state                      = ACQUISITION_SUCCEEDED;
-    v.readout_mode               = READOUT_DATA_DRIVEN;
-    v.acq_mode                   = ACQUISITION_MODE_ONLY_TOA;
+    v.state                      = KATHERINE_ACQUISITION_STATE_SUCCEEDED;
+    v.readout_mode               = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+    v.px_mode                    = KATHERINE_TPX3_PX_ONLY_TOA;
     v.aborted                    = true;
     v.requested_frames           = 5;
     v.completed_frames           = 5;
@@ -254,7 +254,7 @@ test_acquisition(void)
     char buf[512];
     int n = katherine_acquisition_snprint(buf, sizeof(buf), &v);
     CHECK_GOLDEN(n, buf,
-        "acquisition{state: succeeded, readout_mode: data_driven, acq_mode: only_toa, aborted: true, "
+        "acquisition{state: succeeded, readout_mode: data_driven, px_mode: only_toa, aborted: true, "
         "requested_frames: 5, completed_frames: 5, dropped_measurement_data: 2, truncated_measurement_data: 1, "
         "md_buffer_size: 4096, pixel_buffer_size: 8192}");
 }
@@ -343,26 +343,26 @@ test_device(void)
 static void
 test_str_enums(void)
 {
-    KT_CHECK(strcmp(katherine_str_readout_type(READOUT_SEQUENTIAL), "sequential") == 0);
-    KT_CHECK(strcmp(katherine_str_readout_type(READOUT_DATA_DRIVEN), "data_driven") == 0);
-    KT_CHECK(strcmp(katherine_str_readout_type((katherine_readout_type_t) 99), "unknown") == 0);
+    KT_CHECK(strcmp(katherine_str_readout_mode(KATHERINE_TPX3_READOUT_SEQUENTIAL), "sequential") == 0);
+    KT_CHECK(strcmp(katherine_str_readout_mode(KATHERINE_TPX3_READOUT_DATA_DRIVEN), "data_driven") == 0);
+    KT_CHECK(strcmp(katherine_str_readout_mode((katherine_tpx3_readout_mode_t) 99), "unknown") == 0);
 
-    KT_CHECK(strcmp(katherine_str_acquisition_mode(ACQUISITION_MODE_TOA_TOT), "toa_tot") == 0);
-    KT_CHECK(strcmp(katherine_str_acquisition_mode(ACQUISITION_MODE_EVENT_ITOT), "event_itot") == 0);
-    KT_CHECK(strcmp(katherine_str_acquisition_mode((katherine_acquisition_mode_t) 99), "unknown") == 0);
+    KT_CHECK(strcmp(katherine_str_px_mode(KATHERINE_TPX3_PX_TOA_TOT), "toa_tot") == 0);
+    KT_CHECK(strcmp(katherine_str_px_mode(KATHERINE_TPX3_PX_EVENT_COUNT_ITOT), "event_itot") == 0);
+    KT_CHECK(strcmp(katherine_str_px_mode((katherine_tpx3_px_mode_t) 99), "unknown") == 0);
 
-    KT_CHECK(strcmp(katherine_str_phase(PHASE_1), "phase_1") == 0);
-    KT_CHECK(strcmp(katherine_str_phase(PHASE_16), "phase_16") == 0);
-    KT_CHECK(strcmp(katherine_str_phase((katherine_phase_t) 99), "unknown") == 0);
+    KT_CHECK(strcmp(katherine_str_phase(KATHERINE_TPX3_PHASE_1), "phase_1") == 0);
+    KT_CHECK(strcmp(katherine_str_phase(KATHERINE_TPX3_PHASE_16), "phase_16") == 0);
+    KT_CHECK(strcmp(katherine_str_phase((katherine_tpx3_phase_t) 99), "unknown") == 0);
 
-    KT_CHECK(strcmp(katherine_str_freq(FREQ_40), "freq_40") == 0);
-    KT_CHECK(strcmp(katherine_str_freq(FREQ_160), "freq_160") == 0);
-    KT_CHECK(strcmp(katherine_str_freq((katherine_freq_t) 99), "unknown") == 0);
+    KT_CHECK(strcmp(katherine_str_freq(KATHERINE_TPX3_FREQ_40_MHZ), "freq_40") == 0);
+    KT_CHECK(strcmp(katherine_str_freq(KATHERINE_TPX3_FREQ_160_MHZ), "freq_160") == 0);
+    KT_CHECK(strcmp(katherine_str_freq((katherine_tpx3_freq_t) 99), "unknown") == 0);
 
     // Updated (2026-08-24) to underscore-separated tokens; see acquisition.c.
-    KT_CHECK(strcmp(katherine_str_acquisition_status(ACQUISITION_NOT_STARTED), "not_started") == 0);
-    KT_CHECK(strcmp(katherine_str_acquisition_status(ACQUISITION_TIMED_OUT), "timed_out") == 0);
-    KT_CHECK(strcmp(katherine_str_acquisition_status((char) 99), "unknown") == 0);
+    KT_CHECK(strcmp(katherine_str_acquisition_state(KATHERINE_ACQUISITION_STATE_NOT_STARTED), "not_started") == 0);
+    KT_CHECK(strcmp(katherine_str_acquisition_state(KATHERINE_ACQUISITION_STATE_TIMED_OUT), "timed_out") == 0);
+    KT_CHECK(strcmp(katherine_str_acquisition_state((char) 99), "unknown") == 0);
 
     KT_CHECK(strcmp(katherine_str_bool(true), "true") == 0);
     KT_CHECK(strcmp(katherine_str_bool(false), "false") == 0);
@@ -404,8 +404,8 @@ build_config(katherine_config_t *c)
     c->stop_trigger   = g_stop_trigger;
     c->gray_disable   = true;
     c->polarity_holes = false;
-    c->phase          = PHASE_1;
-    c->freq           = FREQ_40;
+    c->phase          = KATHERINE_TPX3_PHASE_1;
+    c->freq           = KATHERINE_TPX3_FREQ_40_MHZ;
     fill_dacs(&c->dacs);
     c->test_pulse_config = g_tp_config;
 }

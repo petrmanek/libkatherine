@@ -162,8 +162,8 @@ cdef class Device:
          res = cconfig.katherine_set_acq_time(self._c_device, ns)
          check_return_code(res)
 
-    def set_acq_mode(self, acq_mode, bool fast_vco_enabled):
-         res = cconfig.katherine_set_acq_mode(self._c_device, acq_mode.value, fast_vco_enabled)
+    def set_acq_mode(self, px_mode, bool fast_vco_enabled):
+         res = cconfig.katherine_set_acq_mode(self._c_device, px_mode.value, fast_vco_enabled)
          check_return_code(res)
 
     def set_no_frames(self, int no_frames):
@@ -656,19 +656,19 @@ cdef class PxConfig:
 
 @unique
 class Phase(Enum):
-    PHASE_1          = cconfig.katherine_phase_t.PHASE_1
-    PHASE_2          = cconfig.katherine_phase_t.PHASE_2
-    PHASE_4          = cconfig.katherine_phase_t.PHASE_4
-    PHASE_8          = cconfig.katherine_phase_t.PHASE_8
-    PHASE_16         = cconfig.katherine_phase_t.PHASE_16
+    PHASE_1          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_1
+    PHASE_2          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_2
+    PHASE_4          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_4
+    PHASE_8          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_8
+    PHASE_16         = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_16
 
 
 @unique
 class Freq(Enum):
-    FREQ_20          = cconfig.katherine_freq_t.FREQ_20
-    FREQ_40          = cconfig.katherine_freq_t.FREQ_40
-    FREQ_80          = cconfig.katherine_freq_t.FREQ_80
-    FREQ_160         = cconfig.katherine_freq_t.FREQ_160
+    FREQ_20          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_20_MHZ
+    FREQ_40          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_40_MHZ
+    FREQ_80          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_80_MHZ
+    FREQ_160         = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_160_MHZ
 
 
 def tpx3_toa_coarse_tick_to_fine_ticks(freq):
@@ -699,18 +699,18 @@ def tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t phase_
 
 @unique
 class Tpx3Reg(Enum):
-    TEST_PULSE_METHOD     = cconfig.katherine_tpx3_reg_t.TPX3_REG_TEST_PULSE_METHOD
-    NUMBER_TEST_PULSES    = cconfig.katherine_tpx3_reg_t.TPX3_REG_NUMBER_TEST_PULSES
-    OUT_BLOCK_CONFIG      = cconfig.katherine_tpx3_reg_t.TPX3_REG_OUT_BLOCK_CONFIG
-    PLL_CONFIG            = cconfig.katherine_tpx3_reg_t.TPX3_REG_PLL_CONFIG
-    GENERAL_CONFIG        = cconfig.katherine_tpx3_reg_t.TPX3_REG_GENERAL_CONFIG
-    SLVS_CONFIG           = cconfig.katherine_tpx3_reg_t.TPX3_REG_SLVS_CONFIG
-    POWER_PULSING_PATTERN = cconfig.katherine_tpx3_reg_t.TPX3_REG_POWER_PULSING_PATTERN
-    SET_TIMER_LOW         = cconfig.katherine_tpx3_reg_t.TPX3_REG_SET_TIMER_LOW
-    SET_TIMER_MID         = cconfig.katherine_tpx3_reg_t.TPX3_REG_SET_TIMER_MID
-    SET_TIMER_HIGH        = cconfig.katherine_tpx3_reg_t.TPX3_REG_SET_TIMER_HIGH
-    SENSE_DAC_SELECTOR    = cconfig.katherine_tpx3_reg_t.TPX3_REG_SENSE_DAC_SELECTOR
-    EXT_DAC_SELECTOR      = cconfig.katherine_tpx3_reg_t.TPX3_REG_EXT_DAC_SELECTOR
+    TEST_PULSE_METHOD     = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_TEST_PULSE_METHOD
+    NUMBER_TEST_PULSES    = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
+    OUT_BLOCK_CONFIG      = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
+    PLL_CONFIG            = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_PLL_CONFIG
+    GENERAL_CONFIG        = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_GENERAL_CONFIG
+    SLVS_CONFIG           = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_SLVS_CONFIG
+    POWER_PULSING_PATTERN = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_POWER_PULSING_PATTERN
+    SET_TIMER_LOW         = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_SET_TIMER_LOW
+    SET_TIMER_MID         = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_SET_TIMER_MID
+    SET_TIMER_HIGH        = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_SET_TIMER_HIGH
+    SENSE_DAC_SELECTOR    = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_SENSE_DAC_SELECTOR
+    EXT_DAC_SELECTOR      = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
 
 cdef class Config:
@@ -863,23 +863,23 @@ cdef class Config:
 
 @unique
 class AcquisitionMode(Enum):
-    TOA_TOT          = cconfig.katherine_acquisition_mode_t.ACQUISITION_MODE_TOA_TOT
-    ONLY_TOA         = cconfig.katherine_acquisition_mode_t.ACQUISITION_MODE_ONLY_TOA
-    EVENT_ITOT       = cconfig.katherine_acquisition_mode_t.ACQUISITION_MODE_EVENT_ITOT
+    TOA_TOT          = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_TOA_TOT
+    ONLY_TOA         = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_ONLY_TOA
+    EVENT_COUNT_ITOT = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 
 
 @unique
 class AcquisitionState(Enum):
-    NOT_STARTED      = cacquisition.katherine_acquisition_state_t.ACQUISITION_NOT_STARTED
-    RUNNING          = cacquisition.katherine_acquisition_state_t.ACQUISITION_RUNNING
-    SUCCEEDED        = cacquisition.katherine_acquisition_state_t.ACQUISITION_SUCCEEDED
-    TIMED_OUT        = cacquisition.katherine_acquisition_state_t.ACQUISITION_TIMED_OUT
+    NOT_STARTED      = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_NOT_STARTED
+    RUNNING          = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_RUNNING
+    SUCCEEDED        = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_SUCCEEDED
+    TIMED_OUT        = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_TIMED_OUT
 
 
 def str_acquisition_status(status):
     if isinstance(status, AcquisitionState):
         status = status.value
-    cdef const char *s = cacquisition.katherine_str_acquisition_status(status)
+    cdef const char *s = cacquisition.katherine_str_acquisition_state(status)
     return s.decode('UTF-8')
 
 
@@ -899,8 +899,8 @@ def str_phase_correction(v):
 
 @unique
 class ReadoutType(Enum):
-    FRAME_BASED         = cacquisition.katherine_readout_type_t.READOUT_SEQUENTIAL
-    DATA_DRIVEN         = cacquisition.katherine_readout_type_t.READOUT_DATA_DRIVEN
+    FRAME_BASED         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_SEQUENTIAL
+    DATA_DRIVEN         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_DATA_DRIVEN
 
 
 cdef class AcquisitionObserver:
@@ -1173,23 +1173,23 @@ cdef class Acquisition:
     def __repr__(self):
       return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._c_acq)
 
-    def begin(self, Config config, readout_type, acq_mode, bool fast_vco_enabled, bool decode_data=True):
+    def begin(self, Config config, readout_type, px_mode, bool fast_vco_enabled, bool decode_data=True):
       if fast_vco_enabled:
-        if acq_mode == AcquisitionMode.TOA_TOT:
+        if px_mode == AcquisitionMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_tot
-        elif acq_mode == AcquisitionMode.ONLY_TOA:
+        elif px_mode == AcquisitionMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_only
-        elif acq_mode == AcquisitionMode.EVENT_ITOT:
+        elif px_mode == AcquisitionMode.EVENT_ITOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_event_itot
       else:
-        if acq_mode == AcquisitionMode.TOA_TOT:
+        if px_mode == AcquisitionMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_tot
-        elif acq_mode == AcquisitionMode.ONLY_TOA:
+        elif px_mode == AcquisitionMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_only
-        elif acq_mode == AcquisitionMode.EVENT_ITOT:
+        elif px_mode == AcquisitionMode.EVENT_ITOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_event_itot
 
-      res = cacquisition.katherine_acquisition_begin(self._c_acq, &config._c_config, readout_type.value, acq_mode.value, fast_vco_enabled, decode_data)
+      res = cacquisition.katherine_acquisition_begin(self._c_acq, &config._c_config, readout_type.value, px_mode.value, fast_vco_enabled, decode_data)
       check_return_code(res)
 
     def abort(self):
@@ -1233,8 +1233,8 @@ cdef class Acquisition:
        return ReadoutType(self._c_acq.readout_mode)
 
     @property
-    def acq_mode(self):
-       return AcquisitionMode(self._c_acq.acq_mode)
+    def px_mode(self):
+       return AcquisitionMode(self._c_acq.px_mode)
 
     @property
     def fast_vco_enabled(self):

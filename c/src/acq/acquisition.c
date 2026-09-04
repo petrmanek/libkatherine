@@ -90,7 +90,7 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
     ++acq->completed_frames;
 
     if (acq->completed_frames == acq->requested_frames) {
-        acq->state = ACQUISITION_SUCCEEDED;
+        acq->state = KATHERINE_ACQUISITION_STATE_SUCCEEDED;
     }
 }
 
@@ -170,7 +170,7 @@ static inline void
 dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config)
 {
     printf("---- Begin Acquisition Configuration ----\n");
-    printf("Acquisition Mode:       %d\n",      acq->acq_mode);
+    printf("Acquisition Mode:       %d\n",      acq->px_mode);
     printf("Read-out Mode:          %d\n",      acq->readout_mode);
     printf("Fast VCO:               %s\n",      acq->fast_vco_enabled ? "enabled" : "disabled");
     printf("\n");
@@ -274,7 +274,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
 
     acq->device       = device;
     acq->user_ctx     = ctx;
-    acq->state        = ACQUISITION_NOT_STARTED;
+    acq->state        = KATHERINE_ACQUISITION_STATE_NOT_STARTED;
     acq->aborted      = false;
     acq->frame_active = false;
 
@@ -379,7 +379,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         acq->pixel_buffer_valid     = 0; \
         acq->pixel_buffer_max_valid = acq->pixel_buffer_size / PIXEL_SIZE; \
 \
-        while (acq->state == ACQUISITION_RUNNING) { \
+        while (acq->state == KATHERINE_ACQUISITION_STATE_RUNNING) { \
             received = acq->md_buffer_size; \
             res      = katherine_udp_recv(&acq->device->data_socket, acq->md_buffer, &received); \
 \
@@ -391,7 +391,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 \
                 duration = difftime(time(NULL), acq->acq_start_time); \
                 if (kill_off_time > 0 && duration > kill_off_time) { \
-                    acq->state = ACQUISITION_TIMED_OUT; \
+                    acq->state = KATHERINE_ACQUISITION_STATE_TIMED_OUT; \
                 } \
 \
                 /* An abort ends the acquisition as soon as the stream has \
@@ -399,7 +399,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                    is raised by katherine_acquisition_abort() and by the \
                    aborted measurement datum alike. */ \
                 if (acq->aborted) { \
-                    acq->state = ACQUISITION_SUCCEEDED; \
+                    acq->state = KATHERINE_ACQUISITION_STATE_SUCCEEDED; \
                 } \
                 continue; \
             } \
@@ -436,11 +436,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 \
         (void) katherine_udp_mutex_unlock(&acq->device->data_socket); \
         switch (acq->state) { \
-        case ACQUISITION_SUCCEEDED: return KATHERINE_E_OK; \
-        case ACQUISITION_TIMED_OUT: return KATHERINE_E_TIMEOUT; \
+        case KATHERINE_ACQUISITION_STATE_SUCCEEDED: return KATHERINE_E_OK; \
+        case KATHERINE_ACQUISITION_STATE_TIMED_OUT: return KATHERINE_E_TIMEOUT; \
         /* Reachable only if the read loop above never ran at all, i.e. \
            katherine_acquisition_read() was called on an acquisition that \
-           katherine_acquisition_begin() never brought to ACQUISITION_RUNNING: \
+           katherine_acquisition_begin() never brought to KATHERINE_ACQUISITION_STATE_RUNNING: \
            the two other terminal states are the explicit cases above. */ \
         default: return KATHERINE_E_STATE; \
         } \
@@ -471,24 +471,28 @@ DEFINE_ACQ_IMPL(event_itot, , pmd_event_itot_map)
 
 /**
  * The pixel clock reaches double column i on phase (i mod n), each phase a
- * coarse tick divided by n later than the last, so a hit there is timed against
- * an edge that much later than one in the first column -- and the timestamp
- * comes out that much smaller. Adding the offset back is what equalises hits
- * that arrived together.
+ * coarse tick divided by n later than the last, so a hit there is timed
+ * against an edge that much later than one in the first column -- and the
+ * timestamp comes out that much smaller. Adding the offset back is what
+ * equalises hits that arrived together.
  *
- * Both halves of a double column share a phase, hence x / 2. In fine ticks the
- * step is a whole number for every frequency and phase count, because a coarse
- * tick is a power-of-two multiple of the fine tick and the clamped phase count
- * divides it -- but only the CLAMPED count, from katherine_actual_phases(),
- * divides it. The enumerator's own name does not: PHASE_16 at FREQ_160 would
- * give a quarter of a fine tick.
+ * Both halves of a double column share a phase, hence x / 2. In fine ticks
+ * the step is a whole number for every frequency and phase count, because a
+ * coarse tick is a power-of-two multiple of the fine tick and the clamped
+ * phase count divides it -- but only the CLAMPED count, from
+ * katherine_actual_phases(), divides it. The enumerator's own name does not:
+ * KATHERINE_TPX3_PHASE_16 at KATHERINE_TPX3_FREQ_160_MHZ would give a quarter
+ * of a fine tick.
  *
  * Internal on purpose: the offsets reach callers through
- * katherine_acquisition_timestamp_phase_offset(), not as a table of their own.
+ * katherine_acquisition_timestamp_phase_offset(), not as a table of their
+ * own.
  *
- * \param coarse_tick_to_fine_shift Bitshift needed to calculate the number of fine clock ticks in a single coarse clock tick.
+ * \param coarse_tick_to_fine_shift Bitshift needed to calculate the number of
+ *   fine clock ticks in a single coarse clock tick.
  * \param phase_count Actual number of phases.
- * \param x Pixel X-coordinate (0..255), adjacent pixels within a double-column receive the same return value.
+ * \param x Pixel X-coordinate (0..255), adjacent pixels within a
+ *   double-column receive the same return value.
  * \return Offset applied to this pixel's column, in fine-oscillator ticks.
  */
 static uint8_t
@@ -570,9 +574,9 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * Read measurement data from acquisition.
  *
  * Returns once the acquisition leaves the running state, whether it finished,
- * timed out or was aborted. The device stops reporting a measurement in flight
- * at that point, so inquiries that a running acquisition refuses -- the sensor
- * temperature among them -- become available again.
+ * timed out or was aborted. The device stops reporting a measurement in
+ * flight at that point, so inquiries that a running acquisition refuses --
+ * the sensor temperature among them -- become available again.
  *
  * What ends it differs by path. Decoding, it is the frame-finished datum for
  * the last requested frame. Not decoding, that datum is never examined, so
@@ -594,18 +598,18 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * \retval KATHERINE_E_STATE if the acquisition was not running when the call
  *   was made, so the read loop never ran and nothing was read -- an
  *   acquisition katherine_acquisition_begin() never brought to
- *   ACQUISITION_RUNNING. Reading one that already finished is not this case:
- *   it reports the outcome it finished with again.
+ *   KATHERINE_ACQUISITION_STATE_RUNNING. Reading one that already finished is
+ *   not this case: it reports the outcome it finished with again.
  * \retval KATHERINE_E_INVAL if no decoder is instantiated for this
- *   acquisition's mode and pixel-clock divider -- an unknown acq_mode, or a
+ *   acquisition's mode and pixel-clock divider -- an unknown px_mode, or a
  *   coarse-to-fine shift outside 2..5 in a timestamp-bearing mode. The shift
  *   is resolved in katherine_acquisition_begin(), so this is what a read on
  *   an acquisition that never got through it reports, rather than decoding
  *   every timestamp at a guessed scale.
  * \retval KATHERINE_E_SYSTEM if the data session's lock, which the read holds
- *   for its whole duration, could not be taken; see pthread_mutex_lock(3)
- *   and katherine_udp_last_os_error(). That same lock failing with an errno
- *   the transport maps specially is reported as KATHERINE_E_NOMEM,
+ *   for its whole duration, could not be taken; see pthread_mutex_lock(3) and
+ *   katherine_udp_last_os_error(). That same lock failing with an errno the
+ *   transport maps specially is reported as KATHERINE_E_NOMEM,
  *   KATHERINE_E_INVAL or KATHERINE_E_TIMEOUT instead.
  * \retval KATHERINE_E_NOMEM if taking the data session's lock ran out of
  *   memory; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
@@ -620,8 +624,8 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
     // the set means the acquisition never went through
     // katherine_acquisition_begin(), and is refused rather than guessed --
     // guessing would misscale every timestamp in the run.
-    switch (acq->acq_mode) {
-    case ACQUISITION_MODE_TOA_TOT:
+    switch (acq->px_mode) {
+    case KATHERINE_TPX3_PX_TOA_TOT:
         if (acq->fast_vco_enabled) {
             switch (acq->toa_coarse_tick_to_fine_shift) {
             case 2:  res = acquisition_read_f_toa_tot_s2(acq); break;
@@ -641,7 +645,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
         }
         break;
 
-    case ACQUISITION_MODE_ONLY_TOA:
+    case KATHERINE_TPX3_PX_ONLY_TOA:
         if (acq->fast_vco_enabled) {
             switch (acq->toa_coarse_tick_to_fine_shift) {
             case 2:  res = acquisition_read_f_toa_only_s2(acq); break;
@@ -661,7 +665,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
         }
         break;
 
-    case ACQUISITION_MODE_EVENT_ITOT:
+    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT:
         if (acq->fast_vco_enabled) {
             res = acquisition_read_f_event_itot(acq);
         } else {
@@ -705,7 +709,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  * \param acq Acquisition
  * \param config Configuration
  * \param readout_mode Readout mode
- * \param acq_mode Acquisition mode
+ * \param px_mode Acquisition mode
  * \param fast_vco_enabled Enable fast voltage-controlled oscillators
  *
  * \retval KATHERINE_E_OK on success, with the readout armed and the
@@ -738,11 +742,11 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
 {
     katherine_error_t res = 0;
 
-    acq->acq_mode         = acq_mode;
+    acq->px_mode          = px_mode;
     acq->readout_mode     = readout_mode;
     acq->fast_vco_enabled = fast_vco_enabled;
     acq->decode_data      = decode_data;
@@ -751,7 +755,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     dump_config(acq, config);
 #endif /* KATHERINE_DEBUG_ACQ */
 
-    if (readout_mode == READOUT_DATA_DRIVEN && config->no_frames > 1) {
+    if (readout_mode == KATHERINE_TPX3_READOUT_DATA_DRIVEN && config->no_frames > 1) {
         res = KATHERINE_E_INVAL;
         goto err;
     }
@@ -771,10 +775,10 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     res = katherine_set_seq_readout_start(acq->device, readout_mode);
     if (res) goto err;
 
-    res = katherine_set_acq_mode(acq->device, acq_mode, fast_vco_enabled);
+    res = katherine_set_acq_mode(acq->device, px_mode, fast_vco_enabled);
     if (res) goto err;
 
-    acq->state = ACQUISITION_RUNNING;
+    acq->state = KATHERINE_ACQUISITION_STATE_RUNNING;
 
     acq->completed_frames           = 0;
     acq->requested_frames           = config->no_frames;
@@ -870,17 +874,18 @@ err:
 
 
 /**
- * Abort acquisition. This command does not wait for confirmation from
- * the readout and will cause the current frame to end upon receiving.
+ * Abort acquisition. This command does not wait for confirmation from the
+ * readout and will cause the current frame to end upon receiving.
  *
  * For acquisitions with decode_data == false, this is the only way to achieve
  * orderly termination: it raises the flag that katherine_acquisition_read()
  * acts on once the stream dries up, which is the only thing that will end the
  * read short of its timeout.
  *
- * Note the flag it raises is shared with the readout's own aborted-measurement
- * datum, so an acquisition the hardware abandoned and one the caller stopped
- * both finish as ACQUISITION_SUCCEEDED and cannot be told apart afterwards.
+ * Note the flag it raises is shared with the readout's own
+ * aborted-measurement datum, so an acquisition the hardware abandoned and one
+ * the caller stopped both finish as KATHERINE_ACQUISITION_STATE_SUCCEEDED and
+ * cannot be told apart afterwards.
  *
  * \param acq Acquisition
  *
@@ -929,8 +934,8 @@ err:
 /**
  * Get human-readable description of acquisition status.
  *
- * The tokens are the same style katherine_str_readout_type(),
- * katherine_str_acquisition_mode(), katherine_str_phase() and
+ * The tokens are the same style katherine_str_readout_mode(),
+ * katherine_str_px_mode(), katherine_str_phase() and
  * katherine_str_freq() use (repr.c): lowercase, underscore-separated,
  * stable across releases. Note for callers of the 1.x series: this
  * function used to return "not started" and "timed out" (with a space);
@@ -940,13 +945,13 @@ err:
  * \return Null-terminated string.
  */
 const char *
-katherine_str_acquisition_status(char status)
+katherine_str_acquisition_state(char status)
 {
     switch (status) {
-    case ACQUISITION_NOT_STARTED: return "not_started";
-    case ACQUISITION_SUCCEEDED:   return "succeeded";
-    case ACQUISITION_RUNNING:     return "running";
-    case ACQUISITION_TIMED_OUT:   return "timed_out";
-    default:                      return "unknown";
+    case KATHERINE_ACQUISITION_STATE_NOT_STARTED: return "not_started";
+    case KATHERINE_ACQUISITION_STATE_SUCCEEDED:   return "succeeded";
+    case KATHERINE_ACQUISITION_STATE_RUNNING:     return "running";
+    case KATHERINE_ACQUISITION_STATE_TIMED_OUT:   return "timed_out";
+    default:                                      return "unknown";
     }
 }

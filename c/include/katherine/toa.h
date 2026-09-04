@@ -32,10 +32,10 @@ extern "C" {
 #endif
 
 KATHERINE_EXPORTED uint8_t
-katherine_tpx3_toa_coarse_tick_to_fine_ticks(katherine_freq_t freq);
+katherine_tpx3_toa_coarse_tick_to_fine_ticks(katherine_tpx3_freq_t freq);
 
 KATHERINE_EXPORTED uint8_t
-katherine_tpx3_toa_coarse_tick_to_fine_shift(katherine_freq_t freq);
+katherine_tpx3_toa_coarse_tick_to_fine_shift(katherine_tpx3_freq_t freq);
 
 KATHERINE_EXPORTED uint64_t
 katherine_tpx3_toa_epoch_bias(uint8_t coarse_tick_to_fine_shift);

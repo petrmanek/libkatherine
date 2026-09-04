@@ -15,7 +15,7 @@
 #include <katherine/toa.h>
 
 // log2 of the number of fine-oscillator ticks in one coarse tick, indexed by
-// katherine_freq_t.
+// katherine_tpx3_freq_t.
 //
 // The fine oscillator is fixed at 640 MHz while the pixel clock is the same
 // PLL divided down, so every ratio is a whole number and a power of two. That
@@ -29,19 +29,19 @@
 // memory is not a compile-time constant, so multiplying by it emits a real
 // multiply rather than the shift its value would allow.
 static const uint8_t KATHERINE_TOA_FINE_SHIFT[4] = {
-    /* FREQ_20  */ 5, /* 32 fine ticks */
-    /* FREQ_40  */ 4, /* 16 */
-    /* FREQ_80  */ 3, /*  8 */
-    /* FREQ_160 */ 2, /*  4 */
+    /* KATHERINE_TPX3_FREQ_20_MHZ  */ 5, /* 32 fine ticks */
+    /* KATHERINE_TPX3_FREQ_40_MHZ  */ 4, /* 16 */
+    /* KATHERINE_TPX3_FREQ_80_MHZ  */ 3, /*  8 */
+    /* KATHERINE_TPX3_FREQ_160_MHZ */ 2, /*  4 */
 };
 
 static bool
-katherine_toa_freq_in_range(katherine_freq_t freq)
+katherine_toa_freq_in_range(katherine_tpx3_freq_t freq)
 {
     // Signed comparison on purpose: the parameter is an enumeration, and a
     // caller passing a negative value would otherwise index far outside the
     // table after conversion to an unsigned index.
-    return (int) freq >= 0 && (int) freq <= FREQ_160;
+    return (int) freq >= 0 && (int) freq <= KATHERINE_TPX3_FREQ_160_MHZ;
 }
 
 /**
@@ -57,7 +57,7 @@ katherine_toa_freq_in_range(katherine_freq_t freq)
  * \return Fine ticks per coarse tick, or 0 if freq is out of range.
  */
 uint8_t
-katherine_tpx3_toa_coarse_tick_to_fine_ticks(katherine_freq_t freq)
+katherine_tpx3_toa_coarse_tick_to_fine_ticks(katherine_tpx3_freq_t freq)
 {
     if (!katherine_toa_freq_in_range(freq)) return 0;
 
@@ -79,7 +79,7 @@ katherine_tpx3_toa_coarse_tick_to_fine_ticks(katherine_freq_t freq)
  * \return Shift taking coarse ticks to fine ticks, or 0 if freq is out of range.
  */
 uint8_t
-katherine_tpx3_toa_coarse_tick_to_fine_shift(katherine_freq_t freq)
+katherine_tpx3_toa_coarse_tick_to_fine_shift(katherine_tpx3_freq_t freq)
 {
     if (!katherine_toa_freq_in_range(freq)) return 0;
 

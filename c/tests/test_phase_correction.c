@@ -45,7 +45,7 @@
 // rather than from the library's code: double column i is on phase i mod n,
 // each phase one nth of a coarse tick later than the last.
 static uint8_t
-expected_offset(katherine_freq_t freq, katherine_phase_t phase, uint8_t x)
+expected_offset(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, uint8_t x)
 {
     const uint8_t n = katherine_actual_phases(freq, phase);
     if (n <= 1) return 0;
@@ -59,7 +59,7 @@ expected_offset(katherine_freq_t freq, katherine_phase_t phase, uint8_t x)
 // An acquisition as begin() would have left it, except that the offset table
 // is filled from expected_offset() above.
 static void
-fixture(katherine_acquisition_t *acq, katherine_freq_t freq, katherine_phase_t phase, bool correct)
+fixture(katherine_acquisition_t *acq, katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool correct)
 {
     memset(acq, 0, sizeof(*acq));
     acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(freq);
@@ -74,8 +74,8 @@ fixture(katherine_acquisition_t *acq, katherine_freq_t freq, katherine_phase_t p
     }
 }
 
-static const katherine_freq_t FREQS[]   = {FREQ_20, FREQ_40, FREQ_80, FREQ_160};
-static const katherine_phase_t PHASES[] = {PHASE_1, PHASE_2, PHASE_4, PHASE_8, PHASE_16};
+static const katherine_tpx3_freq_t FREQS[]   = {KATHERINE_TPX3_FREQ_20_MHZ, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_FREQ_80_MHZ, KATHERINE_TPX3_FREQ_160_MHZ};
+static const katherine_tpx3_phase_t PHASES[] = {KATHERINE_TPX3_PHASE_1, KATHERINE_TPX3_PHASE_2, KATHERINE_TPX3_PHASE_4, KATHERINE_TPX3_PHASE_8, KATHERINE_TPX3_PHASE_16};
 
 // ------------------------------------------------------------------
 
@@ -129,7 +129,7 @@ static void
 test_double_column_halves_share_a_phase(void)
 {
     katherine_acquisition_t acq;
-    fixture(&acq, FREQ_40, PHASE_16, true);
+    fixture(&acq, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true);
 
     for (unsigned dc = 0; dc < KATHERINE_TPX3_MATRIX_WIDTH / 2; ++dc) {
         const katherine_coord_t even = {(uint8_t) (2 * dc), 0};
@@ -146,7 +146,7 @@ test_no_offset_without_correction(void)
     katherine_acquisition_t acq;
 
     for (size_t p = 0; p < 5; ++p) {
-        fixture(&acq, FREQ_40, PHASES[p], false);
+        fixture(&acq, KATHERINE_TPX3_FREQ_40_MHZ, PHASES[p], false);
 
         for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
             const katherine_coord_t co = {(uint8_t) x, 0};
@@ -182,14 +182,14 @@ static void
 test_correction_adds(void)
 {
     katherine_acquisition_t on, off;
-    fixture(&on, FREQ_40, PHASE_16, true);
-    fixture(&off, FREQ_40, PHASE_16, false);
+    fixture(&on, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true);
+    fixture(&off, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, false);
 
     unsigned compared = 0;
 
     for (unsigned dc = 1; dc < 16; ++dc) {
         const uint8_t x   = (uint8_t) (2 * dc);
-        const uint8_t phi = expected_offset(FREQ_40, PHASE_16, x);
+        const uint8_t phi = expected_offset(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, x);
         KT_REQUIRE(phi > 0);
 
         const uint64_t raw       = decode_one(&off, x, 1000, 3);
@@ -213,13 +213,13 @@ static void
 test_simultaneous_hits_come_out_equal(void)
 {
     katherine_acquisition_t on;
-    fixture(&on, FREQ_40, PHASE_16, true);
+    fixture(&on, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true);
 
     uint64_t first = 0;
 
     for (unsigned dc = 0; dc < 16; ++dc) {
         const uint8_t x   = (uint8_t) (2 * dc);
-        const uint8_t phi = expected_offset(FREQ_40, PHASE_16, x);
+        const uint8_t phi = expected_offset(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, x);
 
         // A later-phased column sees the same arrival as a smaller value, by
         // exactly its offset, which the fine counter absorbs. The fine field
@@ -243,7 +243,7 @@ static void
 test_recovery_undoes_correction(void)
 {
     katherine_acquisition_t on;
-    fixture(&on, FREQ_40, PHASE_16, true);
+    fixture(&on, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true);
 
     unsigned checked = 0;
 

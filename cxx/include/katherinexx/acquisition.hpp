@@ -31,15 +31,15 @@ namespace katherine {
 static constexpr std::size_t md_size = KATHERINE_MD_SIZE;
 
 enum class readout_type {
-    sequential  = READOUT_SEQUENTIAL,
-    data_driven = READOUT_DATA_DRIVEN
+    sequential  = KATHERINE_TPX3_READOUT_SEQUENTIAL,
+    data_driven = KATHERINE_TPX3_READOUT_DATA_DRIVEN
 };
 
 enum class acq_state {
-    not_started = ACQUISITION_NOT_STARTED,
-    running     = ACQUISITION_RUNNING,
-    succeeded   = ACQUISITION_SUCCEEDED,
-    timed_out   = ACQUISITION_TIMED_OUT
+    not_started = KATHERINE_ACQUISITION_STATE_NOT_STARTED,
+    running     = KATHERINE_ACQUISITION_STATE_RUNNING,
+    succeeded   = KATHERINE_ACQUISITION_STATE_SUCCEEDED,
+    timed_out   = KATHERINE_ACQUISITION_STATE_TIMED_OUT
 };
 
 /// What a katherine::config::correct_phase() request resolved to;
@@ -50,7 +50,7 @@ enum class phase_correction {
     hardware = KATHERINE_PHASE_CORRECTION_HARDWARE
 };
 
-// acq_mode itself now lives in config.hpp (see the comment there); this
+// px_mode itself now lives in config.hpp (see the comment there); this
 // header still uses it unqualified below via the katherinexx/config.hpp
 // include above.
 
@@ -66,7 +66,7 @@ protected:
     katherine_acquisition_t acq_;
 
 private:
-    acq_mode mode_;
+    px_mode mode_;
     bool fast_vco_enabled_;
     bool decode_data_;
 
@@ -97,7 +97,7 @@ private:
 
 public:
     template<typename Rep1, typename Period1, typename Rep2, typename Period2>
-    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout, acq_mode mode, bool fast_vco_enabled, bool decode_data)
+    base_acquisition(device& dev, std::size_t md_buffer_size, std::size_t pixel_buffer_size, std::chrono::duration<Rep1, Period1> report_timeout, std::chrono::duration<Rep2, Period2> fail_timeout, px_mode mode, bool fast_vco_enabled, bool decode_data)
         : acq_{},
           mode_{mode},
           fast_vco_enabled_{fast_vco_enabled},
@@ -148,8 +148,9 @@ public:
     void
     begin(const katherine::config& config, katherine::readout_type readout_type)
     {
-        int res = katherine_acquisition_begin(&acq_, config.c_config(), (char) readout_type,
-            (katherine_acquisition_mode_t) mode_, fast_vco_enabled_, decode_data_);
+        int res = katherine_acquisition_begin(&acq_, config.c_config(),
+            (katherine_tpx3_readout_mode_t) readout_type,
+            (katherine_tpx3_px_mode_t) mode_, fast_vco_enabled_, decode_data_);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -209,37 +210,37 @@ namespace acq {
 
 struct f_toa_tot {
     using pixel_type                       = katherine_px_f_toa_tot_t;
-    static constexpr acq_mode mode         = acq_mode::toa_tot;
+    static constexpr px_mode mode    = px_mode::toa_tot;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct toa_tot {
     using pixel_type                       = katherine_px_toa_tot_t;
-    static constexpr acq_mode mode         = acq_mode::toa_tot;
+    static constexpr px_mode mode    = px_mode::toa_tot;
     static constexpr bool fast_vco_enabled = false;
 };
 
 struct f_toa_only {
     using pixel_type                       = katherine_px_f_toa_only_t;
-    static constexpr acq_mode mode         = acq_mode::only_toa;
+    static constexpr px_mode mode    = px_mode::only_toa;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct toa_only {
     using pixel_type                       = katherine_px_toa_only_t;
-    static constexpr acq_mode mode         = acq_mode::only_toa;
+    static constexpr px_mode mode    = px_mode::only_toa;
     static constexpr bool fast_vco_enabled = false;
 };
 
 struct f_event_itot {
     using pixel_type                       = katherine_px_f_event_itot_t;
-    static constexpr acq_mode mode         = acq_mode::event_itot;
+    static constexpr px_mode mode    = px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct event_itot {
     using pixel_type                       = katherine_px_event_itot_t;
-    static constexpr acq_mode mode         = acq_mode::event_itot;
+    static constexpr px_mode mode    = px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = false;
 };
 
@@ -284,7 +285,7 @@ public:
 static inline const char *
 str_acq_state(acq_state state)
 {
-    return katherine_str_acquisition_status((char) state);
+    return katherine_str_acquisition_state((char) state);
 }
 
 static inline const char *

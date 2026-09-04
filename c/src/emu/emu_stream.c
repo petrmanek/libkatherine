@@ -117,8 +117,8 @@ build_hit_md(const katherine_emu_stream_t *stream, const emu_hit_t *hit)
 {
     uint64_t md = EMU_MD_NEW(KATHERINE_EMU_MD_PIXEL);
 
-    switch (stream->acq_mode) {
-    case ACQUISITION_MODE_TOA_TOT:
+    switch (stream->px_mode) {
+    case KATHERINE_TPX3_PX_TOA_TOT:
         if (stream->fast_vco) {
             EMU_MD_COORD(md, pmd_f_toa_tot, hit);
             md = INSERT(md, pmd_f_toa_tot, toa, (uint64_t) hit->toa);
@@ -132,7 +132,7 @@ build_hit_md(const katherine_emu_stream_t *stream, const emu_hit_t *hit)
         }
         break;
 
-    case ACQUISITION_MODE_ONLY_TOA:
+    case KATHERINE_TPX3_PX_ONLY_TOA:
         if (stream->fast_vco) {
             EMU_MD_COORD(md, pmd_f_toa_only, hit);
             md = INSERT(md, pmd_f_toa_only, toa, (uint64_t) hit->toa);
@@ -144,7 +144,7 @@ build_hit_md(const katherine_emu_stream_t *stream, const emu_hit_t *hit)
         }
         break;
 
-    case ACQUISITION_MODE_EVENT_ITOT:
+    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT:
         // Bits [3:0] are the hit counter only with the oscillator off; with it
         // on they are dummy and are left clear, which is what a readout puts
         // on the wire.
@@ -232,7 +232,7 @@ pump(katherine_emu_t *emu)
             // In the data driven readout the coarse time of arrival wraps
             // often, so the readout interleaves the offset of the window
             // the following hits belong to.
-            if (stream->readout_mode == READOUT_DATA_DRIVEN && !stream->offset_sent
+            if (stream->readout_mode == KATHERINE_TPX3_READOUT_DATA_DRIVEN && !stream->offset_sent
                 && (stream->px_index % KATHERINE_EMU_TOA_OFFSET_PERIOD) == 0) {
                 uint64_t offset = ((due - stream->frame_open_ns) / KATHERINE_EMU_TICK_NS) >> 14;
                 md              = EMU_MD_NEW(KATHERINE_EMU_MD_TIME_OFFSET);
@@ -330,7 +330,7 @@ katherine_emu_stream_arm(katherine_emu_t *emu, uint8_t readout_mode)
     stream->buf_pos = 0;
 
     stream->readout_mode = readout_mode;
-    stream->acq_mode     = emu->regs.acq_mode;
+    stream->px_mode      = emu->regs.px_mode;
     stream->fast_vco     = emu->regs.fast_vco;
 
     // The acquisition time is set as a pair of halves counting ten

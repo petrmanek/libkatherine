@@ -41,14 +41,14 @@ typedef struct katherine_device katherine_device_t;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 
-typedef enum katherine_acquisition_mode {
-    ACQUISITION_MODE_TOA_TOT    = 0,
-    ACQUISITION_MODE_ONLY_TOA   = 1,
-    ACQUISITION_MODE_EVENT_ITOT = 2,
-} katherine_acquisition_mode_t;
+typedef enum katherine_tpx3_px_mode {
+    KATHERINE_TPX3_PX_TOA_TOT          = 0,
+    KATHERINE_TPX3_PX_ONLY_TOA         = 1,
+    KATHERINE_TPX3_PX_EVENT_COUNT_ITOT = 2,
+} katherine_tpx3_px_mode_t;
 
 KATHERINE_EXPORTED const char *
-katherine_str_acquisition_mode(katherine_acquisition_mode_t mode);
+katherine_str_px_mode(katherine_tpx3_px_mode_t mode);
 
 
 typedef struct katherine_trigger {
@@ -109,38 +109,42 @@ katherine_dacs_validate(const katherine_dacs_t *v);
 
 
 /// Phase distribution of the main Timepix3 clock across the pixel matrix.
-/// Having more phases helps spread the load in data-intensive measurements and make the ASIC more stable.
-/// Any value other than PHASE_1, however, requires a ToA correction (either by software or readout, if supported).
-/// This setting is a request only: katherine_actual_phases() gives the phases actually generated.
-typedef enum katherine_phase {
-    PHASE_1  = 0, ///< All clocks measure with the same phase, no ToA phase correction is required.
-    PHASE_2  = 1, ///< 2  clock phases, ToA phase correction is required.
-    PHASE_4  = 2, ///< 4  clock phases, ToA phase correction is required.
-    PHASE_8  = 3, ///< 8  clock phases, ToA phase correction is required.
-    PHASE_16 = 4, ///< 16 clock phases, ToA phase correction is required.
-} katherine_phase_t;
+/// Having more phases helps spread the load in data-intensive measurements
+/// and make the ASIC more stable. Any value other than
+/// KATHERINE_TPX3_PHASE_1, however, requires a ToA correction (either by
+/// software or readout, if supported). This setting is a request only:
+/// katherine_actual_phases() gives the phases actually generated.
+typedef enum katherine_tpx3_phase {
+    KATHERINE_TPX3_PHASE_1  = 0, ///< All clocks measure with the same phase, no ToA phase correction is required.
+    KATHERINE_TPX3_PHASE_2  = 1, ///< 2  clock phases, ToA phase correction is required.
+    KATHERINE_TPX3_PHASE_4  = 2, ///< 4  clock phases, ToA phase correction is required.
+    KATHERINE_TPX3_PHASE_8  = 3, ///< 8  clock phases, ToA phase correction is required.
+    KATHERINE_TPX3_PHASE_16 = 4, ///< 16 clock phases, ToA phase correction is required.
+} katherine_tpx3_phase_t;
 
 
 /// Frequency of the main Timepix3 clock (for ToT and ToA, but not fToA).
 /// Whether fast-VCO (for fToA) may be enabled is given by katherine_freq_is_fast_vco_supported().
-typedef enum katherine_freq {
-    FREQ_20  = 0, ///< f =  20 MHz. Undocumented by the readout manual; corroborated by other client implementations.
-    FREQ_40  = 1, ///< f =  40 MHz. Most frequently used value.
-    FREQ_80  = 2, ///< f =  80 MHz.
-    FREQ_160 = 3, ///< f = 160 MHz.
-} katherine_freq_t;
+typedef enum katherine_tpx3_freq {
+    /// f =  20 MHz. Undocumented by the readout manual; corroborated by other
+    /// client implementations.
+    KATHERINE_TPX3_FREQ_20_MHZ  = 0,
+    KATHERINE_TPX3_FREQ_40_MHZ  = 1, ///< f =  40 MHz. Most frequently used value.
+    KATHERINE_TPX3_FREQ_80_MHZ  = 2, ///< f =  80 MHz.
+    KATHERINE_TPX3_FREQ_160_MHZ = 3, ///< f = 160 MHz.
+} katherine_tpx3_freq_t;
 
 KATHERINE_EXPORTED const char *
-katherine_str_phase(katherine_phase_t phase);
+katherine_str_phase(katherine_tpx3_phase_t phase);
 
 KATHERINE_EXPORTED uint8_t
-katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase);
+katherine_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase);
 
 KATHERINE_EXPORTED const char *
-katherine_str_freq(katherine_freq_t freq);
+katherine_str_freq(katherine_tpx3_freq_t freq);
 
 KATHERINE_EXPORTED bool
-katherine_freq_is_fast_vco_supported(katherine_freq_t freq);
+katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq);
 
 
 typedef struct katherine_config {
@@ -159,10 +163,19 @@ typedef struct katherine_config {
     bool gray_disable;
     bool polarity_holes;
 
-    katherine_phase_t phase; ///< Phase distribution of clock signals across the ASIC. A single phase (PHASE_1) means that all timestamps are recorded in-phase. Any other setting will stagger adjacent clock signals by half of the period (PHASE_2), a quarter of the period (PHASE_4) etc., so that coincident data bursts are better distributed in time for a more stable data flow. This performance improvement however comes at the price of having to correct the phase-offsets in hit timestamps to recover true values. See the correct_phase setting below for that.
-    bool correct_phase;      ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
+    /// Phase distribution of clock signals across the ASIC. A single phase
+    /// (KATHERINE_TPX3_PHASE_1) means that all timestamps are recorded
+    /// in-phase. Any other setting will stagger adjacent clock signals by
+    /// half of the period (KATHERINE_TPX3_PHASE_2), a quarter of the period
+    /// (KATHERINE_TPX3_PHASE_4) etc., so that coincident data bursts are
+    /// better distributed in time for a more stable data flow. This
+    /// performance improvement however comes at the price of having to
+    /// correct the phase-offsets in hit timestamps to recover true values.
+    /// See the correct_phase setting below for that.
+    katherine_tpx3_phase_t phase;
+    bool correct_phase; ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
 
-    katherine_freq_t freq;
+    katherine_tpx3_freq_t freq;
     katherine_dacs_t dacs;
 
     katherine_test_pulse_config_t test_pulse_config;
@@ -182,7 +195,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled);
+katherine_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_no_frames(katherine_device_t *device, int no_frames);
@@ -216,23 +229,23 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
  */
 
 typedef enum katherine_tpx3_reg {
-    TPX3_REG_TEST_PULSE_METHOD = 0,
+    KATHERINE_TPX3_REG_TEST_PULSE_METHOD = 0,
     // The readout firmware and Tpx3 manual Table 9 (header 0h0C) agree this
     // register carries TP_period in bits 7:0 and TP_phase in bits 11:8, not
     // a single "method" as the name above suggests. Kept as an alias rather
     // than a rename: same value, correct name.
-    TPX3_REG_TEST_PULSE_PERIOD     = TPX3_REG_TEST_PULSE_METHOD,
-    TPX3_REG_NUMBER_TEST_PULSES    = 1,
-    TPX3_REG_OUT_BLOCK_CONFIG      = 2,
-    TPX3_REG_PLL_CONFIG            = 3,
-    TPX3_REG_GENERAL_CONFIG        = 4,
-    TPX3_REG_SLVS_CONFIG           = 5,
-    TPX3_REG_POWER_PULSING_PATTERN = 6,
-    TPX3_REG_SET_TIMER_LOW         = 7,
-    TPX3_REG_SET_TIMER_MID         = 8,
-    TPX3_REG_SET_TIMER_HIGH        = 9,
-    TPX3_REG_SENSE_DAC_SELECTOR    = 10,
-    TPX3_REG_EXT_DAC_SELECTOR      = 11,
+    KATHERINE_TPX3_REG_TEST_PULSE_PERIOD     = KATHERINE_TPX3_REG_TEST_PULSE_METHOD,
+    KATHERINE_TPX3_REG_NUMBER_TEST_PULSES    = 1,
+    KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG      = 2,
+    KATHERINE_TPX3_REG_PLL_CONFIG            = 3,
+    KATHERINE_TPX3_REG_GENERAL_CONFIG        = 4,
+    KATHERINE_TPX3_REG_SLVS_CONFIG           = 5,
+    KATHERINE_TPX3_REG_POWER_PULSING_PATTERN = 6,
+    KATHERINE_TPX3_REG_SET_TIMER_LOW         = 7,
+    KATHERINE_TPX3_REG_SET_TIMER_MID         = 8,
+    KATHERINE_TPX3_REG_SET_TIMER_HIGH        = 9,
+    KATHERINE_TPX3_REG_SENSE_DAC_SELECTOR    = 10,
+    KATHERINE_TPX3_REG_EXT_DAC_SELECTOR      = 11,
 } katherine_tpx3_reg_t;
 
 KATHERINE_EXPORTED katherine_error_t

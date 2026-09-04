@@ -42,7 +42,7 @@ test_every_known_code_is_recognized(void)
 
         KT_CHECK_EQ(info.hw_type, KNOWN[i]);
         KT_CHECK(info.name != NULL);
-        KT_CHECK(info.asic != KATHERINE_ASIC_UNKNOWN);
+        KT_CHECK(info.chip_type != KATHERINE_CHIP_UNKNOWN);
 
         // Every readout carries at least one sensor, whatever else is unknown
         // about it.
@@ -61,7 +61,7 @@ test_unknown_codes_report_themselves_as_unpopulated(void)
 
         KT_CHECK_EQ(info.hw_type, 0u);
         KT_CHECK(info.name == NULL);
-        KT_CHECK_EQ(info.asic, KATHERINE_ASIC_UNKNOWN);
+        KT_CHECK_EQ(info.chip_type, KATHERINE_CHIP_UNKNOWN);
         KT_CHECK_EQ(info.max_chip_count, 0u);
         KT_CHECK(!info.supported);
     }
@@ -73,7 +73,7 @@ static void
 test_the_readouts_we_can_name(void)
 {
     const katherine_device_info_t gen1 = katherine_device_info_recognize(0x01);
-    KT_CHECK_EQ(gen1.asic, KATHERINE_ASIC_TPX3);
+    KT_CHECK_EQ(gen1.chip_type, KATHERINE_CHIP_TPX3);
     KT_CHECK_EQ(gen1.gen, 1u);
     KT_CHECK_EQ(gen1.max_chip_count, 1u);
     KT_CHECK(gen1.supported);
@@ -81,13 +81,13 @@ test_the_readouts_we_can_name(void)
     // Eight layers is what makes the static count worth carrying separately
     // from the runtime one.
     const katherine_device_info_t gen2 = katherine_device_info_recognize(0x03);
-    KT_CHECK_EQ(gen2.asic, KATHERINE_ASIC_TPX3);
+    KT_CHECK_EQ(gen2.chip_type, KATHERINE_CHIP_TPX3);
     KT_CHECK_EQ(gen2.gen, 2u);
     KT_CHECK_EQ(gen2.max_chip_count, 8u);
     KT_CHECK(!gen2.supported);
 
     const katherine_device_info_t tpx4 = katherine_device_info_recognize(0x0A);
-    KT_CHECK_EQ(tpx4.asic, KATHERINE_ASIC_TPX4);
+    KT_CHECK_EQ(tpx4.chip_type, KATHERINE_CHIP_TPX4);
 
     // HardPix is two-layer, and its generation is not stated by the source, so
     // the table says 0 rather than inventing one.
@@ -114,13 +114,13 @@ test_only_one_row_claims_support(void)
 static void
 test_asic_names(void)
 {
-    KT_CHECK(strcmp(katherine_str_asic(KATHERINE_ASIC_TPX2), "Timepix2") == 0);
-    KT_CHECK(strcmp(katherine_str_asic(KATHERINE_ASIC_TPX3), "Timepix3") == 0);
-    KT_CHECK(strcmp(katherine_str_asic(KATHERINE_ASIC_TPX4), "Timepix4") == 0);
-    KT_CHECK(strcmp(katherine_str_asic(KATHERINE_ASIC_UNKNOWN), "(unknown)") == 0);
+    KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_TPX2), "Timepix2") == 0);
+    KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_TPX3), "Timepix3") == 0);
+    KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_TPX4), "Timepix4") == 0);
+    KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_UNKNOWN), "(unknown)") == 0);
 
     // A value outside the enumeration must not walk off the switch.
-    KT_CHECK(strcmp(katherine_str_asic((katherine_asic_t) 99), "(unknown)") == 0);
+    KT_CHECK(strcmp(katherine_str_chip_type((katherine_chip_type_t) 99), "(unknown)") == 0);
 }
 
 // An unpopulated structure has to be distinguishable in output too, or a log

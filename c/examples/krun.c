@@ -103,10 +103,10 @@ configure(katherine_config_t *config)
     config->gray_disable   = false;
     config->polarity_holes = false;
 
-    config->phase         = PHASE_1;
+    config->phase         = KATHERINE_TPX3_PHASE_1;
     config->correct_phase = false; // only makes sense to correct phase offset when we request more than 1 phase
 
-    config->freq = FREQ_40;
+    config->freq = KATHERINE_TPX3_FREQ_40_MHZ;
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;
@@ -301,7 +301,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
         acq.handlers.pixels_received = pixels_received_counters;
     }
 
-    res = katherine_acquisition_begin(&acq, c, READOUT_DATA_DRIVEN, ACQUISITION_MODE_TOA_TOT, true, true);
+    res = katherine_acquisition_begin(&acq, c, KATHERINE_TPX3_READOUT_DATA_DRIVEN, KATHERINE_TPX3_PX_TOA_TOT, true, true);
     if (res != 0) {
         printf("Cannot begin acquisition.\n");
         printf("Reason: %s\n", katherine_strerror(res));
@@ -323,7 +323,7 @@ run_acquisition(katherine_device_t *dev, const katherine_config_t *c)
 
     printf("\n");
     printf("Acquisition completed:\n");
-    printf(" - state: %s\n", katherine_str_acquisition_status(acq.state));
+    printf(" - state: %s\n", katherine_str_acquisition_state(acq.state));
     printf(" - received %d complete frames\n", acq.completed_frames);
     printf(" - dropped %zu measurement data\n", acq.dropped_measurement_data);
     printf(" - total hits: %" PRIu64 "\n", n_hits);

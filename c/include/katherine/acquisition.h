@@ -102,19 +102,19 @@ typedef struct katherine_acquisition_handlers {
 // (data-driven = 0) and compensates for it when encoding the command. Do
 // not "fix" this enum to match such an implementation; its values already
 // match the wire directly.
-typedef enum katherine_readout_type {
-    READOUT_SEQUENTIAL  = 0, ///< Frame-based mode: hits are sequentially read out from the matrix at the end of each frame, potentially resulting in dead time between frames. At most the entire matrix (65k pixels) can be hit.
-    READOUT_DATA_DRIVEN = 1  ///< Data-driven mode: hits are propagated through super-pixels while the measurement is ongoing, causing local (but importantly, not global) dead time. Be careful in noisy or data-intensive environments, this mode can produce a lot of data (up to 40 Mhit/s).
-} katherine_readout_type_t;
+typedef enum katherine_tpx3_readout_mode {
+    KATHERINE_TPX3_READOUT_SEQUENTIAL  = 0, ///< Frame-based mode: hits are sequentially read out from the matrix at the end of each frame, potentially resulting in dead time between frames. At most the entire matrix (65k pixels) can be hit.
+    KATHERINE_TPX3_READOUT_DATA_DRIVEN = 1  ///< Data-driven mode: hits are propagated through super-pixels while the measurement is ongoing, causing local (but importantly, not global) dead time. Be careful in noisy or data-intensive environments, this mode can produce a lot of data (up to 40 Mhit/s).
+} katherine_tpx3_readout_mode_t;
 
 KATHERINE_EXPORTED const char *
-katherine_str_readout_type(katherine_readout_type_t type);
+katherine_str_readout_mode(katherine_tpx3_readout_mode_t mode);
 
 typedef enum katherine_acquisition_state {
-    ACQUISITION_NOT_STARTED = 0, ///< The detector is not sensitive, call katherine_acquisition_begin to start measurement.
-    ACQUISITION_RUNNING     = 1, ///< The detector is sensitive and collecting data, call katherine_acquisition_read() to retrieve its output or katherine_acquisition_{stop,abort}() to interrupt it. Note that for decode_data == false, only katherine_acquisition_abort() is viable.
-    ACQUISITION_SUCCEEDED   = 2, ///< The detector is no longer sensitive, the last measurement data arrived and the measurement concluded in an orderly manner.
-    ACQUISITION_TIMED_OUT   = 3, ///< Communications timeout. Either the detector is still measuring and the data flow was disrupted, or the device was powered off unexpectedly. This is also a common failure mode if decode_data == false, and the user fails to call katherine_acquisition_abort() at the end of the measurement.
+    KATHERINE_ACQUISITION_STATE_NOT_STARTED = 0, ///< The detector is not sensitive, call katherine_acquisition_begin to start measurement.
+    KATHERINE_ACQUISITION_STATE_RUNNING     = 1, ///< The detector is sensitive and collecting data, call katherine_acquisition_read() to retrieve its output or katherine_acquisition_{stop,abort}() to interrupt it. Note that for decode_data == false, only katherine_acquisition_abort() is viable.
+    KATHERINE_ACQUISITION_STATE_SUCCEEDED   = 2, ///< The detector is no longer sensitive, the last measurement data arrived and the measurement concluded in an orderly manner.
+    KATHERINE_ACQUISITION_STATE_TIMED_OUT   = 3, ///< Communications timeout. Either the detector is still measuring and the data flow was disrupted, or the device was powered off unexpectedly. This is also a common failure mode if decode_data == false, and the user fails to call katherine_acquisition_abort() at the end of the measurement.
 } katherine_acquisition_state_t;
 
 /// What became of katherine_config_t::correct_phase for a given
@@ -138,7 +138,7 @@ typedef struct katherine_acquisition {
     char state;
     bool aborted;
     char readout_mode;
-    char acq_mode;
+    char px_mode;
     bool fast_vco_enabled;
 
     char *md_buffer;
@@ -202,7 +202,7 @@ typedef struct katherine_acquisition {
     katherine_phase_correction_t phase_correction;
 
     /// Pixel-clock phases this configuration actually yields, which the clock
-    /// divider may clamp below what katherine_phase_t asked for.
+    /// divider may clamp below what katherine_tpx3_phase_t asked for.
     uint8_t phase_count;
 
     /// Per-column phase offsets in fine-oscillator ticks, added by the decoder.
@@ -227,7 +227,7 @@ KATHERINE_EXPORTED void
 katherine_acquisition_fini(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data);
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_abort(katherine_acquisition_t *acq);
@@ -239,7 +239,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_read(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED const char *
-katherine_str_acquisition_status(char status);
+katherine_str_acquisition_state(char status);
 
 #ifdef __cplusplus
 }

@@ -48,17 +48,17 @@ static const uint32_t DATA_TIMEOUT    = 100; // ms
 /// between "a Katherine for Timepix3 Gen2, not supported yet" and silence.
 static const katherine_device_info_t KATHERINE_DEVICE_INFO[] = {
     // clang-format off
-    /* hw_type, name,                         ASIC,                gen, max_chips, supported */
-    {0x01, "Katherine for Timepix3",      KATHERINE_ASIC_TPX3, 1,   1,         true},
-    {0x02, "Katherine for Timepix2",      KATHERINE_ASIC_TPX2, 1,   1,         false},
-    {0x03, "Katherine for Timepix3",      KATHERINE_ASIC_TPX3, 2,   8,         false},
-    {0x0A, "Katherine for Timepix4",      KATHERINE_ASIC_TPX4, 1,   1,         false},
-    {0x20, "HardPix for Timepix3",        KATHERINE_ASIC_TPX3, 0,   2,         false},
-    {0x21, "HardPix for Timepix2",        KATHERINE_ASIC_TPX2, 0,   2,         false},
-    {0x24, "Timepix2-Lite",               KATHERINE_ASIC_TPX2, 0,   1,         false},
-    {0x25, "Monique",                     KATHERINE_ASIC_TPX3, 0,   1,         false},
-    {0x26, "RFPix",                       KATHERINE_ASIC_TPX2, 0,   1,         false},
-    {0x27, "HardPix2 for Timepix2",       KATHERINE_ASIC_TPX2, 0,   2,         false},
+  // hw_type  name                      chip_type            gen  max_chips supported
+    {0x01,    "Katherine for Timepix3", KATHERINE_CHIP_TPX3, 1,   1,        true},
+    {0x02,    "Katherine for Timepix2", KATHERINE_CHIP_TPX2, 1,   1,        false},
+    {0x03,    "Katherine for Timepix3", KATHERINE_CHIP_TPX3, 2,   8,        false},
+    {0x0A,    "Katherine for Timepix4", KATHERINE_CHIP_TPX4, 1,   1,        false},
+    {0x20,    "HardPix for Timepix3",   KATHERINE_CHIP_TPX3, 0,   2,        false},
+    {0x21,    "HardPix for Timepix2",   KATHERINE_CHIP_TPX2, 0,   2,        false},
+    {0x24,    "Timepix2-Lite",          KATHERINE_CHIP_TPX2, 0,   1,        false},
+    {0x25,    "Monique",                KATHERINE_CHIP_TPX3, 0,   1,        false},
+    {0x26,    "RFPix",                  KATHERINE_CHIP_TPX2, 0,   1,        false},
+    {0x27,    "HardPix2 for Timepix2",  KATHERINE_CHIP_TPX2, 0,   2,        false},
     // clang-format on
 };
 

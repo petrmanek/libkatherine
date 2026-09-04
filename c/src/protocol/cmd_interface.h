@@ -331,10 +331,10 @@ katherine_general_config_word(const katherine_config_t *config)
  * Compose the PLLConfig register word from a device configuration.
  *
  * clk_phaseshift_divider is the clock frequency selector of Timepix3 manual
- * Table 17 and follows katherine_freq_t; clk_phaseshift_number is the phase
- * selector that same table clamps, and follows katherine_phase_t. Both are
- * masked to their field widths rather than validated, matching how the DAC
- * setters transmit unchecked values.
+ * Table 17 and follows katherine_tpx3_freq_t; clk_phaseshift_number is the
+ * phase selector that same table clamps, and follows katherine_tpx3_phase_t.
+ * Both are masked to their field widths rather than validated, matching how
+ * the DAC setters transmit unchecked values.
  *
  * \param config Configuration to read the phase and frequency from.
  * \return Register word, ready for a sensor-register write.

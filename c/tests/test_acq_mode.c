@@ -82,7 +82,7 @@ mock_readout(void *arg)
 }
 
 static void
-set_and_capture(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled,
+set_and_capture(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled,
     const unsigned char expected_mode[8])
 {
     // The flush carries the sub-command number in byte 0, and
@@ -95,7 +95,7 @@ set_and_capture(katherine_device_t *device, katherine_acquisition_mode_t acq_mod
     mock_count = 0;
     KT_REQUIRE(kthread_start(&thread, mock_readout, NULL) == 0);
 
-    KT_CHECK(katherine_set_acq_mode(device, acq_mode, fast_vco_enabled) == 0);
+    KT_CHECK(katherine_set_acq_mode(device, px_mode, fast_vco_enabled) == 0);
     KT_CHECK(kthread_join(&thread) == 0);
 
     KT_CHECK(mock_count == EXPECTED_DATAGRAMS);
@@ -126,18 +126,18 @@ test_datagrams(void)
 
     // Mode in byte 0, oscillator flag in byte 1. The three mode vectors are
     // the ones whose register readbacks were 0x58, 0x5a and 0x5c.
-    set_and_capture(&device, ACQUISITION_MODE_TOA_TOT, true, (const unsigned char[8]) {0x00, 0x01, 0, 0, 0, 0, 0x09, 0});
+    set_and_capture(&device, KATHERINE_TPX3_PX_TOA_TOT, true, (const unsigned char[8]) {0x00, 0x01, 0, 0, 0, 0, 0x09, 0});
     set_and_capture(
-        &device, ACQUISITION_MODE_ONLY_TOA, true, (const unsigned char[8]) {0x01, 0x01, 0, 0, 0, 0, 0x09, 0});
+        &device, KATHERINE_TPX3_PX_ONLY_TOA, true, (const unsigned char[8]) {0x01, 0x01, 0, 0, 0, 0, 0x09, 0});
     set_and_capture(
-        &device, ACQUISITION_MODE_EVENT_ITOT, true, (const unsigned char[8]) {0x02, 0x01, 0, 0, 0, 0, 0x09, 0});
+        &device, KATHERINE_TPX3_PX_EVENT_COUNT_ITOT, true, (const unsigned char[8]) {0x02, 0x01, 0, 0, 0, 0, 0x09, 0});
 
     // Oscillator off clears byte 1 and nothing else; byte 0 bit 7 stays
     // clear, where an earlier encoding had wrongly put this flag.
     set_and_capture(
-        &device, ACQUISITION_MODE_TOA_TOT, false, (const unsigned char[8]) {0x00, 0x00, 0, 0, 0, 0, 0x09, 0});
+        &device, KATHERINE_TPX3_PX_TOA_TOT, false, (const unsigned char[8]) {0x00, 0x00, 0, 0, 0, 0, 0x09, 0});
     set_and_capture(
-        &device, ACQUISITION_MODE_EVENT_ITOT, false, (const unsigned char[8]) {0x02, 0x00, 0, 0, 0, 0, 0x09, 0});
+        &device, KATHERINE_TPX3_PX_EVENT_COUNT_ITOT, false, (const unsigned char[8]) {0x02, 0x00, 0, 0, 0, 0, 0x09, 0});
 
     katherine_udp_fini(&device.control_socket);
     katherine_udp_fini(&mock_endpoint);

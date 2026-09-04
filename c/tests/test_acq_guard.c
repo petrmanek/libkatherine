@@ -105,8 +105,8 @@ test_failed_begin_leaves_the_device_idle(void)
     // instead, and this test would pass while exercising something other than
     // the frame-count check it names. Switching it off decouples the two
     // without pinning a frequency here.
-    KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_DATA_DRIVEN,
-                    ACQUISITION_MODE_TOA_TOT, false, true),
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_DATA_DRIVEN,
+                    KATHERINE_TPX3_PX_TOA_TOT, false, true),
         KATHERINE_E_INVAL);
     KT_CHECK(device.acquisition == NULL);
 }
@@ -127,8 +127,8 @@ test_fast_vco_refused_where_incoherent(void)
     katherine_acquisition_t acq;
     katherine_config_t config;
 
-    const katherine_freq_t all[] = {FREQ_20, FREQ_40, FREQ_80, FREQ_160};
-    unsigned refused             = 0;
+    const katherine_tpx3_freq_t all[] = {KATHERINE_TPX3_FREQ_20_MHZ, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_FREQ_80_MHZ, KATHERINE_TPX3_FREQ_160_MHZ};
+    unsigned refused                  = 0;
 
     for (size_t i = 0; i < sizeof(all) / sizeof(all[0]); ++i) {
         // Coherent frequencies are skipped rather than asserted: with the
@@ -143,8 +143,8 @@ test_fast_vco_refused_where_incoherent(void)
         config.no_frames = 1;
         config.freq      = all[i];
 
-        KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, READOUT_SEQUENTIAL,
-                        ACQUISITION_MODE_TOA_TOT, true, true),
+        KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_SEQUENTIAL,
+                        KATHERINE_TPX3_PX_TOA_TOT, true, true),
             KATHERINE_E_INVAL);
         KT_CHECK(device.acquisition == NULL);
         ++refused;

@@ -45,7 +45,7 @@ struct toa_ftoa {
 static inline std::uint8_t
 tpx3_toa_coarse_tick_to_fine_ticks(katherine::freq freq)
 {
-    return katherine_tpx3_toa_coarse_tick_to_fine_ticks((katherine_freq_t) freq);
+    return katherine_tpx3_toa_coarse_tick_to_fine_ticks((katherine_tpx3_freq_t) freq);
 }
 
 /**
@@ -56,7 +56,7 @@ tpx3_toa_coarse_tick_to_fine_ticks(katherine::freq freq)
 static inline std::uint8_t
 tpx3_toa_coarse_tick_to_fine_shift(katherine::freq freq)
 {
-    return katherine_tpx3_toa_coarse_tick_to_fine_shift((katherine_freq_t) freq);
+    return katherine_tpx3_toa_coarse_tick_to_fine_shift((katherine_tpx3_freq_t) freq);
 }
 
 /**
@@ -78,7 +78,7 @@ tpx3_toa_epoch_bias(std::uint8_t coarse_tick_to_fine_shift)
 static inline katherine::timestamp_seconds
 tpx3_timestamp_to_seconds(std::uint64_t timestamp)
 {
-    katherine::timestamp_seconds result{};
+    timestamp_seconds result{};
     katherine_tpx3_timestamp_to_seconds(timestamp, &result.sec, &result.nsec);
     return result;
 }
@@ -93,7 +93,7 @@ tpx3_timestamp_to_seconds(std::uint64_t timestamp)
 static inline katherine::toa_ftoa
 tpx3_timestamp_to_toa_ftoa(std::uint8_t coarse_tick_to_fine_shift, std::uint8_t phase_offset, std::uint64_t timestamp)
 {
-    katherine::toa_ftoa result{};
+    toa_ftoa result{};
     katherine_tpx3_timestamp_to_toa_ftoa(coarse_tick_to_fine_shift, phase_offset, timestamp, &result.toa, &result.ftoa);
     return result;
 }

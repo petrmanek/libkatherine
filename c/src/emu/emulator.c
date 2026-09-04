@@ -270,7 +270,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         // that follow a configuration upload, are acknowledged.
         if ((uint8_t) cmd[0] == CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE) {
             // The flush is what carries the register image to the sensor.
-            emu->regs.acq_mode = emu->regs.shadow_acq_mode;
+            emu->regs.px_mode  = emu->regs.shadow_acq_mode;
             emu->regs.fast_vco = emu->regs.shadow_fast_vco;
         }
         queue_ack(emu, (uint8_t) opcode, 0);

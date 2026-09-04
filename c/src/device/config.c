@@ -76,10 +76,10 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_acquisition_setup(device, &config->start_trigger, config->delayed_start, &config->stop_trigger);
     if (res) goto err;
 
-    res = katherine_set_sensor_register(device, TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
+    res = katherine_set_sensor_register(device, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
     if (res) goto err;
 
-    res = katherine_set_sensor_register(device, TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
+    res = katherine_set_sensor_register(device, KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
     if (res) goto err;
 
     // Commits the output block's own configuration, which this library never
@@ -376,7 +376,7 @@ err:
 /**
  * Set acquisition mode.
  * \param device Katherine device
- * \param acq_mode Acquisition mode to set
+ * \param px_mode Acquisition mode to set
  * \param fast_vco_enabled Flag indicating the use of fast clock signal
  *
  * \retval KATHERINE_E_OK on success, once the mode has reached the sensor.
@@ -399,7 +399,7 @@ err:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled)
+katherine_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
 {
     katherine_error_t res;
 
@@ -414,7 +414,7 @@ katherine_set_acq_mode(katherine_device_t *device, katherine_acquisition_mode_t 
     // image. Reading that image back with GET_BACK_READ_REGISTER on the
     // GeneralConfig index shows exactly that -- 0x58, 0x5a and 0x5c as the
     // mode is swept, and bit 6 clearing when byte 1 goes to zero.
-    cmd[0] |= acq_mode;
+    cmd[0] |= px_mode;
     cmd[1] |= fast_vco_enabled;
 
     res = katherine_cmd_transact(&device->control_socket, cmd, sizeof(cmd), NULL);
@@ -1070,8 +1070,8 @@ static const uint16_t KATHERINE_DAC_MAX[18] = {
 /**
  * Pixel-clock phase counts, Tpx3 manual Table 17 (p39), for DualEdgeClock = 1
  * -- the value katherine_pll_config_word() pins. Rows are the clock divider
- * in katherine_freq_t order, columns the requested phase count in
- * katherine_phase_t order.
+ * in katherine_tpx3_freq_t order, columns the requested phase count in
+ * katherine_tpx3_phase_t order.
  *
  * The manual's other half, DualEdgeClock = 0, is one column further clamped
  * throughout: {1,2,4,8,16}, {1,1,2,4,8}, {1,1,1,2,4}, {1,1,1,1,2}. It is not
@@ -1079,34 +1079,41 @@ static const uint16_t KATHERINE_DAC_MAX[18] = {
  * ever exposed, this table gains a dimension rather than changing shape.
  */
 static const uint8_t KATHERINE_ACTUAL_PHASES[4][5] = {
-    // PHASE_1 PHASE_2 PHASE_4 PHASE_8 PHASE_16
-    /* FREQ_20  */ {1, 2, 4, 8, 16},
-    /* FREQ_40  */ {1, 2, 4, 8, 16},
-    /* FREQ_80  */ {1, 1, 2, 4, 8},
-    /* FREQ_160 */ {1, 1, 1, 2, 4},
+    // clang-format off
+    // Both axes are labelled by number alone. The doc block above names the
+    // enumerations the rows and columns follow, and spelling either prefix out
+    // nine times over would stretch the table past the point of reading as one.
+    //
+    // MHz \ phases  1  2  4  8  16
+    /*  20 */      {  1, 2, 4, 8, 16 },
+    /*  40 */      {  1, 2, 4, 8, 16 },
+    /*  80 */      {  1, 1, 2, 4,  8 },
+    /* 160 */      {  1, 1, 1, 2,  4 },
+    // clang-format on
 };
 
 /**
  * Number of pixel-clock phases a frequency and phase setting actually yield.
  *
  * The phase enumerators name what they request, not what they get: the clock
- * divider clamps the count, so PHASE_16 yields 16 phases at FREQ_40 but only
- * 4 at FREQ_160 (Tpx3 manual Table 17). Anything dividing a coarse tick by
- * the number of phases -- per-double-column timestamp correction above all --
- * has to divide by this, not by the enumerator's name.
+ * divider clamps the count, so KATHERINE_TPX3_PHASE_16 yields 16 phases at
+ * KATHERINE_TPX3_FREQ_40_MHZ but only 4 at KATHERINE_TPX3_FREQ_160_MHZ (Tpx3
+ * manual Table 17). Anything dividing a coarse tick by the number of phases
+ * -- per-double-column timestamp correction above all -- has to divide by
+ * this, not by the enumerator's name.
  *
  * \param freq Pixel-clock frequency selector.
  * \param phase Requested phase count.
  * \return Phases actually generated, or 0 if either argument is out of range.
  */
 uint8_t
-katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
+katherine_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase)
 {
     // Signed comparison on purpose: both parameters are enumerations, and a
     // caller passing a negative value would otherwise index far outside the
     // table after conversion to an unsigned index.
-    if ((int) freq < 0 || (int) freq > FREQ_160) return 0;
-    if ((int) phase < 0 || (int) phase > PHASE_16) return 0;
+    if ((int) freq < 0 || (int) freq > KATHERINE_TPX3_FREQ_160_MHZ) return 0;
+    if ((int) phase < 0 || (int) phase > KATHERINE_TPX3_PHASE_16) return 0;
 
     return KATHERINE_ACTUAL_PHASES[freq][phase];
 }
@@ -1137,11 +1144,11 @@ katherine_actual_phases(katherine_freq_t freq, katherine_phase_t phase)
  * \return true if fast time stamping is coherent at this frequency.
  */
 bool
-katherine_freq_is_fast_vco_supported(katherine_freq_t freq)
+katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
 {
     // Table 17 answers "Fast Time Stamping" Yes for the Fin/8 divider alone,
     // in both DualEdgeClock rows.
-    return freq == FREQ_40;
+    return freq == KATHERINE_TPX3_FREQ_40_MHZ;
 }
 
 /**

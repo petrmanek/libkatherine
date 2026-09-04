@@ -39,29 +39,30 @@ using dacs = katherine_dacs_t;
 using test_pulse_config = katherine_test_pulse_config_t;
 
 enum class phase : int {
-    p1  = PHASE_1,
-    p2  = PHASE_2,
-    p4  = PHASE_4,
-    p8  = PHASE_8,
-    p16 = PHASE_16
+    p1  = KATHERINE_TPX3_PHASE_1,
+    p2  = KATHERINE_TPX3_PHASE_2,
+    p4  = KATHERINE_TPX3_PHASE_4,
+    p8  = KATHERINE_TPX3_PHASE_8,
+    p16 = KATHERINE_TPX3_PHASE_16
 };
 
 enum class freq : int {
-    f20  = FREQ_20,
-    f40  = FREQ_40,
-    f80  = FREQ_80,
-    f160 = FREQ_160
+    f20  = KATHERINE_TPX3_FREQ_20_MHZ,
+    f40  = KATHERINE_TPX3_FREQ_40_MHZ,
+    f80  = KATHERINE_TPX3_FREQ_80_MHZ,
+    f160 = KATHERINE_TPX3_FREQ_160_MHZ
 };
 
 // Lives here rather than in acquisition.hpp (which also uses it, via this
-// header) because katherine_acquisition_mode_t is itself declared in
+// header) because katherine_tpx3_px_mode_t is itself declared in
 // katherine/config.h; keeping the two together lets katherine::device use
 // the enum class without pulling in acquisition.hpp.
-enum class acq_mode : int {
-    toa_tot    = ACQUISITION_MODE_TOA_TOT,
-    only_toa   = ACQUISITION_MODE_ONLY_TOA,
-    event_itot = ACQUISITION_MODE_EVENT_ITOT
+enum class px_mode : int {
+    toa_tot          = KATHERINE_TPX3_PX_TOA_TOT,
+    only_toa         = KATHERINE_TPX3_PX_ONLY_TOA,
+    event_count_itot = KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 };
+
 
 class config {
     katherine_config_t conf_;
@@ -130,10 +131,10 @@ public:
     void set_correct_phase(bool val) { conf_.correct_phase = val; }
 
     katherine::phase phase() const { return (katherine::phase) conf_.phase; }
-    void set_phase(katherine::phase val) { conf_.phase = (katherine_phase_t) val; }
+    void set_phase(katherine::phase val) { conf_.phase = (katherine_tpx3_phase_t) val; }
 
     katherine::freq freq() const { return (katherine::freq) conf_.freq; }
-    void set_freq(katherine::freq val) { conf_.freq = (katherine_freq_t) val; }
+    void set_freq(katherine::freq val) { conf_.freq = (katherine_tpx3_freq_t) val; }
 
     const katherine::dacs& dacs() const { return conf_.dacs; }
     katherine::dacs& dacs() { return conf_.dacs; }

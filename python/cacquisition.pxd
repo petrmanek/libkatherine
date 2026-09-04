@@ -10,7 +10,7 @@ from libcpp cimport bool
 from libc.time cimport time_t
 from libc.stdint cimport uint8_t, uint32_t, uint64_t
 from cdevice cimport katherine_device_t
-from cconfig cimport katherine_config_t, katherine_acquisition_mode_t
+from cconfig cimport katherine_config_t, katherine_tpx3_px_mode_t
 from cpx cimport katherine_coord_t
 
 cdef extern from 'katherine/acquisition.h':
@@ -56,7 +56,7 @@ cdef extern from 'katherine/acquisition.h':
         char state
         bool aborted
         char readout_mode
-        char acq_mode
+        char px_mode
         bool fast_vco_enabled
 
         char *md_buffer
@@ -92,22 +92,22 @@ cdef extern from 'katherine/acquisition.h':
 
     uint8_t katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
 
-    ctypedef enum katherine_readout_type_t:
-        READOUT_SEQUENTIAL
-        READOUT_DATA_DRIVEN
+    ctypedef enum katherine_tpx3_readout_mode_t:
+        KATHERINE_TPX3_READOUT_SEQUENTIAL
+        KATHERINE_TPX3_READOUT_DATA_DRIVEN
 
     ctypedef enum katherine_acquisition_state_t:
-        ACQUISITION_NOT_STARTED
-        ACQUISITION_RUNNING
-        ACQUISITION_SUCCEEDED
-        ACQUISITION_TIMED_OUT
+        KATHERINE_ACQUISITION_STATE_NOT_STARTED
+        KATHERINE_ACQUISITION_STATE_RUNNING
+        KATHERINE_ACQUISITION_STATE_SUCCEEDED
+        KATHERINE_ACQUISITION_STATE_TIMED_OUT
 
     cdef int KATHERINE_MD_SIZE
 
     int katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
     void katherine_acquisition_fini(katherine_acquisition_t *acq)
-    int katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_acquisition_mode_t acq_mode, bool fast_vco_enabled, bool decode_data)
+    int katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, char readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
     int katherine_acquisition_abort(katherine_acquisition_t *acq)
     int katherine_acquisition_stop(katherine_acquisition_t *acq)
     int katherine_acquisition_read(katherine_acquisition_t *acq)
-    const char *katherine_str_acquisition_status(char status)
+    const char *katherine_str_acquisition_state(char status)

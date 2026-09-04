@@ -164,7 +164,7 @@ typedef struct katherine_emu_regs {
     uint32_t acq_time_msb; ///< Internal
     uint32_t no_frames;    ///< Internal
 
-    uint8_t acq_mode;     ///< Internal: reaches the sensor only once flushed
+    uint8_t px_mode;      ///< Internal: reaches the sensor only once flushed
     bool fast_vco;        ///< Internal: reaches the sensor only once flushed
     uint8_t readout_mode; ///< Internal
 
@@ -208,7 +208,7 @@ typedef struct katherine_emu_stream {
     katherine_emu_stage_t stage; ///< Internal
 
     uint8_t readout_mode; ///< Internal: sampled from the acquisition start command
-    uint8_t acq_mode;     ///< Internal: sampled from the register file when armed
+    uint8_t px_mode;      ///< Internal: sampled from the register file when armed
     bool fast_vco;        ///< Internal
 
     uint32_t frames_total;  ///< Internal

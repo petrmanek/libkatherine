@@ -372,7 +372,7 @@ test_i64_boundary(void)
 // built from named bits of katherine_config_t, encoded via
 // katherine_cmd_send64_i64 exactly as katherine_configure() (config.c)
 // sends it: opcode CMD_TYPE_SENSOR_REGISTER_SETTING, sub-index
-// TPX3_REG_GENERAL_CONFIG.
+// KATHERINE_TPX3_REG_GENERAL_CONFIG.
 
 static void
 test_general_config_word(void)
@@ -386,8 +386,8 @@ test_general_config_word(void)
     // (electrons) -- 0x59. This is the value the preexisting 0x58-preset
     // code also produced for these inputs: no regression here.
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x59, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x59, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     // gray_disable = true: Gray_count_en (bit 3) must clear -- 0x51. The
     // preexisting code started general_setup from a 0x58 base with bit 3
@@ -396,8 +396,8 @@ test_general_config_word(void)
     // newly-effective case.
     config.gray_disable = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x51, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x51, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.gray_disable = false;
 
     // polarity_holes = true: Polarity (bit 0) clears -- 0x58. This bit
@@ -406,8 +406,8 @@ test_general_config_word(void)
     // the one the fix changes.
     config.polarity_holes = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x58, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x58, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.polarity_holes = false;
 
     // test_pulse_config.enabled no longer reaches this word at all: Tp_en
@@ -416,8 +416,8 @@ test_general_config_word(void)
     // way, for analog and digital alike.
     config.test_pulse_config.enabled = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x59, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x59, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
     config.test_pulse_config.enabled = false;
 
     // The remaining flag combinations, freezing the whole 2^3 space the
@@ -427,25 +427,25 @@ test_general_config_word(void)
     config.gray_disable              = true;
     config.test_pulse_config.enabled = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x51, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x51, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.test_pulse_config.enabled = false;
     config.polarity_holes            = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x50, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x50, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.gray_disable              = false;
     config.test_pulse_config.enabled = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x58, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x58, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.gray_disable = true;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
-        0x50, 0, 0, 0, TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
+        0x50, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 }
 
 
@@ -479,42 +479,45 @@ check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const kather
 // PLLConfig, register 3. The reference value is device-attested: every vendor
 // capture we hold writes 0x291E, and a Gen1 readout reads it back unchanged.
 // That word decodes as the four pinned low bits (PLL on, out of reset, own
-// Vcntrl DAC, dual-edge), FREQ_40 in the divider at [5:4], PHASE_16 in the
-// number at [8:6], and ShutterOut in pll_out_config at [13:9]. FREQ_40 is
-// also the only setting at which ftoa is arithmetically coherent, so the
-// vendor's choice and our own documented constraint agree.
+// Vcntrl DAC, dual-edge), KATHERINE_TPX3_FREQ_40_MHZ in the divider at [5:4],
+// KATHERINE_TPX3_PHASE_16 in the number at [8:6], and ShutterOut in
+// pll_out_config at [13:9]. KATHERINE_TPX3_FREQ_40_MHZ is also the only
+// setting at which ftoa is arithmetically coherent, so the vendor's choice
+// and our own documented constraint agree.
 static void
 test_pll_config_word(void)
 {
     katherine_config_t config;
     memset(&config, 0, sizeof(config));
 
-    // All-zero config: FREQ_20 and PHASE_1 are both encoded as 0, leaving
-    // only the pinned bits and the output selector -- 0x280E.
+    // All-zero config: KATHERINE_TPX3_FREQ_20_MHZ and KATHERINE_TPX3_PHASE_1
+    // are both encoded as 0, leaving only the pinned bits and the output
+    // selector -- 0x280E.
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
-        0x0E, 0x28, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x0E, 0x28, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     // The vendor's word, and the one case that matters most.
-    config.freq  = FREQ_40;
-    config.phase = PHASE_16;
+    config.freq  = KATHERINE_TPX3_FREQ_40_MHZ;
+    config.phase = KATHERINE_TPX3_PHASE_16;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
-        0x1E, 0x29, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x1E, 0x29, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     // Each selector isolated, so neither can silently borrow the other's
-    // bits: FREQ_160 fills the divider, PHASE_1 empties the number.
-    config.freq  = FREQ_160;
-    config.phase = PHASE_1;
+    // bits: KATHERINE_TPX3_FREQ_160_MHZ fills the divider,
+    // KATHERINE_TPX3_PHASE_1 empties the number.
+    config.freq  = KATHERINE_TPX3_FREQ_160_MHZ;
+    config.phase = KATHERINE_TPX3_PHASE_1;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
-        0x3E, 0x28, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x3E, 0x28, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
-    config.freq  = FREQ_20;
-    config.phase = PHASE_16;
+    config.freq  = KATHERINE_TPX3_FREQ_20_MHZ;
+    config.phase = KATHERINE_TPX3_PHASE_16;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
-                  (uint8_t) TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
-        0x0E, 0x29, 0, 0, TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
+                  (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
+        0x0E, 0x29, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 }
 
 static void
