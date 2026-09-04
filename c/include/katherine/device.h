@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-/// Sensor chip a readout device drives. Values are the Timepix generation, so
+/// Timepix chip a readout device drives. Values are the Timepix generation, so
 /// the enumeration reads as the chip's name; 0 means not known.
 ///
 /// Named for the chip rather than for the ASIC: an ASIC is the technology a
@@ -56,7 +56,7 @@ katherine_str_chip_type(katherine_chip_type_t v);
 typedef struct katherine_device_info {
     uint8_t hw_type;                 ///< Reported hardware type. 0 means this structure is not populated: either the readout did not answer or it reported a type this version does not know.
     const char *name;                ///< Human-readable readout name, or NULL when hw_type is 0.
-    katherine_chip_type_t chip_type; ///< ASIC generation supported by the readout.
+    katherine_chip_type_t chip_type; ///< Timepix chip this readout drives.
     uint8_t gen;                     ///< Katherine readout generation (indexed from 1), or 0 where it is not applicable.
     uint8_t max_chip_count;          ///< Maximum number of chips this readout can carry. Caution: this does not give the number of chips attached at the moment, see katherine_comm_status_t::chip_count for that.
     bool supported;                  ///< Whether this library can drive this readout today. False rows are recognized so that an unsupported device reports what it is instead of nothing.

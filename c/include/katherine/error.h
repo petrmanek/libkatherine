@@ -57,7 +57,7 @@ typedef enum katherine_error {
 
     // device
     KATHERINE_E_UNSUPPORTED, ///< The operation is not supported by this device.
-    KATHERINE_E_BAD_CHIP,    ///< The sensor chip identifier is invalid or unexpected.
+    KATHERINE_E_BAD_CHIP,    ///< The chip identifier is invalid or unexpected.
     KATHERINE_E_STATE,       ///< The call is not valid in the object's current state.
     KATHERINE_E_HW_UNKNOWN,  ///< The hardware reported a condition this library does not recognize.
 

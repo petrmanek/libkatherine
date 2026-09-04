@@ -76,10 +76,10 @@ typedef struct katherine_emu_profile {
     uint16_t serial;     ///< Hardware serial number reported by the readout status command
     uint16_t fw_version; ///< Firmware version reported by the readout status command
 
-    char chip_id[KATHERINE_EMU_CHIP_ID_SIZE]; ///< Sensor chip identifier, in the `A1-W0001` notation
+    char chip_id[KATHERINE_EMU_CHIP_ID_SIZE]; ///< Chip identifier, in the `A1-W0001` notation
 
     float readout_temperature; ///< Temperature reported for the readout board, in Celsius
-    float sensor_temperature;  ///< Temperature reported for the sensor chip, in Celsius
+    float sensor_temperature;  ///< Temperature the chip's own sensor reports, in Celsius
 
     uint64_t ack_latency_ns; ///< Virtual time between a command and its response
     uint64_t ack_jitter_ns;  ///< Upper bound of the pseudo-random addition to the latency

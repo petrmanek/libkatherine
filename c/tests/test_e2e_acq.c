@@ -106,7 +106,7 @@
 #define EXPECTED_SENSOR_T    40.0f
 
 // Communication status of the emulated readout: all eight data lines up, one
-// sensor chip attached, and a reported data rate of zero because the daemon
+// chip attached, and a reported data rate of zero because the daemon
 // is started without --rate and therefore does not shape its stream
 // (queue_comm_status() in c/src/emu/emulator.c).
 #define EXPECTED_COMM_LINES  0xFF

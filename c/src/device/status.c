@@ -232,7 +232,7 @@ err:
 /**
  * Measure the temperature of the readout.
  *
- * Reads a sensor on the readout board and never reaches the sensor chip, so
+ * Reads a sensor on the readout board and never reaches the chip, so
  * unlike katherine_get_sensor_temperature() this remains available while an
  * acquisition is running and is the one to poll during a measurement.
  *
@@ -289,7 +289,7 @@ err:
 }
 
 /**
- * Measure the temperature of the sensor chip.
+ * Measure the chip's temperature, as its own on-die sensor reports it.
  *
  * Refused with KATHERINE_E_STATE while an acquisition is running, because the
  * readout measures this by way of the DAC scan: it reloads all of the sensor
@@ -365,7 +365,7 @@ err:
 }
 
 /**
- * Test communication between the readout and the sensor chip (may take several seconds).
+ * Test communication between the readout and the chip (may take several seconds).
  *
  * The wait for the result is retried up to a hundred times, because the test
  * itself outlasts the control session's receive timeout by far. A code raised

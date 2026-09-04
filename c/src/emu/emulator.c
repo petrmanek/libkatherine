@@ -26,7 +26,7 @@
 #define EMU_CMD_TYPE_TOA_CALIBRATION_START 0x27
 
 // Communication status the emulator reports: all eight data lines up, one
-// sensor chip attached.
+// chip attached.
 #define KATHERINE_EMU_COMM_LINES_MASK      0xFF
 #define KATHERINE_EMU_CHIP_COUNT           1
 
