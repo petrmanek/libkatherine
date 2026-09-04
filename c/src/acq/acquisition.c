@@ -462,8 +462,8 @@ DEFINE_ACQ_IMPL_EVERY_SHIFT(toa_tot)
 DEFINE_ACQ_IMPL_EVERY_SHIFT(f_toa_only)
 DEFINE_ACQ_IMPL_EVERY_SHIFT(toa_only)
 
-DEFINE_ACQ_IMPL(f_event_itot, , pmd_f_event_itot_map)
-DEFINE_ACQ_IMPL(event_itot, , pmd_event_itot_map)
+DEFINE_ACQ_IMPL(f_event_count_itot, , pmd_f_event_count_itot_map)
+DEFINE_ACQ_IMPL(event_count_itot, , pmd_event_count_itot_map)
 
 #undef DEFINE_ACQ_IMPL_EVERY_SHIFT
 #undef DEFINE_ACQ_IMPL_SHIFTED
@@ -667,9 +667,9 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 
     case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT:
         if (acq->fast_vco_enabled) {
-            res = acquisition_read_f_event_itot(acq);
+            res = acquisition_read_f_event_count_itot(acq);
         } else {
-            res = acquisition_read_event_itot(acq);
+            res = acquisition_read_event_count_itot(acq);
         }
         break;
 

@@ -199,60 +199,60 @@ test_pmd_toa_only_extract(void)
 }
 
 // ------------------------------------------------------------------
-// pmd_f_event_itot: event_count @ 4/10, integral_tot @ 14/14, coord_x
+// pmd_f_event_count_itot: event_count @ 4/10, integral_tot @ 14/14, coord_x
 // @ 28/8, coord_y @ 36/8. Bits 0-3 are dummy with the fast oscillator
 // on (Figure 1, p8), so this layout has no field for them -- the one
 // mode whose fast variant carries less than its slow one.
 
 static void
-test_pmd_f_event_itot_extract(void)
+test_pmd_f_event_count_itot_extract(void)
 {
     // Bits [3:0] deliberately left clear: this layout has no field there.
     uint64_t payload =
         ((uint64_t) DEMO_Y << 36) | ((uint64_t) DEMO_X << 28) | ((uint64_t) DEMO_14 << 14) | ((uint64_t) DEMO_10 << 4);
     uint64_t w = make_md_word(0x4, payload);
 
-    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_itot, coord_x), DEMO_X);
-    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_itot, coord_y), DEMO_Y);
-    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_itot, integral_tot), DEMO_14);
-    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_itot, event_count), DEMO_10);
+    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_count_itot, coord_x), DEMO_X);
+    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_count_itot, coord_y), DEMO_Y);
+    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_count_itot, integral_tot), DEMO_14);
+    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_count_itot, event_count), DEMO_10);
 
     uint64_t payload_max = (MASK(8) << 36) | (MASK(8) << 28) | (MASK(14) << 14) | (MASK(10) << 4);
     uint64_t w_max       = make_md_word(0x4, payload_max);
 
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_itot, coord_x), MASK(8));
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_itot, coord_y), MASK(8));
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_itot, integral_tot), MASK(14));
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_itot, event_count), MASK(10));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_count_itot, coord_x), MASK(8));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_count_itot, coord_y), MASK(8));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_count_itot, integral_tot), MASK(14));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_f_event_count_itot, event_count), MASK(10));
 }
 
 // ------------------------------------------------------------------
-// pmd_event_itot: hit_count @ 0/4, event_count @ 4/10, integral_tot @
+// pmd_event_count_itot: hit_count @ 0/4, event_count @ 4/10, integral_tot @
 // 14/14, coord_x @ 28/8, coord_y @ 36/8. With the fast oscillator off,
 // bits 0-3 carry the pixel hit counter, measured on hardware as a true
 // count saturating at 14.
 
 static void
-test_pmd_event_itot_extract(void)
+test_pmd_event_count_itot_extract(void)
 {
     uint64_t payload = ((uint64_t) DEMO_Y << 36) | ((uint64_t) DEMO_X << 28) | ((uint64_t) DEMO_14 << 14)
         | ((uint64_t) DEMO_10 << 4) | (uint64_t) DEMO_4;
     uint64_t w = make_md_word(0x4, payload);
 
-    KT_CHECK_EQ(EXTRACT(w, pmd_event_itot, coord_x), DEMO_X);
-    KT_CHECK_EQ(EXTRACT(w, pmd_event_itot, coord_y), DEMO_Y);
-    KT_CHECK_EQ(EXTRACT(w, pmd_event_itot, integral_tot), DEMO_14);
-    KT_CHECK_EQ(EXTRACT(w, pmd_event_itot, event_count), DEMO_10);
-    KT_CHECK_EQ(EXTRACT(w, pmd_event_itot, hit_count), DEMO_4);
+    KT_CHECK_EQ(EXTRACT(w, pmd_event_count_itot, coord_x), DEMO_X);
+    KT_CHECK_EQ(EXTRACT(w, pmd_event_count_itot, coord_y), DEMO_Y);
+    KT_CHECK_EQ(EXTRACT(w, pmd_event_count_itot, integral_tot), DEMO_14);
+    KT_CHECK_EQ(EXTRACT(w, pmd_event_count_itot, event_count), DEMO_10);
+    KT_CHECK_EQ(EXTRACT(w, pmd_event_count_itot, hit_count), DEMO_4);
 
     uint64_t payload_max = (MASK(8) << 36) | (MASK(8) << 28) | (MASK(14) << 14) | (MASK(10) << 4) | MASK(4);
     uint64_t w_max       = make_md_word(0x4, payload_max);
 
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_itot, coord_x), MASK(8));
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_itot, coord_y), MASK(8));
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_itot, integral_tot), MASK(14));
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_itot, event_count), MASK(10));
-    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_itot, hit_count), MASK(4));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_count_itot, coord_x), MASK(8));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_count_itot, coord_y), MASK(8));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_count_itot, integral_tot), MASK(14));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_count_itot, event_count), MASK(10));
+    KT_CHECK_EQ(EXTRACT(w_max, pmd_event_count_itot, hit_count), MASK(4));
 }
 
 // ------------------------------------------------------------------
@@ -321,21 +321,21 @@ test_insert_extract_roundtrip(void)
     w = INSERT(0ULL, pmd_toa_only, toa, DEMO_14);
     KT_CHECK_EQ(w, (uint64_t) DEMO_14 << 14);
 
-    w = INSERT(0ULL, pmd_f_event_itot, event_count, DEMO_10);
+    w = INSERT(0ULL, pmd_f_event_count_itot, event_count, DEMO_10);
     KT_CHECK_EQ(w, (uint64_t) DEMO_10 << 4);
-    w = INSERT(0ULL, pmd_f_event_itot, integral_tot, DEMO_14);
+    w = INSERT(0ULL, pmd_f_event_count_itot, integral_tot, DEMO_14);
     KT_CHECK_EQ(w, (uint64_t) DEMO_14 << 14);
-    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_itot, event_count), 0);
+    KT_CHECK_EQ(EXTRACT(w, pmd_f_event_count_itot, event_count), 0);
 
-    w = INSERT(0ULL, pmd_event_itot, hit_count, DEMO_4);
+    w = INSERT(0ULL, pmd_event_count_itot, hit_count, DEMO_4);
     KT_CHECK_EQ(w, (uint64_t) DEMO_4);
-    w = INSERT(0ULL, pmd_event_itot, event_count, DEMO_10);
+    w = INSERT(0ULL, pmd_event_count_itot, event_count, DEMO_10);
     KT_CHECK_EQ(w, (uint64_t) DEMO_10 << 4);
-    w = INSERT(0ULL, pmd_event_itot, integral_tot, DEMO_14);
+    w = INSERT(0ULL, pmd_event_count_itot, integral_tot, DEMO_14);
     KT_CHECK_EQ(w, (uint64_t) DEMO_14 << 14);
-    w = INSERT(0ULL, pmd_event_itot, coord_x, DEMO_X);
+    w = INSERT(0ULL, pmd_event_count_itot, coord_x, DEMO_X);
     KT_CHECK_EQ(w, (uint64_t) DEMO_X << 28);
-    w = INSERT(0ULL, pmd_event_itot, coord_y, DEMO_Y);
+    w = INSERT(0ULL, pmd_event_count_itot, coord_y, DEMO_Y);
     KT_CHECK_EQ(w, (uint64_t) DEMO_Y << 36);
 }
 
@@ -366,8 +366,8 @@ main(void)
     KT_RUN(test_pmd_toa_tot_extract);
     KT_RUN(test_pmd_f_toa_only_extract);
     KT_RUN(test_pmd_toa_only_extract);
-    KT_RUN(test_pmd_f_event_itot_extract);
-    KT_RUN(test_pmd_event_itot_extract);
+    KT_RUN(test_pmd_f_event_count_itot_extract);
+    KT_RUN(test_pmd_event_count_itot_extract);
     KT_RUN(test_insert_extract_roundtrip);
     KT_RUN(test_comm_status_crd_extract);
     return kt_summary();

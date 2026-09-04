@@ -191,7 +191,7 @@ katherine_str_px_mode(katherine_tpx3_px_mode_t mode)
     switch (mode) {
     case KATHERINE_TPX3_PX_TOA_TOT:          return "toa_tot";
     case KATHERINE_TPX3_PX_ONLY_TOA:         return "only_toa";
-    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT: return "event_itot";
+    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT: return "event_count_itot";
     default:                                 return "unknown";
     }
 }
@@ -295,10 +295,10 @@ katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only
 
 /** \copydoc katherine_coord_snprint */
 int
-katherine_px_f_event_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_itot_t *v)
+katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_f_event_itot{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_f_event_count_itot{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", event_count: %u, integral_tot: %u}", (unsigned) v->event_count,
         (unsigned) v->integral_tot);
@@ -307,10 +307,10 @@ katherine_px_f_event_itot_snprint(char *buf, size_t cap, const katherine_px_f_ev
 
 /** \copydoc katherine_coord_snprint */
 int
-katherine_px_event_itot_snprint(char *buf, size_t cap, const katherine_px_event_itot_t *v)
+katherine_px_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_event_count_itot_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_event_itot{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_event_count_itot{coord: ");
     REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", hit_count: %u, event_count: %u, integral_tot: %u}", (unsigned) v->hit_count,
         (unsigned) v->event_count, (unsigned) v->integral_tot);

@@ -240,29 +240,29 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
     }
 DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_TOA_ONLY)
 
-#define _BITS_pmd_f_event_itot_event_count_start  4
-#define _BITS_pmd_f_event_itot_event_count_mask   MASK(10)
-#define _BITS_pmd_f_event_itot_event_count_type   uint16_t
+#define _BITS_pmd_f_event_count_itot_event_count_start  4
+#define _BITS_pmd_f_event_count_itot_event_count_mask   MASK(10)
+#define _BITS_pmd_f_event_count_itot_event_count_type   uint16_t
 
-#define _BITS_pmd_f_event_itot_integral_tot_start 14
-#define _BITS_pmd_f_event_itot_integral_tot_mask  MASK(14)
-#define _BITS_pmd_f_event_itot_integral_tot_type  uint16_t
+#define _BITS_pmd_f_event_count_itot_integral_tot_start 14
+#define _BITS_pmd_f_event_count_itot_integral_tot_mask  MASK(14)
+#define _BITS_pmd_f_event_count_itot_integral_tot_type  uint16_t
 
-#define _BITS_pmd_f_event_itot_coord_x_start      28
-#define _BITS_pmd_f_event_itot_coord_x_mask       MASK(8)
-#define _BITS_pmd_f_event_itot_coord_x_type       uint16_t
+#define _BITS_pmd_f_event_count_itot_coord_x_start      28
+#define _BITS_pmd_f_event_count_itot_coord_x_mask       MASK(8)
+#define _BITS_pmd_f_event_count_itot_coord_x_type       uint16_t
 
-#define _BITS_pmd_f_event_itot_coord_y_start      36
-#define _BITS_pmd_f_event_itot_coord_y_mask       MASK(8)
-#define _BITS_pmd_f_event_itot_coord_y_type       uint16_t
+#define _BITS_pmd_f_event_count_itot_coord_y_start      36
+#define _BITS_pmd_f_event_count_itot_coord_y_mask       MASK(8)
+#define _BITS_pmd_f_event_count_itot_coord_y_type       uint16_t
 
-DEFINE_PMD_MAP(f_event_itot)
+DEFINE_PMD_MAP(f_event_count_itot)
 {
     (void) acq;
 
-    DEFINE_PMD_PAIR_COORD(pmd_f_event_itot);
-    DEFINE_PMD_PAIR(event_count, uint16_t, pmd_f_event_itot);
-    DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_f_event_itot);
+    DEFINE_PMD_PAIR_COORD(pmd_f_event_count_itot);
+    DEFINE_PMD_PAIR(event_count, uint16_t, pmd_f_event_count_itot);
+    DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_f_event_count_itot);
 }
 
 // Bits [3:0] carry the pixel hit counter only while the fast oscillator is
@@ -271,34 +271,34 @@ DEFINE_PMD_MAP(f_event_itot)
 // oscillator off, a patch given N test pulses reads N here for N up to 14 and
 // saturates at 14 -- Table 4's limit for this counter, and what distinguishes
 // it from the fine-ToA field, which saturates at 15.
-#define _BITS_pmd_event_itot_hit_count_start    0
-#define _BITS_pmd_event_itot_hit_count_mask     MASK(4)
-#define _BITS_pmd_event_itot_hit_count_type     uint16_t
+#define _BITS_pmd_event_count_itot_hit_count_start    0
+#define _BITS_pmd_event_count_itot_hit_count_mask     MASK(4)
+#define _BITS_pmd_event_count_itot_hit_count_type     uint16_t
 
-#define _BITS_pmd_event_itot_event_count_start  4
-#define _BITS_pmd_event_itot_event_count_mask   MASK(10)
-#define _BITS_pmd_event_itot_event_count_type   uint16_t
+#define _BITS_pmd_event_count_itot_event_count_start  4
+#define _BITS_pmd_event_count_itot_event_count_mask   MASK(10)
+#define _BITS_pmd_event_count_itot_event_count_type   uint16_t
 
-#define _BITS_pmd_event_itot_integral_tot_start 14
-#define _BITS_pmd_event_itot_integral_tot_mask  MASK(14)
-#define _BITS_pmd_event_itot_integral_tot_type  uint16_t
+#define _BITS_pmd_event_count_itot_integral_tot_start 14
+#define _BITS_pmd_event_count_itot_integral_tot_mask  MASK(14)
+#define _BITS_pmd_event_count_itot_integral_tot_type  uint16_t
 
-#define _BITS_pmd_event_itot_coord_x_start      28
-#define _BITS_pmd_event_itot_coord_x_mask       MASK(8)
-#define _BITS_pmd_event_itot_coord_x_type       uint16_t
+#define _BITS_pmd_event_count_itot_coord_x_start      28
+#define _BITS_pmd_event_count_itot_coord_x_mask       MASK(8)
+#define _BITS_pmd_event_count_itot_coord_x_type       uint16_t
 
-#define _BITS_pmd_event_itot_coord_y_start      36
-#define _BITS_pmd_event_itot_coord_y_mask       MASK(8)
-#define _BITS_pmd_event_itot_coord_y_type       uint16_t
+#define _BITS_pmd_event_count_itot_coord_y_start      36
+#define _BITS_pmd_event_count_itot_coord_y_mask       MASK(8)
+#define _BITS_pmd_event_count_itot_coord_y_type       uint16_t
 
-DEFINE_PMD_MAP(event_itot)
+DEFINE_PMD_MAP(event_count_itot)
 {
     (void) acq;
 
-    DEFINE_PMD_PAIR_COORD(pmd_event_itot);
-    DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_event_itot);
-    DEFINE_PMD_PAIR(event_count, uint16_t, pmd_event_itot);
-    DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_event_itot);
+    DEFINE_PMD_PAIR_COORD(pmd_event_count_itot);
+    DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_event_count_itot);
+    DEFINE_PMD_PAIR(event_count, uint16_t, pmd_event_count_itot);
+    DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_event_count_itot);
 }
 
 #undef DEFINE_PMD_MAP

@@ -84,21 +84,21 @@ test_px_toa_only(void)
 }
 
 static void
-test_px_f_event_itot(void)
+test_px_f_event_count_itot(void)
 {
-    katherine_px_f_event_itot_t v = {{9, 10}, 11, 222};
+    katherine_px_f_event_count_itot_t v = {{9, 10}, 11, 222};
     char buf[128];
-    int n = katherine_px_f_event_itot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_f_event_itot{coord: coord{x: 9, y: 10}, event_count: 11, integral_tot: 222}");
+    int n = katherine_px_f_event_count_itot_snprint(buf, sizeof(buf), &v);
+    CHECK_GOLDEN(n, buf, "px_f_event_count_itot{coord: coord{x: 9, y: 10}, event_count: 11, integral_tot: 222}");
 }
 
 static void
-test_px_event_itot(void)
+test_px_event_count_itot(void)
 {
-    katherine_px_event_itot_t v = {{11, 12}, 5, 33, 444};
+    katherine_px_event_count_itot_t v = {{11, 12}, 5, 33, 444};
     char buf[128];
-    int n = katherine_px_event_itot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_event_itot{coord: coord{x: 11, y: 12}, hit_count: 5, event_count: 33, integral_tot: 444}");
+    int n = katherine_px_event_count_itot_snprint(buf, sizeof(buf), &v);
+    CHECK_GOLDEN(n, buf, "px_event_count_itot{coord: coord{x: 11, y: 12}, hit_count: 5, event_count: 33, integral_tot: 444}");
 }
 
 // Both bool states, across the two triggers used again in test_config().
@@ -348,7 +348,7 @@ test_str_enums(void)
     KT_CHECK(strcmp(katherine_str_readout_mode((katherine_tpx3_readout_mode_t) 99), "unknown") == 0);
 
     KT_CHECK(strcmp(katherine_str_px_mode(KATHERINE_TPX3_PX_TOA_TOT), "toa_tot") == 0);
-    KT_CHECK(strcmp(katherine_str_px_mode(KATHERINE_TPX3_PX_EVENT_COUNT_ITOT), "event_itot") == 0);
+    KT_CHECK(strcmp(katherine_str_px_mode(KATHERINE_TPX3_PX_EVENT_COUNT_ITOT), "event_count_itot") == 0);
     KT_CHECK(strcmp(katherine_str_px_mode((katherine_tpx3_px_mode_t) 99), "unknown") == 0);
 
     KT_CHECK(strcmp(katherine_str_phase(KATHERINE_TPX3_PHASE_1), "phase_1") == 0);
@@ -473,8 +473,8 @@ main(void)
     KT_RUN(test_px_toa_tot);
     KT_RUN(test_px_f_toa_only);
     KT_RUN(test_px_toa_only);
-    KT_RUN(test_px_f_event_itot);
-    KT_RUN(test_px_event_itot);
+    KT_RUN(test_px_f_event_count_itot);
+    KT_RUN(test_px_event_count_itot);
     KT_RUN(test_trigger);
     KT_RUN(test_test_pulse_config);
     KT_RUN(test_dacs);

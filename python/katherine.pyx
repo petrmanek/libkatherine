@@ -1080,19 +1080,19 @@ cdef class PxToaOnly:
        return self._c_px.timestamp
 
 
-cdef class PxFastEventItot:
-    cdef cpx.katherine_px_f_event_itot_t _c_px
+cdef class PxFastEventCountItot:
+    cdef cpx.katherine_px_f_event_count_itot_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_event_itot_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_event_count_itot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_f_event_itot_t)
+       return sizeof(cpx.katherine_px_f_event_count_itot_t)
 
     @property
     def x(self):
@@ -1111,19 +1111,19 @@ cdef class PxFastEventItot:
        return self._c_px.integral_tot
 
 
-cdef class PxEventItot:
-    cdef cpx.katherine_px_event_itot_t _c_px
+cdef class PxEventCountItot:
+    cdef cpx.katherine_px_event_count_itot_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_event_itot_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_event_count_itot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_event_itot_t)
+       return sizeof(cpx.katherine_px_event_count_itot_t)
 
     @property
     def x(self):
@@ -1179,15 +1179,15 @@ cdef class Acquisition:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_tot
         elif px_mode == AcquisitionMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_only
-        elif px_mode == AcquisitionMode.EVENT_ITOT:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_f_event_itot
+        elif px_mode == AcquisitionMode.EVENT_COUNT_ITOT:
+          self._c_acq.handlers.pixels_received = _forward_pixels_received_f_event_count_itot
       else:
         if px_mode == AcquisitionMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_tot
         elif px_mode == AcquisitionMode.ONLY_TOA:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_only
-        elif px_mode == AcquisitionMode.EVENT_ITOT:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_event_itot
+        elif px_mode == AcquisitionMode.EVENT_COUNT_ITOT:
+          self._c_acq.handlers.pixels_received = _forward_pixels_received_event_count_itot
 
       res = cacquisition.katherine_acquisition_begin(self._c_acq, &config._c_config, readout_type.value, px_mode.value, fast_vco_enabled, decode_data)
       check_return_code(res)
@@ -1329,13 +1329,13 @@ cdef void _forward_pixels_received_toa_only(void *user_ctx, const void *px, size
     cdef const cpx.katherine_px_toa_only_t *dpx = <const cpx.katherine_px_toa_only_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([PxToaOnly(cdata=dpx[i]) for i in range(count)])
 
-cdef void _forward_pixels_received_f_event_itot(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_f_event_itot_t *dpx = <const cpx.katherine_px_f_event_itot_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxFastEventItot(cdata=dpx[i]) for i in range(count)])
+cdef void _forward_pixels_received_f_event_count_itot(void *user_ctx, const void *px, size_t count) noexcept:
+    cdef const cpx.katherine_px_f_event_count_itot_t *dpx = <const cpx.katherine_px_f_event_count_itot_t *> px
+    (<Acquisition> user_ctx).observer.pixels_received([PxFastEventCountItot(cdata=dpx[i]) for i in range(count)])
 
-cdef void _forward_pixels_received_event_itot(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_event_itot_t *dpx = <const cpx.katherine_px_event_itot_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxEventItot(cdata=dpx[i]) for i in range(count)])
+cdef void _forward_pixels_received_event_count_itot(void *user_ctx, const void *px, size_t count) noexcept:
+    cdef const cpx.katherine_px_event_count_itot_t *dpx = <const cpx.katherine_px_event_count_itot_t *> px
+    (<Acquisition> user_ctx).observer.pixels_received([PxEventCountItot(cdata=dpx[i]) for i in range(count)])
 
 def MD_SIZE():
    return cacquisition.KATHERINE_MD_SIZE

@@ -201,8 +201,8 @@ local PIXEL_LAYOUTS = {
     { "toa_tot",       "toa_tot: hit_count[0:3] tot[4:13] toa[14:27]",                  2 },
     { "f_toa_only",    "f_toa_only: ftoa[0:3] toa[14:27] (fast VCO)",                   3 },
     { "toa_only",      "toa_only: hit_count[0:3] toa[14:27]",                           4 },
-    { "f_event_itot",  "f_event_itot: hit_count[0:3] event_count[4:13] integral_tot[14:27] (fast VCO)", 5 },
-    { "event_itot",    "event_itot: event_count[4:13] integral_tot[14:27]",             6 },
+    { "f_event_count_itot",  "f_event_count_itot: hit_count[0:3] event_count[4:13] integral_tot[14:27] (fast VCO)", 5 },
+    { "event_count_itot",    "event_count_itot: event_count[4:13] integral_tot[14:27]",             6 },
 }
 
 katherine_proto.prefs.mode = Pref.enum(
@@ -534,11 +534,11 @@ local function add_pixel_fields(item, word)
     elseif mode == 4 then -- toa_only
         item:add_le(f_md_hit_count, word(0, 4))
         item:add_le(f_md_toa, word(0, 4))
-    elseif mode == 5 then -- f_event_itot
+    elseif mode == 5 then -- f_event_count_itot
         item:add_le(f_md_hit_count, word(0, 4))
         item:add_le(f_md_event_count, word(0, 4))
         item:add_le(f_md_integral_tot, word(0, 4))
-    else -- event_itot (mode == 6)
+    else -- event_count_itot (mode == 6)
         item:add_le(f_md_event_count, word(0, 4))
         item:add_le(f_md_integral_tot, word(0, 4))
     end

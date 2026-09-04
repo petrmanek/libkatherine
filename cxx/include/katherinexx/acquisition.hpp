@@ -232,14 +232,14 @@ struct toa_only {
     static constexpr bool fast_vco_enabled = false;
 };
 
-struct f_event_itot {
-    using pixel_type                       = katherine_px_f_event_itot_t;
+struct f_event_count_itot {
+    using pixel_type                       = katherine_px_f_event_count_itot_t;
     static constexpr px_mode mode    = px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = true;
 };
 
-struct event_itot {
-    using pixel_type                       = katherine_px_event_itot_t;
+struct event_count_itot {
+    using pixel_type                       = katherine_px_event_count_itot_t;
     static constexpr px_mode mode    = px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = false;
 };

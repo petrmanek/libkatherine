@@ -149,14 +149,14 @@ build_hit_md(const katherine_emu_stream_t *stream, const emu_hit_t *hit)
         // on they are dummy and are left clear, which is what a readout puts
         // on the wire.
         if (stream->fast_vco) {
-            EMU_MD_COORD(md, pmd_f_event_itot, hit);
-            md = INSERT(md, pmd_f_event_itot, event_count, (uint64_t) hit->event_count);
-            md = INSERT(md, pmd_f_event_itot, integral_tot, (uint64_t) hit->integral_tot);
+            EMU_MD_COORD(md, pmd_f_event_count_itot, hit);
+            md = INSERT(md, pmd_f_event_count_itot, event_count, (uint64_t) hit->event_count);
+            md = INSERT(md, pmd_f_event_count_itot, integral_tot, (uint64_t) hit->integral_tot);
         } else {
-            EMU_MD_COORD(md, pmd_event_itot, hit);
-            md = INSERT(md, pmd_event_itot, hit_count, (uint64_t) hit->hit_count);
-            md = INSERT(md, pmd_event_itot, event_count, (uint64_t) hit->event_count);
-            md = INSERT(md, pmd_event_itot, integral_tot, (uint64_t) hit->integral_tot);
+            EMU_MD_COORD(md, pmd_event_count_itot, hit);
+            md = INSERT(md, pmd_event_count_itot, hit_count, (uint64_t) hit->hit_count);
+            md = INSERT(md, pmd_event_count_itot, event_count, (uint64_t) hit->event_count);
+            md = INSERT(md, pmd_event_count_itot, integral_tot, (uint64_t) hit->integral_tot);
         }
         break;
 

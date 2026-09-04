@@ -180,8 +180,8 @@ DEFINE_BENCH_DECODE(f_toa_tot, pmd_f_toa_tot_s4_map,    (uint64_t) dst->coord.x 
 DEFINE_BENCH_DECODE(toa_tot, pmd_toa_tot_s4_map,      (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot)
 DEFINE_BENCH_DECODE(f_toa_only, pmd_f_toa_only_s4_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp)
 DEFINE_BENCH_DECODE(toa_only, pmd_toa_only_s4_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count)
-DEFINE_BENCH_DECODE(f_event_itot, pmd_f_event_itot_map, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
-DEFINE_BENCH_DECODE(event_itot, pmd_event_itot_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
+DEFINE_BENCH_DECODE(f_event_count_itot, pmd_f_event_count_itot_map, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
+DEFINE_BENCH_DECODE(event_count_itot, pmd_event_count_itot_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
 // clang-format on
 
 #undef DEFINE_BENCH_DECODE
@@ -269,8 +269,8 @@ main(void)
     run_bench("toa_tot", bench_decode_toa_tot, buf, words);
     run_bench("f_toa_only", bench_decode_f_toa_only, buf, words);
     run_bench("toa_only", bench_decode_toa_only, buf, words);
-    run_bench("f_event_itot", bench_decode_f_event_itot, buf, words);
-    run_bench("event_itot", bench_decode_event_itot, buf, words);
+    run_bench("f_event_count_itot", bench_decode_f_event_count_itot, buf, words);
+    run_bench("event_count_itot", bench_decode_event_count_itot, buf, words);
     run_bench("memcpy", bench_decode_memcpy, buf, words);
 
     free(g_memcpy_scratch);
