@@ -142,7 +142,7 @@ katherine_str_chip_type(katherine_chip_type_t v)
     }
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info_t *v)
 {
@@ -254,85 +254,85 @@ katherine_str_freq(katherine_tpx3_freq_t freq)
  * \return The number of bytes the rendering would occupy excluding the terminating NUL, same as snprintf().
  */
 int
-katherine_coord_snprint(char *buf, size_t cap, const katherine_coord_t *v)
+katherine_tpx3_coord_snprint(char *buf, size_t cap, const katherine_tpx3_coord_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "coord{x: %u, y: %u}", (unsigned) v->x, (unsigned) v->y);
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_toa_tot{coord: ");
-    REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
+    REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(
         buf, cap, off, ", timestamp: %llu, tot: %u}", (unsigned long long) v->timestamp, (unsigned) v->tot);
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_toa_tot{coord: ");
-    REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
+    REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(
         buf, cap, off, ", timestamp: %llu, hit_count: %u, tot: %u}", (unsigned long long) v->timestamp, (unsigned) v->hit_count,
         (unsigned) v->tot);
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_toa_only{coord: ");
-    REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
+    REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", timestamp: %llu}", (unsigned long long) v->timestamp);
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_toa_only{coord: ");
-    REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
+    REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", timestamp: %llu, hit_count: %u}", (unsigned long long) v->timestamp, (unsigned) v->hit_count);
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_event_count_itot{coord: ");
-    REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
+    REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", event_count: %u, integral_tot: %u}", (unsigned) v->event_count,
         (unsigned) v->integral_tot);
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_px_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_event_count_itot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_event_count_itot{coord: ");
-    REPR_NEST(buf, cap, off, katherine_coord_snprint, &v->coord);
+    REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", hit_count: %u, event_count: %u, integral_tot: %u}", (unsigned) v->hit_count,
         (unsigned) v->event_count, (unsigned) v->integral_tot);
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 {
@@ -342,7 +342,7 @@ katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v)
 {
@@ -353,7 +353,7 @@ katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
 {
@@ -376,7 +376,7 @@ katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
  * Render a digest of the pixel configuration matrix (word count and a
  * 64-bit XOR fold, never the 16384 words themselves -- see px_config_xor64()
  * above for how the fold is computed).
- * \copydetails katherine_coord_snprint
+ * \copydetails katherine_tpx3_coord_snprint
  */
 int
 katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v)
@@ -387,7 +387,7 @@ katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 {
@@ -411,7 +411,7 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_info_time_t *v)
 {
@@ -421,7 +421,7 @@ katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_i
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t *v)
 {
@@ -443,7 +443,7 @@ katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t
  * pointers (device, user_ctx, the data buffers) and the handler table are
  * omitted, as is everything about buffer occupancy beyond the two
  * capacities (pixel_buffer_valid/_max_valid, the timing fields, ...).
- * \copydetails katherine_coord_snprint
+ * \copydetails katherine_tpx3_coord_snprint
  */
 int
 katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v)
@@ -459,7 +459,7 @@ katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_status_t *v)
 {
@@ -469,7 +469,7 @@ katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status_t *v)
 {
@@ -483,7 +483,7 @@ katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status
  * Render a UDP session's endpoints, pin state and command-response
  * correlation state. The socket handle and the mutex are omitted: neither is
  * meaningful in a log line.
- * \copydetails katherine_coord_snprint
+ * \copydetails katherine_tpx3_coord_snprint
  */
 int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
@@ -502,7 +502,7 @@ katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
     return (int) off;
 }
 
-/** \copydoc katherine_coord_snprint */
+/** \copydoc katherine_tpx3_coord_snprint */
 int
 katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
 {

@@ -225,7 +225,7 @@ KATHERINE_EXPORTED int
 katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v);
 
 KATHERINE_EXPORTED uint8_t
-katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord);
+katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout);

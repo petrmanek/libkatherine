@@ -41,9 +41,9 @@
 static void
 test_coord(void)
 {
-    katherine_coord_t v = {12, 200};
+    katherine_tpx3_coord_t v = {12, 200};
     char buf[64];
-    int n = katherine_coord_snprint(buf, sizeof(buf), &v);
+    int n = katherine_tpx3_coord_snprint(buf, sizeof(buf), &v);
     CHECK_GOLDEN(n, buf, "coord{x: 12, y: 200}");
 }
 

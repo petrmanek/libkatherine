@@ -25,19 +25,28 @@ namespace katherine {
  * \{
  */
 
-using bmc   = katherine_bmc_t;
-using bpc   = katherine_bpc_t;
-using coord = katherine_coord_t;
+using bmc = katherine_bmc_t;
+using bpc = katherine_bpc_t;
+
+namespace tpx3 {
+
+/// A position in the Timepix3 pixel matrix, which is 256 x 256 -- hence the
+/// byte per axis. Namespaced for that reason: Timepix4's matrix is 448 x 512
+/// and needs a wider pair, and a coordinate wide enough for both would cost
+/// every Timepix2 and Timepix3 hit two bytes it has no use for.
+using coord = katherine_tpx3_coord_t;
+
+} // namespace tpx3
 
 struct px_config: katherine_px_config_t {
-    void set_test_bit(katherine::coord coord, bool enabled) { katherine_px_config_set_test_bit(this, coord, enabled); }
-    bool test_bit(katherine::coord coord) const { return katherine_px_config_get_test_bit(this, coord); }
+    void set_test_bit(katherine::tpx3::coord coord, bool enabled) { katherine_px_config_set_test_bit(this, coord, enabled); }
+    bool test_bit(katherine::tpx3::coord coord) const { return katherine_px_config_get_test_bit(this, coord); }
 
-    void set_mask_bit(katherine::coord coord, bool masked) { katherine_px_config_set_mask_bit(this, coord, masked); }
-    bool mask_bit(katherine::coord coord) const { return katherine_px_config_get_mask_bit(this, coord); }
+    void set_mask_bit(katherine::tpx3::coord coord, bool masked) { katherine_px_config_set_mask_bit(this, coord, masked); }
+    bool mask_bit(katherine::tpx3::coord coord) const { return katherine_px_config_get_mask_bit(this, coord); }
 
-    void set_loc_thl(katherine::coord coord, std::uint8_t loc_thl) { katherine_px_config_set_loc_thl(this, coord, loc_thl); }
-    std::uint8_t loc_thl(katherine::coord coord) const { return katherine_px_config_get_loc_thl(this, coord); }
+    void set_loc_thl(katherine::tpx3::coord coord, std::uint8_t loc_thl) { katherine_px_config_set_loc_thl(this, coord, loc_thl); }
+    std::uint8_t loc_thl(katherine::tpx3::coord coord) const { return katherine_px_config_get_loc_thl(this, coord); }
 };
 
 // The member functions above are the only addition; the C struct remains

@@ -67,7 +67,7 @@ paint_test_pixels(katherine_px_config_t *px_config)
                         continue;
                     }
 
-                    const katherine_coord_t coord = {
+                    const katherine_tpx3_coord_t coord = {
                         .x = (uint8_t) x,
                         .y = (uint8_t) y,
                     };

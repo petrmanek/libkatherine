@@ -58,7 +58,7 @@ paint_test_pixels(katherine::px_config& px_config)
                         continue;
                     }
 
-                    const katherine::coord coord{
+                    const katherine::tpx3::coord coord{
                         static_cast<std::uint8_t>(x),
                         static_cast<std::uint8_t>(y),
                     };

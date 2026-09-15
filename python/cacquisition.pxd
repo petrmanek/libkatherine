@@ -11,7 +11,7 @@ from libc.time cimport time_t
 from libc.stdint cimport uint8_t, uint32_t, uint64_t
 from cdevice cimport katherine_device_t
 from cconfig cimport katherine_config_t, katherine_tpx3_px_mode_t
-from cpx cimport katherine_coord_t
+from cpx cimport katherine_tpx3_coord_t
 
 cdef extern from 'katherine/acquisition.h':
     ctypedef struct katherine_frame_info_time_split_t:
@@ -90,7 +90,7 @@ cdef extern from 'katherine/acquisition.h':
 
     int katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v)
 
-    uint8_t katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
+    uint8_t katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord)
 
     ctypedef enum katherine_tpx3_readout_mode_t:
         KATHERINE_TPX3_READOUT_SEQUENTIAL

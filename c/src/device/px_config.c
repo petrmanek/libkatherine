@@ -289,14 +289,14 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
 // coordinates.
 
 static inline uint8_t
-_px_config_get_byte(const katherine_px_config_t *px_config, katherine_coord_t coord)
+_px_config_get_byte(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     const int yy = 255 - coord.y;
     return (uint8_t) (px_config->words[(64 * coord.x) + (yy >> 2)] >> (8 * (3 - (yy % 4))));
 }
 
 static inline void
-_px_config_set_byte(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t byte)
+_px_config_set_byte(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t byte)
 {
     const int yy    = 255 - coord.y;
     const int shift = 8 * (3 - (yy % 4));
@@ -314,7 +314,7 @@ _px_config_set_byte(katherine_px_config_t *px_config, katherine_coord_t coord, u
  * \param enabled New value of the test bit.
  */
 void
-katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool enabled)
+katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool enabled)
 {
     const uint8_t byte = _px_config_get_byte(px_config, coord);
     _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, test, enabled));
@@ -327,7 +327,7 @@ katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_coo
  * \return Current value of the test bit.
  */
 bool
-katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_coord_t coord)
+katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, test);
 }
@@ -347,7 +347,7 @@ katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katheri
  * \param masked New value of the mask bit.
  */
 void
-katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool masked)
+katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool masked)
 {
     const uint8_t byte = _px_config_get_byte(px_config, coord);
     _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, mask, masked));
@@ -360,7 +360,7 @@ katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_coo
  * \return Current value of the mask bit.
  */
 bool
-katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_coord_t coord)
+katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, mask);
 }
@@ -379,7 +379,7 @@ katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katheri
  * \param loc_thl New threshold adjustment DAC value, 0 to 15.
  */
 void
-katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t loc_thl)
+katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t loc_thl)
 {
     assert(loc_thl <= 15);
 
@@ -398,7 +398,7 @@ katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coor
  * \return Current threshold adjustment DAC value, 0 to 15.
  */
 uint8_t
-katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_coord_t coord)
+katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     return reverse_nibble(EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, loc_thl));
 }

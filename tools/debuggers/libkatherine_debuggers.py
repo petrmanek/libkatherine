@@ -17,7 +17,7 @@
 # the trailing "_t". The rendering function for a tag is always
 # "<tag>_snprint" (see snprint_name()).
 TAGS = frozenset((
-    'katherine_coord',
+    'katherine_tpx3_coord',
     'katherine_px_f_toa_tot',
     'katherine_px_toa_tot',
     'katherine_px_f_toa_only',

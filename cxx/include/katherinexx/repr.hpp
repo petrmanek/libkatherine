@@ -64,8 +64,8 @@ stream_snprint(std::ostream& os, const T *v, Fn snprint)
 }
 
 // katherine::trigger, katherine::dacs, katherine::test_pulse_config,
-// katherine::frame_info and katherine::coord are `using` aliases of these
-// same C struct types (see config.hpp, acquisition.hpp, px_config.hpp),
+// katherine::frame_info and katherine::tpx3::coord are `using` aliases of
+// these same C struct types (see config.hpp, acquisition.hpp, px_config.hpp),
 // not distinct types, so argument-dependent lookup for a value of one of
 // those alias types resolves to the global-namespace overloads below --
 // a katherine::-qualified overload would never be found, because ADL does
@@ -76,11 +76,11 @@ stream_snprint(std::ostream& os, const T *v, Fn snprint)
 // classes, so the katherine_px_config_t overload below is found for it
 // too.
 
-/** Renders a katherine_coord_t (via katherine_coord_snprint()). */
+/** Renders a katherine_tpx3_coord_t (via katherine_tpx3_coord_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_coord_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_coord_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_coord_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_coord_snprint);
 }
 
 /** Renders a katherine_px_f_toa_tot_t (via katherine_px_f_toa_tot_snprint()). */

@@ -556,7 +556,7 @@ resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_con
  * \return Offset applied to this pixel's column, in fine-oscillator ticks.
  */
 uint8_t
-katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_coord_t coord)
+katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord)
 {
     // The table is filled only where the decoder does the work. Where the
     // readout did it instead, the offset is real but absent from the table, so

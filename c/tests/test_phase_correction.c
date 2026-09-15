@@ -114,7 +114,7 @@ test_accessor_reports_the_applied_offset(void)
             fixture(&acq, FREQS[f], PHASES[p], true);
 
             for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
-                const katherine_coord_t co = {(uint8_t) x, 128};
+                const katherine_tpx3_coord_t co = {(uint8_t) x, 128};
                 KT_CHECK_EQ(katherine_acquisition_timestamp_phase_offset(&acq, co),
                     expected_offset(FREQS[f], PHASES[p], (uint8_t) x));
             }
@@ -132,8 +132,8 @@ test_double_column_halves_share_a_phase(void)
     fixture(&acq, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true);
 
     for (unsigned dc = 0; dc < KATHERINE_TPX3_MATRIX_WIDTH / 2; ++dc) {
-        const katherine_coord_t even = {(uint8_t) (2 * dc), 0};
-        const katherine_coord_t odd  = {(uint8_t) (2 * dc + 1), 0};
+        const katherine_tpx3_coord_t even = {(uint8_t) (2 * dc), 0};
+        const katherine_tpx3_coord_t odd  = {(uint8_t) (2 * dc + 1), 0};
         KT_CHECK_EQ(katherine_acquisition_timestamp_phase_offset(&acq, even),
             katherine_acquisition_timestamp_phase_offset(&acq, odd));
     }
@@ -149,7 +149,7 @@ test_no_offset_without_correction(void)
         fixture(&acq, KATHERINE_TPX3_FREQ_40_MHZ, PHASES[p], false);
 
         for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
-            const katherine_coord_t co = {(uint8_t) x, 0};
+            const katherine_tpx3_coord_t co = {(uint8_t) x, 0};
             KT_CHECK_EQ(katherine_acquisition_timestamp_phase_offset(&acq, co), 0u);
         }
     }
@@ -248,10 +248,10 @@ test_recovery_undoes_correction(void)
     unsigned checked = 0;
 
     for (unsigned dc = 0; dc < 16; ++dc) {
-        const uint8_t x            = (uint8_t) (2 * dc);
-        const katherine_coord_t co = {x, 128};
-        const uint64_t t           = decode_one(&on, x, 4321, 9);
-        const uint8_t phi          = katherine_acquisition_timestamp_phase_offset(&on, co);
+        const uint8_t x                 = (uint8_t) (2 * dc);
+        const katherine_tpx3_coord_t co = {x, 128};
+        const uint64_t t                = decode_one(&on, x, 4321, 9);
+        const uint8_t phi               = katherine_acquisition_timestamp_phase_offset(&on, co);
 
         uint64_t toa = 0;
         uint8_t ftoa = 0;

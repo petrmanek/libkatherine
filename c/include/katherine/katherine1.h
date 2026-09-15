@@ -598,6 +598,14 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 #define katherine_freq                        katherine_tpx3_freq
 #define katherine_freq_t                      katherine_tpx3_freq_t
 
+// The pixel coordinate, which 1.x had under all three of these spellings. It
+// is namespaced in 2.0 because its width is Timepix3's: a byte per axis suits
+// a 256 x 256 matrix and not Timepix4's 448 x 512, and widening it for every
+// ASIC would cost each Timepix2 and Timepix3 hit two bytes it cannot use.
+#define katherine_coord                       katherine_tpx3_coord
+#define katherine_coord_t                     katherine_tpx3_coord_t
+#define katherine_coord_snprint(...)          katherine_tpx3_coord_snprint(__VA_ARGS__)
+
 #define katherine_str_acquisition_mode(...)   katherine_str_px_mode(__VA_ARGS__)
 #define katherine_str_readout_type(...)       katherine_str_readout_mode(__VA_ARGS__)
 #define katherine_str_acquisition_status(...) katherine_str_acquisition_state(__VA_ARGS__)

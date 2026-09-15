@@ -26,7 +26,7 @@
 #include "kthread.h"
 #include "ktest.h"
 
-#define CO(X, Y) ((katherine_coord_t) {.x = (uint8_t) (X), .y = (uint8_t) (Y)})
+#define CO(X, Y) ((katherine_tpx3_coord_t) {.x = (uint8_t) (X), .y = (uint8_t) (Y)})
 
 // ------------------------------------------------------------------
 // Test 1: pixel test-bit helpers

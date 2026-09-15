@@ -200,7 +200,7 @@ public:
     std::size_t dropped_measurement_data() const { return acq_.dropped_measurement_data; }
     std::uint64_t truncated_measurement_data() const { return acq_.truncated_measurement_data; }
 
-    std::uint8_t timestamp_phase_offset(katherine::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
+    std::uint8_t timestamp_phase_offset(katherine::tpx3::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
 
     katherine::phase_correction phase_correction() const { return (katherine::phase_correction) acq_.phase_correction; }
     std::uint8_t phase_count() const { return acq_.phase_count; }

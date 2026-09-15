@@ -97,16 +97,16 @@ extern "C" {
 /// Columns in the Timepix3 pixel matrix, and so rows: it is square.
 #define KATHERINE_TPX3_MATRIX_WIDTH 256
 
-typedef struct katherine_coord {
+typedef struct katherine_tpx3_coord {
     uint8_t x;
     uint8_t y;
-} katherine_coord_t;
+} katherine_tpx3_coord_t;
 
 KATHERINE_EXPORTED int
-katherine_coord_snprint(char *buf, size_t cap, const katherine_coord_t *v);
+katherine_tpx3_coord_snprint(char *buf, size_t cap, const katherine_tpx3_coord_t *v);
 
 typedef struct katherine_px_f_toa_tot {
-    katherine_coord_t coord;
+    katherine_tpx3_coord_t coord;
     uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
     uint16_t tot;       ///< Decoded time over threshold; see the file header
 } katherine_px_f_toa_tot_t;
@@ -115,7 +115,7 @@ KATHERINE_EXPORTED int
 katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v);
 
 typedef struct katherine_px_toa_tot {
-    katherine_coord_t coord;
+    katherine_tpx3_coord_t coord;
     uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
     uint8_t hit_count;  ///< Decoded pixel hit counter, saturating at 14 (Table 4)
     uint16_t tot;       ///< Decoded time over threshold; see the file header
@@ -125,7 +125,7 @@ KATHERINE_EXPORTED int
 katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v);
 
 typedef struct katherine_px_f_toa_only {
-    katherine_coord_t coord;
+    katherine_tpx3_coord_t coord;
     uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
 } katherine_px_f_toa_only_t;
 
@@ -133,7 +133,7 @@ KATHERINE_EXPORTED int
 katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v);
 
 typedef struct katherine_px_toa_only {
-    katherine_coord_t coord;
+    katherine_tpx3_coord_t coord;
     uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
     uint8_t hit_count;  ///< Decoded pixel hit counter, saturating at 14 (Table 4)
 } katherine_px_toa_only_t;
@@ -147,7 +147,7 @@ katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only
 // report. Confirmed on a Gen1 readout: over 3012 pixels at high occupancy the
 // field read zero throughout while the event counter saturated.
 typedef struct katherine_px_f_event_count_itot {
-    katherine_coord_t coord;
+    katherine_tpx3_coord_t coord;
     uint16_t event_count;  ///< Decoded event count; see the file header
     uint16_t integral_tot; ///< Decoded integral of time over threshold; see the file header
 } katherine_px_f_event_count_itot_t;
@@ -156,7 +156,7 @@ KATHERINE_EXPORTED int
 katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v);
 
 typedef struct katherine_px_event_count_itot {
-    katherine_coord_t coord;
+    katherine_tpx3_coord_t coord;
     uint8_t hit_count;     ///< Decoded pixel hit counter, saturating at 14 (Table 4)
     uint16_t event_count;  ///< Decoded event count; see the file header
     uint16_t integral_tot; ///< Decoded integral of time over threshold; see the file header

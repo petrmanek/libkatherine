@@ -86,22 +86,22 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
 // Manipulation of values in the registers of individual pixels:
 
 KATHERINE_EXPORTED void
-katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool enabled);
+katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool enabled);
 
 KATHERINE_EXPORTED bool
-katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_coord_t coord);
+katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord);
 
 KATHERINE_EXPORTED void
-katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_coord_t coord, bool masked);
+katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool masked);
 
 KATHERINE_EXPORTED bool
-katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_coord_t coord);
+katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord);
 
 KATHERINE_EXPORTED void
-katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_coord_t coord, uint8_t loc_thl);
+katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t loc_thl);
 
 KATHERINE_EXPORTED uint8_t
-katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_coord_t coord);
+katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord);
 
 #ifdef __cplusplus
 }

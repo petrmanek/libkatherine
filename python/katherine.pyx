@@ -625,11 +625,11 @@ cdef class PxConfig:
       return PxConfig(cdata=config)
 
     @staticmethod
-    cdef cpx.katherine_coord_t _coord(int x, int y) except *:
+    cdef cpx.katherine_tpx3_coord_t _coord(int x, int y) except *:
       if not (0 <= x <= 255 and 0 <= y <= 255):
          raise ValueError('pixel coordinates must lie within 0 to 255')
 
-      cdef cpx.katherine_coord_t coord
+      cdef cpx.katherine_tpx3_coord_t coord
       coord.x = x
       coord.y = y
       return coord

@@ -166,6 +166,41 @@ test_udp_round_trip_success(void)
 }
 
 // ------------------------------------------------------------------
+// The pixel coordinate under its 1.x spellings, which 2.0 namespaced to
+// katherine_tpx3_coord_t because a byte per axis is Timepix3's matrix and not
+// Timepix4's.
+//
+// Written against the object-like aliases in katherine1.h rather than the 2.0
+// names, so this fails to compile if one of them is missing or misspelled --
+// which is the only way an alias can be wrong, they being compile-time only.
+// The struct tag, the typedef and the function-like alias for the renderer
+// are all exercised, the last being the one a typo could resolve to a
+// different call.
+
+static void
+test_coord_keeps_its_1x_spellings(void)
+{
+    struct katherine_coord tagged;
+    katherine_coord_t c;
+    char buf[64];
+
+    tagged.x = 3;
+    tagged.y = 4;
+
+    c.x = 12;
+    c.y = 34;
+
+    // The renderer, reached through its 1.x name, must produce the same text
+    // for a value built under either spelling.
+    KT_CHECK(katherine_coord_snprint(buf, sizeof(buf), &c) > 0);
+    KT_CHECK(strstr(buf, "12") != NULL);
+    KT_CHECK(strstr(buf, "34") != NULL);
+
+    tagged.x = c.x;
+    KT_CHECK_EQ(tagged.x, 12);
+}
+
+// ------------------------------------------------------------------
 
 int
 main(void)
@@ -177,6 +212,7 @@ main(void)
     KT_RUN(test_px_config_missing_file_maps_to_eio);
     KT_RUN(test_dacs_validate_success);
     KT_RUN(test_udp_round_trip_success);
+    KT_RUN(test_coord_keeps_its_1x_spellings);
 
     return kt_summary();
 }

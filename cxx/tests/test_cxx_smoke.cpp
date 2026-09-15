@@ -183,7 +183,7 @@ static void
 test_px_config(void)
 {
     katherine::px_config px{};
-    const katherine::coord c = {12, 34};
+    const katherine::tpx3::coord c = {12, 34};
 
     px.set_mask_bit(c, true);
     KT_CHECK(px.mask_bit(c));
@@ -365,7 +365,7 @@ test_udp(void)
 static void
 test_struct_rendering(void)
 {
-    KT_CHECK(streamed(katherine::coord{1, 2}).size() > 0);
+    KT_CHECK(streamed(katherine::tpx3::coord{1, 2}).size() > 0);
 
     KT_CHECK(streamed(katherine_px_toa_tot_t{}).size() > 0);
     KT_CHECK(streamed(katherine_px_f_toa_tot_t{}).size() > 0);
