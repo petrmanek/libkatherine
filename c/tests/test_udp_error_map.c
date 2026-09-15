@@ -33,6 +33,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -51,12 +52,22 @@ typedef struct {
     const char *name;
 } map_row_t;
 
-// The two tables, written as literals rather than as the platform's own macros
-// so that both are readable in both builds. The numbers are fixed by their
-// platforms' ABIs and measured rather than assumed: the Winsock column comes
-// from MSVC 19.51 (WSABASEERR is 10000 and each WSAE* is that plus its offset),
-// the errno column from glibc. MSVC's own <errno.h> agrees with neither, which
-// is the trap -- there ETIMEDOUT is 138 and EWOULDBLOCK 140.
+// The two tables are spelled differently on purpose, and the asymmetry is the
+// whole lesson of the file.
+//
+// Winsock is one ABI. WSABASEERR is 10000 and every WSAE* is that plus a fixed
+// offset, the same on every Windows there is, so those rows are literals --
+// which is also what makes them readable in a build that has no winsock2.h.
+// Measured on MSVC 19.51.
+//
+// errno is NOT one ABI. The values differ per C library, so those rows are
+// built from the macros and are whatever the platform being compiled says.
+// Writing them as literals is a mistake this test made and macOS caught:
+// glibc's EAGAIN is 11 and its ETIMEDOUT 110, Darwin agrees on neither, and
+// EINVAL and ENOMEM coincide just often enough to make the error look like a
+// two-row typo. MSVC's own <errno.h> is a third numbering again -- ETIMEDOUT
+// 138, EWOULDBLOCK 140 -- which is why it can never be fed to the Winsock
+// table.
 //
 // clang-format off
 
@@ -68,14 +79,18 @@ static const map_row_t WSA_ROWS[] = {
     {10055, KATHERINE_E_NOMEM,   "WSAENOBUFS"},
 };
 
-/// The errno codes, and what each must become. EWOULDBLOCK is absent because
-/// glibc defines it as EAGAIN, so a row for it would be a duplicate of the
-/// first; the header's own table spells that case with an #if.
+/// The errno codes, and what each must become. Read from the macros, so this
+/// states which category each code belongs to without asserting any platform's
+/// numbering -- the claim that survives being compiled anywhere.
+///
+/// EWOULDBLOCK is absent because the C libraries this runs on define it as
+/// EAGAIN, making a row for it a duplicate of the first; the header's own table
+/// spells that case with an #if for the library that does not.
 static const map_row_t ERRNO_ROWS[] = {
-    {11,  KATHERINE_E_TIMEOUT, "EAGAIN"},
-    {110, KATHERINE_E_TIMEOUT, "ETIMEDOUT"},
-    {22,  KATHERINE_E_INVAL,   "EINVAL"},
-    {12,  KATHERINE_E_NOMEM,   "ENOMEM"},
+    {EAGAIN,    KATHERINE_E_TIMEOUT, "EAGAIN"},
+    {ETIMEDOUT, KATHERINE_E_TIMEOUT, "ETIMEDOUT"},
+    {EINVAL,    KATHERINE_E_INVAL,   "EINVAL"},
+    {ENOMEM,    KATHERINE_E_NOMEM,   "ENOMEM"},
 };
 
 // clang-format on
@@ -87,7 +102,7 @@ static const map_row_t ERRNO_ROWS[] = {
 static const int UNMAPPED[] = {
     0,
     1,
-    4 /* EINTR */,
+    EINTR,
     10004 /* WSAEINTR */,
     10040 /* WSAEMSGSIZE */,
     10054 /* WSAECONNRESET */,
@@ -193,6 +208,28 @@ test_both_tables_reach_the_same_codes(void)
     }
 }
 
+/// The codes this file calls unmapped really are absent from both tables.
+///
+/// A guard on the test's own data rather than on the library. The errno rows
+/// are read from macros whose values this build cannot know in advance, so a C
+/// library numbering one of them the way UNMAPPED numbers something else would
+/// otherwise turn the rows above into a contradiction and report it as a
+/// mapping bug. Checked here so that it reports itself instead.
+static void
+test_the_unmapped_codes_are_really_unmapped(void)
+{
+    for (size_t i = 0; i < COUNT(UNMAPPED); ++i) {
+        for (size_t j = 0; j < COUNT(LIVE_ROWS); ++j) {
+            KT_CHECK(UNMAPPED[i] != LIVE_ROWS[j].code);
+
+            if (UNMAPPED[i] == LIVE_ROWS[j].code) {
+                printf("#   this platform numbers %s as %d, which UNMAPPED also claims\n", LIVE_ROWS[j].name,
+                    LIVE_ROWS[j].code);
+            }
+        }
+    }
+}
+
 /// The two domains do not overlap, which is why mixing them up was silent.
 ///
 /// Asserted rather than remarked upon, because the assertion is what makes the
@@ -216,6 +253,7 @@ main(void)
     KT_RUN(test_live_table_matches_its_rows);
     KT_RUN(test_unmapped_codes_reach_the_fallback);
     KT_RUN(test_both_tables_reach_the_same_codes);
+    KT_RUN(test_the_unmapped_codes_are_really_unmapped);
     KT_RUN(test_the_two_domains_are_disjoint);
     return kt_summary();
 }
