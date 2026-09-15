@@ -24,6 +24,8 @@
 #include <katherine/error.h>
 #include <katherine/udp.h>
 
+#include "transport/udp_error_map.h"
+
 #ifdef KATHERINE_DEBUG_UDP
 static inline void
 dump_buffer(const char *msg, const unsigned char *buf, size_t count)
@@ -62,42 +64,17 @@ from_pinned_remote(const katherine_udp_t *u, const struct sockaddr_in *addr)
 }
 
 /**
- * Maps a POSIX `<errno.h>` value from one of this file's syscalls to the
- * library's own error domain: the three cases every public function agrees
- * on (EAGAIN/EWOULDBLOCK/ETIMEDOUT as a timeout, EINVAL, ENOMEM) apply
- * wherever they turn up, not only at the syscall each was first observed
- * at; anything else falls back to the group the caller names, since the
- * OS-level detail is preserved separately, in
- * katherine_udp_t::last_os_error.
- * \param err Raw `<errno.h>` value
- * \param fallback Group to report if err does not match a specific case
- * \return The mapped enumerator
- */
-static katherine_error_t
-map_syscall_error(int err, katherine_error_t fallback)
-{
-    switch (err) {
-    case EAGAIN:
-#if EWOULDBLOCK != EAGAIN
-    case EWOULDBLOCK:
-#endif
-    case ETIMEDOUT:
-        return KATHERINE_E_TIMEOUT;
-    case EINVAL:
-        return KATHERINE_E_INVAL;
-    case ENOMEM:
-        return KATHERINE_E_NOMEM;
-    default:
-        return fallback;
-    }
-}
-
-/**
  * Reports a failed receive, recording the OS-level detail only when there is
  * any: an empty non-blocking socket and an expired receive timeout are
  * ordinary outcomes rather than faults, so neither leaves an errno behind for
  * katherine_udp_last_os_error() to hand out. The Windows readiness check
  * clears it for the same reason.
+ *
+ * Deliberately duplicated in udp_win.c rather than shared. The bodies are
+ * identical, but nothing else these two files have in common is -- the two
+ * receive loops differ substantially and from_pinned_remote() spells its
+ * argument type differently -- so a header for one small function would earn
+ * less than it costs, and each copy gets to name its own platform's codes.
  *
  * \param u UDP session
  * \param err errno of the failed syscall
@@ -115,7 +92,7 @@ map_syscall_error(int err, katherine_error_t fallback)
 static katherine_error_t
 recv_failure(katherine_udp_t *u, int err)
 {
-    katherine_error_t mapped = map_syscall_error(err, KATHERINE_E_IO);
+    katherine_error_t mapped = katherine_udp_map_socket_error(err, KATHERINE_E_IO);
 
     u->last_os_error = (mapped == KATHERINE_E_TIMEOUT) ? 0 : err;
     return mapped;
@@ -275,7 +252,7 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     // Create socket.
     if ((u->sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
         u->last_os_error = errno;
-        res              = map_syscall_error(errno, KATHERINE_E_IO);
+        res              = katherine_udp_map_socket_error(errno, KATHERINE_E_IO);
         goto err_socket;
     }
 
@@ -286,7 +263,7 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     int reuseaddr = 1;
     if (setsockopt(u->sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
         u->last_os_error = errno;
-        res              = map_syscall_error(errno, KATHERINE_E_IO);
+        res              = katherine_udp_map_socket_error(errno, KATHERINE_E_IO);
         goto err_reuseaddr;
     }
 
@@ -315,7 +292,7 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
         timeout.tv_usec = 1000 * (timeout_ms % 1000);
         if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
             u->last_os_error = errno;
-            res              = map_syscall_error(errno, KATHERINE_E_IO);
+            res              = katherine_udp_map_socket_error(errno, KATHERINE_E_IO);
             goto err_timeout;
         }
     }
@@ -331,7 +308,7 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     int mres = pthread_mutex_init(&u->mutex, NULL);
     if (mres != 0) {
         u->last_os_error = mres;
-        res              = map_syscall_error(mres, KATHERINE_E_SYSTEM);
+        res              = katherine_udp_map_socket_error(mres, KATHERINE_E_SYSTEM);
         goto err_mutex;
     }
 
@@ -389,7 +366,7 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
         sent = sendto(u->sock, cdata + total, count - total, 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
         if (sent == -1) {
             u->last_os_error = errno;
-            return map_syscall_error(errno, KATHERINE_E_IO);
+            return katherine_udp_map_socket_error(errno, KATHERINE_E_IO);
         }
 
         total += sent;
@@ -652,7 +629,7 @@ katherine_udp_mutex_lock(katherine_udp_t *u)
     katherine_error_t err = pthread_mutex_lock(&u->mutex);
     if (err != 0) {
         u->last_os_error = err;
-        return map_syscall_error(err, KATHERINE_E_SYSTEM);
+        return katherine_udp_map_socket_error(err, KATHERINE_E_SYSTEM);
     }
 
     return KATHERINE_E_OK;
@@ -678,7 +655,7 @@ katherine_udp_mutex_unlock(katherine_udp_t *u)
     katherine_error_t err = pthread_mutex_unlock(&u->mutex);
     if (err != 0) {
         u->last_os_error = err;
-        return map_syscall_error(err, KATHERINE_E_SYSTEM);
+        return katherine_udp_map_socket_error(err, KATHERINE_E_SYSTEM);
     }
 
     return KATHERINE_E_OK;
