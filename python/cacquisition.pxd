@@ -110,4 +110,5 @@ cdef extern from 'katherine/acquisition.h':
     int katherine_acquisition_abort(katherine_acquisition_t *acq)
     int katherine_acquisition_stop(katherine_acquisition_t *acq)
     int katherine_acquisition_read(katherine_acquisition_t *acq)
+    const char *katherine_str_readout_mode(katherine_tpx3_readout_mode_t v)
     const char *katherine_str_acquisition_state(katherine_acquisition_state_t state)

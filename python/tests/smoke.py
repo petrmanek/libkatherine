@@ -369,8 +369,51 @@ def check_enums(tap, katherine):
                   ('SENSE_DAC_SELECTOR', 10), ('EXT_DAC_SELECTOR', 11)])
 
 
+
+def check_enum_rendering(tap, katherine):
+    """Each enumeration renders as the C library does, through str().
+
+    __str__ rather than __repr__ deliberately: Enum's default __repr__ carries
+    the class, the member name and the value, which is strictly more than the
+    token, so overriding it would cost the REPL and tracebacks their identity.
+    Overriding __str__ instead makes str(), print(), f-strings and %s all agree
+    with the C library and with the C++ operator<<.
+
+    Asserted per member rather than spot-checked, since a __str__ wired to the
+    wrong stringifier would still return a plausible lowercase token.
+    """
+    expected = {
+        'Polarity':        ['holes', 'electrons'],
+        'Tpx3Phase':       ['phase_1', 'phase_2', 'phase_4', 'phase_8', 'phase_16'],
+        'Tpx3Freq':        ['freq_20', 'freq_40', 'freq_80', 'freq_160'],
+        'Tpx3PxMode':      ['toa_tot', 'only_toa', 'event_count_itot'],
+        # The member names are Python's, the strings are the C library's, and
+        # for this one they disagree: the C enumerator is READOUT_SEQUENTIAL.
+        'Tpx3ReadoutMode': ['sequential', 'data_driven'],
+        'AcquisitionState': ['not_started', 'running', 'succeeded', 'timed_out'],
+        'PhaseCorrection': ['none', 'software', 'hardware'],
+    }
+    for name, strings in expected.items():
+        cls = getattr(katherine, name)
+        tap.check_eq('%s renders as the C library does' % name, [str(m) for m in cls], strings)
+
+    # repr is untouched, and still the one place the identity appears whole.
+    tap.check_eq('repr keeps the enumeration identity',
+                 repr(katherine.Polarity.HOLES), '<Polarity.HOLES: 0>')
+
+    # Tpx3Reg has no C stringifier, so it keeps Enum's default rendering
+    # rather than being given an invented one.
+    tap.check_eq('Tpx3Reg keeps the default rendering',
+                 str(katherine.Tpx3Reg.TEST_PULSE_METHOD), 'Tpx3Reg.TEST_PULSE_METHOD')
+
+    # The str_* family is not bound as module functions: an enumeration renders
+    # itself, and a caller wanting the C text streams or str()s the value.
+    for gone in ('str_acquisition_status', 'str_phase_correction'):
+        tap.check_eq('%s is not a module function' % gone, hasattr(katherine, gone), False)
+
 def run_checks(tap, katherine, device):
     check_enums(tap, katherine)
+    check_enum_rendering(tap, katherine)
 
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
 

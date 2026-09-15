@@ -64,6 +64,9 @@ cdef extern from 'katherine/config.h':
         KATHERINE_POLARITY_HOLES
         KATHERINE_POLARITY_ELECTRONS
 
+    const char *katherine_str_phase(katherine_tpx3_phase_t v)
+    const char *katherine_str_freq(katherine_tpx3_freq_t v)
+    const char *katherine_str_px_mode(katherine_tpx3_px_mode_t v)
     const char *katherine_str_polarity(katherine_polarity_t polarity)
 
     ctypedef enum katherine_tpx3_phase_t:

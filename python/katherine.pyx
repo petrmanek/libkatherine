@@ -659,6 +659,10 @@ class Polarity(Enum):
     HOLES     = cconfig.katherine_polarity_t.KATHERINE_POLARITY_HOLES
     ELECTRONS = cconfig.katherine_polarity_t.KATHERINE_POLARITY_ELECTRONS
 
+    def __str__(self):
+        """Render as the C library does, e.g. 'holes'."""
+        return cconfig.katherine_str_polarity(self.value).decode('UTF-8')
+
 
 @unique
 class Tpx3Phase(Enum):
@@ -668,6 +672,10 @@ class Tpx3Phase(Enum):
     PHASE_8          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_8
     PHASE_16         = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_16
 
+    def __str__(self):
+        """Render as the C library does, e.g. 'phase_1'."""
+        return cconfig.katherine_str_phase(self.value).decode('UTF-8')
+
 
 @unique
 class Tpx3Freq(Enum):
@@ -675,6 +683,11 @@ class Tpx3Freq(Enum):
     FREQ_40          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_40_MHZ
     FREQ_80          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_80_MHZ
     FREQ_160         = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_160_MHZ
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'freq_40'."""
+        return cconfig.katherine_str_freq(self.value).decode('UTF-8')
+
 
 
 def tpx3_toa_coarse_tick_to_fine_ticks(freq):
@@ -873,6 +886,10 @@ class Tpx3PxMode(Enum):
     ONLY_TOA         = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_ONLY_TOA
     EVENT_COUNT_ITOT = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 
+    def __str__(self):
+        """Render as the C library does, e.g. 'toa_tot'."""
+        return cconfig.katherine_str_px_mode(self.value).decode('UTF-8')
+
 
 @unique
 class AcquisitionState(Enum):
@@ -881,12 +898,9 @@ class AcquisitionState(Enum):
     SUCCEEDED        = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_SUCCEEDED
     TIMED_OUT        = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_TIMED_OUT
 
-
-def str_acquisition_status(status):
-    if isinstance(status, AcquisitionState):
-        status = status.value
-    cdef const char *s = cacquisition.katherine_str_acquisition_state(status)
-    return s.decode('UTF-8')
+    def __str__(self):
+        """Render as the C library does, e.g. 'running'."""
+        return cacquisition.katherine_str_acquisition_state(self.value).decode('UTF-8')
 
 
 @unique
@@ -895,18 +909,19 @@ class PhaseCorrection(Enum):
     SOFTWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_SOFTWARE
     HARDWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_HARDWARE
 
-
-def str_phase_correction(v):
-    if isinstance(v, PhaseCorrection):
-        v = v.value
-    cdef const char *s = cacquisition.katherine_str_phase_correction(v)
-    return s.decode('UTF-8')
+    def __str__(self):
+        """Render as the C library does, e.g. 'hardware'."""
+        return cacquisition.katherine_str_phase_correction(self.value).decode('UTF-8')
 
 
 @unique
 class Tpx3ReadoutMode(Enum):
     FRAME_BASED         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_SEQUENTIAL
     DATA_DRIVEN         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_DATA_DRIVEN
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'sequential'."""
+        return cacquisition.katherine_str_readout_mode(self.value).decode('UTF-8')
 
 
 cdef class AcquisitionObserver:
