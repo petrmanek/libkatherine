@@ -102,6 +102,24 @@ class Tap:
     def check_eq(self, description, actual, expected):
         self.check(description, actual == expected, '%r != %r' % (actual, expected))
 
+    def check_raises(self, description, exc_type, fn, *args):
+        """Requires fn(*args) to raise exactly exc_type.
+
+        By type, not by category. smoke.py used to catch
+        (TimeoutError, ValueError, MemoryError, RuntimeError) as one tuple,
+        which is how the binding's error mapping could compare against negated
+        codes for a whole release -- every failure arrived as RuntimeError and
+        every test still passed (see 9bd40ed, and #33).
+        """
+        try:
+            fn(*args)
+        except exc_type:
+            self.check(description, True)
+        except BaseException as e:
+            self.check(description, False, 'raised %s: %s' % (type(e).__name__, e))
+        else:
+            self.check(description, False, 'did not raise')
+
     def comment(self, text):
         print('# %s' % text)
         sys.stdout.flush()
@@ -411,9 +429,135 @@ def check_enum_rendering(tap, katherine):
     for gone in ('str_acquisition_status', 'str_phase_correction'):
         tap.check_eq('%s is not a module function' % gone, hasattr(katherine, gone), False)
 
+def check_timestamp_functions(tap, katherine):
+    """The #31 timestamp surface, which shipped with no binding test at all.
+
+    Five module functions, none of them mentioned anywhere in this file until
+    now. The C suite already pins their numbers (test_timestamp.c), so nothing
+    here restates one: these assert that each is callable across the whole
+    frequency enumeration and that the results relate to each other as they
+    must, which catches a swapped or mistranscribed pair without this test
+    knowing either value.
+    """
+    for f in katherine.Tpx3Freq:
+        ticks = katherine.tpx3_toa_coarse_tick_to_fine_ticks(f)
+        shift = katherine.tpx3_toa_coarse_tick_to_fine_shift(f)
+
+        tap.check('fine ticks of %s is a positive int' % f, isinstance(ticks, int) and ticks > 0)
+        tap.check('fine shift of %s is a non-negative int' % f, isinstance(shift, int) and shift >= 0)
+
+        # The relation, not the values: the shift is the tick count's exponent.
+        tap.check_eq('fine ticks of %s is 1 << shift' % f, 1 << shift, ticks)
+
+        bias = katherine.tpx3_toa_epoch_bias(shift)
+        tap.check('epoch bias of %s is a positive int' % f, isinstance(bias, int) and bias > 0)
+
+    shift = katherine.tpx3_toa_coarse_tick_to_fine_shift(katherine.Tpx3Freq.FREQ_40)
+
+    sec_nsec = katherine.tpx3_timestamp_to_seconds(1 << 40)
+    tap.check('timestamp_to_seconds returns a (sec, nsec) pair',
+              isinstance(sec_nsec, tuple) and len(sec_nsec) == 2)
+    tap.check('timestamp_to_seconds yields a whole second and a nanosecond remainder',
+              isinstance(sec_nsec[0], int) and isinstance(sec_nsec[1], float))
+
+    toa_ftoa = katherine.tpx3_timestamp_to_toa_ftoa(shift, 0, 1 << 40)
+    tap.check('timestamp_to_toa_ftoa returns a (toa, ftoa) pair',
+              isinstance(toa_ftoa, tuple) and len(toa_ftoa) == 2)
+    tap.check('timestamp_to_toa_ftoa yields two ints',
+              all(isinstance(v, int) for v in toa_ftoa))
+
+
+def check_pixel_types(tap, katherine):
+    """Every pixel type, not only the one an acquisition happens to produce.
+
+    run_acquisition() below configures one mode, so it builds exactly one of
+    these six and the other five were never touched. Constructing each and
+    reading every field is the whole bar here: a property renamed in the .pyx
+    or wired to the wrong struct member raises AttributeError or returns the
+    wrong kind of value, and neither compiles into a failure anywhere else.
+    """
+    fields = {
+        'PxToaTot':             ['x', 'y', 'timestamp', 'hit_count', 'tot'],
+        'PxFastToaTot':         ['x', 'y', 'timestamp', 'tot'],
+        'PxToaOnly':            ['x', 'y', 'timestamp', 'hit_count'],
+        'PxFastToaOnly':        ['x', 'y', 'timestamp'],
+        'PxEventCountItot':     ['x', 'y', 'hit_count', 'event_count', 'integral_tot'],
+        'PxFastEventCountItot': ['x', 'y', 'event_count', 'integral_tot'],
+    }
+    for name, names in fields.items():
+        cls = getattr(katherine, name)
+
+        tap.check('%s.RAW_SIZE() is a positive int' % name,
+                  isinstance(cls.RAW_SIZE(), int) and cls.RAW_SIZE() > 0)
+
+        px = cls()
+        tap.check_eq('%s exposes exactly its documented fields' % name,
+                     sorted(m for m in dir(px) if not m.startswith('_') and m != 'RAW_SIZE'),
+                     sorted(names))
+
+        values = [getattr(px, f) for f in names]
+        tap.check('%s reads every field as an int' % name,
+                  all(isinstance(v, int) for v in values))
+
+        # repr goes through the C snprint, so it exercises a second path over
+        # the same struct.
+        tap.check('%s has a non-empty repr' % name, len(repr(px)) > 0)
+
+
+def check_udp(tap, katherine):
+    """The Udp wrapper, and the error mapping, on a socket with no peer.
+
+    Udp was never constructed by this file. It is also the cheapest way to
+    provoke a real library error without hardware, which is what makes it the
+    vehicle for the exception-type assertions #33 asks for.
+    """
+    u = katherine.Udp('127.0.0.1', 0, '127.0.0.1', 1555, 50)
+
+    tap.check('Udp constructs on loopback with an ephemeral local port', u is not None)
+    tap.check_eq('a fresh session has counted no stray responses', u.stray_command_responses, 0)
+    tap.check('Udp has a non-empty repr', len(repr(u)) > 0)
+
+    # Callable, and none of them needs a peer.
+    u.set_strict_ack(True)
+    u.set_strict_ack(False)
+    u.set_remote('127.0.0.1', 1556)
+    u.pin_remote()
+    tap.check('set_strict_ack, set_remote and pin_remote are callable', True)
+
+    # KATHERINE_E_TIMEOUT on an empty socket, and it must arrive as
+    # TimeoutError rather than as the RuntimeError catch-all.
+    tap.check_raises('a receive on an empty socket raises TimeoutError',
+                     TimeoutError, u.recv_nowait, 16)
+
+    # KATHERINE_E_ADDR has no dedicated Python class and falls to the
+    # catch-all, which is itself worth pinning: it is the group every
+    # unmapped code lands in, so a code that silently stops matching shows up
+    # as one of these instead of as the specific class it should have been.
+    tap.check_raises('a malformed address raises RuntimeError',
+                     RuntimeError, katherine.Udp, 'not-an-address', 0, '127.0.0.1', 1555, 50)
+
+    # ValueError, but raised by the binding's own length guard rather than
+    # routed through check_return_code(). Worth having, and worth being clear
+    # about: of the classes asserted here only TimeoutError and RuntimeError
+    # exercise the mapping itself, so this one would have passed even while
+    # the mapping was broken.
+    tap.check_raises('a wrongly sized BMC buffer raises ValueError',
+                     ValueError, katherine.PxConfig.from_bmc_data, b'too short')
+
+    # MemoryError is deliberately not provoked. Reaching KATHERINE_E_NOMEM
+    # means exhausting an allocation this test would have to make enormous,
+    # which trades a reliable suite for one more asserted class. Nor is
+    # KATHERINE_E_INVAL reachable from the library without a device to refuse
+    # something -- that pair belongs to the hardware window.
+    tap.comment('MemoryError and a library-raised ValueError are not provoked: see check_udp()')
+
+
 def run_checks(tap, katherine, device):
     check_enums(tap, katherine)
     check_enum_rendering(tap, katherine)
+    check_timestamp_functions(tap, katherine)
+    check_pixel_types(tap, katherine)
+    check_udp(tap, katherine)
 
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
 
