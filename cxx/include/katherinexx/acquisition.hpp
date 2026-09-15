@@ -193,6 +193,15 @@ public:
         }
     }
 
+    /// The wrapped C acquisition, for the calls this class does not cover.
+    /// Present because config, device and udp all expose theirs the same way;
+    /// without it this was the one wrapper whose C struct could not be reached,
+    /// which also put the operator<< repr.hpp carries for it out of reach.
+    katherine_acquisition_t *c_acq() { return &acq_; }
+
+    /// \copydoc c_acq()
+    const katherine_acquisition_t *c_acq() const { return &acq_; }
+
     acq_state state() const { return (acq_state) acq_.state; }
     bool aborted() const { return acq_.aborted; }
     int requested_frames() const { return acq_.requested_frames; }

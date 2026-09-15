@@ -309,6 +309,20 @@ operator<<(std::ostream& os, const katherine::config& v)
     return detail::stream_snprint(os, v.c_config(), katherine_config_snprint);
 }
 
+/**
+ * Renders a katherine::base_acquisition over its c_acq() accessor.
+ *
+ * Declared on the base rather than on the acquisition<AcqMode> template, so
+ * one overload serves every mode: ADL for a derived class also searches the
+ * associated namespaces of its bases, the same rule that lets
+ * katherine::px_config reach the katherine_px_config_t overload above.
+ */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine::base_acquisition& v)
+{
+    return detail::stream_snprint(os, v.c_acq(), katherine_acquisition_snprint);
+}
+
 }
 
 /** \} */

@@ -131,11 +131,12 @@ test_device_and_acquisition(void)
     KT_CHECK_EQ(acq.requested_frames(), 0);
     KT_CHECK(!acq.aborted());
     KT_CHECK(!acq.dropped_measurement_data());
+    KT_CHECK(acq.c_acq() != nullptr);
 
-    // Not streamed, unlike config, device and udp: base_acquisition keeps its
-    // katherine_acquisition_t private and hands out no accessor, so the
-    // operator<< repr.hpp carries for that struct cannot be reached through
-    // the wrapper at all.
+    // Streamed like config, device and udp, which it could not be until
+    // base_acquisition gained c_acq(). Resolved on the base, so this one
+    // overload covers every acquisition mode.
+    KT_CHECK(streamed(acq).size() > 0);
 
     // The handler setters take ownership of a callable; none is invoked here,
     // since nothing will arrive.
