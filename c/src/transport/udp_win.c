@@ -349,6 +349,20 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
         goto err_local_addr;
     }
 
+    // No SO_REUSEADDR here, deliberately, where udp_nix.c sets it. Windows
+    // datagram sockets already permit a second bind() to a port one is bound
+    // to -- measured on MSVC 19.51, with and without the option and for both
+    // the same local address and a different one, all four combinations
+    // succeeding -- so the option buys nothing the platform does not give
+    // away, and on Windows it additionally weakens the exclusivity rules
+    // rather than only relaxing rebinding. POSIX refuses that second bind
+    // without it, which is the whole reason the other transport asks.
+    //
+    // The asymmetry is therefore in the platforms, not in this library. Worth
+    // knowing that the Windows default is the permissive one: two processes
+    // can hold port 1555 here and split the readout's datagrams between them
+    // with no error anywhere, which is a hazard for the port allocation #28
+    // adds rather than for this bind.
     if (bind(u->sock, (const struct sockaddr *) &u->addr_local, sizeof(u->addr_local)) == SOCKET_ERROR) {
         u->last_os_error = WSAGetLastError();
         res              = KATHERINE_E_ADDR;

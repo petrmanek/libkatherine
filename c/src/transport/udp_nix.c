@@ -256,10 +256,12 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
         goto err_socket;
     }
 
-    // Allow another local process bound to a different local address (e.g.
-    // the ksim daemon) to reuse the same port number; without this,
-    // a second bind() to 1555 or 1556 on this host fails outright even
-    // though the addresses differ.
+    // Allow another local process (e.g. the ksim daemon) to reuse the same
+    // port number; without this, a second bind() to 1555 or 1556 on this host
+    // fails outright, whether its local address differs or is the very same
+    // one -- measured both ways on glibc. Windows needs no such option, its
+    // datagram sockets permitting that second bind by default, which is why
+    // udp_win.c sets nothing here and says so.
     int reuseaddr = 1;
     if (setsockopt(u->sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
         u->last_os_error = errno;
