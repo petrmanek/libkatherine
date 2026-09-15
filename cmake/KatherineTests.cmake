@@ -43,7 +43,7 @@ find_library(KATHERINE_LIBM m)
 mark_as_advanced(KATHERINE_LIBM)
 
 function(katherine_add_test)
-    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "NAME" "SOURCES;ARGS;LABELS;PROPERTIES")
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "NAME" "SOURCES;ARGS;LABELS;LIBRARIES;PROPERTIES")
     if(NOT ARG_NAME)
         message(FATAL_ERROR "katherine_add_test: NAME is required")
     endif()
@@ -61,6 +61,9 @@ function(katherine_add_test)
     # live in the C runtime and there is no such library to find.
     if(KATHERINE_LIBM)
         target_link_libraries(${ARG_NAME} PRIVATE ${KATHERINE_LIBM})
+    endif()
+    if(ARG_LIBRARIES)
+        target_link_libraries(${ARG_NAME} PRIVATE ${ARG_LIBRARIES})
     endif()
     katherine_target_warnings(${ARG_NAME})
 

@@ -39,7 +39,7 @@ namespace detail {
  * it -- no fixed buffer, so this is equally correct for a one-line struct
  * and for katherine_config_t. std::vector rather than std::string because
  * this header (via katherinexx.hpp) is a usage requirement of the
- * cxx_std_14 interface target (cxx/CMakeLists.txt): vector::data() has
+ * cxx_std_11 interface target (cxx/CMakeLists.txt): vector::data() has
  * been writable since C++11, while the non-const std::string::data()
  * overload this same idiom would otherwise use is C++17. Every operator<<
  * in this header is a one-liner over this single helper, so a change to

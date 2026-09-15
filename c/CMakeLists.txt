@@ -125,7 +125,6 @@ if(KATHERINE_BUILD_EXAMPLES)
 endif()
 
 if(KATHERINE_BUILD_TESTS)
-    include(KatherineTests)
     add_subdirectory(tests)
 endif()
 

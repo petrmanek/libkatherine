@@ -97,6 +97,12 @@ endforeach()
 # feature turns this on.
 if(KATHERINE_BUILD_TESTS OR KATHERINE_BUILD_BENCHMARKS)
     enable_testing()
+    # The registration facility belongs here for the same reason, and not in
+    # each subdirectory that registers tests: find_package(Threads) creates an
+    # IMPORTED target, and an imported target is visible only in the directory
+    # that created it and below. Included from c/ alone, as it was until the
+    # C++ suite arrived, Threads::Threads did not exist for cxx/.
+    include(KatherineTests)
 endif()
 
 add_subdirectory(c)
