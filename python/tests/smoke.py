@@ -429,6 +429,29 @@ def check_enum_rendering(tap, katherine):
     for gone in ('str_acquisition_status', 'str_phase_correction'):
         tap.check_eq('%s is not a module function' % gone, hasattr(katherine, gone), False)
 
+def check_module_surface(tap, katherine):
+    """The module exports its own names and nothing borrowed.
+
+    A module-scope `from enum import Enum` publishes katherine.Enum and drags
+    it into `from katherine import *`, which this binding never meant to
+    offer. The imports are underscored instead, so Python's own rule -- star
+    imports skip underscored names -- bounds the surface without an __all__ to
+    keep in step by hand. Asserted because the leak is invisible: nothing
+    fails, the name is simply there.
+    """
+    for borrowed in ('Enum', 'unique', 'array'):
+        tap.check_eq('%s is not published by the module' % borrowed,
+                     hasattr(katherine, borrowed), False)
+
+    # And what a star import would bind is exactly the public surface, which
+    # is what fails if an __all__ is ever added and then drifts.
+    public = sorted(n for n in dir(katherine) if not n.startswith('_'))
+    namespace = {}
+    exec('from katherine import *', namespace)
+    tap.check_eq('a star import binds exactly the public names',
+                 sorted(n for n in namespace if not n.startswith('__')), public)
+
+
 def check_timestamp_functions(tap, katherine):
     """The #31 timestamp surface, which shipped with no binding test at all.
 
@@ -555,6 +578,7 @@ def check_udp(tap, katherine):
 def run_checks(tap, katherine, device):
     check_enums(tap, katherine)
     check_enum_rendering(tap, katherine)
+    check_module_surface(tap, katherine)
     check_timestamp_functions(tap, katherine)
     check_pixel_types(tap, katherine)
     check_udp(tap, katherine)

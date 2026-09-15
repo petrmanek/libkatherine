@@ -13,8 +13,14 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, int32_t
 from libc.string cimport memcpy
 from libcpp cimport bool
-from enum import Enum, unique
-import array
+# Imported under private names on purpose. A module-scope `from enum import
+# Enum` makes katherine.Enum a public attribute of this module and pulls it
+# into `from katherine import *`, which is no part of this binding's surface;
+# the underscore keeps both out, `import *` skipping underscored names by
+# itself. Hence no __all__: the public surface is everything not underscored,
+# which is the rule Python already applies.
+from enum import Enum as _Enum, unique as _unique
+import array as _array
 
 cimport cdevice
 cimport cstatus
@@ -114,7 +120,7 @@ cdef class Device:
          return status
 
     def get_chip_id(self):
-         cdef char[:] chip_id = array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)
+         cdef char[:] chip_id = _array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)
          cdef char *c_chip_id = &chip_id[0]
          res = cstatus.katherine_get_chip_id(self._c_device, c_chip_id)
          check_return_code(res)
@@ -654,8 +660,8 @@ cdef class PxConfig:
     def get_loc_thl(self, int x, int y):
       return cpx_config.katherine_px_config_get_loc_thl(&self._c_px_config, PxConfig._coord(x, y))
 
-@unique
-class Polarity(Enum):
+@_unique
+class Polarity(_Enum):
     HOLES     = cconfig.katherine_polarity_t.KATHERINE_POLARITY_HOLES
     ELECTRONS = cconfig.katherine_polarity_t.KATHERINE_POLARITY_ELECTRONS
 
@@ -664,8 +670,8 @@ class Polarity(Enum):
         return cconfig.katherine_str_polarity(self.value).decode('UTF-8')
 
 
-@unique
-class Tpx3Phase(Enum):
+@_unique
+class Tpx3Phase(_Enum):
     PHASE_1          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_1
     PHASE_2          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_2
     PHASE_4          = cconfig.katherine_tpx3_phase_t.KATHERINE_TPX3_PHASE_4
@@ -677,8 +683,8 @@ class Tpx3Phase(Enum):
         return cconfig.katherine_str_phase(self.value).decode('UTF-8')
 
 
-@unique
-class Tpx3Freq(Enum):
+@_unique
+class Tpx3Freq(_Enum):
     FREQ_20          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_20_MHZ
     FREQ_40          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_40_MHZ
     FREQ_80          = cconfig.katherine_tpx3_freq_t.KATHERINE_TPX3_FREQ_80_MHZ
@@ -716,8 +722,8 @@ def tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t phase_
     return (toa, ftoa)
 
 
-@unique
-class Tpx3Reg(Enum):
+@_unique
+class Tpx3Reg(_Enum):
     TEST_PULSE_METHOD     = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_TEST_PULSE_METHOD
     NUMBER_TEST_PULSES    = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
     OUT_BLOCK_CONFIG      = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
@@ -880,8 +886,8 @@ cdef class Config:
          self._set_test_pulse_config(val)
 
 
-@unique
-class Tpx3PxMode(Enum):
+@_unique
+class Tpx3PxMode(_Enum):
     TOA_TOT          = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_TOA_TOT
     ONLY_TOA         = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_ONLY_TOA
     EVENT_COUNT_ITOT = cconfig.katherine_tpx3_px_mode_t.KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
@@ -891,8 +897,8 @@ class Tpx3PxMode(Enum):
         return cconfig.katherine_str_px_mode(self.value).decode('UTF-8')
 
 
-@unique
-class AcquisitionState(Enum):
+@_unique
+class AcquisitionState(_Enum):
     NOT_STARTED      = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_NOT_STARTED
     RUNNING          = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_RUNNING
     SUCCEEDED        = cacquisition.katherine_acquisition_state_t.KATHERINE_ACQUISITION_STATE_SUCCEEDED
@@ -903,8 +909,8 @@ class AcquisitionState(Enum):
         return cacquisition.katherine_str_acquisition_state(self.value).decode('UTF-8')
 
 
-@unique
-class PhaseCorrection(Enum):
+@_unique
+class PhaseCorrection(_Enum):
     NONE     = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_NONE
     SOFTWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_SOFTWARE
     HARDWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_HARDWARE
@@ -914,8 +920,8 @@ class PhaseCorrection(Enum):
         return cacquisition.katherine_str_phase_correction(self.value).decode('UTF-8')
 
 
-@unique
-class Tpx3ReadoutMode(Enum):
+@_unique
+class Tpx3ReadoutMode(_Enum):
     FRAME_BASED         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_SEQUENTIAL
     DATA_DRIVEN         = cacquisition.katherine_tpx3_readout_mode_t.KATHERINE_TPX3_READOUT_DATA_DRIVEN
 
