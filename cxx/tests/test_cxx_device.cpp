@@ -10,10 +10,12 @@
  *
  * Still no hardware and no peer. A device constructs against an address
  * nothing answers at -- UDP being connectionless, that succeeds -- and its
- * methods then fail on the receive timeout, which is how the error paths are
- * reached. The bar is the same as in the smoke test: constructible, callable,
- * and failing as a katherine::error rather than as a crash, a hang or a C
- * return code leaking through.
+ * methods then fail, which is how the error paths are reached. The bar is the
+ * same as in the smoke test: constructible, callable, and failing as a
+ * katherine::error rather than as a crash, a hang or a C return code leaking
+ * through. Which error is not asserted, since that depends on how the
+ * platform treats an unassigned loopback address; see DEAD_ADDR below, whose
+ * choice is less obvious than it looks.
  *
  * \author Petr Mánek
  * \date 15.9.26
@@ -33,10 +35,30 @@
 
 #include "ktest.h"
 
-// An address in the loopback network that nothing is bound to. Reaching it
-// costs one receive timeout per call, measured at about 100 ms, which is what
-// makes exercising the failure paths affordable.
-#define DEAD_ADDR "127.0.0.2"
+// A loopback address with nothing on it, and deliberately not 127.0.0.2:
+// macOS configures only 127.0.0.1 by default, so CI aliases that one for the
+// emulator to live on (see the workflow), which makes it a live local address
+// there. Pointing a device at a live address is worse than useless -- the
+// device's own control socket is bound to the same port on every interface,
+// so a command sent to a local address arrives back at the socket that sent
+// it, and the ack correlation accepts it, since a request carries its opcode
+// in the very byte a response is matched on. The call then "succeeds" against
+// nothing. Confirmed on Linux with 127.0.0.1, and it is what this test failed
+// on under macOS.
+//
+// What makes an address safe here is that no local interface is ASSIGNED it,
+// which is narrower than nothing listening on it and narrower than it not
+// being routed. Linux routes all of 127/8 to loopback, yet a datagram to
+// 127.0.0.3 is still not delivered to a socket bound to 0.0.0.0, because
+// delivery needs the destination to be an assigned address -- which is why
+// 127.0.0.1 self-echoes and 127.0.0.3 does not. macOS assigns only
+// 127.0.0.1, plus whatever CI aliases.
+//
+// Whichever way the send then fails -- an expired receive timeout, or an
+// immediate error on a platform that rejects the destination outright -- a
+// katherine::error is raised, which is all this file asserts. No datagram
+// leaves the host either way.
+#define DEAD_ADDR "127.0.0.3"
 
 // Renders v through its operator<< and returns what came out.
 template<typename T>
