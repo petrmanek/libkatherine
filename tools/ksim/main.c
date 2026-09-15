@@ -628,12 +628,23 @@ main(int argc, char *argv[])
 
             if (rres != 0) {
                 if (rres == KATHERINE_E_TIMEOUT) break;
+#ifndef KATHERINE_WIN
                 // A signal-interrupted recv (the stop handler unwinding it
                 // promptly, see stopsig.h) collapses into the generic
                 // KATHERINE_E_IO above; the OS-level detail survives
                 // separately, in katherine_udp_last_os_error(), which is the
-                // only way left to tell it apart from a real I/O failure.
+                // only way left to tell it apart from a real I/O failure. That
+                // detail is a raw platform code, so reading it means branching
+                // per platform, and this branch is POSIX's.
+                //
+                // Windows needs no counterpart. A console stop arrives there on
+                // a thread of the system's own (SetConsoleCtrlHandler, see
+                // stopsig.h) and leaves a blocking receive alone, so the call
+                // returns on its own timeout and the loop notices the flag
+                // then; WSAEINTR would mean a cancelled blocking call, which
+                // ksim never issues.
                 if (rres == KATHERINE_E_IO && katherine_udp_last_os_error(&ctl_udp) == EINTR) continue;
+#endif
                 fprintf(stderr, "ksim: recvfrom failed: %s\n", katherine_strerror(rres));
                 break;
             }
