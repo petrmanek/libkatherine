@@ -189,6 +189,13 @@ expect_timeout(katherine_udp_t *u)
     size_t count = sizeof(buf);
 
     KT_CHECK(is_timeout(katherine_udp_recv(u, buf, &count)));
+
+    // An expired timeout is a normal outcome of polling an idle socket, not a
+    // fault with a reason to report, so no OS-level detail is left behind.
+    // Checked here rather than on the mapper, that being the only place both
+    // platforms can be held to it: the Windows transport used to report the
+    // errno value it had translated WSAETIMEDOUT into.
+    KT_CHECK_EQ(katherine_udp_last_os_error(u), 0);
 }
 
 // ------------------------------------------------------------------
@@ -323,6 +330,10 @@ test_pinned_discard_bound(void)
 
     KT_CHECK(is_timeout(res));
     KT_CHECK(elapsed <= BOUND_BUDGET_S);
+
+    // The other origin of this code, and it must report the same absence of
+    // OS-level detail: the budget ran out, no call failed.
+    KT_CHECK_EQ(katherine_udp_last_os_error(&e.a), 0);
 
     send_text(&e.b, TEXT_WANTED);
     expect_text(&e.a, TEXT_WANTED);

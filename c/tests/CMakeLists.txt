@@ -22,6 +22,11 @@ katherine_add_test(NAME test_phase_correction SOURCES test_phase_correction.c LA
 
 katherine_add_test(NAME test_device_info SOURCES test_device_info.c LABELS unit)
 
+# Both transports' socket-error tables. Pure translation, no socket: the test
+# reaches the mappers through the private header they share, so the platform
+# whose table is not live still has its rows compared against the live one.
+katherine_add_test(NAME test_udp_error_map SOURCES test_udp_error_map.c LABELS unit)
+
 # Length checking of the pixel-configuration loaders. Writes a scratch file
 # next to the test binary and removes it, so it claims no global resource and
 # two build trees cannot collide.

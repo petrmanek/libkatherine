@@ -201,6 +201,9 @@ expect_quiet(katherine_udp_t *u)
     size_t count = sizeof(buf);
 
     KT_CHECK_EQ(katherine_udp_recv(u, buf, &count), KATHERINE_E_TIMEOUT);
+
+    // And reports no OS-level detail for it, on either platform.
+    KT_CHECK_EQ(katherine_udp_last_os_error(u), 0);
 }
 
 // ------------------------------------------------------------------
