@@ -288,18 +288,6 @@ public:
     }
 };
 
-static inline const char *
-str_acq_state(acq_state state)
-{
-    return katherine_str_acquisition_state((katherine_acquisition_state_t) state);
-}
-
-static inline const char *
-str_phase_correction(phase_correction v)
-{
-    return katherine_str_phase_correction((katherine_phase_correction_t) v);
-}
-
 /** \} */
 
 }

@@ -1,6 +1,6 @@
 /**
  * \file
- * \brief operator<< overloads delegating to the C katherine_*_snprint() family.
+ * \brief operator<< overloads delegating to the C rendering functions.
  * \author Petr Mánek
  * \date 24.8.26
  *
@@ -18,6 +18,7 @@
 
 #include <katherine/katherine.h>
 
+#include <katherinexx/acquisition.hpp>
 #include <katherinexx/config.hpp>
 #include <katherinexx/device.hpp>
 #include <katherinexx/udp.hpp>
@@ -206,6 +207,77 @@ inline std::ostream&
 operator<<(std::ostream& os, const katherine_device_t& v)
 {
     return katherine::detail::stream_snprint(os, &v, katherine_device_snprint);
+}
+
+// The enumerations, rendered by the katherine_str_* family rather than by
+// snprint. They need no helper: each of those functions returns a statically
+// allocated string, so the overload is a cast and a stream.
+//
+// These go in the namespaces the enumerations themselves live in, unlike the
+// struct overloads above. Every enum class here is a distinct C++ type
+// declared inside katherine:: or katherine::tpx3::, so ADL finds an overload
+// there -- the opposite of the alias case above, where the actual type is the
+// C struct and only a global-namespace overload is ever considered.
+//
+// This is also the whole of how an enumeration is meant to render: the
+// katherine_str_* functions are deliberately not bound as named C++ functions
+// of their own, since a caller who wants the text streams the value or reaches
+// for the C function directly.
+
+namespace katherine {
+namespace tpx3 {
+
+/** Renders a katherine::tpx3::phase (via katherine_str_phase()). */
+inline std::ostream&
+operator<<(std::ostream& os, phase v)
+{
+    return os << katherine_str_phase((katherine_tpx3_phase_t) v);
+}
+
+/** Renders a katherine::tpx3::freq (via katherine_str_freq()). */
+inline std::ostream&
+operator<<(std::ostream& os, freq v)
+{
+    return os << katherine_str_freq((katherine_tpx3_freq_t) v);
+}
+
+/** Renders a katherine::tpx3::px_mode (via katherine_str_px_mode()). */
+inline std::ostream&
+operator<<(std::ostream& os, px_mode v)
+{
+    return os << katherine_str_px_mode((katherine_tpx3_px_mode_t) v);
+}
+
+/** Renders a katherine::tpx3::readout_mode (via katherine_str_readout_mode()). */
+inline std::ostream&
+operator<<(std::ostream& os, readout_mode v)
+{
+    return os << katherine_str_readout_mode((katherine_tpx3_readout_mode_t) v);
+}
+
+} // namespace tpx3
+
+/** Renders a katherine::polarity (via katherine_str_polarity()). */
+inline std::ostream&
+operator<<(std::ostream& os, polarity v)
+{
+    return os << katherine_str_polarity((katherine_polarity_t) v);
+}
+
+/** Renders a katherine::acq_state (via katherine_str_acquisition_state()). */
+inline std::ostream&
+operator<<(std::ostream& os, acq_state v)
+{
+    return os << katherine_str_acquisition_state((katherine_acquisition_state_t) v);
+}
+
+/** Renders a katherine::phase_correction (via katherine_str_phase_correction()). */
+inline std::ostream&
+operator<<(std::ostream& os, phase_correction v)
+{
+    return os << katherine_str_phase_correction((katherine_phase_correction_t) v);
+}
+
 }
 
 namespace katherine {

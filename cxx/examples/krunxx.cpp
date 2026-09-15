@@ -210,7 +210,7 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
     double duration = duration_cast<milliseconds>(toc - tic).count() / 1000.;
     std::cerr << std::endl;
     std::cerr << "Acquisition completed:" << std::endl
-              << " - state: " << katherine::str_acq_state(acq.state()) << std::endl
+              << " - state: " << acq.state() << std::endl
               << " - received " << acq.completed_frames() << " complete frames" << std::endl
               << " - dropped " << acq.dropped_measurement_data() << " measurement data items" << std::endl
               << " - total hits: " << n_hits << std::endl
