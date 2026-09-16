@@ -484,7 +484,7 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;
-    config->dacs.named.VPReamp_NCAS      = 128;
+    config->dacs.named.Vpreamp_NCAS      = 128;
     config->dacs.named.Ibias_Ikrum       = 15;
     config->dacs.named.Vfbk              = 164;
     config->dacs.named.Vthreshold_fine   = 476;

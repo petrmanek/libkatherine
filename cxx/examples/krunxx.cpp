@@ -99,7 +99,7 @@ configure(katherine::config& config)
     katherine::dacs dacs{};
     dacs.named.Ibias_Preamp_ON   = 128;
     dacs.named.Ibias_Preamp_OFF  = 8;
-    dacs.named.VPReamp_NCAS      = 128;
+    dacs.named.Vpreamp_NCAS      = 128;
     dacs.named.Ibias_Ikrum       = 15;
     dacs.named.Vfbk              = 164;
     dacs.named.Vthreshold_fine   = 476;

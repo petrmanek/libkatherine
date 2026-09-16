@@ -235,12 +235,21 @@ test_type_aliases(void)
     KT_CHECK_EQ(coord_t.x, 1);
     KT_CHECK_EQ(coord_t.y, 2);
 
-    // The one field alias, 1.x having read the chip count as a boolean.
+    // The field aliases. 1.x read the chip count as a boolean, and misspelled
+    // the preamplifier cascode DAC.
     katherine_comm_status_t comm;
     memset(&comm, 0, sizeof(comm));
     comm.chip_detected = 3;
     KT_CHECK_EQ(comm.chip_detected, 3);
     KT_CHECK(comm.chip_detected);
+
+    katherine_dacs_t dacs;
+    memset(&dacs, 0, sizeof(dacs));
+    dacs.named.VPReamp_NCAS = 128;
+    KT_CHECK_EQ(dacs.named.VPReamp_NCAS, 128);
+
+    // Same field under either spelling, which is what the alias has to mean.
+    KT_CHECK_EQ(dacs.named.Vpreamp_NCAS, 128);
 }
 
 static void

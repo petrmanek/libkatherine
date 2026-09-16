@@ -136,7 +136,7 @@ fill_dacs(katherine_dacs_t *d)
 {
     d->named.Ibias_Preamp_ON   = 128;
     d->named.Ibias_Preamp_OFF  = 8;
-    d->named.VPReamp_NCAS      = 128;
+    d->named.Vpreamp_NCAS      = 128;
     d->named.Ibias_Ikrum       = 15;
     d->named.Vfbk              = 164;
     d->named.Vthreshold_fine   = 476;
@@ -154,7 +154,7 @@ fill_dacs(katherine_dacs_t *d)
     d->named.PLL_Vcntrl        = 128;
 }
 
-static const char *DACS_GOLDEN = "dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, VPReamp_NCAS: 128, Ibias_Ikrum: 15, "
+static const char *DACS_GOLDEN = "dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, Vpreamp_NCAS: 128, Ibias_Ikrum: 15, "
                                  "Vfbk: 164, Vthreshold_fine: 476, Vthreshold_coarse: 8, Ibias_DiscS1_ON: 100, "
                                  "Ibias_DiscS1_OFF: 8, Ibias_DiscS2_ON: 128, Ibias_DiscS2_OFF: 8, Ibias_PixelDAC: 128, "
                                  "Ibias_TPbufferIn: 128, Ibias_TPbufferOut: 128, VTP_coarse: 128, VTP_fine: 256, "
@@ -380,7 +380,7 @@ static const char *CONFIG_GOLDEN = "config{pixel_config: px_config{words: 16384,
                                    "delayed_start: false, "
                                    "stop_trigger: trigger{enabled: false, channel: 0, use_falling_edge: true}, "
                                    "gray_disable: true, polarity: electrons, phase: phase_1, freq: freq_40, "
-                                   "dacs: dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, VPReamp_NCAS: 128, "
+                                   "dacs: dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, Vpreamp_NCAS: 128, "
                                    "Ibias_Ikrum: 15, Vfbk: 164, Vthreshold_fine: 476, Vthreshold_coarse: 8, "
                                    "Ibias_DiscS1_ON: 100, Ibias_DiscS1_OFF: 8, Ibias_DiscS2_ON: 128, "
                                    "Ibias_DiscS2_OFF: 8, Ibias_PixelDAC: 128, Ibias_TPbufferIn: 128, "

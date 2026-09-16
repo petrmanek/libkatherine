@@ -11,7 +11,7 @@
  *
  *   0  Ibias_Preamp_ON     255 (8 bit)   9  Ibias_DiscS2_ON    255 (8 bit)
  *   1  Ibias_Preamp_OFF     15 (4 bit)  10  Ibias_DiscS2_OFF    15 (4 bit)
- *   2  VPReamp_NCAS        255 (8 bit)  11  Ibias_PixelDAC     255 (8 bit)
+ *   2  Vpreamp_NCAS        255 (8 bit)  11  Ibias_PixelDAC     255 (8 bit)
  *   3  Ibias_Ikrum         255 (8 bit)  12  Ibias_TPbufferIn   255 (8 bit)
  *   4  Vfbk                255 (8 bit)  13  Ibias_TPbufferOut  255 (8 bit)
  *   5  Vthreshold_fine     511 (9 bit)  14  VTP_coarse         255 (8 bit)

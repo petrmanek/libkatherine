@@ -37,7 +37,7 @@ cdef extern from 'katherine/config.h':
     ctypedef struct katherine_dacs_named_t:
         uint16_t Ibias_Preamp_ON
         uint16_t Ibias_Preamp_OFF
-        uint16_t VPReamp_NCAS
+        uint16_t Vpreamp_NCAS
         uint16_t Ibias_Ikrum
         uint16_t Vfbk
         uint16_t Vthreshold_fine

@@ -77,7 +77,7 @@ katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_
 typedef struct katherine_dacs_named {
     uint16_t Ibias_Preamp_ON;
     uint16_t Ibias_Preamp_OFF;
-    uint16_t VPReamp_NCAS;
+    uint16_t Vpreamp_NCAS;
     uint16_t Ibias_Ikrum;
     uint16_t Vfbk;
     uint16_t Vthreshold_fine;

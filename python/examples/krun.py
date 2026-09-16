@@ -70,7 +70,7 @@ def configure():
     dacs = k.Dacs()
     dacs.Ibias_Preamp_ON       = 128
     dacs.Ibias_Preamp_OFF      = 8
-    dacs.VPReamp_NCAS          = 128
+    dacs.Vpreamp_NCAS          = 128
     dacs.Ibias_Ikrum           = 15
     dacs.Vfbk                  = 164
     dacs.Vthreshold_fine       = 476

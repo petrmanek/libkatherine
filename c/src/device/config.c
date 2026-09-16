@@ -1062,7 +1062,7 @@ err:
 static const uint16_t KATHERINE_DAC_MAX[18] = {
     255, // Ibias_Preamp_ON     [7:0]
     15,  // Ibias_Preamp_OFF    [3:0]
-    255, // VPReamp_NCAS        [7:0]
+    255, // Vpreamp_NCAS        [7:0]
     255, // Ibias_Ikrum         [7:0]
     255, // Vfbk                [7:0]
     511, // Vthreshold_fine     [8:0]

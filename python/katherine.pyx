@@ -458,12 +458,12 @@ cdef class Dacs:
        self._c_dacs.named.Ibias_Preamp_OFF = val
 
     @property
-    def VPReamp_NCAS(self):
-       return self._c_dacs.named.VPReamp_NCAS
+    def Vpreamp_NCAS(self):
+       return self._c_dacs.named.Vpreamp_NCAS
 
-    @VPReamp_NCAS.setter
-    def VPReamp_NCAS(self, val):
-       self._c_dacs.named.VPReamp_NCAS = val
+    @Vpreamp_NCAS.setter
+    def Vpreamp_NCAS(self, val):
+       self._c_dacs.named.Vpreamp_NCAS = val
 
     @property
     def Ibias_Ikrum(self):

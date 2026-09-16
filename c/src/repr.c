@@ -359,11 +359,11 @@ katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off,
-        "dacs{Ibias_Preamp_ON: %u, Ibias_Preamp_OFF: %u, VPReamp_NCAS: %u, Ibias_Ikrum: %u, Vfbk: %u, "
+        "dacs{Ibias_Preamp_ON: %u, Ibias_Preamp_OFF: %u, Vpreamp_NCAS: %u, Ibias_Ikrum: %u, Vfbk: %u, "
         "Vthreshold_fine: %u, Vthreshold_coarse: %u, Ibias_DiscS1_ON: %u, Ibias_DiscS1_OFF: %u, "
         "Ibias_DiscS2_ON: %u, Ibias_DiscS2_OFF: %u, Ibias_PixelDAC: %u, Ibias_TPbufferIn: %u, "
         "Ibias_TPbufferOut: %u, VTP_coarse: %u, VTP_fine: %u, Ibias_CP_PLL: %u, PLL_Vcntrl: %u}",
-        (unsigned) v->named.Ibias_Preamp_ON, (unsigned) v->named.Ibias_Preamp_OFF, (unsigned) v->named.VPReamp_NCAS,
+        (unsigned) v->named.Ibias_Preamp_ON, (unsigned) v->named.Ibias_Preamp_OFF, (unsigned) v->named.Vpreamp_NCAS,
         (unsigned) v->named.Ibias_Ikrum, (unsigned) v->named.Vfbk, (unsigned) v->named.Vthreshold_fine,
         (unsigned) v->named.Vthreshold_coarse, (unsigned) v->named.Ibias_DiscS1_ON, (unsigned) v->named.Ibias_DiscS1_OFF,
         (unsigned) v->named.Ibias_DiscS2_ON, (unsigned) v->named.Ibias_DiscS2_OFF, (unsigned) v->named.Ibias_PixelDAC,

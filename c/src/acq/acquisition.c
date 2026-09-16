@@ -204,7 +204,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("DACs:\n");
     printf("  - Ibias_Preamp_ON:    %d\n",      config->dacs.named.Ibias_Preamp_ON);
     printf("  - Ibias_Preamp_OFF:   %d\n",      config->dacs.named.Ibias_Preamp_OFF);
-    printf("  - VPReamp_NCAS:       %d\n",      config->dacs.named.VPReamp_NCAS);
+    printf("  - Vpreamp_NCAS:       %d\n",      config->dacs.named.Vpreamp_NCAS);
     printf("  - Ibias_Ikrum:        %d\n",      config->dacs.named.Ibias_Ikrum);
     printf("  - Vfbk:               %d\n",      config->dacs.named.Vfbk);
     printf("  - Vthreshold_fine:    %d\n",      config->dacs.named.Vthreshold_fine);
