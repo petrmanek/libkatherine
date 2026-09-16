@@ -48,8 +48,10 @@ enum class acq_state {
     timed_out   = KATHERINE_ACQUISITION_STATE_TIMED_OUT
 };
 
-/// What a katherine::config::correct_phase() request resolved to;
-/// see katherine::base_acquisition::phase_correction().
+/**
+ * What a katherine::config::correct_phase() request resolved to;
+ * see katherine::base_acquisition::phase_correction().
+ */
 enum class phase_correction {
     none     = KATHERINE_PHASE_CORRECTION_NONE,
     software = KATHERINE_PHASE_CORRECTION_SOFTWARE,
@@ -193,13 +195,16 @@ public:
         }
     }
 
-    /// The wrapped C acquisition, for the calls this class does not cover.
-    /// Present because config, device and udp all expose theirs the same way;
-    /// without it this was the one wrapper whose C struct could not be reached,
-    /// which also put the operator<< repr.hpp carries for it out of reach.
+    /**
+     * The wrapped C acquisition, for the calls this class does not cover.
+     * Present because config, device and udp all expose theirs the same way;
+     * without it this was the one wrapper whose C struct could not be reached,
+     * which also put the operator<< repr.hpp carries for it out of reach.
+     * \return Pointer to the wrapped acquisition, valid as long as this object.
+     */
     katherine_acquisition_t *c_acq() { return &acq_; }
 
-    /// \copydoc c_acq()
+    /** \copydoc c_acq() */
     const katherine_acquisition_t *c_acq() const { return &acq_; }
 
     acq_state state() const { return (acq_state) acq_.state; }

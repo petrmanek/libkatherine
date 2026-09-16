@@ -185,12 +185,15 @@ katherine_device_enumerate(katherine_device_t *device)
   shadows the real one and Doxygen warns once they diverge.
 - **Doxygen commands take a backslash**: `\param`, `\retval`, `\return`,
   `\brief`. Not `@param`.
-- **Comment syntax**: `/** */` for doc blocks, `///` or `///<` for a
-  declaration or struct field, `//` for prose inside a function. `/* */` only
-  where `//` cannot work — an inline label with code after it, a designated
-  initializer annotation, or inside a line-continued `#define`, where `//`
-  would swallow the backslash and truncate the macro.
-- Struct field comments stay in the header, as `///<` after the member.
+- **Comment syntax**: `/** */` for every doc block that sits above its
+  subject, whether that subject is a function, a type or a struct field;
+  `///<` for a doc comment trailing the member it describes; `//` for prose
+  inside a function. `///` is not used. `/* */` only where `//` cannot work —
+  an inline label with code after it, a designated initializer annotation, or
+  inside a line-continued `#define`, where `//` would swallow the backslash
+  and truncate the macro.
+- Struct field comments stay in the header, `///<` after the member where they
+  fit on the line and a `/** */` block above it where they do not.
 
 ## Do not insert between a comment and its subject
 

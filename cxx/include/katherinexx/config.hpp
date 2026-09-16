@@ -37,19 +37,23 @@ static constexpr trigger no_trigger{
 
 using test_pulse_config = katherine_test_pulse_config_t;
 
-/// Charge carriers the sensor collects, and therefore the bias polarity the
-/// assembly is operated at. Mirrors katherine_polarity_t, holes being zero for
-/// the same reason: a value nobody set must be the one that cannot destroy the
-/// chip.
+/**
+ * Charge carriers the sensor collects, and therefore the bias polarity the
+ * assembly is operated at. Mirrors katherine_polarity_t, holes being zero for
+ * the same reason: a value nobody set must be the one that cannot destroy the
+ * chip.
+ */
 enum class polarity : int {
     holes     = KATHERINE_POLARITY_HOLES,
     electrons = KATHERINE_POLARITY_ELECTRONS
 };
 
-/// Settings whose meaning is Timepix3's, gathered so that a second ASIC adds
-/// a namespace of its own rather than overloading these names. The C surface
-/// spells the same distinction with a tpx3_ prefix, which C++ can express
-/// properly.
+/**
+ * Settings whose meaning is Timepix3's, gathered so that a second ASIC adds
+ * a namespace of its own rather than overloading these names. The C surface
+ * spells the same distinction with a tpx3_ prefix, which C++ can express
+ * properly.
+ */
 namespace tpx3 {
 
 /**
@@ -142,9 +146,9 @@ public:
     bool gray_disable() const { return conf_.gray_disable; }
     void set_gray_disable(bool val) { conf_.gray_disable = val; }
 
-    /// \copydoc katherine::polarity
+    /** \copydoc katherine::polarity */
     katherine::polarity polarity() const { return (katherine::polarity) conf_.polarity; }
-    /// \copydoc katherine::polarity
+    /** \copydoc katherine::polarity */
     void set_polarity(katherine::polarity val) { conf_.polarity = (katherine_polarity_t) val; }
 
     // A request only: what actually happens depends on the device and on the

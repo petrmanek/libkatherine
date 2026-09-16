@@ -44,8 +44,10 @@
 
 #include "ktest.h"
 
-/// One row of a platform's mapping: the OS code a syscall reports, and the
-/// enumerator the transport must translate it into.
+/**
+ * One row of a platform's mapping: the OS code a syscall reports, and the
+ * enumerator the transport must translate it into.
+ */
 typedef struct {
     int code;
     katherine_error_t mapped;
@@ -71,7 +73,7 @@ typedef struct {
 //
 // clang-format off
 
-/// Winsock codes the transport must recognize, and what each must become.
+/** Winsock codes the transport must recognize, and what each must become. */
 static const map_row_t WSA_ROWS[] = {
     {10060, KATHERINE_E_TIMEOUT, "WSAETIMEDOUT"},
     {10035, KATHERINE_E_TIMEOUT, "WSAEWOULDBLOCK"},
@@ -79,13 +81,15 @@ static const map_row_t WSA_ROWS[] = {
     {10055, KATHERINE_E_NOMEM,   "WSAENOBUFS"},
 };
 
-/// The errno codes, and what each must become. Read from the macros, so this
-/// states which category each code belongs to without asserting any platform's
-/// numbering -- the claim that survives being compiled anywhere.
-///
-/// EWOULDBLOCK is absent because the C libraries this runs on define it as
-/// EAGAIN, making a row for it a duplicate of the first; the header's own table
-/// spells that case with an #if for the library that does not.
+/**
+ * The errno codes, and what each must become. Read from the macros, so this
+ * states which category each code belongs to without asserting any platform's
+ * numbering -- the claim that survives being compiled anywhere.
+ *
+ * EWOULDBLOCK is absent because the C libraries this runs on define it as
+ * EAGAIN, making a row for it a duplicate of the first; the header's own table
+ * spells that case with an #if for the library that does not.
+ */
 static const map_row_t ERRNO_ROWS[] = {
     {EAGAIN,    KATHERINE_E_TIMEOUT, "EAGAIN"},
     {ETIMEDOUT, KATHERINE_E_TIMEOUT, "ETIMEDOUT"},
@@ -95,10 +99,12 @@ static const map_row_t ERRNO_ROWS[] = {
 
 // clang-format on
 
-/// Codes neither table claims, which must therefore reach the fallback
-/// untouched. The Winsock entries are deliberately chosen from the band the
-/// mapper does read (10000-11999), so that a table matching too broadly is
-/// caught rather than merely one matching too narrowly.
+/**
+ * Codes neither table claims, which must therefore reach the fallback
+ * untouched. The Winsock entries are deliberately chosen from the band the
+ * mapper does read (10000-11999), so that a table matching too broadly is
+ * caught rather than merely one matching too narrowly.
+ */
 static const int UNMAPPED[] = {
     0,
     1,
@@ -119,7 +125,7 @@ static const int UNMAPPED[] = {
 #define OTHER_ROWS WSA_ROWS
 #endif
 
-/// Every row of this platform's table maps as the table says.
+/** Every row of this platform's table maps as the table says. */
 static void
 test_live_table_matches_its_rows(void)
 {
@@ -138,7 +144,7 @@ test_live_table_matches_its_rows(void)
     }
 }
 
-/// A code outside the table reaches the caller's fallback, whichever it is.
+/** A code outside the table reaches the caller's fallback, whichever it is. */
 static void
 test_unmapped_codes_reach_the_fallback(void)
 {
@@ -148,7 +154,13 @@ test_unmapped_codes_reach_the_fallback(void)
     }
 }
 
-/// Returns whether rows claim an enumerator.
+/**
+ * Searches a platform's table for an enumerator.
+ * \param rows Table to search.
+ * \param count Rows in it.
+ * \param code Enumerator to look for.
+ * \return Whether any row maps to code.
+ */
 static bool
 claims(const map_row_t *rows, size_t count, katherine_error_t code)
 {
@@ -159,7 +171,13 @@ claims(const map_row_t *rows, size_t count, katherine_error_t code)
     return false;
 }
 
-/// Returns whether codes contains one.
+/**
+ * Searches a list of enumerators for one of them.
+ * \param codes List to search.
+ * \param count Entries in it.
+ * \param code Enumerator to look for.
+ * \return Whether the list holds code.
+ */
 static bool
 listed(const katherine_error_t *codes, size_t count, katherine_error_t code)
 {
@@ -170,13 +188,15 @@ listed(const katherine_error_t *codes, size_t count, katherine_error_t code)
     return false;
 }
 
-/// The two tables reach the same set of enumerators.
-///
-/// This is the cross-platform half, and it runs in both builds: the tables are
-/// data, so the comparison needs neither platform's headers. A code one
-/// platform can produce and the other cannot is exactly the defect this file
-/// was written for, and it fails here rather than waiting for the other
-/// platform's CI leg.
+/**
+ * The two tables reach the same set of enumerators.
+ *
+ * This is the cross-platform half, and it runs in both builds: the tables are
+ * data, so the comparison needs neither platform's headers. A code one
+ * platform can produce and the other cannot is exactly the defect this file
+ * was written for, and it fails here rather than waiting for the other
+ * platform's CI leg.
+ */
 static void
 test_both_tables_reach_the_same_codes(void)
 {
@@ -208,13 +228,15 @@ test_both_tables_reach_the_same_codes(void)
     }
 }
 
-/// The codes this file calls unmapped really are absent from both tables.
-///
-/// A guard on the test's own data rather than on the library. The errno rows
-/// are read from macros whose values this build cannot know in advance, so a C
-/// library numbering one of them the way UNMAPPED numbers something else would
-/// otherwise turn the rows above into a contradiction and report it as a
-/// mapping bug. Checked here so that it reports itself instead.
+/**
+ * The codes this file calls unmapped really are absent from both tables.
+ *
+ * A guard on the test's own data rather than on the library. The errno rows
+ * are read from macros whose values this build cannot know in advance, so a C
+ * library numbering one of them the way UNMAPPED numbers something else would
+ * otherwise turn the rows above into a contradiction and report it as a
+ * mapping bug. Checked here so that it reports itself instead.
+ */
 static void
 test_the_unmapped_codes_are_really_unmapped(void)
 {
@@ -230,13 +252,15 @@ test_the_unmapped_codes_are_really_unmapped(void)
     }
 }
 
-/// The two domains do not overlap, which is why mixing them up was silent.
-///
-/// Asserted rather than remarked upon, because the assertion is what makes the
-/// comment in udp_error_map.h checkable: if some future platform's errno value did
-/// coincide with a Winsock code, feeding one table the other's input would
-/// start producing a plausible wrong answer instead of an obvious fallback,
-/// and the reasoning in that header would no longer hold.
+/**
+ * The two domains do not overlap, which is why mixing them up was silent.
+ *
+ * Asserted rather than remarked upon, because the assertion is what makes the
+ * comment in udp_error_map.h checkable: if some future platform's errno value did
+ * coincide with a Winsock code, feeding one table the other's input would
+ * start producing a plausible wrong answer instead of an obvious fallback,
+ * and the reasoning in that header would no longer hold.
+ */
 static void
 test_the_two_domains_are_disjoint(void)
 {

@@ -24,9 +24,11 @@ namespace katherine {
  * \addtogroup katherine_cxx_api
  * \{
  */
-/// The Timepix3 timestamp surface. Namespaced rather than prefixed: C spells
-/// the same distinction as katherine_tpx3_*, which C++ can express properly,
-/// and a second ASIC then adds a namespace instead of overloading these.
+/**
+ * The Timepix3 timestamp surface. Namespaced rather than prefixed: C spells
+ * the same distinction as katherine_tpx3_*, which C++ can express properly,
+ * and a second ASIC then adds a namespace instead of overloading these.
+ */
 namespace tpx3 {
 
 /** katherine_tpx3_timestamp_to_seconds() split into whole seconds and the fractional remainder. */

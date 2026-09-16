@@ -299,20 +299,24 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
     return katherine1_map_result(katherine_get_readout_status(device, status));
 }
 
-/// 1.x read the readout's chip count as a boolean. The field is now the count
-/// it always was, and an alias is safe here in a way the polarity one is not:
-/// nonzero is truthy, so `if (status.chip_detected)` keeps meaning what it
-/// meant. Aliasing a field re-pollutes the namespace for anyone who opts into
-/// this header, which is what this header is for.
+/**
+ * 1.x read the readout's chip count as a boolean. The field is now the count
+ * it always was, and an alias is safe here in a way the polarity one is not:
+ * nonzero is truthy, so `if (status.chip_detected)` keeps meaning what it
+ * meant. Aliasing a field re-pollutes the namespace for anyone who opts into
+ * this header, which is what this header is for.
+ */
 #define chip_detected chip_count
 
-/// 1.x spelled the preamplifier cascode DAC VPReamp_NCAS, with a capital R
-/// that appears nowhere else in katherine_tpx3_dacs_named_t. 2.0 spells it
-/// Vpreamp_NCAS, which is how the manual writes every other V-prefixed DAC
-/// -- Vfbk, Vthreshold_fine, Vcntrl -- and how this struct does.
-///
-/// An alias is safe here for the same reason chip_detected's is: both
-/// spellings name the same field with the same meaning.
+/**
+ * 1.x spelled the preamplifier cascode DAC VPReamp_NCAS, with a capital R
+ * that appears nowhere else in katherine_tpx3_dacs_named_t. 2.0 spells it
+ * Vpreamp_NCAS, which is how the manual writes every other V-prefixed DAC
+ * -- Vfbk, Vthreshold_fine, Vcntrl -- and how this struct does.
+ *
+ * An alias is safe here for the same reason chip_detected's is: both
+ * spellings name the same field with the same meaning.
+ */
 #define VPReamp_NCAS  Vpreamp_NCAS
 
 /** \legacy1{katherine_get_comm_status} */

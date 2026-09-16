@@ -30,10 +30,12 @@ using bpc = katherine_bpc_t;
 
 namespace tpx3 {
 
-/// A position in the Timepix3 pixel matrix, which is 256 x 256 -- hence the
-/// byte per axis. Namespaced for that reason: Timepix4's matrix is 448 x 512
-/// and needs a wider pair, and a coordinate wide enough for both would cost
-/// every Timepix2 and Timepix3 hit two bytes it has no use for.
+/**
+ * A position in the Timepix3 pixel matrix, which is 256 x 256 -- hence the
+ * byte per axis. Namespaced for that reason: Timepix4's matrix is 448 x 512
+ * and needs a wider pair, and a coordinate wide enough for both would cost
+ * every Timepix2 and Timepix3 hit two bytes it has no use for.
+ */
 using coord = katherine_tpx3_coord_t;
 
 } // namespace tpx3

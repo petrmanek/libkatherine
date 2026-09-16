@@ -94,7 +94,7 @@ extern "C" {
 // hit_count at 14 (not 15). The chip's fine counter saturates at 15, which
 // the combination above consumes rather than reports.
 
-/// Columns in the Timepix3 pixel matrix, and so rows: it is square.
+/** Columns in the Timepix3 pixel matrix, and so rows: it is square. */
 #define KATHERINE_TPX3_MATRIX_WIDTH 256
 
 typedef struct katherine_tpx3_coord {

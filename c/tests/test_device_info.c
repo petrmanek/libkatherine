@@ -29,9 +29,11 @@
 
 #include "ktest.h"
 
-/// Every code the reference implementation's map contains. Written out here
-/// rather than read from the library, so that a row silently dropped from the
-/// table fails instead of shrinking the expectation with it.
+/**
+ * Every code the reference implementation's map contains. Written out here
+ * rather than read from the library, so that a row silently dropped from the
+ * table fails instead of shrinking the expectation with it.
+ */
 static const uint8_t KNOWN[] = {0x01, 0x02, 0x03, 0x0A, 0x20, 0x21, 0x24, 0x25, 0x26, 0x27};
 
 static void

@@ -33,8 +33,10 @@
 
 #define COUNT(a) (sizeof(a) / sizeof((a)[0]))
 
-/// Table 11 and Table 28, as read off the manual: the maximum, the step in SI
-/// units, the quantity, and the range Table 28 states for the full scale.
+/**
+ * Table 11 and Table 28, as read off the manual: the maximum, the step in SI
+ * units, the quantity, and the range Table 28 states for the full scale.
+ */
 // clang-format off
 static const struct {
     katherine_tpx3_dac_t dac;
@@ -68,9 +70,11 @@ static const struct {
 // ------------------------------------------------------------------
 // 1. The ranges, and the enumeration's order.
 
-/// This file's copy of the manual must cover every DAC the library declares.
-/// A compile-time invariant, so asserted at compile time -- and MSVC /W4
-/// objects (C4127) to a runtime test of a constant, rightly.
+/**
+ * This file's copy of the manual must cover every DAC the library declares.
+ * A compile-time invariant, so asserted at compile time -- and MSVC /W4
+ * objects (C4127) to a runtime test of a constant, rightly.
+ */
 _Static_assert(COUNT(TABLE) == KATHERINE_TPX3_DAC_COUNT, "TABLE must have one row per DAC");
 
 static void
@@ -89,9 +93,11 @@ test_maxima(void)
     KT_CHECK_EQ(katherine_tpx3_dac_max((katherine_tpx3_dac_t) -1), 0);
 }
 
-/// The maxima are what katherine_tpx3_dacs_validate() accepts, so the two must
-/// agree -- and this is what makes the maximum inclusive rather than a
-/// bound: a vector at every maximum passes, and one over any of them fails.
+/**
+ * The maxima are what katherine_tpx3_dacs_validate() accepts, so the two must
+ * agree -- and this is what makes the maximum inclusive rather than a
+ * bound: a vector at every maximum passes, and one over any of them fails.
+ */
 static void
 test_maxima_agree_with_validate(void)
 {
@@ -139,9 +145,11 @@ test_conversion(void)
     KT_CHECK_EQ((int) unit, (int) KATHERINE_DAC_UNIT_VOLT);
 }
 
-/// Which DACs bias a current and which set a voltage. Asserted as a count as
-/// well as per DAC, so that a unit flipped in the library's table shows up
-/// even if this file's copy were flipped with it.
+/**
+ * Which DACs bias a current and which set a voltage. Asserted as a count as
+ * well as per DAC, so that a unit flipped in the library's table shows up
+ * even if this file's copy were flipped with it.
+ */
 static void
 test_units(void)
 {
@@ -171,13 +179,15 @@ test_units(void)
 // ------------------------------------------------------------------
 // 3. Table 28 against itself.
 
-/// The step times the maximum, against the range Table 28 also states.
-///
-/// Twelve rows agree to a fraction of a percent. Six do not, and the
-/// deviations are written out here so the disagreement cannot be mistaken
-/// later for a transcription error in this library. The library converts from
-/// the step, which the manual corroborates where it can -- see
-/// test_threshold_corroborates_the_coarse_step() below.
+/**
+ * The step times the maximum, against the range Table 28 also states.
+ *
+ * Twelve rows agree to a fraction of a percent. Six do not, and the
+ * deviations are written out here so the disagreement cannot be mistaken
+ * later for a transcription error in this library. The library converts from
+ * the step, which the manual corroborates where it can -- see
+ * test_threshold_corroborates_the_coarse_step() below.
+ */
 static void
 test_stated_ranges(void)
 {
@@ -213,13 +223,15 @@ test_stated_ranges(void)
     }
 }
 
-/// The manual's combined threshold row corroborates the coarse step.
-///
-/// Table 28 gives Vthreshold, the 13-bit concatenation of coarse and fine, a
-/// range of 0 to 1.45 V. Summing the two parts' own full scales reproduces
-/// that, which says the 80 mV coarse step is right and the 1.19 V coarse
-/// range is the rounded figure -- the one place the manual checks itself, and
-/// the reason this library scales by the step.
+/**
+ * The manual's combined threshold row corroborates the coarse step.
+ *
+ * Table 28 gives Vthreshold, the 13-bit concatenation of coarse and fine, a
+ * range of 0 to 1.45 V. Summing the two parts' own full scales reproduces
+ * that, which says the 80 mV coarse step is right and the 1.19 V coarse
+ * range is the rounded figure -- the one place the manual checks itself, and
+ * the reason this library scales by the step.
+ */
 static void
 test_threshold_corroborates_the_coarse_step(void)
 {

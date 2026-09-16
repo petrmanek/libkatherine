@@ -27,25 +27,27 @@ static const uint32_t DATA_TIMEOUT    = 100; // ms
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-/// Hardware types a readout can report, and what each one is.
-///
-/// The recognition map is ported from the reference implementation, which is
-/// the only upstream source for it. Note what that source does NOT contain: it
-/// carries presentation metadata only -- code, chip name, display name, icon.
-/// Every behavioural difference between generations lives in its slow-control
-/// layer as method splits, not in a table. So the fields here are limited to
-/// what can be stated from the map itself plus the layer counts its own
-/// comments give, and nothing is asserted about how a readout behaves.
-///
-/// `gen` is 0 wherever the generation is not established. The reference names
-/// only the Katherine readouts by generation; for HardPix, Monique, RFPix and
-/// Timepix2-Lite it says nothing, and guessing would put an unverifiable
-/// number in a field callers would reasonably trust.
-///
-/// `supported` is true for the one readout this library drives and has been
-/// tested against. The rest are recognized so that an unsupported device can
-/// say what it is rather than nothing at all -- which is the difference
-/// between "a Katherine for Timepix3 Gen2, not supported yet" and silence.
+/**
+ * Hardware types a readout can report, and what each one is.
+ *
+ * The recognition map is ported from the reference implementation, which is
+ * the only upstream source for it. Note what that source does NOT contain: it
+ * carries presentation metadata only -- code, chip name, display name, icon.
+ * Every behavioural difference between generations lives in its slow-control
+ * layer as method splits, not in a table. So the fields here are limited to
+ * what can be stated from the map itself plus the layer counts its own
+ * comments give, and nothing is asserted about how a readout behaves.
+ *
+ * `gen` is 0 wherever the generation is not established. The reference names
+ * only the Katherine readouts by generation; for HardPix, Monique, RFPix and
+ * Timepix2-Lite it says nothing, and guessing would put an unverifiable
+ * number in a field callers would reasonably trust.
+ *
+ * `supported` is true for the one readout this library drives and has been
+ * tested against. The rest are recognized so that an unsupported device can
+ * say what it is rather than nothing at all -- which is the difference
+ * between "a Katherine for Timepix3 Gen2, not supported yet" and silence.
+ */
 static const katherine_device_info_t KATHERINE_DEVICE_INFO[] = {
     // clang-format off
   // hw_type  name                      chip_type            gen  max_chips supported

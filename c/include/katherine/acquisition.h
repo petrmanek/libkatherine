@@ -117,11 +117,13 @@ typedef enum katherine_acquisition_state {
     KATHERINE_ACQUISITION_STATE_TIMED_OUT   = 3, ///< Communications timeout. Either the detector is still measuring and the data flow was disrupted, or the device was powered off unexpectedly. This is also a common failure mode if decode_data == false, and the user fails to call katherine_acquisition_abort() at the end of the measurement.
 } katherine_acquisition_state_t;
 
-/// What became of katherine_config_t::correct_phase for a given
-/// acquisition. Three outcomes, not two: a device that never staggers its
-/// columns and one that corrects the stagger itself are different situations,
-/// and only the second leaves an offset that has to be undone to recover the
-/// sensor's own counters.
+/**
+ * What became of katherine_config_t::correct_phase for a given
+ * acquisition. Three outcomes, not two: a device that never staggers its
+ * columns and one that corrects the stagger itself are different situations,
+ * and only the second leaves an offset that has to be undone to recover the
+ * sensor's own counters.
+ */
 typedef enum katherine_phase_correction {
     KATHERINE_PHASE_CORRECTION_NONE     = 0, ///< Not requested, or nothing to correct.
     KATHERINE_PHASE_CORRECTION_SOFTWARE = 1, ///< Applied by the decoder.
@@ -196,26 +198,34 @@ typedef struct katherine_acquisition {
     katherine_acquisition_handlers_t handlers;
     katherine_frame_info_t current_frame_info;
 
-    /// Timestamp offset in effect, in fine-oscillator ticks. Carries the epoch
-    /// bias described at katherine_px_f_toa_tot_t::timestamp, so it is never
-    /// zero during an acquisition and is not the offset the stream delivered.
+    /**
+     * Timestamp offset in effect, in fine-oscillator ticks. Carries the epoch
+     * bias described at katherine_px_f_toa_tot_t::timestamp, so it is never
+     * zero during an acquisition and is not the offset the stream delivered.
+     */
     uint64_t last_toa_offset;
 
-    /// Shift taking a coarse tick to the fine ticks that make it up, resolved
-    /// by katherine_acquisition_begin(). The ratio itself is 1 << this.
+    /**
+     * Shift taking a coarse tick to the fine ticks that make it up, resolved
+     * by katherine_acquisition_begin(). The ratio itself is 1 << this.
+     */
     uint8_t toa_coarse_tick_to_fine_shift;
 
-    /// What the phase request resolved to, decided by katherine_acquisition_begin().
+    /** What the phase request resolved to, decided by katherine_acquisition_begin(). */
     katherine_phase_correction_t phase_correction;
 
-    /// Pixel-clock phases this configuration actually yields, which the clock
-    /// divider may clamp below what katherine_tpx3_phase_t asked for.
+    /**
+     * Pixel-clock phases this configuration actually yields, which the clock
+     * divider may clamp below what katherine_tpx3_phase_t asked for.
+     */
     uint8_t phase_count;
 
-    /// Per-column phase offsets in fine-oscillator ticks, added by the decoder.
-    /// Filled only when phase_correction is SOFTWARE; all zeroes otherwise, so
-    /// the decoder needs no test for whether correction is in effect. Read it
-    /// through katherine_acquisition_timestamp_phase_offset().
+    /**
+     * Per-column phase offsets in fine-oscillator ticks, added by the decoder.
+     * Filled only when phase_correction is SOFTWARE; all zeroes otherwise, so
+     * the decoder needs no test for whether correction is in effect. Read it
+     * through katherine_acquisition_timestamp_phase_offset().
+     */
     uint8_t phase_offsets[KATHERINE_TPX3_MATRIX_WIDTH];
 
     bool frame_active;

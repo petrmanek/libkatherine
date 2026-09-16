@@ -33,14 +33,16 @@
 extern "C" {
 #endif
 
-/// Timepix chip a readout device drives. Values are the Timepix generation, so
-/// the enumeration reads as the chip's name; 0 means not known.
-///
-/// Named for the chip rather than for the ASIC: an ASIC is the technology a
-/// chip is built in, the way an FPGA or a CPU is, while the chip is the thing
-/// a readout carries and addresses -- which is why this pairs with
-/// katherine_device_info_t::max_chip_count and
-/// katherine_comm_status_t::chip_count.
+/**
+ * Timepix chip a readout device drives. Values are the Timepix generation, so
+ * the enumeration reads as the chip's name; 0 means not known.
+ *
+ * Named for the chip rather than for the ASIC: an ASIC is the technology a
+ * chip is built in, the way an FPGA or a CPU is, while the chip is the thing
+ * a readout carries and addresses -- which is why this pairs with
+ * katherine_device_info_t::max_chip_count and
+ * katherine_comm_status_t::chip_count.
+ */
 typedef enum katherine_chip_type {
     KATHERINE_CHIP_UNKNOWN = 0, ///< Invalid value
     KATHERINE_CHIP_TPX2    = 2, ///< Timepix2
@@ -52,7 +54,7 @@ KATHERINE_EXPORTED const char *
 katherine_str_chip_type(katherine_chip_type_t v);
 
 
-/// What a readout is, recognized from the hardware type it reports.
+/** What a readout is, recognized from the hardware type it reports. */
 typedef struct katherine_device_info {
     uint8_t hw_type;                 ///< Reported hardware type. 0 means this structure is not populated: either the readout did not answer or it reported a type this version does not know.
     const char *name;                ///< Human-readable readout name, or NULL when hw_type is 0.
@@ -70,25 +72,35 @@ katherine_device_info_recognize(uint8_t hw_type);
 
 
 typedef struct katherine_device {
-    /// Slow control communication channel, which carries commands and
-    /// acknowledgements (full duplex).
+    /**
+     * Slow control communication channel, which carries commands and
+     * acknowledgements (full duplex).
+     */
     katherine_udp_t control_socket;
 
-    /// Measurement data (MD) communication channel, only used during
-    /// acquisition (half duplex towards this system).
+    /**
+     * Measurement data (MD) communication channel, only used during
+     * acquisition (half duplex towards this system).
+     */
     katherine_udp_t data_socket;
 
-    /// The acquisition measuring on this device, or NULL when none is. Opaque
-    /// by design. Only kept for bookkeeping purposes.
+    /**
+     * The acquisition measuring on this device, or NULL when none is. Opaque
+     * by design. Only kept for bookkeeping purposes.
+     */
     void *acquisition;
 
-    /// What this readout is, recognized during katherine_device_init(). Can
-    /// be repeated by katherine_device_enumerate(). Check hw_type against 0
-    /// before reading the rest.
+    /**
+     * What this readout is, recognized during katherine_device_init(). Can
+     * be repeated by katherine_device_enumerate(). Check hw_type against 0
+     * before reading the rest.
+     */
     katherine_device_info_t device_info;
 
-    /// Firmware version reported during katherine_device_init(), or 0 if the
-    /// readout did not answer.
+    /**
+     * Firmware version reported during katherine_device_init(), or 0 if the
+     * readout did not answer.
+     */
     uint32_t fw_version;
 } katherine_device_t;
 

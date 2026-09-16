@@ -180,12 +180,14 @@ KATHERINE_EXPORTED double
 katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac_unit_t *unit);
 
 
-/// Phase distribution of the main Timepix3 clock across the pixel matrix.
-/// Having more phases helps spread the load in data-intensive measurements
-/// and make the ASIC more stable. Any value other than
-/// KATHERINE_TPX3_PHASE_1, however, requires a ToA correction (either by
-/// software or readout, if supported). This setting is a request only:
-/// katherine_actual_phases() gives the phases actually generated.
+/**
+ * Phase distribution of the main Timepix3 clock across the pixel matrix.
+ * Having more phases helps spread the load in data-intensive measurements
+ * and make the ASIC more stable. Any value other than
+ * KATHERINE_TPX3_PHASE_1, however, requires a ToA correction (either by
+ * software or readout, if supported). This setting is a request only:
+ * katherine_actual_phases() gives the phases actually generated.
+ */
 typedef enum katherine_tpx3_phase {
     KATHERINE_TPX3_PHASE_1  = 0, ///< All clocks measure with the same phase, no ToA phase correction is required.
     KATHERINE_TPX3_PHASE_2  = 1, ///< 2  clock phases, ToA phase correction is required.
@@ -195,12 +197,12 @@ typedef enum katherine_tpx3_phase {
 } katherine_tpx3_phase_t;
 
 
-/// Frequency of the main Timepix3 clock (for ToT and ToA, but not fToA).
-/// Whether fast-VCO (for fToA) may be enabled is given by katherine_freq_is_fast_vco_supported().
+/**
+ * Frequency of the main Timepix3 clock (for ToT and ToA, but not fToA).
+ * Whether fast-VCO (for fToA) may be enabled is given by katherine_freq_is_fast_vco_supported().
+ */
 typedef enum katherine_tpx3_freq {
-    /// f =  20 MHz. Undocumented by the readout manual; corroborated by other
-    /// client implementations.
-    KATHERINE_TPX3_FREQ_20_MHZ  = 0,
+    KATHERINE_TPX3_FREQ_20_MHZ  = 0, ///< f =  20 MHz. Undocumented by the readout manual; corroborated by other client implementations.
     KATHERINE_TPX3_FREQ_40_MHZ  = 1, ///< f =  40 MHz. Most frequently used value.
     KATHERINE_TPX3_FREQ_80_MHZ  = 2, ///< f =  80 MHz.
     KATHERINE_TPX3_FREQ_160_MHZ = 3, ///< f = 160 MHz.
@@ -219,16 +221,18 @@ KATHERINE_EXPORTED bool
 katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq);
 
 
-/// Charge carriers the sensor collects, and therefore the bias polarity the
-/// assembly is operated at.
-///
-/// Values are the Polarity[0] bit of GeneralConfig itself (Timepix3 manual
-/// Table 18: 0 collects holes, 1 collects electrons), so the setting can be
-/// compared against a register read-back without translation.
-///
-/// Hole collection is zero deliberately. A configuration is often zeroed
-/// before its fields are filled, and the wrong polarity destroys the chip, so
-/// the value a forgotten field takes must be the conservative one.
+/**
+ * Charge carriers the sensor collects, and therefore the bias polarity the
+ * assembly is operated at.
+ *
+ * Values are the Polarity[0] bit of GeneralConfig itself (Timepix3 manual
+ * Table 18: 0 collects holes, 1 collects electrons), so the setting can be
+ * compared against a register read-back without translation.
+ *
+ * Hole collection is zero deliberately. A configuration is often zeroed
+ * before its fields are filled, and the wrong polarity destroys the chip, so
+ * the value a forgotten field takes must be the conservative one.
+ */
 typedef enum katherine_polarity {
     KATHERINE_POLARITY_HOLES     = 0, ///< Collect holes (h+).
     KATHERINE_POLARITY_ELECTRONS = 1, ///< Collect electrons (e-).
@@ -257,20 +261,24 @@ typedef struct katherine_config {
 
     bool gray_disable;
 
-    /// Carriers the sensor collects. Zero is KATHERINE_POLARITY_HOLES, so a
-    /// configuration whose fields are not all filled in selects the polarity
-    /// that cannot destroy the chip.
+    /**
+     * Carriers the sensor collects. Zero is KATHERINE_POLARITY_HOLES, so a
+     * configuration whose fields are not all filled in selects the polarity
+     * that cannot destroy the chip.
+     */
     katherine_polarity_t polarity;
 
-    /// Phase distribution of clock signals across the ASIC. A single phase
-    /// (KATHERINE_TPX3_PHASE_1) means that all timestamps are recorded
-    /// in-phase. Any other setting will stagger adjacent clock signals by
-    /// half of the period (KATHERINE_TPX3_PHASE_2), a quarter of the period
-    /// (KATHERINE_TPX3_PHASE_4) etc., so that coincident data bursts are
-    /// better distributed in time for a more stable data flow. This
-    /// performance improvement however comes at the price of having to
-    /// correct the phase-offsets in hit timestamps to recover true values.
-    /// See the correct_phase setting below for that.
+    /**
+     * Phase distribution of clock signals across the ASIC. A single phase
+     * (KATHERINE_TPX3_PHASE_1) means that all timestamps are recorded
+     * in-phase. Any other setting will stagger adjacent clock signals by
+     * half of the period (KATHERINE_TPX3_PHASE_2), a quarter of the period
+     * (KATHERINE_TPX3_PHASE_4) etc., so that coincident data bursts are
+     * better distributed in time for a more stable data flow. This
+     * performance improvement however comes at the price of having to
+     * correct the phase-offsets in hit timestamps to recover true values.
+     * See the correct_phase setting below for that.
+     */
     katherine_tpx3_phase_t phase;
     bool correct_phase; ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
 
