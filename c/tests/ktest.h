@@ -25,7 +25,7 @@
 // return kt_summary();
 // }
 //
-// KT_CHECK / KT_CHECK_EQ / KT_CHECK_MEM_EQ record a failed assertion and let
+// KT_CHECK / KT_CHECK_EQ / KT_CHECK_STR_EQ / KT_CHECK_MEM_EQ record a failed assertion and let
 // the test keep running to completion. KT_REQUIRE is the same, except it
 // additionally returns from the current (void) test function on failure --
 // use it after a setup step whose failure would make later checks in the
@@ -149,6 +149,19 @@ kt_double_within_ulps(double a, double b, unsigned ulps)
     do { \
         if (memcmp((p1), (p2), (n)) != 0) { \
             kt_report_fail(__FILE__, __LINE__, #p1 " == " #p2); \
+        } \
+    } while (0)
+
+// Both strings are printed on failure: for a stringifier, which is most of
+// what this compares, the returned text is the whole of the evidence.
+#define KT_CHECK_STR_EQ(s1, s2) \
+    do { \
+        const char *kt_s1_ = (s1); \
+        const char *kt_s2_ = (s2); \
+        if (kt_s1_ == NULL || kt_s2_ == NULL || strcmp(kt_s1_, kt_s2_) != 0) { \
+            kt_g_cur_failed = 1; \
+            printf("# FAIL %s:%d: %s == %s (\"%s\" vs \"%s\")\n", __FILE__, __LINE__, #s1, #s2, \
+                kt_s1_ ? kt_s1_ : "(null)", kt_s2_ ? kt_s2_ : "(null)"); \
         } \
     } while (0)
 

@@ -201,6 +201,108 @@ test_coord_keeps_its_1x_spellings(void)
 }
 
 // ------------------------------------------------------------------
+// The object-like aliases: the renamed types, enumerators and one struct
+// field, under their 1.x spellings.
+//
+// These are compile-time only, so most of the coverage is that this file
+// compiles at all -- a missing or misspelled alias is a build failure here
+// and nowhere else. Where more than existence can be checked cheaply, it is:
+// an enumerator with a stringifier is rendered, which shows it resolves to
+// the right enumerator rather than merely to some enumerator, and still
+// speaks only 1.x, the stringifiers having 1.x names too.
+
+static void
+test_type_aliases(void)
+{
+    // Tag and typedef spellings of each renamed type, both of which 1.x had.
+    enum katherine_readout_type readout  = READOUT_DATA_DRIVEN;
+    enum katherine_acquisition_mode mode = ACQUISITION_MODE_ONLY_TOA;
+    enum katherine_phase phase           = PHASE_8;
+    enum katherine_freq freq             = FREQ_80;
+    struct katherine_coord tagged        = {1, 2};
+
+    katherine_readout_type_t readout_t  = readout;
+    katherine_acquisition_mode_t mode_t = mode;
+    katherine_phase_t phase_t           = phase;
+    katherine_freq_t freq_t             = freq;
+    katherine_coord_t coord_t           = tagged;
+
+    KT_CHECK_EQ(sizeof(readout), sizeof(readout_t));
+    KT_CHECK_EQ(sizeof(mode), sizeof(mode_t));
+    KT_CHECK_EQ(sizeof(phase), sizeof(phase_t));
+    KT_CHECK_EQ(sizeof(freq), sizeof(freq_t));
+    KT_CHECK_EQ(sizeof(tagged), sizeof(coord_t));
+    KT_CHECK_EQ(coord_t.x, 1);
+    KT_CHECK_EQ(coord_t.y, 2);
+
+    // The one field alias, 1.x having read the chip count as a boolean.
+    katherine_comm_status_t comm;
+    memset(&comm, 0, sizeof(comm));
+    comm.chip_detected = 3;
+    KT_CHECK_EQ(comm.chip_detected, 3);
+    KT_CHECK(comm.chip_detected);
+}
+
+static void
+test_enumerator_aliases(void)
+{
+    KT_CHECK_STR_EQ(katherine_str_readout_type(READOUT_SEQUENTIAL), "sequential");
+    KT_CHECK_STR_EQ(katherine_str_readout_type(READOUT_DATA_DRIVEN), "data_driven");
+
+    KT_CHECK_STR_EQ(katherine_str_acquisition_status(ACQUISITION_NOT_STARTED), "not_started");
+    KT_CHECK_STR_EQ(katherine_str_acquisition_status(ACQUISITION_RUNNING), "running");
+    KT_CHECK_STR_EQ(katherine_str_acquisition_status(ACQUISITION_SUCCEEDED), "succeeded");
+    KT_CHECK_STR_EQ(katherine_str_acquisition_status(ACQUISITION_TIMED_OUT), "timed_out");
+
+    KT_CHECK_STR_EQ(katherine_str_acquisition_mode(ACQUISITION_MODE_TOA_TOT), "toa_tot");
+    KT_CHECK_STR_EQ(katherine_str_acquisition_mode(ACQUISITION_MODE_ONLY_TOA), "only_toa");
+    KT_CHECK_STR_EQ(katherine_str_acquisition_mode(ACQUISITION_MODE_EVENT_ITOT), "event_count_itot");
+
+    KT_CHECK_STR_EQ(katherine_str_phase(PHASE_1), "phase_1");
+    KT_CHECK_STR_EQ(katherine_str_phase(PHASE_2), "phase_2");
+    KT_CHECK_STR_EQ(katherine_str_phase(PHASE_4), "phase_4");
+    KT_CHECK_STR_EQ(katherine_str_phase(PHASE_8), "phase_8");
+    KT_CHECK_STR_EQ(katherine_str_phase(PHASE_16), "phase_16");
+
+    KT_CHECK_STR_EQ(katherine_str_freq(FREQ_20), "freq_20");
+    KT_CHECK_STR_EQ(katherine_str_freq(FREQ_40), "freq_40");
+    KT_CHECK_STR_EQ(katherine_str_freq(FREQ_80), "freq_80");
+    KT_CHECK_STR_EQ(katherine_str_freq(FREQ_160), "freq_160");
+}
+
+static void
+test_register_aliases(void)
+{
+    // No stringifier for these, so distinctness carries the check: thirteen
+    // aliases must name thirteen registers, bar the one pair the chip itself
+    // shares (method and period are the same register, see config.h). A
+    // copy-paste slip mapping two aliases onto one register fails here.
+    const katherine_tpx3_reg_t regs[] = {
+        TPX3_REG_TEST_PULSE_METHOD,
+        TPX3_REG_NUMBER_TEST_PULSES,
+        TPX3_REG_OUT_BLOCK_CONFIG,
+        TPX3_REG_PLL_CONFIG,
+        TPX3_REG_GENERAL_CONFIG,
+        TPX3_REG_SLVS_CONFIG,
+        TPX3_REG_POWER_PULSING_PATTERN,
+        TPX3_REG_SET_TIMER_LOW,
+        TPX3_REG_SET_TIMER_MID,
+        TPX3_REG_SET_TIMER_HIGH,
+        TPX3_REG_SENSE_DAC_SELECTOR,
+        TPX3_REG_EXT_DAC_SELECTOR,
+    };
+    const size_t count = sizeof(regs) / sizeof(regs[0]);
+
+    for (size_t i = 0; i < count; ++i) {
+        for (size_t j = i + 1; j < count; ++j) {
+            KT_CHECK(regs[i] != regs[j]);
+        }
+    }
+
+    KT_CHECK_EQ(TPX3_REG_TEST_PULSE_PERIOD, TPX3_REG_TEST_PULSE_METHOD);
+}
+
+// ------------------------------------------------------------------
 
 int
 main(void)
@@ -213,6 +315,9 @@ main(void)
     KT_RUN(test_dacs_validate_success);
     KT_RUN(test_udp_round_trip_success);
     KT_RUN(test_coord_keeps_its_1x_spellings);
+    KT_RUN(test_type_aliases);
+    KT_RUN(test_enumerator_aliases);
+    KT_RUN(test_register_aliases);
 
     return kt_summary();
 }
