@@ -97,7 +97,7 @@ katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_
  * headings -- so nothing is claimed here beyond what the names and that
  * table support.
  */
-typedef struct katherine_dacs_named {
+typedef struct katherine_tpx3_dacs_named {
     uint16_t Ibias_Preamp_ON;   ///< Preamplifier bias while the pixel is on.
     uint16_t Ibias_Preamp_OFF;  ///< Preamplifier bias while power pulsing holds it off.
     uint16_t Vpreamp_NCAS;      ///< Preamplifier cascode voltage.
@@ -116,48 +116,48 @@ typedef struct katherine_dacs_named {
     uint16_t VTP_fine;          ///< Test-pulse amplitude, fine part.
     uint16_t Ibias_CP_PLL;      ///< PLL charge-pump bias.
     uint16_t PLL_Vcntrl;        ///< PLL control voltage. Zero is not neutral; see above.
-} katherine_dacs_named_t;
+} katherine_tpx3_dacs_named_t;
 
 
-typedef union katherine_dacs {
+typedef union katherine_tpx3_dacs {
     uint16_t array[KATHERINE_TPX3_DAC_COUNT];
-    katherine_dacs_named_t named;
-} katherine_dacs_t;
+    katherine_tpx3_dacs_named_t named;
+} katherine_tpx3_dacs_t;
 
 KATHERINE_EXPORTED int
-katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v);
+katherine_tpx3_dacs_snprint(char *buf, size_t cap, const katherine_tpx3_dacs_t *v);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_dacs_validate(const katherine_dacs_t *v);
+katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v);
 
 /**
- * The eighteen bias DACs, in katherine_dacs_named_t and
- * katherine_dacs_t::array order. That order is the chip's own DAC Code
+ * The eighteen bias DACs, in katherine_tpx3_dacs_named_t and
+ * katherine_tpx3_dacs_t::array order. That order is the chip's own DAC Code
  * (Timepix3 manual Table 11) minus one.
  *
  * Each enumerator copies the description of the field it indexes, so the
- * DACs are described in one place -- katherine_dacs_named_t -- and here only
+ * DACs are described in one place -- katherine_tpx3_dacs_named_t -- and here only
  * referred to.
  */
 typedef enum katherine_tpx3_dac {
-    KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON = 0, ///< \copydoc katherine_dacs_named_t::Ibias_Preamp_ON
-    KATHERINE_TPX3_DAC_IBIAS_PREAMP_OFF,    ///< \copydoc katherine_dacs_named_t::Ibias_Preamp_OFF
-    KATHERINE_TPX3_DAC_VPREAMP_NCAS,        ///< \copydoc katherine_dacs_named_t::Vpreamp_NCAS
-    KATHERINE_TPX3_DAC_IBIAS_IKRUM,         ///< \copydoc katherine_dacs_named_t::Ibias_Ikrum
-    KATHERINE_TPX3_DAC_VFBK,                ///< \copydoc katherine_dacs_named_t::Vfbk
-    KATHERINE_TPX3_DAC_VTHRESHOLD_FINE,     ///< \copydoc katherine_dacs_named_t::Vthreshold_fine
-    KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE,   ///< \copydoc katherine_dacs_named_t::Vthreshold_coarse
-    KATHERINE_TPX3_DAC_IBIAS_DISCS1_ON,     ///< \copydoc katherine_dacs_named_t::Ibias_DiscS1_ON
-    KATHERINE_TPX3_DAC_IBIAS_DISCS1_OFF,    ///< \copydoc katherine_dacs_named_t::Ibias_DiscS1_OFF
-    KATHERINE_TPX3_DAC_IBIAS_DISCS2_ON,     ///< \copydoc katherine_dacs_named_t::Ibias_DiscS2_ON
-    KATHERINE_TPX3_DAC_IBIAS_DISCS2_OFF,    ///< \copydoc katherine_dacs_named_t::Ibias_DiscS2_OFF
-    KATHERINE_TPX3_DAC_IBIAS_PIXELDAC,      ///< \copydoc katherine_dacs_named_t::Ibias_PixelDAC
-    KATHERINE_TPX3_DAC_IBIAS_TPBUFFERIN,    ///< \copydoc katherine_dacs_named_t::Ibias_TPbufferIn
-    KATHERINE_TPX3_DAC_IBIAS_TPBUFFEROUT,   ///< \copydoc katherine_dacs_named_t::Ibias_TPbufferOut
-    KATHERINE_TPX3_DAC_VTP_COARSE,          ///< \copydoc katherine_dacs_named_t::VTP_coarse
-    KATHERINE_TPX3_DAC_VTP_FINE,            ///< \copydoc katherine_dacs_named_t::VTP_fine
-    KATHERINE_TPX3_DAC_IBIAS_CP_PLL,        ///< \copydoc katherine_dacs_named_t::Ibias_CP_PLL
-    KATHERINE_TPX3_DAC_PLL_VCNTRL,          ///< \copydoc katherine_dacs_named_t::PLL_Vcntrl
+    KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON = 0, ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_Preamp_ON
+    KATHERINE_TPX3_DAC_IBIAS_PREAMP_OFF,    ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_Preamp_OFF
+    KATHERINE_TPX3_DAC_VPREAMP_NCAS,        ///< \copydoc katherine_tpx3_dacs_named_t::Vpreamp_NCAS
+    KATHERINE_TPX3_DAC_IBIAS_IKRUM,         ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_Ikrum
+    KATHERINE_TPX3_DAC_VFBK,                ///< \copydoc katherine_tpx3_dacs_named_t::Vfbk
+    KATHERINE_TPX3_DAC_VTHRESHOLD_FINE,     ///< \copydoc katherine_tpx3_dacs_named_t::Vthreshold_fine
+    KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE,   ///< \copydoc katherine_tpx3_dacs_named_t::Vthreshold_coarse
+    KATHERINE_TPX3_DAC_IBIAS_DISCS1_ON,     ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_DiscS1_ON
+    KATHERINE_TPX3_DAC_IBIAS_DISCS1_OFF,    ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_DiscS1_OFF
+    KATHERINE_TPX3_DAC_IBIAS_DISCS2_ON,     ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_DiscS2_ON
+    KATHERINE_TPX3_DAC_IBIAS_DISCS2_OFF,    ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_DiscS2_OFF
+    KATHERINE_TPX3_DAC_IBIAS_PIXELDAC,      ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_PixelDAC
+    KATHERINE_TPX3_DAC_IBIAS_TPBUFFERIN,    ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_TPbufferIn
+    KATHERINE_TPX3_DAC_IBIAS_TPBUFFEROUT,   ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_TPbufferOut
+    KATHERINE_TPX3_DAC_VTP_COARSE,          ///< \copydoc katherine_tpx3_dacs_named_t::VTP_coarse
+    KATHERINE_TPX3_DAC_VTP_FINE,            ///< \copydoc katherine_tpx3_dacs_named_t::VTP_fine
+    KATHERINE_TPX3_DAC_IBIAS_CP_PLL,        ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_CP_PLL
+    KATHERINE_TPX3_DAC_PLL_VCNTRL,          ///< \copydoc katherine_tpx3_dacs_named_t::PLL_Vcntrl
 } katherine_tpx3_dac_t;
 
 /**
@@ -275,7 +275,7 @@ typedef struct katherine_config {
     bool correct_phase; ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
 
     katherine_tpx3_freq_t freq;
-    katherine_dacs_t dacs;
+    katherine_tpx3_dacs_t dacs;
 
     katherine_test_pulse_config_t test_pulse_config;
 } katherine_config_t;
@@ -360,7 +360,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_timer_set(katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs);
+katherine_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config);

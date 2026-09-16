@@ -409,7 +409,7 @@ typedef enum katherine_cmd_type {
      * codes 1-based, 1..18 for the named DACs plus 28..31 for BandGap /
      * BandGap_Temp / Ibias_dac / Ibias_dac_cas (Tpx3 manual Table 11) --
      * unlike CMD_TYPE_INTERNAL_DAC_SETTINGS above, which is 0-based 0..17.
-     * An off-by-one trap for a future scan API that reuses katherine_dacs_t
+     * An off-by-one trap for a future scan API that reuses katherine_tpx3_dacs_t
      * indexing.
      */
     CMD_TYPE_INTERNAL_DAC_SCAN = 0x0F,

@@ -132,7 +132,7 @@ test_test_pulse_config(void)
 // Same values python/tests/smoke.py's build_config() uses, so this golden
 // string doubles as a cross-check of that fixture if it is ever repr'd.
 static void
-fill_dacs(katherine_dacs_t *d)
+fill_dacs(katherine_tpx3_dacs_t *d)
 {
     d->named.Ibias_Preamp_ON   = 128;
     d->named.Ibias_Preamp_OFF  = 8;
@@ -163,11 +163,11 @@ static const char *DACS_GOLDEN = "dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8
 static void
 test_dacs(void)
 {
-    katherine_dacs_t d;
+    katherine_tpx3_dacs_t d;
     fill_dacs(&d);
 
     char buf[512];
-    int n = katherine_dacs_snprint(buf, sizeof(buf), &d);
+    int n = katherine_tpx3_dacs_snprint(buf, sizeof(buf), &d);
     CHECK_GOLDEN(n, buf, DACS_GOLDEN);
 }
 
@@ -431,7 +431,7 @@ test_config_nests_dacs_verbatim(void)
     katherine_config_snprint(config_buf, sizeof(config_buf), &c);
 
     char dacs_buf[512];
-    katherine_dacs_snprint(dacs_buf, sizeof(dacs_buf), &c.dacs);
+    katherine_tpx3_dacs_snprint(dacs_buf, sizeof(dacs_buf), &c.dacs);
 
     KT_CHECK(strstr(config_buf, dacs_buf) != NULL);
 }

@@ -135,12 +135,12 @@ katherine1_device_init(katherine_device_t *device, const char *addr)
 
 // config.h
 
-/** \legacy1{katherine_dacs_validate} */
+/** \legacy1{katherine_tpx3_dacs_validate} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_dacs_validate(const katherine_dacs_t *v)
+katherine1_dacs_validate(const katherine_tpx3_dacs_t *v)
 {
-    return katherine1_map_result(katherine_dacs_validate(v));
+    return katherine1_map_result(katherine_tpx3_dacs_validate(v));
 }
 
 /** \legacy1{katherine_configure} */
@@ -242,7 +242,7 @@ katherine1_timer_set(katherine_device_t *device)
 /** \legacy1{katherine_set_dacs} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
+katherine1_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
 {
     return katherine1_map_result(katherine_set_dacs(device, dacs));
 }
@@ -307,7 +307,7 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
 #define chip_detected chip_count
 
 /// 1.x spelled the preamplifier cascode DAC VPReamp_NCAS, with a capital R
-/// that appears nowhere else in katherine_dacs_named_t. 2.0 spells it
+/// that appears nowhere else in katherine_tpx3_dacs_named_t. 2.0 spells it
 /// Vpreamp_NCAS, which is how the manual writes every other V-prefixed DAC
 /// -- Vfbk, Vthreshold_fine, Vcntrl -- and how this struct does.
 ///
@@ -516,7 +516,7 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 
 #define katherine_device_init(...)                katherine1_device_init(__VA_ARGS__)
 
-#define katherine_dacs_validate(...)              katherine1_dacs_validate(__VA_ARGS__)
+#define katherine_tpx3_dacs_validate(...)         katherine1_dacs_validate(__VA_ARGS__)
 #define katherine_configure(...)                  katherine1_configure(__VA_ARGS__)
 #define katherine_set_all_pixel_config(...)       katherine1_set_all_pixel_config(__VA_ARGS__)
 #define katherine_set_acq_time(...)               katherine1_set_acq_time(__VA_ARGS__)
@@ -611,6 +611,16 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 // is namespaced in 2.0 because its width is Timepix3's: a byte per axis suits
 // a 256 x 256 matrix and not Timepix4's 448 x 512, and widening it for every
 // ASIC would cost each Timepix2 and Timepix3 hit two bytes it cannot use.
+// The bias DACs, namespaced in 2.0 because which DACs exist, how wide each
+// is and what it biases are all Timepix3's. The struct tags, both typedefs
+// and the two functions all shipped in 1.x.
+#define katherine_dacs                        katherine_tpx3_dacs
+#define katherine_dacs_t                      katherine_tpx3_dacs_t
+#define katherine_dacs_named                  katherine_tpx3_dacs_named
+#define katherine_dacs_named_t                katherine_tpx3_dacs_named_t
+#define katherine_dacs_snprint(...)           katherine_tpx3_dacs_snprint(__VA_ARGS__)
+#define katherine_dacs_validate(...)          katherine_tpx3_dacs_validate(__VA_ARGS__)
+
 #define katherine_coord                       katherine_tpx3_coord
 #define katherine_coord_t                     katherine_tpx3_coord_t
 #define katherine_coord_snprint(...)          katherine_tpx3_coord_snprint(__VA_ARGS__)

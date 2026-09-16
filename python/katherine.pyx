@@ -432,14 +432,14 @@ cdef class TestPulseConfig:
 
 
 cdef class Dacs:
-    cdef cconfig.katherine_dacs_t _c_dacs
+    cdef cconfig.katherine_tpx3_dacs_t _c_dacs
 
     def __init__(self, cdata=None):
          if cdata is not None:
              self._c_dacs.named = cdata['named']
 
     def __repr__(self):
-         return _snprint_repr(<snprint_fn_t> cconfig.katherine_dacs_snprint, &self._c_dacs)
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_tpx3_dacs_snprint, &self._c_dacs)
 
     @property
     def Ibias_Preamp_ON(self):

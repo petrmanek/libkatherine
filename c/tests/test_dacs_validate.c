@@ -2,11 +2,11 @@
  * \file
  * \brief Range validation of DAC register values against Tpx3 manual Table 11.
  *
- * katherine_dacs_validate() is opt-in: katherine_set_dacs() (config.c) sends
+ * katherine_tpx3_dacs_validate() is opt-in: katherine_set_dacs() (config.c) sends
  * every register unchecked and lets the chip truncate an out-of-range value
  * silently instead of rejecting it (Tpx3 manual Table 11: each of the 18
  * DACs is 4, 8 or 9 bits wide). This freezes the per-DAC maxima the
- * validator checks against, in katherine_dacs_named_t / array order (chip
+ * validator checks against, in katherine_tpx3_dacs_named_t / array order (chip
  * DAC Code 1..18):
  *
  *   0  Ibias_Preamp_ON     255 (8 bit)   9  Ibias_DiscS2_ON    255 (8 bit)
@@ -43,7 +43,7 @@
 
 #include "ktest.h"
 
-// Table 11 maxima, in katherine_dacs_named_t / array index order -- see the
+// Table 11 maxima, in katherine_tpx3_dacs_named_t / array index order -- see the
 // file header for the DAC each index names.
 static const uint16_t DAC_MAX[18] = {
     255,
@@ -67,7 +67,7 @@ static const uint16_t DAC_MAX[18] = {
 };
 
 static void
-fill_at_max(katherine_dacs_t *dacs)
+fill_at_max(katherine_tpx3_dacs_t *dacs)
 {
     for (int i = 0; i < 18; ++i) {
         dacs->array[i] = DAC_MAX[i];
@@ -77,19 +77,19 @@ fill_at_max(katherine_dacs_t *dacs)
 static void
 test_all_max_passes(void)
 {
-    katherine_dacs_t dacs;
+    katherine_tpx3_dacs_t dacs;
     fill_at_max(&dacs);
-    KT_CHECK_EQ(katherine_dacs_validate(&dacs), 0);
+    KT_CHECK_EQ(katherine_tpx3_dacs_validate(&dacs), 0);
 }
 
 static void
 test_each_dac_max_plus_one_fails(void)
 {
     for (int i = 0; i < 18; ++i) {
-        katherine_dacs_t dacs;
+        katherine_tpx3_dacs_t dacs;
         fill_at_max(&dacs);
         dacs.array[i] = (uint16_t) (DAC_MAX[i] + 1);
-        KT_CHECK_EQ(katherine_dacs_validate(&dacs), KATHERINE_E_INVAL);
+        KT_CHECK_EQ(katherine_tpx3_dacs_validate(&dacs), KATHERINE_E_INVAL);
     }
 }
 

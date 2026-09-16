@@ -122,7 +122,7 @@ local HW_SUBCMD_NAMES = {
     [15] = "Digital test",
 }
 
--- katherine_dacs_named_t / CMD_TYPE_INTERNAL_DAC_SETTINGS sub-index,
+-- katherine_tpx3_dacs_named_t / CMD_TYPE_INTERNAL_DAC_SETTINGS sub-index,
 -- c/include/katherine/config.h + c/src/command_interface.h
 local DAC_NAMES = {
     [0]  = "Ibias_Preamp_ON",

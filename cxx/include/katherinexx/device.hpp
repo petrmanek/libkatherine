@@ -292,7 +292,7 @@ public:
     }
 
     void
-    set_dacs(const katherine::dacs& dacs)
+    set_dacs(const katherine::tpx3::dacs& dacs)
     {
         int res = katherine_set_dacs(&dev_, &dacs);
 

@@ -96,7 +96,7 @@ configure(katherine::config& config)
     config.set_phase(katherine::tpx3::phase::p1);
     config.set_freq(katherine::tpx3::freq::f40);
 
-    katherine::dacs dacs{};
+    katherine::tpx3::dacs dacs{};
     dacs.named.Ibias_Preamp_ON   = 128;
     dacs.named.Ibias_Preamp_OFF  = 8;
     dacs.named.Vpreamp_NCAS      = 128;

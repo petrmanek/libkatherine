@@ -34,7 +34,6 @@ static constexpr trigger no_trigger{
     /* .use_falling_edge = */ 0,
 };
 
-using dacs = katherine_dacs_t;
 
 using test_pulse_config = katherine_test_pulse_config_t;
 
@@ -52,6 +51,12 @@ enum class polarity : int {
 /// spells the same distinction with a tpx3_ prefix, which C++ can express
 /// properly.
 namespace tpx3 {
+
+/**
+ * The chip's bias DACs. Namespaced because which DACs exist, how wide each
+ * is and what it biases are all Timepix3's; a second ASIC brings its own.
+ */
+using dacs = katherine_tpx3_dacs_t;
 
 enum class phase : int {
     p1  = KATHERINE_TPX3_PHASE_1,
@@ -154,10 +159,10 @@ public:
     katherine::tpx3::freq freq() const { return (katherine::tpx3::freq) conf_.freq; }
     void set_freq(katherine::tpx3::freq val) { conf_.freq = (katherine_tpx3_freq_t) val; }
 
-    const katherine::dacs& dacs() const { return conf_.dacs; }
-    katherine::dacs& dacs() { return conf_.dacs; }
-    void set_dacs(const katherine::dacs& dacs) { conf_.dacs = dacs; }
-    void set_dacs(katherine::dacs&& dacs) { conf_.dacs = dacs; }
+    const katherine::tpx3::dacs& dacs() const { return conf_.dacs; }
+    katherine::tpx3::dacs& dacs() { return conf_.dacs; }
+    void set_dacs(const katherine::tpx3::dacs& dacs) { conf_.dacs = dacs; }
+    void set_dacs(katherine::tpx3::dacs&& dacs) { conf_.dacs = dacs; }
 
     const katherine::test_pulse_config& test_pulse_config() const { return conf_.test_pulse_config; }
     katherine::test_pulse_config& test_pulse_config() { return conf_.test_pulse_config; }

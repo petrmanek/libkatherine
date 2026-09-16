@@ -78,7 +78,7 @@ test_maxima(void)
 {
     for (size_t i = 0; i < COUNT(TABLE); ++i) {
         // The enumerator's value is its index, which is what makes it usable
-        // against katherine_dacs_t::array and what the library's own table
+        // against katherine_tpx3_dacs_t::array and what the library's own table
         // relies on.
         KT_CHECK_EQ((unsigned) TABLE[i].dac, i);
         KT_CHECK_EQ(katherine_tpx3_dac_max(TABLE[i].dac), TABLE[i].max);
@@ -89,23 +89,23 @@ test_maxima(void)
     KT_CHECK_EQ(katherine_tpx3_dac_max((katherine_tpx3_dac_t) -1), 0);
 }
 
-/// The maxima are what katherine_dacs_validate() accepts, so the two must
+/// The maxima are what katherine_tpx3_dacs_validate() accepts, so the two must
 /// agree -- and this is what makes the maximum inclusive rather than a
 /// bound: a vector at every maximum passes, and one over any of them fails.
 static void
 test_maxima_agree_with_validate(void)
 {
-    katherine_dacs_t dacs;
+    katherine_tpx3_dacs_t dacs;
 
     memset(&dacs, 0, sizeof(dacs));
     for (size_t i = 0; i < COUNT(TABLE); ++i) {
         dacs.array[i] = katherine_tpx3_dac_max(TABLE[i].dac);
     }
-    KT_CHECK_EQ(katherine_dacs_validate(&dacs), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_tpx3_dacs_validate(&dacs), KATHERINE_E_OK);
 
     for (size_t i = 0; i < COUNT(TABLE); ++i) {
         ++dacs.array[i];
-        KT_CHECK_EQ(katherine_dacs_validate(&dacs), KATHERINE_E_INVAL);
+        KT_CHECK_EQ(katherine_tpx3_dacs_validate(&dacs), KATHERINE_E_INVAL);
         --dacs.array[i];
     }
 }

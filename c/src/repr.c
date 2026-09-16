@@ -355,7 +355,7 @@ katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
+katherine_tpx3_dacs_snprint(char *buf, size_t cap, const katherine_tpx3_dacs_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off,
@@ -403,7 +403,7 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     REPR_APPENDF(buf, cap, off, ", gray_disable: %s, polarity: %s, phase: %s, freq: %s, dacs: ",
         katherine_str_bool(v->gray_disable), katherine_str_polarity(v->polarity), katherine_str_phase(v->phase),
         katherine_str_freq(v->freq));
-    REPR_NEST(buf, cap, off, katherine_dacs_snprint, &v->dacs);
+    REPR_NEST(buf, cap, off, katherine_tpx3_dacs_snprint, &v->dacs);
     REPR_APPENDF(buf, cap, off, ", test_pulse_config: ");
     REPR_NEST(buf, cap, off, katherine_test_pulse_config_snprint, &v->test_pulse_config);
     REPR_APPENDF(buf, cap, off, "}");

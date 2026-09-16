@@ -63,7 +63,7 @@ stream_snprint(std::ostream& os, const T *v, Fn snprint)
 }
 }
 
-// katherine::trigger, katherine::dacs, katherine::test_pulse_config,
+// katherine::trigger, katherine::tpx3::dacs, katherine::test_pulse_config,
 // katherine::frame_info and katherine::tpx3::coord are `using` aliases of
 // these same C struct types (see config.hpp, acquisition.hpp, px_config.hpp),
 // not distinct types, so argument-dependent lookup for a value of one of
@@ -139,11 +139,11 @@ operator<<(std::ostream& os, const katherine_test_pulse_config_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_test_pulse_config_snprint);
 }
 
-/** Renders a katherine_dacs_t (via katherine_dacs_snprint()). */
+/** Renders a katherine_tpx3_dacs_t (via katherine_tpx3_dacs_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_dacs_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_dacs_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_dacs_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_dacs_snprint);
 }
 
 /** Renders a katherine_px_config_t as its digest (via katherine_px_config_snprint()). */

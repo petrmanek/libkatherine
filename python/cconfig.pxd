@@ -34,7 +34,7 @@ cdef extern from 'katherine/config.h':
 
     int katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v)
 
-    ctypedef struct katherine_dacs_named_t:
+    ctypedef struct katherine_tpx3_dacs_named_t:
         uint16_t Ibias_Preamp_ON
         uint16_t Ibias_Preamp_OFF
         uint16_t Vpreamp_NCAS
@@ -54,11 +54,11 @@ cdef extern from 'katherine/config.h':
         uint16_t Ibias_CP_PLL
         uint16_t PLL_Vcntrl
 
-    ctypedef union katherine_dacs_t:
+    ctypedef union katherine_tpx3_dacs_t:
         uint16_t array[18]
-        katherine_dacs_named_t named
+        katherine_tpx3_dacs_named_t named
 
-    int katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v)
+    int katherine_tpx3_dacs_snprint(char *buf, size_t cap, const katherine_tpx3_dacs_t *v)
 
     ctypedef enum katherine_polarity_t:
         KATHERINE_POLARITY_HOLES
@@ -102,7 +102,7 @@ cdef extern from 'katherine/config.h':
 
         katherine_tpx3_phase_t phase
         katherine_tpx3_freq_t freq
-        katherine_dacs_t dacs
+        katherine_tpx3_dacs_t dacs
 
         katherine_test_pulse_config_t test_pulse_config
 
@@ -134,5 +134,5 @@ cdef extern from 'katherine/config.h':
     int katherine_update_sensor_registers(katherine_device_t *device)
     int katherine_output_block_config_update(katherine_device_t *device)
     int katherine_timer_set(katherine_device_t *device)
-    int katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
+    int katherine_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
     int katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *test_pulse_config)

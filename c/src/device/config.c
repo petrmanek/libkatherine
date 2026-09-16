@@ -987,7 +987,7 @@ err:
  *
  * Values are transmitted unchecked: a value wider than its DAC's bit width
  * (Tpx3 manual Table 11) is truncated by the chip, not rejected here. Call
- * katherine_dacs_validate() first if that matters to the caller; this
+ * katherine_tpx3_dacs_validate() first if that matters to the caller; this
  * function's own behavior is unchanged from the 1.x series.
  *
  * The eighteen registers are written one acknowledged command at a time and
@@ -1020,7 +1020,7 @@ err:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
+katherine_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
 {
     katherine_error_t res;
 
@@ -1056,7 +1056,7 @@ err:
 }
 
 /**
- * Per-DAC metadata, in katherine_dacs_named_t / array order, i.e. chip DAC
+ * Per-DAC metadata, in katherine_tpx3_dacs_named_t / array order, i.e. chip DAC
  * Code minus one.
  *
  * `max` is the "DAC Value" column width of Tpx3 manual Table 11. `lsb` and
@@ -1199,11 +1199,11 @@ katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
  *
  * \retval KATHERINE_E_OK if every value fits its DAC's range.
  * \retval KATHERINE_E_INVAL if any value is wider than its DAC's field, the
- *   array being in katherine_dacs_named_t order. Which one is not reported:
+ *   array being in katherine_tpx3_dacs_named_t order. Which one is not reported:
  *   the caller holds the values and the widths are in the manual.
  */
 katherine_error_t
-katherine_dacs_validate(const katherine_dacs_t *v)
+katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v)
 {
     for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
         if (v->array[i] > KATHERINE_DAC_INFO[i].max) return KATHERINE_E_INVAL;
@@ -1216,7 +1216,7 @@ katherine_dacs_validate(const katherine_dacs_t *v)
  * Largest value a bias DAC accepts.
  * \param dac DAC to ask about
  * \return The maximum, inclusive: a setting equal to it is valid and
- *   katherine_dacs_validate() accepts it, one above it is rejected. 0 for a
+ *   katherine_tpx3_dacs_validate() accepts it, one above it is rejected. 0 for a
  *   value outside the enumeration.
  */
 uint16_t
@@ -1236,11 +1236,11 @@ katherine_tpx3_dac_max(katherine_tpx3_dac_t dac)
  * a measurement.
  *
  * \param dac DAC the value belongs to
- * \param value Setting, as written to katherine_dacs_t
+ * \param value Setting, as written to katherine_tpx3_dacs_t
  * \param unit Filled with the quantity returned, unless NULL
  * \return The nominal amperes or volts, or 0.0 for a DAC outside the
  *   enumeration. A value above the DAC's maximum is converted anyway, the
- *   scale being linear; katherine_dacs_validate() is what rejects those.
+ *   scale being linear; katherine_tpx3_dacs_validate() is what rejects those.
  */
 double
 katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac_unit_t *unit)

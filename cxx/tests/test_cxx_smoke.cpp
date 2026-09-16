@@ -165,7 +165,7 @@ test_config_round_trip(void)
     KT_CHECK(c.test_pulse_config().enabled);
     KT_CHECK_EQ(c.test_pulse_config().count, 5);
 
-    katherine::dacs d{};
+    katherine::tpx3::dacs d{};
     d.named.Vthreshold_fine = 321;
     c.set_dacs(d);
     KT_CHECK_EQ(c.dacs().named.Vthreshold_fine, 321);
@@ -376,7 +376,7 @@ test_struct_rendering(void)
 
     KT_CHECK(streamed(katherine::trigger{}).size() > 0);
     KT_CHECK(streamed(katherine::test_pulse_config{}).size() > 0);
-    KT_CHECK(streamed(katherine::dacs{}).size() > 0);
+    KT_CHECK(streamed(katherine::tpx3::dacs{}).size() > 0);
     KT_CHECK(streamed(katherine::frame_info{}).size() > 0);
     KT_CHECK(streamed(katherine_frame_info_time_t{}).size() > 0);
     KT_CHECK(streamed(katherine_readout_status_t{}).size() > 0);
