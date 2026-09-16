@@ -74,25 +74,45 @@ KATHERINE_EXPORTED int
 katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v);
 
 
+/**
+ * The chip's eighteen bias DACs, named as the Timepix3 manual names them
+ * (Table 11) and ordered as it codes them.
+ *
+ * This is where the DACs are described; everything else that names one refers
+ * here. Every field is a raw DAC setting, not a physical quantity: what each
+ * one spans is per DAC, and katherine_tpx3_dac_max() and
+ * katherine_tpx3_dac_to_si() answer that. Ibias_* bias a current, the rest
+ * set a voltage.
+ *
+ * These are per-chip calibration data. The manual's defaults suit no
+ * particular chip, and a vector of zeros is not a neutral starting point:
+ * measured on a Gen1 readout, zeroed Vfbk and PLL_Vcntrl leave every pixel
+ * of the matrix firing. Copy a vector known to work on the chip at hand.
+ *
+ * The manual documents no function for the individual DACs -- its section
+ * 4.5.1 carries Table 28 and nothing else, and 4.5.2 and 4.5.4 are empty
+ * headings -- so nothing is claimed here beyond what the names and that
+ * table support.
+ */
 typedef struct katherine_dacs_named {
-    uint16_t Ibias_Preamp_ON;
-    uint16_t Ibias_Preamp_OFF;
-    uint16_t Vpreamp_NCAS;
-    uint16_t Ibias_Ikrum;
-    uint16_t Vfbk;
-    uint16_t Vthreshold_fine;
-    uint16_t Vthreshold_coarse;
-    uint16_t Ibias_DiscS1_ON;
-    uint16_t Ibias_DiscS1_OFF;
-    uint16_t Ibias_DiscS2_ON;
-    uint16_t Ibias_DiscS2_OFF;
-    uint16_t Ibias_PixelDAC;
-    uint16_t Ibias_TPbufferIn;
-    uint16_t Ibias_TPbufferOut;
-    uint16_t VTP_coarse;
-    uint16_t VTP_fine;
-    uint16_t Ibias_CP_PLL;
-    uint16_t PLL_Vcntrl;
+    uint16_t Ibias_Preamp_ON;   ///< Preamplifier bias while the pixel is on.
+    uint16_t Ibias_Preamp_OFF;  ///< Preamplifier bias while power pulsing holds it off.
+    uint16_t Vpreamp_NCAS;      ///< Preamplifier cascode voltage.
+    uint16_t Ibias_Ikrum;       ///< Krummenacher feedback current, which sets the return to baseline and so the time over threshold.
+    uint16_t Vfbk;              ///< Preamplifier feedback (baseline) voltage. Zero is not neutral; see above.
+    uint16_t Vthreshold_fine;   ///< Discriminator threshold, fine part. With the coarse part it forms the 13-bit threshold of Table 28.
+    uint16_t Vthreshold_coarse; ///< Discriminator threshold, coarse part.
+    uint16_t Ibias_DiscS1_ON;   ///< First discriminator stage bias while the pixel is on.
+    uint16_t Ibias_DiscS1_OFF;  ///< First discriminator stage bias while power pulsing holds it off.
+    uint16_t Ibias_DiscS2_ON;   ///< Second discriminator stage bias while the pixel is on.
+    uint16_t Ibias_DiscS2_OFF;  ///< Second discriminator stage bias while power pulsing holds it off.
+    uint16_t Ibias_PixelDAC;    ///< Bias of the per-pixel trim DAC, which scales the four-bit local threshold of katherine_px_config_set_loc_thl().
+    uint16_t Ibias_TPbufferIn;  ///< Test-pulse buffer input bias.
+    uint16_t Ibias_TPbufferOut; ///< Test-pulse buffer output bias.
+    uint16_t VTP_coarse;        ///< Test-pulse amplitude, coarse part. The injected amplitude is VTP_coarse - VTP_fine; see katherine_test_pulse_config_t.
+    uint16_t VTP_fine;          ///< Test-pulse amplitude, fine part.
+    uint16_t Ibias_CP_PLL;      ///< PLL charge-pump bias.
+    uint16_t PLL_Vcntrl;        ///< PLL control voltage. Zero is not neutral; see above.
 } katherine_dacs_named_t;
 
 
