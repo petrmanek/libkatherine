@@ -183,12 +183,14 @@ typedef struct katherine_acquisition {
     int completed_frames;
     size_t dropped_measurement_data;
 
-    // Datagrams received that exactly filled md_buffer_size, the portable
-    // heuristic for a receive that may have silently truncated a longer
-    // datagram (see katherine_acquisition_init()). A datagram this size can
-    // overcount, so this is a signal to raise md_buffer_size, not an exact
-    // loss count. Reset by katherine_acquisition_begin(), like
-    // dropped_measurement_data.
+    /**
+     * Datagrams received that exactly filled md_buffer_size, the portable
+     * heuristic for a receive that may have silently truncated a longer
+     * datagram (see katherine_acquisition_init()). A datagram this size can
+     * overcount, so this is a signal to raise md_buffer_size, not an exact
+     * loss count. Reset by katherine_acquisition_begin(), like
+     * dropped_measurement_data.
+     */
     uint64_t truncated_measurement_data;
 
     time_t acq_start_time;
