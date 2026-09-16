@@ -40,6 +40,8 @@ map_fopen_errno(int err)
 // such byte per pixel in the BMC bit layout (see the katherine_bmc_px
 // struct at the head of px_config.h; the loaders below only permute the
 // local threshold bits of the BPC format).
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 #define _BITS_bmc_px_mask_start    0
 #define _BITS_bmc_px_mask_mask     MASK(1)
 #define _BITS_bmc_px_mask_type     bool
@@ -51,6 +53,8 @@ map_fopen_errno(int err)
 #define _BITS_bmc_px_test_start    5
 #define _BITS_bmc_px_test_mask     MASK(1)
 #define _BITS_bmc_px_test_type     bool
+
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
  * Reverse a four-bit nibble.
@@ -288,6 +292,12 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
 // column, y is the row, and hits reported during acquisition carry the same
 // coordinates.
 
+/**
+ * Read the configuration byte of one pixel.
+ * \param px_config Packed matrix to read from
+ * \param coord Pixel to locate
+ * \return The byte, in the BMC bit layout.
+ */
 static inline uint8_t
 _px_config_get_byte(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
@@ -295,6 +305,12 @@ _px_config_get_byte(const katherine_px_config_t *px_config, katherine_tpx3_coord
     return (uint8_t) (px_config->words[(64 * coord.x) + (yy >> 2)] >> (8 * (3 - (yy % 4))));
 }
 
+/**
+ * Write the configuration byte of one pixel, leaving its neighbours alone.
+ * \param px_config Packed matrix to write to
+ * \param coord Pixel to locate
+ * \param byte Replacement byte, in the BMC bit layout
+ */
 static inline void
 _px_config_set_byte(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t byte)
 {

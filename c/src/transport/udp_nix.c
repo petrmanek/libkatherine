@@ -48,15 +48,21 @@ dump_buffer(const char *msg, const unsigned char *buf, size_t count)
 }
 #endif /* KATHERINE_DEBUG_UDP */
 
-// True if a datagram received from addr counts as coming from the pinned
-// remote of session u.
-//
-// Only the host is compared, never the port: a readout answers commands from
-// its command port but streams measurement data from another one (1556 vs
-// 1555 for the emulated readout), and no source port of the firmware is
-// specified anywhere, whereas the hazard a pin guards against -- another
-// peer's stray datagram becoming the session's remote -- is a property of
-// the host.
+/**
+ * True if a datagram received from addr counts as coming from the pinned
+ * remote of session u.
+ *
+ * Only the host is compared, never the port: a readout answers commands from
+ * its command port but streams measurement data from another one (1556 vs
+ * 1555 for the emulated readout), and no source port of the firmware is
+ * specified anywhere, whereas the hazard a pin guards against -- another
+ * peer's stray datagram becoming the session's remote -- is a property of
+ * the host.
+ *
+ * \param u UDP session holding the pin
+ * \param addr Source address of the datagram just received
+ * \return true if the datagram counts as coming from the pinned remote.
+ */
 static bool
 from_pinned_remote(const katherine_udp_t *u, const struct sockaddr_in *addr)
 {
@@ -98,19 +104,38 @@ recv_failure(katherine_udp_t *u, int err)
     return mapped;
 }
 
-// Receives one datagram from the pinned remote of session u, discarding up to
-// KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
-// Spending that budget is reported as KATHERINE_E_TIMEOUT, the very code
-// the expired receive timeout of an idle socket yields, so that no caller
-// needs a separate path for it.
-//
-// flags is passed straight to recvfrom(), which is how MSG_DONTWAIT reaches
-// it for katherine_udp_recv_nowait(); the EAGAIN an empty socket then
-// returns maps to the same KATHERINE_E_TIMEOUT a spent timeout does.
-//
-// The pinned address is read from addr_remote itself rather than from a copy
-// taken when the pin was placed, which is what makes the pin follow
-// katherine_udp_set_remote().
+/**
+ * Receives one datagram from the pinned remote of session u, discarding up to
+ * KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
+ * Spending that budget is reported as KATHERINE_E_TIMEOUT, the very code
+ * the expired receive timeout of an idle socket yields, so that no caller
+ * needs a separate path for it.
+ *
+ * flags is passed straight to recvfrom(), which is how MSG_DONTWAIT reaches
+ * it for katherine_udp_recv_nowait(); the EAGAIN an empty socket then
+ * returns maps to the same KATHERINE_E_TIMEOUT a spent timeout does.
+ *
+ * The pinned address is read from addr_remote itself rather than from a copy
+ * taken when the pin was placed, which is what makes the pin follow
+ * katherine_udp_set_remote().
+ *
+ * \param u UDP session to receive on
+ * \param data Buffer to receive into
+ * \param count Buffer size in bytes
+ * \param received Set to the number of bytes received, on success
+ * \param flags recvfrom(2) flags; MSG_DONTWAIT for a non-blocking receive
+ *
+ * \retval KATHERINE_E_OK on success, with *received set.
+ * \retval KATHERINE_E_TIMEOUT if no datagram arrived within the session's
+ *   receive timeout, or if the discard budget was spent on datagrams from
+ *   other hosts. Both leave last_os_error cleared; see recv_failure().
+ * \retval KATHERINE_E_INVAL if recvfrom(2) rejected an argument of the
+ *   receive; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the receive; see
+ *   recvfrom(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO for any other errno; see recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ */
 static katherine_error_t
 recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, int flags)
 {
@@ -135,11 +160,30 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, int 
     return KATHERINE_E_TIMEOUT;
 }
 
-// Receives one datagram into data, honoring the pin of session u: a pinned
-// session accepts only datagrams from its remote host and leaves addr_remote
-// alone, an unpinned one accepts the next datagram from anybody and adopts
-// its sender as the remote -- the server behavior of replying to whoever
-// asked last.
+/**
+ * Receives one datagram into data, honoring the pin of session u: a pinned
+ * session accepts only datagrams from its remote host and leaves addr_remote
+ * alone, an unpinned one accepts the next datagram from anybody and adopts
+ * its sender as the remote -- the server behavior of replying to whoever
+ * asked last.
+ *
+ * \param u UDP session to receive on
+ * \param data Buffer to receive into
+ * \param count Buffer size in bytes
+ * \param received Set to the number of bytes received, on success
+ * \param flags recvfrom(2) flags; MSG_DONTWAIT for a non-blocking receive
+ *
+ * \retval KATHERINE_E_OK on success, with *received set.
+ * \retval KATHERINE_E_TIMEOUT if no datagram arrived within the session's
+ *   receive timeout, or -- on a pinned session, which delegates to
+ *   recv_pinned() -- if its discard budget was spent.
+ * \retval KATHERINE_E_INVAL if recvfrom(2) rejected an argument of the
+ *   receive; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the receive; see
+ *   recvfrom(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO for any other errno; see recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ */
 static katherine_error_t
 recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, int flags)
 {

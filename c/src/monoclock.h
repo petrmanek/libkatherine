@@ -21,9 +21,11 @@
 // available at the platform level. Harmless on Windows, whose headers do
 // not gate on it, and deferential to a caller that already set a stricter
 // or looser value of its own.
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdint.h>
 #include <katherine/global.h>

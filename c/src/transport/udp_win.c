@@ -12,6 +12,10 @@
 
 #include <katherine/global.h>
 
+/**
+ * Keep this translation unit non-empty where the rest of the file is
+ * preprocessed away, ISO C requiring at least one declaration.
+ */
 void
 empty_method(void)
 { }

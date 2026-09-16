@@ -329,6 +329,12 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     free(acq->pixel_buffer);
 }
 
+/**
+ * Define one monomorphized decode loop.
+ * \param SUFFIX Pixel type the loop decodes into
+ * \param TAG Suffix distinguishing this instance from the mode's others
+ * \param MAP md.h field map the words are decoded through
+ */
 #define DEFINE_ACQ_IMPL(SUFFIX, TAG, MAP) \
     static inline void \
     handle_measurement_data_##SUFFIX##TAG(katherine_acquisition_t *acq, const uint64_t *md) \
@@ -446,11 +452,22 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         } \
     }
 
-// Timestamp-bearing modes are instantiated once per pixel-clock divider so the
-// coarse-to-fine scale is a constant in the decode loop; see md.h. The two
-// Event+iToT modes carry no timestamp and so need only one instance each.
+/**
+ * Define the decode loops of one timestamp-bearing mode, for one divider.
+ *
+ * Such modes are instantiated once per pixel-clock divider so the
+ * coarse-to-fine scale is a constant in the decode loop; see md.h. The two
+ * Event+iToT modes carry no timestamp and so need only one instance each.
+ *
+ * \param SUFFIX Pixel type the loop decodes into
+ * \param SHIFT log2 of the fine ticks in one coarse tick
+ */
 #define DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, SHIFT) DEFINE_ACQ_IMPL(SUFFIX, _s##SHIFT, pmd_##SUFFIX##_s##SHIFT##_map)
 
+/**
+ * Define the decode loops of one timestamp-bearing mode, for every divider.
+ * \param SUFFIX Pixel type the loops decode into
+ */
 #define DEFINE_ACQ_IMPL_EVERY_SHIFT(SUFFIX) \
     DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 2) \
     DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 3) \

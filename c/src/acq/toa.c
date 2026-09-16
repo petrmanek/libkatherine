@@ -14,20 +14,22 @@
 
 #include <katherine/toa.h>
 
-// log2 of the number of fine-oscillator ticks in one coarse tick, indexed by
-// katherine_tpx3_freq_t.
-//
-// The fine oscillator is fixed at 640 MHz while the pixel clock is the same
-// PLL divided down, so every ratio is a whole number and a power of two. That
-// is what lets a timestamp be carried as an integer count of fine ticks with
-// no rounding at any frequency, and what makes the per-double-column phase
-// step -- a coarse tick divided by the phase count -- a whole number of them
-// as well.
-//
-// The shift is stored rather than the ratio, and the ratio derived from it, so
-// the two cannot disagree. The decoder wants the shift: a ratio read from
-// memory is not a compile-time constant, so multiplying by it emits a real
-// multiply rather than the shift its value would allow.
+/**
+ * log2 of the number of fine-oscillator ticks in one coarse tick, indexed by
+ * katherine_tpx3_freq_t.
+ *
+ * The fine oscillator is fixed at 640 MHz while the pixel clock is the same
+ * PLL divided down, so every ratio is a whole number and a power of two. That
+ * is what lets a timestamp be carried as an integer count of fine ticks with
+ * no rounding at any frequency, and what makes the per-double-column phase
+ * step -- a coarse tick divided by the phase count -- a whole number of them
+ * as well.
+ *
+ * The shift is stored rather than the ratio, and the ratio derived from it, so
+ * the two cannot disagree. The decoder wants the shift: a ratio read from
+ * memory is not a compile-time constant, so multiplying by it emits a real
+ * multiply rather than the shift its value would allow.
+ */
 static const uint8_t KATHERINE_TOA_FINE_SHIFT[4] = {
     /* KATHERINE_TPX3_FREQ_20_MHZ  */ 5, /* 32 fine ticks */
     /* KATHERINE_TPX3_FREQ_40_MHZ  */ 4, /* 16 */
@@ -35,6 +37,11 @@ static const uint8_t KATHERINE_TOA_FINE_SHIFT[4] = {
     /* KATHERINE_TPX3_FREQ_160_MHZ */ 2, /*  4 */
 };
 
+/**
+ * Whether freq indexes KATHERINE_TOA_FINE_SHIFT.
+ * \param freq Frequency to bounds-check
+ * \return true if freq is a real enumerator, false otherwise.
+ */
 static bool
 katherine_toa_freq_in_range(katherine_tpx3_freq_t freq)
 {
@@ -86,16 +93,26 @@ katherine_tpx3_toa_coarse_tick_to_fine_shift(katherine_tpx3_freq_t freq)
     return KATHERINE_TOA_FINE_SHIFT[freq];
 }
 
-// Fine-oscillator ticks in one second. The oscillator is fixed at 640 MHz, so
-// this needs no configuration -- unlike the coarse tick, which the divider
-// moves. Exactly 640e6, and a whole number, which is what makes the split
-// below exact rather than merely close.
+/**
+ * Fine-oscillator ticks in one second. The oscillator is fixed at 640 MHz, so
+ * this needs no configuration -- unlike the coarse tick, which the divider
+ * moves. Exactly 640e6, and a whole number, which is what makes the split
+ * below exact rather than merely close.
+ */
 #define KATHERINE_TOA_FINE_TICKS_PER_SECOND 640000000u
 
-// The epoch bias katherine_acquisition_begin() applies, as a shift. Larger of
-// the coarse tick and the fine field's span; see the timestamp notes in px.h.
+/**
+ * The epoch bias katherine_acquisition_begin() applies, as a shift. Larger of
+ * the coarse tick and the fine field's span; see the timestamp notes in px.h.
+ */
 #define KATHERINE_TOA_FINE_SPAN_SHIFT       4u
 
+/**
+ * Epoch bias for a given fine-tick shift, as a shift.
+ * \param coarse_tick_to_fine_shift log2 of the fine ticks in one coarse tick
+ * \return log2 of the bias: whichever of the coarse tick and the fine
+ *   field's span is larger.
+ */
 static uint8_t
 katherine_toa_epoch_bias_shift(uint8_t coarse_tick_to_fine_shift)
 {
