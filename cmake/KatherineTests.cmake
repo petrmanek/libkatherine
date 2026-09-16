@@ -31,6 +31,15 @@ katherine_add_test(NAME <name>
   test may need -- RUN_SERIAL for one that claims a global resource such
   as a fixed port, TIMEOUT, SKIP_RETURN_CODE for one that can decide at
   run time that its environment cannot host it.
+
+  katherine_check_tests_registered([CONDITIONAL <source>...])
+
+    Fails configuration if a test source in the current directory was never
+    passed to katherine_add_test(). Losing a registration is silent -- the
+    source still compiles, nothing refers to it, and the suite just shrinks --
+    which is how test_compat1.c went three weeks unbuilt. CONDITIONAL names
+    the sources registered only under a feature guard, so a deliberate
+    omission is written down and an accidental one is not.
 #]=======================================================================]
 
 include_guard(GLOBAL)
@@ -54,6 +63,12 @@ function(katherine_add_test)
         message(FATAL_ERROR "katherine_add_test(${ARG_NAME}): unknown arguments: ${ARG_UNPARSED_ARGUMENTS}")
     endif()
 
+    # Recorded for katherine_check_tests_registered() below.
+    foreach(source IN LISTS ARG_SOURCES)
+        get_filename_component(source "${source}" ABSOLUTE)
+        set_property(GLOBAL APPEND PROPERTY KATHERINE_REGISTERED_TEST_SOURCES "${source}")
+    endforeach()
+
     add_executable(${ARG_NAME} ${ARG_SOURCES})
     target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private Threads::Threads)
     # ktest.h's floating-point comparisons call nextafter(), which glibc keeps
@@ -73,5 +88,40 @@ function(katherine_add_test)
     endif()
     if(ARG_PROPERTIES)
         set_tests_properties(${ARG_NAME} PROPERTIES ${ARG_PROPERTIES})
+    endif()
+endfunction()
+
+function(katherine_check_tests_registered)
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "" "CONDITIONAL")
+    if(ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "katherine_check_tests_registered: unknown arguments: ${ARG_UNPARSED_ARGUMENTS}")
+    endif()
+
+    # CONFIGURE_DEPENDS so that adding a source re-runs this, rather than
+    # leaving the check answering about the directory as it was.
+    file(GLOB sources CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/test_*.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
+
+    get_property(registered GLOBAL PROPERTY KATHERINE_REGISTERED_TEST_SOURCES)
+    foreach(allowed IN LISTS ARG_CONDITIONAL)
+        get_filename_component(allowed "${allowed}" ABSOLUTE)
+        list(APPEND registered "${allowed}")
+    endforeach()
+
+    set(missing "")
+    foreach(source IN LISTS sources)
+        if(NOT source IN_LIST registered)
+            file(RELATIVE_PATH source "${PROJECT_SOURCE_DIR}" "${source}")
+            list(APPEND missing "${source}")
+        endif()
+    endforeach()
+
+    if(missing)
+        list(JOIN missing "\n  " missing)
+        message(FATAL_ERROR
+            "test sources never passed to katherine_add_test():\n  ${missing}\n"
+            "Register each, or name it in the CONDITIONAL list of "
+            "katherine_check_tests_registered() if its registration is guarded.")
     endif()
 endfunction()

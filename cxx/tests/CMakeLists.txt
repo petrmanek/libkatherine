@@ -35,3 +35,6 @@ katherine_add_test(NAME test_cxx_device
 foreach(target test_cxx_smoke test_cxx_device)
     target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/c/tests")
 endforeach()
+
+# Both C++ test sources are registered unconditionally.
+katherine_check_tests_registered()

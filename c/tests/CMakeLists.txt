@@ -148,3 +148,8 @@ if(KATHERINE_BUILD_EMULATOR)
     # See test_e2e_acq above: same single-threaded strerror() usage.
     target_compile_definitions(test_px_recovery PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 endif()
+
+# Every test source above must have been registered. The two end-to-end tests
+# are registered only when the emulator feature is on, so they are named as
+# such rather than looking like omissions.
+katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c)
