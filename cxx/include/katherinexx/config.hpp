@@ -151,10 +151,14 @@ public:
     /** \copydoc katherine::polarity */
     void set_polarity(katherine::polarity val) { conf_.polarity = (katherine_polarity_t) val; }
 
-    // A request only: what actually happens depends on the device and on the
-    // phase count, and is reported after the fact by
-    // katherine::base_acquisition::phase_correction(), not by this getter.
+    /**
+     * Ask for per-double-column clock phase correction. A request only: what
+     * actually happens depends on the device and on the phase count, and is
+     * reported after the fact by
+     * katherine::base_acquisition::phase_correction(), not here.
+     */
     bool correct_phase() const { return conf_.correct_phase; }
+    /** \copydoc correct_phase() */
     void set_correct_phase(bool val) { conf_.correct_phase = val; }
 
     katherine::tpx3::phase phase() const { return (katherine::tpx3::phase) conf_.phase; }

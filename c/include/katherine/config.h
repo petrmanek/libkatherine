@@ -337,10 +337,12 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
 
 typedef enum katherine_tpx3_reg {
     KATHERINE_TPX3_REG_TEST_PULSE_METHOD = 0,
-    // The readout firmware and Tpx3 manual Table 9 (header 0h0C) agree this
-    // register carries TP_period in bits 7:0 and TP_phase in bits 11:8, not
-    // a single "method" as the name above suggests. Kept as an alias rather
-    // than a rename: same value, correct name.
+    /**
+     * The readout firmware and Tpx3 manual Table 9 (header 0h0C) agree this
+     * register carries TP_period in bits 7:0 and TP_phase in bits 11:8, not
+     * a single "method" as the name above suggests. Kept as an alias rather
+     * than a rename: same value, correct name.
+     */
     KATHERINE_TPX3_REG_TEST_PULSE_PERIOD     = KATHERINE_TPX3_REG_TEST_PULSE_METHOD,
     KATHERINE_TPX3_REG_NUMBER_TEST_PULSES    = 1,
     KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG      = 2,
