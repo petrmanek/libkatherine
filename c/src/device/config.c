@@ -487,6 +487,65 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
 }
 
 /**
+ * Set the readout's Timepix3 token count.
+ *
+ * An eight-bit value in the payload of 0x29, and a Timepix3 setting rather
+ * than a per-generation one: the reference implementation sends it in every
+ * Timepix3 configuration and skips it for Timepix2 and Timepix4. Its default
+ * there is 17 and its documented minimum 1.
+ *
+ * libkatherine has never sent this command, so every acquisition to date --
+ * on both generations -- has run on whatever the readout powers up with.
+ * katherine_configure() still does not send it, deliberately: what a good
+ * value is depends on the data rate, and the one sweep taken so far was
+ * measured against a self-triggering matrix and is not evidence of anything.
+ * Until that is redone at a real rate this stays a setting a caller may
+ * choose, not one the library picks.
+ *
+ * \param device Katherine device
+ * \param token_count Token count to set
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
+ *   within the control session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
+ *   not that of a command response.
+ * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
+ *   session kept delivering responses belonging to other commands.
+ * \retval KATHERINE_E_IO if the command could not be sent, or a response
+ *   could not be received, for a reason none of the other codes cover; see
+ *   sendto(2), recvfrom(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if a socket call rejected its arguments.
+ * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
+ *   receive; see sendto(2) and recvfrom(2).
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ */
+katherine_error_t
+katherine_set_token_count(katherine_device_t *device, uint8_t token_count)
+{
+    katherine_error_t res;
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    res = katherine_cmd_set_token_count(&device->control_socket, token_count);
+    if (res) goto err;
+
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_NUMBER_OF_TOKENS_SETTING);
+    if (res) goto err;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return res;
+}
+
+/**
  * Set acquisition mode.
  * \param device Katherine device
  * \param px_mode Acquisition mode to set
