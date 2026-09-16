@@ -793,6 +793,7 @@ K_DEFINE_CMD_ARG0(cmd_send60,     hw_digital_test,                          CMD_
 
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_acqtime_lsb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB)
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_acqtime_msb,                          int64_t, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB)
+K_DEFINE_CMD_ARG1(cmd_send6_f32,  set_acqtime_seconds,                      float, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB)
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_number_of_frames,                     int64_t, CMD_TYPE_NUMBER_OF_FRAMES)
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_seq_readout_start,                    int64_t, CMD_TYPE_SEQ_READOUT_START)
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  start_acquisition,                        uint8_t, CMD_TYPE_ACQUISITION_START)

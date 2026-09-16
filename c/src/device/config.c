@@ -321,11 +321,11 @@ err:
 }
 
 /**
- * Set acquisition time of a single frame.
+ * Set a Gen1 acquisition time, as a count of 10 ns ticks in two halves.
  *
  * The value travels in two commands, low half first, each acknowledged on its
- * own: a failure of the second leaves the readout holding a mixture of the
- * old and the new acquisition time.
+ * own: a failure of the second leaves the readout holding a mixture of the old
+ * and the new acquisition time.
  *
  * \param device Katherine device
  * \param ns Acquisition time in nanoseconds
@@ -333,14 +333,14 @@ err:
  * \retval KATHERINE_E_OK on success, once both halves have been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   two halves within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
- * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
- *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if either half could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
  *   codes cover; see sendto(2), recvfrom(2) and
  *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
+ *   not that of a command response.
+ * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
+ *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
  *   receive; see sendto(2) and recvfrom(2).
  * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
@@ -348,19 +348,19 @@ err:
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
-katherine_error_t
-katherine_set_acq_time(katherine_device_t *device, double ns)
+static katherine_error_t
+katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
 {
     katherine_error_t res;
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
+    katherine_cmd_drain(&device->control_socket);
+
     int64_t acqt = (int64_t) (ns / 10.);
     int64_t lsb  = (acqt & 0x00000000FFFFFFFF);
     int64_t msb  = (acqt & 0xFFFFFFFF00000000) >> 32;
-
-    katherine_cmd_drain(&device->control_socket);
 
     // Set LSB.
     res = katherine_cmd_set_acqtime_lsb(&device->control_socket, lsb);
@@ -381,6 +381,108 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return res;
+}
+
+/**
+ * Set a Gen2 acquisition time, as IEEE-754 seconds in one command.
+ *
+ * Gen2 carries the whole value in the payload of 0x01 and has no 0x0A at all:
+ * the opcode is absent from its dispatcher, and the firmware does not
+ * acknowledge an opcode it does not know. Sending the Gen1 pair here would
+ * therefore not merely write a wrong number, it would hang on an
+ * acknowledgement that can never arrive.
+ *
+ * \param device Katherine device
+ * \param ns Acquisition time in nanoseconds
+ *
+ * \retval KATHERINE_E_OK on success, once the command has been acknowledged.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
+ *   within the control session's receive timeout.
+ * \retval KATHERINE_E_IO if the command could not be sent, or its
+ *   acknowledgement could not be received, for a reason none of the other
+ *   codes cover; see sendto(2), recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
+ *   not that of a command response.
+ * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
+ *   session kept delivering responses belonging to other commands.
+ * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
+ *   receive; see sendto(2) and recvfrom(2).
+ * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ */
+static katherine_error_t
+katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
+{
+    katherine_error_t res;
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) return res;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    res = katherine_cmd_set_acqtime_seconds(&device->control_socket, (float) (ns / 1e9));
+    if (res) goto err;
+
+    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
+    if (res) goto err;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return res;
+}
+
+/**
+ * Set acquisition time of a single frame.
+ *
+ * The two generations encode this differently and incompatibly, so this
+ * dispatches on what the readout turned out to be and the two functions above
+ * hold one wire sequence each. Each of them takes and releases the session
+ * lock itself, so this adds nothing but the choice.
+ *
+ * The choice needs katherine_device_info_t to have been populated, which
+ * katherine_device_init() does by probing. A readout that never answered that
+ * probe reports generation 0 and is treated as Gen1, since that is what every
+ * readout this library drove before Gen2 was recognized.
+ *
+ * \param device Katherine device
+ * \param ns Acquisition time in nanoseconds
+ *
+ * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
+ *   control session's receive timeout.
+ * \retval KATHERINE_E_IO if a command could not be sent, or its
+ *   acknowledgement could not be received, for a reason none of the other
+ *   codes cover; see sendto(2), recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
+ *   not that of a command response.
+ * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
+ *   session kept delivering responses belonging to other commands.
+ * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
+ *   receive; see sendto(2) and recvfrom(2).
+ * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ */
+katherine_error_t
+katherine_set_acq_time(katherine_device_t *device, double ns)
+{
+    katherine_error_t res;
+
+    if (device->device_info.gen >= 2) {
+        res = katherine_set_acq_time_gen2(device, ns);
+    } else {
+        res = katherine_set_acq_time_gen1(device, ns);
+    }
+
     return res;
 }
 
