@@ -1032,7 +1032,7 @@ katherine_set_dacs(katherine_device_t *device, const katherine_dacs_t *dacs)
     // repeat work the correlation already does.
     katherine_cmd_drain(&device->control_socket);
 
-    for (int i = 0; i < 18; ++i) {
+    for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
         res = katherine_cmd_send64_i64(
             &device->control_socket, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i]);
         if (res) goto err;
@@ -1056,30 +1056,52 @@ err:
 }
 
 /**
- * Per-DAC maxima (Tpx3 manual Table 11, "DAC Value" column width), in
- * katherine_dacs_named_t / array order, i.e. chip DAC Code minus one.
+ * Per-DAC metadata, in katherine_dacs_named_t / array order, i.e. chip DAC
+ * Code minus one.
+ *
+ * `max` is the "DAC Value" column width of Tpx3 manual Table 11. `lsb` and
+ * `unit` are Table 28's step and quantity, in SI units.
+ *
+ * The conversion below scales by `lsb` rather than by the range Table 28
+ * also states, because the two disagree: lsb x max exceeds the stated range
+ * for Ibias_Ikrum (+2.0%), Vthreshold_coarse (+0.8%), Ibias_PixelDAC (+0.9%)
+ * and PLL_Vcntrl (+7.7%), and falls short for Ibias_DiscS2_ON and
+ * Ibias_DiscS2_OFF (-2.5%). The manual corroborates the step where it can:
+ * its combined 13-bit Vthreshold row gives 0 to 1.45 V, and
+ * 15 x 80 mV + 511 x 500 uV is 1.4555 V, so for the coarse threshold it is
+ * the stated range that is rounded, not the step. test_dacs_metadata.c pins
+ * every one of those discrepancies, so a transcription slip cannot hide in
+ * them.
  */
-static const uint16_t KATHERINE_DAC_MAX[18] = {
-    255, // Ibias_Preamp_ON     [7:0]
-    15,  // Ibias_Preamp_OFF    [3:0]
-    255, // Vpreamp_NCAS        [7:0]
-    255, // Ibias_Ikrum         [7:0]
-    255, // Vfbk                [7:0]
-    511, // Vthreshold_fine     [8:0]
-    15,  // Vthreshold_coarse   [3:0]
-    255, // Ibias_DiscS1_ON     [7:0]
-    15,  // Ibias_DiscS1_OFF    [3:0]
-    255, // Ibias_DiscS2_ON     [7:0]
-    15,  // Ibias_DiscS2_OFF    [3:0]
-    255, // Ibias_PixelDAC      [7:0]
-    255, // Ibias_TPbufferIn    [7:0]
-    255, // Ibias_TPbufferOut   [7:0]
-    255, // VTP_coarse          [7:0]
-    511, // VTP_fine            [8:0]
-    255, // Ibias_CP_PLL        [7:0]
-    255, // PLL_Vcntrl          [7:0]
-};
+typedef struct {
+    uint16_t max;              ///< Largest accepted value; inclusive.
+    double lsb;                ///< SI units per step.
+    katherine_dac_unit_t unit; ///< Quantity lsb is measured in.
+} katherine_dac_info_t;
 
+/** The table itself, one row per DAC. */
+static const katherine_dac_info_t KATHERINE_DAC_INFO[KATHERINE_TPX3_DAC_COUNT] = {
+    // clang-format off
+    {255, 20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_Preamp_ON     [7:0]
+    {15,  20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_Preamp_OFF    [3:0]
+    {255, 5e-3,    KATHERINE_DAC_UNIT_VOLT}, // Vpreamp_NCAS        [7:0]
+    {255, 240e-12, KATHERINE_DAC_UNIT_AMP},  // Ibias_Ikrum         [7:0]
+    {255, 5e-3,    KATHERINE_DAC_UNIT_VOLT}, // Vfbk                [7:0]
+    {511, 500e-6,  KATHERINE_DAC_UNIT_VOLT}, // Vthreshold_fine     [8:0]
+    {15,  80e-3,   KATHERINE_DAC_UNIT_VOLT}, // Vthreshold_coarse   [3:0]
+    {255, 20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS1_ON     [7:0]
+    {15,  20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS1_OFF    [3:0]
+    {255, 13e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS2_ON     [7:0]
+    {15,  13e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS2_OFF    [3:0]
+    {255, 1.08e-9, KATHERINE_DAC_UNIT_AMP},  // Ibias_PixelDAC      [7:0]
+    {255, 40e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_TPbufferIn    [7:0]
+    {255, 1e-6,    KATHERINE_DAC_UNIT_AMP},  // Ibias_TPbufferOut   [7:0]
+    {255, 5e-3,    KATHERINE_DAC_UNIT_VOLT}, // VTP_coarse          [7:0]
+    {511, 2.5e-3,  KATHERINE_DAC_UNIT_VOLT}, // VTP_fine            [8:0]
+    {255, 600e-9,  KATHERINE_DAC_UNIT_AMP},  // Ibias_CP_PLL        [7:0]
+    {255, 5.7e-3,  KATHERINE_DAC_UNIT_VOLT}, // PLL_Vcntrl          [7:0]
+    // clang-format on
+};
 /**
  * Pixel-clock phase counts, Tpx3 manual Table 17 (p39), for DualEdgeClock = 1
  * -- the value katherine_pll_config_word() pins. Rows are the clock divider
@@ -1183,9 +1205,49 @@ katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
 katherine_error_t
 katherine_dacs_validate(const katherine_dacs_t *v)
 {
-    for (int i = 0; i < 18; ++i) {
-        if (v->array[i] > KATHERINE_DAC_MAX[i]) return KATHERINE_E_INVAL;
+    for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
+        if (v->array[i] > KATHERINE_DAC_INFO[i].max) return KATHERINE_E_INVAL;
     }
 
     return KATHERINE_E_OK;
+}
+
+/**
+ * Largest value a bias DAC accepts.
+ * \param dac DAC to ask about
+ * \return The maximum, inclusive: a setting equal to it is valid and
+ *   katherine_dacs_validate() accepts it, one above it is rejected. 0 for a
+ *   value outside the enumeration.
+ */
+uint16_t
+katherine_tpx3_dac_max(katherine_tpx3_dac_t dac)
+{
+    if ((unsigned) dac >= KATHERINE_TPX3_DAC_COUNT) return 0;
+
+    return KATHERINE_DAC_INFO[dac].max;
+}
+
+/**
+ * Convert a bias DAC setting to SI units.
+ *
+ * Nominal, not calibrated: these are the design figures of Tpx3 manual
+ * Table 28, and a real chip departs from them, which is why per-chip
+ * calibration files exist. Good for labelling an axis or sizing a scan; not
+ * a measurement.
+ *
+ * \param dac DAC the value belongs to
+ * \param value Setting, as written to katherine_dacs_t
+ * \param unit Filled with the quantity returned, unless NULL
+ * \return The nominal amperes or volts, or 0.0 for a DAC outside the
+ *   enumeration. A value above the DAC's maximum is converted anyway, the
+ *   scale being linear; katherine_dacs_validate() is what rejects those.
+ */
+double
+katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac_unit_t *unit)
+{
+    if ((unsigned) dac >= KATHERINE_TPX3_DAC_COUNT) return 0.0;
+
+    if (unit != NULL) *unit = KATHERINE_DAC_INFO[dac].unit;
+
+    return KATHERINE_DAC_INFO[dac].lsb * (double) value;
 }

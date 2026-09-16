@@ -74,6 +74,9 @@ KATHERINE_EXPORTED int
 katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v);
 
 
+/** Number of bias DACs the chip carries. */
+#define KATHERINE_TPX3_DAC_COUNT 18
+
 /**
  * The chip's eighteen bias DACs, named as the Timepix3 manual names them
  * (Table 11) and ordered as it codes them.
@@ -117,7 +120,7 @@ typedef struct katherine_dacs_named {
 
 
 typedef union katherine_dacs {
-    uint16_t array[18];
+    uint16_t array[KATHERINE_TPX3_DAC_COUNT];
     katherine_dacs_named_t named;
 } katherine_dacs_t;
 
@@ -126,6 +129,55 @@ katherine_dacs_snprint(char *buf, size_t cap, const katherine_dacs_t *v);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_dacs_validate(const katherine_dacs_t *v);
+
+/**
+ * The eighteen bias DACs, in katherine_dacs_named_t and
+ * katherine_dacs_t::array order. That order is the chip's own DAC Code
+ * (Timepix3 manual Table 11) minus one.
+ *
+ * Each enumerator copies the description of the field it indexes, so the
+ * DACs are described in one place -- katherine_dacs_named_t -- and here only
+ * referred to.
+ */
+typedef enum katherine_tpx3_dac {
+    KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON = 0, ///< \copydoc katherine_dacs_named_t::Ibias_Preamp_ON
+    KATHERINE_TPX3_DAC_IBIAS_PREAMP_OFF,    ///< \copydoc katherine_dacs_named_t::Ibias_Preamp_OFF
+    KATHERINE_TPX3_DAC_VPREAMP_NCAS,        ///< \copydoc katherine_dacs_named_t::Vpreamp_NCAS
+    KATHERINE_TPX3_DAC_IBIAS_IKRUM,         ///< \copydoc katherine_dacs_named_t::Ibias_Ikrum
+    KATHERINE_TPX3_DAC_VFBK,                ///< \copydoc katherine_dacs_named_t::Vfbk
+    KATHERINE_TPX3_DAC_VTHRESHOLD_FINE,     ///< \copydoc katherine_dacs_named_t::Vthreshold_fine
+    KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE,   ///< \copydoc katherine_dacs_named_t::Vthreshold_coarse
+    KATHERINE_TPX3_DAC_IBIAS_DISCS1_ON,     ///< \copydoc katherine_dacs_named_t::Ibias_DiscS1_ON
+    KATHERINE_TPX3_DAC_IBIAS_DISCS1_OFF,    ///< \copydoc katherine_dacs_named_t::Ibias_DiscS1_OFF
+    KATHERINE_TPX3_DAC_IBIAS_DISCS2_ON,     ///< \copydoc katherine_dacs_named_t::Ibias_DiscS2_ON
+    KATHERINE_TPX3_DAC_IBIAS_DISCS2_OFF,    ///< \copydoc katherine_dacs_named_t::Ibias_DiscS2_OFF
+    KATHERINE_TPX3_DAC_IBIAS_PIXELDAC,      ///< \copydoc katherine_dacs_named_t::Ibias_PixelDAC
+    KATHERINE_TPX3_DAC_IBIAS_TPBUFFERIN,    ///< \copydoc katherine_dacs_named_t::Ibias_TPbufferIn
+    KATHERINE_TPX3_DAC_IBIAS_TPBUFFEROUT,   ///< \copydoc katherine_dacs_named_t::Ibias_TPbufferOut
+    KATHERINE_TPX3_DAC_VTP_COARSE,          ///< \copydoc katherine_dacs_named_t::VTP_coarse
+    KATHERINE_TPX3_DAC_VTP_FINE,            ///< \copydoc katherine_dacs_named_t::VTP_fine
+    KATHERINE_TPX3_DAC_IBIAS_CP_PLL,        ///< \copydoc katherine_dacs_named_t::Ibias_CP_PLL
+    KATHERINE_TPX3_DAC_PLL_VCNTRL,          ///< \copydoc katherine_dacs_named_t::PLL_Vcntrl
+} katherine_tpx3_dac_t;
+
+/**
+ * The physical quantity a DAC sets, and so the unit
+ * katherine_tpx3_dac_to_si() reports it in.
+ *
+ * Not namespaced, unlike the DACs themselves: which DACs exist and how wide
+ * they are is Timepix3's, but a DAC either biases a current or sets a
+ * voltage on any ASIC, so a second one would use this unchanged.
+ */
+typedef enum katherine_dac_unit {
+    KATHERINE_DAC_UNIT_AMP = 0, ///< Amperes; the DAC biases a current.
+    KATHERINE_DAC_UNIT_VOLT,    ///< Volts; the DAC sets a voltage.
+} katherine_dac_unit_t;
+
+KATHERINE_EXPORTED uint16_t
+katherine_tpx3_dac_max(katherine_tpx3_dac_t dac);
+
+KATHERINE_EXPORTED double
+katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac_unit_t *unit);
 
 
 /// Phase distribution of the main Timepix3 clock across the pixel matrix.
