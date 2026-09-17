@@ -846,21 +846,9 @@ err:
  * readout signals the end of the current frame through the measurement
  * data stream instead.
  *
- * Whether it does anything depends on the readout's firmware, and this
- * function cannot tell the caller which case they are in. On a Gen2 readout it
- * works: measured on hw_type 3 / fw_version 5, a data-driven stream ceased
- * 9 ms after the command left the host, the same latency
- * katherine_acquisition_abort() achieves. On the legacy Gen1 firmware it is
- * inert -- opcode 0x06 is inside that dispatcher's range but its branch-table
- * entry points at the bare return, so no handler runs and the shutter stays
- * open until the acquisition time expires. A caller there gets
- * KATHERINE_E_OK from a command that provably did nothing. Non-legacy Gen1
- * firmware is untested, for want of a binary to read.
- *
- * With katherine_acquisition_t::decode_data false this also leaves
- * katherine_acquisition_read() to time out rather than return, because the
- * frame tail the stop provokes carries no abort marker to end the loop on --
- * which is why katherine_acquisition_abort() is the one to use there.
+ * Sends the same datagram as katherine_acquisition_abort(), so the two are one
+ * command as far as the readout is concerned; what differs is local, and is
+ * described there.
  *
  * \see katherine_acquisition_abort
  *
@@ -942,6 +930,24 @@ err:
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken, for a reason none of the other codes cover; see
  *   pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *
+ * Sends the same datagram as katherine_acquisition_stop() -- opcode 0x06 with
+ * the read mode -- so neither is distinguishable from the other on the wire.
+ * What this one adds is local: it raises katherine_acquisition_t::aborted, and
+ * that flag is tested inside the receive-timeout branch of the read loop
+ * rather than on its own. So it does not end a run by itself; it changes what
+ * a stream running dry is taken to mean.
+ *
+ * On Gen2 those compose into a working abort. Measured on hw_type 3 /
+ * fw_version 5: the command closes the shutter, a data-driven stream ceases
+ * about 9 ms later against an acquisition time of 5 s that an unsignalled run
+ * of the same configuration uses in full, and the flag turns the ensuing
+ * timeout into KATHERINE_ACQUISITION_STATE_SUCCEEDED.
+ *
+ * Whether the readout acts on the command at all is firmware-dependent and
+ * unverified outside that one Gen2 build, so a caller cannot read
+ * KATHERINE_E_OK as meaning the measurement has ended -- only that the
+ * command left the host.
  */
 katherine_error_t
 katherine_acquisition_abort(katherine_acquisition_t *acq)
