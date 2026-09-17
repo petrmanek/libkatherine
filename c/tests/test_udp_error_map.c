@@ -45,12 +45,29 @@
 #include "ktest.h"
 
 /**
- * One row of a platform's mapping: the OS code a syscall reports, and the
- * enumerator the transport must translate it into.
+ * What went wrong on the wire, independent of how a platform spells it.
+ *
+ * The two platforms name their codes differently and do not even split them
+ * the same way -- POSIX has both ENOMEM and ENOBUFS where Winsock has only
+ * WSAENOBUFS -- so comparing the tables code by code is impossible. Tagging
+ * each row with the condition it reports is what makes them comparable, and
+ * what forces a new code to declare what it means.
+ */
+typedef enum {
+    COND_WAIT_EXPIRED,    ///< The wait ran out; the socket is fine
+    COND_BAD_ARGUMENT,    ///< A syscall rejected what it was handed
+    COND_BUFFER_EXHAUSTED ///< No room: allocation failed, or a queue is full
+} map_cond_t;
+
+/**
+ * One row of a platform's mapping: the OS code a syscall reports, the
+ * enumerator the transport must translate it into, and the condition that
+ * code stands for.
  */
 typedef struct {
     int code;
     katherine_error_t mapped;
+    map_cond_t cond;
     const char *name;
 } map_row_t;
 
@@ -75,10 +92,10 @@ typedef struct {
 
 /** Winsock codes the transport must recognize, and what each must become. */
 static const map_row_t WSA_ROWS[] = {
-    {10060, KATHERINE_E_TIMEOUT, "WSAETIMEDOUT"},
-    {10035, KATHERINE_E_TIMEOUT, "WSAEWOULDBLOCK"},
-    {10022, KATHERINE_E_INVAL,   "WSAEINVAL"},
-    {10055, KATHERINE_E_NOMEM,   "WSAENOBUFS"},
+    {10060, KATHERINE_E_TIMEOUT, COND_WAIT_EXPIRED,     "WSAETIMEDOUT"},
+    {10035, KATHERINE_E_TIMEOUT, COND_WAIT_EXPIRED,     "WSAEWOULDBLOCK"},
+    {10022, KATHERINE_E_INVAL,   COND_BAD_ARGUMENT,     "WSAEINVAL"},
+    {10055, KATHERINE_E_NOMEM,   COND_BUFFER_EXHAUSTED, "WSAENOBUFS"},
 };
 
 /**
@@ -91,10 +108,11 @@ static const map_row_t WSA_ROWS[] = {
  * spells that case with an #if for the library that does not.
  */
 static const map_row_t ERRNO_ROWS[] = {
-    {EAGAIN,    KATHERINE_E_TIMEOUT, "EAGAIN"},
-    {ETIMEDOUT, KATHERINE_E_TIMEOUT, "ETIMEDOUT"},
-    {EINVAL,    KATHERINE_E_INVAL,   "EINVAL"},
-    {ENOMEM,    KATHERINE_E_NOMEM,   "ENOMEM"},
+    {EAGAIN,    KATHERINE_E_TIMEOUT, COND_WAIT_EXPIRED,     "EAGAIN"},
+    {ETIMEDOUT, KATHERINE_E_TIMEOUT, COND_WAIT_EXPIRED,     "ETIMEDOUT"},
+    {EINVAL,    KATHERINE_E_INVAL,   COND_BAD_ARGUMENT,     "EINVAL"},
+    {ENOMEM,    KATHERINE_E_NOMEM,   COND_BUFFER_EXHAUSTED, "ENOMEM"},
+    {ENOBUFS,   KATHERINE_E_NOMEM,   COND_BUFFER_EXHAUSTED, "ENOBUFS"},
 };
 
 // clang-format on
@@ -189,6 +207,84 @@ listed(const katherine_error_t *codes, size_t count, katherine_error_t code)
 }
 
 /**
+ * Returns the enumerator a table maps a condition class to, or
+ * KATHERINE_E_OK if the table has no row for that class.
+ *
+ * \param rows Table to search
+ * \param count Rows in it
+ * \param cond Condition class to look for
+ * \return The enumerator the rows of that class map to
+ */
+static katherine_error_t
+outcome_for(const map_row_t *rows, size_t count, map_cond_t cond)
+{
+    for (size_t i = 0; i < count; ++i) {
+        if (rows[i].cond == cond) return rows[i].mapped;
+    }
+
+    return KATHERINE_E_OK;
+}
+
+/**
+ * Every condition class both platforms can report reaches the same enumerator.
+ *
+ * A different guard from the set comparison above, and worth being precise
+ * about what each one buys, because the ENOBUFS gap that prompted this was
+ * caught by neither.
+ *
+ * That gap was POSIX mapping ENOMEM but not ENOBUFS, so a full transmit queue
+ * -- the common case under load -- reported KATHERINE_E_NOMEM on Windows and
+ * the caller's fallback on POSIX. What catches it is the ENOBUFS row in
+ * ERRNO_ROWS together with test_live_table_matches_its_rows, which drives the
+ * header: remove the mapping and that test fails. Verified both ways --
+ * removing the row instead leaves every test here passing, because ENOMEM
+ * still covers the class.
+ *
+ * What this test adds is the correspondence itself: if the two platforms ever
+ * disagree about what a condition *means* -- one mapping a full queue to
+ * KATHERINE_E_NOMEM and the other to KATHERINE_E_IO, say -- the sets could
+ * still match while callers saw different errors for the same wire condition.
+ * The set says which enumerators are reachable; this says the same thing going
+ * wrong is reported the same way.
+ */
+static void
+test_every_condition_maps_alike_on_both_platforms(void)
+{
+    static const struct {
+        map_cond_t cond;
+        const char *name;
+    } CONDS[] = {
+        {COND_WAIT_EXPIRED, "a wait that expired"},
+        {COND_BAD_ARGUMENT, "an argument a syscall rejected"},
+        {COND_BUFFER_EXHAUSTED, "no room, whether allocation or a full queue"},
+    };
+
+    for (size_t i = 0; i < COUNT(CONDS); ++i) {
+        const katherine_error_t wsa   = outcome_for(WSA_ROWS, COUNT(WSA_ROWS), CONDS[i].cond);
+        const katherine_error_t errnv = outcome_for(ERRNO_ROWS, COUNT(ERRNO_ROWS), CONDS[i].cond);
+
+        KT_CHECK(wsa != KATHERINE_E_OK);
+        KT_CHECK(errnv != KATHERINE_E_OK);
+        KT_CHECK_EQ(wsa, errnv);
+
+        if (wsa != errnv) {
+            printf("#   %s: Winsock says %s, errno says %s\n", CONDS[i].name,
+                katherine_strerror(wsa), katherine_strerror(errnv));
+        }
+    }
+
+    // Every row of both tables belongs to one of the classes above, so a code
+    // cannot be added to a transport without declaring which condition it
+    // reports -- the step that would have caught ENOBUFS.
+    for (size_t i = 0; i < COUNT(LIVE_ROWS); ++i) {
+        KT_CHECK(LIVE_ROWS[i].cond <= COND_BUFFER_EXHAUSTED);
+    }
+    for (size_t i = 0; i < COUNT(OTHER_ROWS); ++i) {
+        KT_CHECK(OTHER_ROWS[i].cond <= COND_BUFFER_EXHAUSTED);
+    }
+}
+
+/**
  * The two tables reach the same set of enumerators.
  *
  * This is the cross-platform half, and it runs in both builds: the tables are
@@ -277,6 +373,7 @@ main(void)
     KT_RUN(test_live_table_matches_its_rows);
     KT_RUN(test_unmapped_codes_reach_the_fallback);
     KT_RUN(test_both_tables_reach_the_same_codes);
+    KT_RUN(test_every_condition_maps_alike_on_both_platforms);
     KT_RUN(test_the_unmapped_codes_are_really_unmapped);
     KT_RUN(test_the_two_domains_are_disjoint);
     return kt_summary();

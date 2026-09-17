@@ -73,8 +73,9 @@ katherine_udp_map_socket_error(int err, katherine_error_t fallback)
         return KATHERINE_E_TIMEOUT;
     case WSAEINVAL:
         return KATHERINE_E_INVAL;
-    // Winsock reports exhausted buffer space as WSAENOBUFS, which is the
-    // condition POSIX reports as ENOMEM.
+    // Winsock spends one code on what POSIX splits between ENOMEM and
+    // ENOBUFS -- allocation failure and a full transmit queue -- so its single
+    // case answers both of the POSIX cases below.
     case WSAENOBUFS:
         return KATHERINE_E_NOMEM;
     default:
@@ -92,7 +93,7 @@ katherine_udp_map_socket_error(int err, katherine_error_t fallback)
  * rather than setting the variable. Windows splits the two, which is why its
  * counterpart above documents a restriction this one does not need.
  *
- * The three cases apply wherever they turn up, not only at the syscall each
+ * The cases apply wherever they turn up, not only at the syscall each
  * was first observed at; anything else falls back to the group the caller
  * names, since the OS-level detail is preserved separately, in
  * katherine_udp_t::last_os_error.
@@ -113,7 +114,16 @@ katherine_udp_map_socket_error(int err, katherine_error_t fallback)
         return KATHERINE_E_TIMEOUT;
     case EINVAL:
         return KATHERINE_E_INVAL;
+    // Two distinct errno values for one condition class, and POSIX really does
+    // separate them: ENOMEM is "no memory available", ENOBUFS is "the output
+    // queue for a network interface was full ... may be caused by transient
+    // congestion" (sendto(2)). Winsock spends a single code, WSAENOBUFS, on
+    // both, so mapping only ENOMEM here made a full transmit queue -- the
+    // common case under load -- report KATHERINE_E_NOMEM on Windows and fall
+    // through to the caller's fallback on POSIX. Same wire condition, two
+    // enumerators, which is the divergence this header exists to prevent.
     case ENOMEM:
+    case ENOBUFS:
         return KATHERINE_E_NOMEM;
     default:
         return fallback;
