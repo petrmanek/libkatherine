@@ -638,7 +638,10 @@ err:
 }
 
 /**
- * Set detector bias voltage.
+ * Set detector bias voltage. The acknowledgement is of the command and not of
+ * the voltage: a raised bias takes seconds to arrive at its setpoint, while
+ * dropping it is prompt.
+ *
  * \param device Katherine device
  * \param bias_id Index of the bias voltage (the value is discarded by implementation)
  * \param bias_value Bias voltage in Volts

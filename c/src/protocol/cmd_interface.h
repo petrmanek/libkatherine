@@ -439,17 +439,17 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_TEST_PULSE_SETTING       = 0x26,
     CMD_TYPE_TOA_CALIBRATION_SETUP    = 0x28,
     CMD_TYPE_NUMBER_OF_TOKENS_SETTING = 0x29,
-    // Generation-dependent: this opcode is absent from the Gen2 firmware's
-    // mid-acquisition dispatcher, so it cannot be relied on during a
-    // measurement there. 0x0D, the ADC channels, is present in that
-    // dispatcher and reads readout-side registers only, which makes it the
-    // candidate substitute for leakage monitoring mid-run.
+
+    // Generation-dependent well beyond scaling: on legacy Gen1 firmware this
+    // opcode is a communication-setup command reading the same byte 0, and
+    // modern Gen1 is unexamined. On Gen2 it returns a raw float that needs an
+    // inverted affine transform to reach amps, and is silent during a
+    // measurement.
     CMD_TYPE_GET_BIAS_CURRENT      = 0x30,
     CMD_TYPE_INTERNAL_TDC_SETTINGS = 0x32,
 
     /**
-     * The readout firmware sends five counter datagrams for this command,
-     * not six: a reader waiting for a sixth would hang.
+     * The readout firmware sends five counter datagrams for this command.
      */
     CMD_TYPE_INTERNAL_TDC_READ_COUNTS = 0x33,
 
