@@ -47,7 +47,7 @@ test_ip_address(void)
     int res;
     katherine_device_t device;
 
-    res = katherine_device_init(&device, address);
+    res = katherine_device_init(&device, address, 0);
     if (res) {
         test_failed(address);
         katherine_device_fini(&device);

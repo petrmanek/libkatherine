@@ -195,7 +195,7 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     for (int attempt = 0; attempt < READY_ATTEMPTS; ++attempt) {
-        res = katherine_device_init(&g_device, KSIM_LISTEN_ADDR);
+        res = katherine_device_init(&g_device, KSIM_LISTEN_ADDR, 0);
         if (res != 0) {
             snprintf(g_error, sizeof(g_error), "cannot bind the local control/data ports 1555/1556: %s",
                 katherine_strerror(res));
@@ -203,7 +203,19 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
         }
         g_device_open = true;
 
-        if (katherine_get_chip_id(&g_device, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) return NULL;
+        if (katherine_get_chip_id(&g_device, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
+            // Readiness is probed with the chip id, not with enumeration, so
+            // the enumerate inside katherine_device_init() above may have run
+            // before ksim was listening. Ask again now that it is answering,
+            // or the generation-dependent calls will refuse a device whose
+            // generation was never learned.
+            if (katherine_device_enumerate(&g_device) != KATHERINE_E_OK) {
+                snprintf(g_error, sizeof(g_error), "readout answered its chip id but not its status");
+                return g_error;
+            }
+
+            return NULL;
+        }
 
         katherine_device_fini(&g_device);
         g_device_open = false;

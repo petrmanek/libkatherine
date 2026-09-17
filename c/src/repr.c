@@ -148,18 +148,41 @@ katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info
 {
     size_t off = 0;
 
-    // An unpopulated structure prints as such rather than as a row of zeroes
-    // and a null name, which would read as a readout that answered with
-    // nothing.
+    // An unpopulated structure prints as such rather than as a row of zeroes,
+    // which would read as a readout that answered with nothing.
     if (v->hw_type == 0) {
-        REPR_APPENDF(buf, cap, off, "device_info{not populated}");
+        REPR_APPENDF(buf, cap, off, "device_info{neither enumerated nor declared}");
         return (int) off;
     }
 
     REPR_APPENDF(buf, cap, off,
-        "device_info{hw_type: 0x%02x, name: %s, chip_type: %s, gen: %u, max_chip_count: %u, supported: %s}",
-        (unsigned) v->hw_type, v->name, katherine_str_chip_type(v->chip_type), (unsigned) v->gen,
-        (unsigned) v->max_chip_count, katherine_str_bool(v->supported));
+        "device_info{hw_type: 0x%02x, hw_revision: %u, serial_number: %u, fw_version: %u, "
+        "chip_count: %u, legacy: %s}",
+        (unsigned) v->hw_type, (unsigned) v->hw_revision, (unsigned) v->serial_number,
+        (unsigned) v->fw_version, (unsigned) v->chip_count, katherine_str_bool(v->legacy));
+    return (int) off;
+}
+
+/** \copydoc katherine_tpx3_coord_snprint */
+int
+katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_device_derived_info_t *v)
+{
+    size_t off = 0;
+
+    // Recognized readouts always carry a name, so its absence is what marks a
+    // hardware type this version does not know.
+    if (v->name == NULL) {
+        REPR_APPENDF(buf, cap, off, "device_derived_info{unrecognized}");
+        return (int) off;
+    }
+
+    REPR_APPENDF(buf, cap, off,
+        "device_derived_info{name: %s, chip_type: %s, gen: %u, max_chip_count: %u, "
+        "bias_supply_count: %u, accessible_gpio_count: %u, all_gpio_count: %u, supported: %s}",
+        v->name, katherine_str_chip_type(v->chip_type), (unsigned) v->gen,
+        (unsigned) v->max_chip_count, (unsigned) v->bias_supply_count,
+        (unsigned) v->accessible_gpio_count, (unsigned) v->all_gpio_count,
+        katherine_str_bool(v->supported));
     return (int) off;
 }
 

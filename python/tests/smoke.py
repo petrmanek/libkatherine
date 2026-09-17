@@ -172,6 +172,16 @@ def wait_ready(ksim, katherine):
             chip_id = None
 
         if chip_id == EXPECTED_CHIP_ID:
+            # Readiness is probed with the chip id, not with enumeration, so
+            # the enumerate inside Device() may have run before ksim was
+            # listening. Ask again now that it is answering, or the
+            # generation-dependent calls refuse a device whose generation was
+            # never learned.
+            try:
+                device.enumerate()
+            except KATHERINE_ERRORS as e:
+                return None, 'readout answered its chip id but not its status: %s' % e
+
             return device, None
 
         del device

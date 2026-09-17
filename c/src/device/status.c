@@ -338,9 +338,10 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 {
     katherine_error_t res;
 
-    // Before the lock and before any I/O: nothing about this call is safe to
-    // begin while a measurement is in flight.
-    if (device->acquisition != NULL) return KATHERINE_E_STATE;
+    if (device->acquisition != NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_busy;
+    }
 
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
@@ -361,6 +362,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 
 err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_busy:
     return res;
 }
 

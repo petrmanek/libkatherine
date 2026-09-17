@@ -100,9 +100,13 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     katherine_device_t dev;
     memset(&dev, 0, sizeof(dev));
 
-    // The generation normally arrives from the enumeration probe; set by hand
-    // here, which is the whole variable under test.
-    dev.device_info.gen = gen;
+    // The generation normally arrives from the enumeration probe. Declared
+    // here instead, which is what a caller with no readout to ask does, and
+    // which reaches derived_info by the same single path enumeration uses --
+    // hardware type 0x01 is the Gen1 Katherine, 0x03 the Gen2.
+    const katherine_device_info_t id = {.hw_type = (gen >= 2) ? 0x03 : 0x01};
+    KT_CHECK(katherine_device_declare(&dev, &id) == KATHERINE_E_OK);
+    KT_CHECK_EQ(dev.derived_info.gen, gen);
 
     katherine_error_t res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, 100);
     KT_CHECK(res == KATHERINE_E_OK);

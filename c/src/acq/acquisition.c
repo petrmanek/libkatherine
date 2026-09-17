@@ -798,8 +798,11 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * \retval KATHERINE_E_STATE if the acquisition was not running when the call
  *   was made, so the read loop never ran and nothing was read -- an
  *   acquisition katherine_acquisition_begin() never brought to
- *   KATHERINE_ACQUISITION_STATE_RUNNING. Reading one that already finished is
- *   not this case: it reports the outcome it finished with again.
+ *   KATHERINE_ACQUISITION_STATE_RUNNING -- or if the device has been neither
+ *   enumerated nor declared, or is one this version cannot drive, since the
+ *   measurement-data header map depends on a readout generation that is then
+ *   not known. Reading an acquisition that already finished is neither case:
+ *   it reports the outcome it finished with again.
  * \retval KATHERINE_E_INVAL if no decoder is instantiated for this
  *   acquisition's mode and pixel-clock divider -- an unknown px_mode, or a
  *   coarse-to-fine shift outside 2..5 in a timestamp-bearing mode. The shift
@@ -819,11 +822,13 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
 
+    // The dispatch depends on generation, i.e. we need a successfully enumerated device.
+    if (!acq->device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_unsupported;
+    }
 
-    /* A readout that never answered the enumeration probe reports generation 0
-       and is decoded as Gen1, which is what every readout this library drove
-       before Gen2 was recognized. */
-    if (acq->device->device_info.gen >= 2) {
+    if (acq->device->derived_info.gen >= 2) {
         ACQ_DISPATCH(acq, res, GEN2);
     } else {
         ACQ_DISPATCH(acq, res, GEN1);
@@ -831,9 +836,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 
 #undef ACQ_DISPATCH
 
-    // One exit for every mode and every outcome, the aborted and timed-out
-    // ones included, so the device stops reporting a measurement in flight
-    // exactly once and in one place.
+err_unsupported:
     acq->device->acquisition = NULL;
     return res;
 }
@@ -893,6 +896,11 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
  *   katherine_udp_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, or is one this version cannot drive. Refused here rather than
+ *   at the first katherine_acquisition_read(), so a caller learns before the
+ *   detector is made sensitive; katherine_configure() would refuse it anyway,
+ *   on the acquisition time.
  */
 katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)

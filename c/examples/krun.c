@@ -347,7 +347,7 @@ main(int argc, char *argv[])
     int res;
     katherine_device_t device;
 
-    res = katherine_device_init(&device, remote_addr);
+    res = katherine_device_init(&device, remote_addr, 0);
     if (res != 0) {
         printf("Cannot initialize device. Is the address correct?\n");
         printf("Reason: %s\n", katherine_strerror(res));

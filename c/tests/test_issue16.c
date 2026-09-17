@@ -84,7 +84,12 @@ run_case(bool send_frame_finished, struct stats *s)
     // the two sessions -- the borrowed acquisition among them, which
     // katherine_device_fini() acts on.
     memset(&dev, 0, sizeof(dev));
-    memset(&dev, 0, sizeof(dev));
+
+    // Built by hand rather than by katherine_device_init(), so nothing has
+    // enumerated it: declare what it is, which is what the generation-
+    // dependent calls test before they run.
+    const katherine_device_info_t info = {.hw_type = 0x01};
+    KT_CHECK(katherine_device_declare(&dev, &info) == KATHERINE_E_OK);
 
     // Only the data socket is used by the read loop. 100 ms recv timeout.
     // Bound to a fixed port on loopback, so the sender below can be pointed

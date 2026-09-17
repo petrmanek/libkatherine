@@ -125,12 +125,21 @@ katherine1_map_result(int result)
 
 // device.h
 
-/** \legacy1{katherine_device_init} */
+/**
+ * \legacy1{katherine_device_init}
+ *
+ * 1.x opened a device, probed it, and did nothing else. 2.0 additionally
+ * moves the session to a private pair of UDP ports and tells the readout
+ * which interface it is on, so the flags here suppress both: a program
+ * compiled against this header behaves as it did, including keeping the
+ * fixed ports it may rely on.
+ */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_device_init(katherine_device_t *device, const char *addr)
 {
-    return katherine1_map_result(katherine_device_init(device, addr));
+    return katherine1_map_result(katherine_device_init(device, addr,
+        KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS | KATHERINE_DEVICE_DONT_SELECT_INTERFACE));
 }
 
 // config.h

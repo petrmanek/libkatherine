@@ -57,6 +57,10 @@
  *   receive; see sendto(2) and recvfrom(2).
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, or is one this version cannot drive: the acquisition time's
+ *   encoding depends on the readout generation, which is then not known. See
+ *   katherine_set_acq_time().
  */
 katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config)
@@ -471,18 +475,40 @@ err:
  *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, or is one this version cannot drive: the encoding depends on
+ *   the readout generation, which is then not known.
  */
 katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns)
 {
     katherine_error_t res;
 
-    if (device->device_info.gen >= 2) {
+    // Generation-dependent, so it needs to know the generation. A device that
+    // has been neither enumerated nor declared has a zeroed derived record,
+    // whose supported flag is false -- and so does one whose hardware type
+    // this version does not recognize, or recognizes and cannot drive. All
+    // three are refused here rather than silently taking the Gen1 path, which
+    // on a Gen2 readout would hang on an acknowledgement that never comes.
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_unsupported;
+    }
+
+    if (device->derived_info.gen >= 2) {
         res = katherine_set_acq_time_gen2(device, ns);
     } else {
         res = katherine_set_acq_time_gen1(device, ns);
     }
 
+    if (res) {
+        goto err_set_acq_time;
+    }
+
+    return KATHERINE_E_OK;
+
+err_set_acq_time:
+err_unsupported:
     return res;
 }
 

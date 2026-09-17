@@ -227,14 +227,22 @@ fixture_init(const char *ksim_path)
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     for (int attempt = 0; attempt < READY_ATTEMPTS; ++attempt) {
-        res = katherine_device_init(&g_device, KSIM_LISTEN_ADDR);
+        res = katherine_device_init(&g_device, KSIM_LISTEN_ADDR, 0);
         if (res != 0) {
             snprintf(g_skip_reason, sizeof(g_skip_reason),
                 "cannot bind the local control/data ports 1555/1556: %s", katherine_strerror(res));
             return g_skip_reason;
         }
 
-        if (katherine_get_chip_id(&g_device, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) return NULL;
+        if (katherine_get_chip_id(&g_device, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
+            // Readiness is probed with the chip id, not with enumeration, so
+            // the enumerate inside katherine_device_init() above may have run
+            // before ksim was listening -- leaving a device that answers but
+            // whose generation is unknown, which the generation-dependent
+            // calls now refuse. Ask again now that it is demonstrably up.
+            KT_CHECK(katherine_device_enumerate(&g_device) == KATHERINE_E_OK);
+            return NULL;
+        }
 
         katherine_device_fini(&g_device);
 
@@ -694,7 +702,7 @@ static void
 test_control_timeout(void)
 {
     katherine_device_t device;
-    KT_REQUIRE(katherine_device_init(&device, DEAD_ADDR) == 0);
+    KT_REQUIRE(katherine_device_init(&device, DEAD_ADDR, 0) == 0);
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     time_t started = time(NULL);
@@ -725,7 +733,7 @@ static void
 test_faux_echo_rejected(void)
 {
     katherine_device_t device;
-    KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDR) == 0);
+    KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDR, 0) == 0);
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     KT_CHECK(katherine_get_chip_id(&device, chip_id) != 0);

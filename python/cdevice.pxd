@@ -6,6 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+from libc.stdint cimport uint32_t
 from libcpp cimport bool
 
 cdef extern from 'katherine/device.h':
@@ -14,6 +15,7 @@ cdef extern from 'katherine/device.h':
 
     int katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
 
-    int katherine_device_init(katherine_device_t *device, const char *addr)
+    int katherine_device_init(katherine_device_t *device, const char *addr, uint32_t flags)
     void katherine_device_fini(katherine_device_t *device)
+    int katherine_device_enumerate(katherine_device_t *device)
     bool katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)

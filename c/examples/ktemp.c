@@ -141,7 +141,7 @@ main(int argc, char *argv[])
     }
 
     katherine_device_t device;
-    if (katherine_device_init(&device, args.address) != 0) {
+    if (katherine_device_init(&device, args.address, 0) != 0) {
         fail(args.address);
     }
 

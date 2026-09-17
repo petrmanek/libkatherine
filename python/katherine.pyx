@@ -92,7 +92,7 @@ cdef class Device:
          if self._c_device is NULL:
              raise MemoryError()
 
-         res = cdevice.katherine_device_init(self._c_device, addr.encode())
+         res = cdevice.katherine_device_init(self._c_device, addr.encode(), 0)
          check_return_code(res)
 
     def __dealloc__(self):
@@ -118,6 +118,18 @@ cdef class Device:
          res = cstatus.katherine_get_comm_status(self._c_device, &status._c_status)
          check_return_code(res)
          return status
+
+    def enumerate(self):
+         """Ask the readout what it is, filling in what the generation-dependent
+         calls need.
+
+         katherine.Device() does this on construction, but a readout that was
+         not yet listening then leaves it undone -- and an un-enumerated device
+         refuses those calls rather than guessing a generation. Call this once
+         the readout is demonstrably answering.
+         """
+         res = cdevice.katherine_device_enumerate(self._c_device)
+         check_return_code(res)
 
     def get_chip_id(self):
          cdef char[:] chip_id = _array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)

@@ -35,7 +35,7 @@ class device {
 public:
     device(std::string addr)
     {
-        int res = katherine_device_init(&dev_, addr.c_str());
+        int res = katherine_device_init(&dev_, addr.c_str(), 0);
         if (res != 0) {
             throw katherine::system_error{res};
         }

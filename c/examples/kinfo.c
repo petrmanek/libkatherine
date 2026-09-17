@@ -93,7 +93,7 @@ main(int argc, char *argv[])
     }
 
     katherine_device_t device;
-    int err = katherine_device_init(&device, args.address);
+    int err = katherine_device_init(&device, args.address, 0);
     if (err != 0) {
         report_failure("katherine_device_init", err);
         return 1;
