@@ -132,6 +132,13 @@
         dst->coord.y = (uint8_t) EXTRACT(*src, BASE_TYPE, coord_y); \
     }
 
+// These triads are the hot path, and a wrong offset here would misplace every
+// hit rather than fail, so it is worth recording that they do not rest on the
+// manual alone: the readout firmware of both generations extracts the same
+// five fields at the same offsets, and scales the ToA offset by the same
+// 16384 that DEFINE_PMD_PAIR_TIMESTAMP does. Two implementations neither of
+// which is ours, agreeing field for field.
+
 #define _BITS_pmd_f_toa_tot_ftoa_start    0
 #define _BITS_pmd_f_toa_tot_ftoa_mask     MASK(4)
 #define _BITS_pmd_f_toa_tot_ftoa_type     uint16_t
