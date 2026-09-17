@@ -104,6 +104,11 @@
 // scan (0x14), each carrying the single-DAC-scan identifier 0x0F.
 #define DAC_SCAN_REPLIES  22
 
+// Enough for DAC_SCAN_REPLIES eight-byte datagrams with room to spare, whatever
+// a host charges per datagram in queue overhead. Measured on glibc: 16 KB holds
+// all 22, 8 KB does not.
+#define CLIENT_RCVBUF     262144
+
 static katherine_udp_t g_client;
 static katherine_udp_t g_mock;
 static katherine_udp_t g_slow_client;
@@ -124,6 +129,20 @@ endpoints_init(void)
         goto err_client;
     }
     katherine_udp_pin_remote(&g_client);
+
+    /* The DAC-scan cases queue DAC_SCAN_REPLIES datagrams before draining any,
+     * so the socket has to hold them all at once; a host whose queue is
+     * shallower drops some and the drain then counts fewer strays than were
+     * sent. Asked for explicitly rather than inherited, because the default is
+     * sized for measurement data and what any host grants is its own policy.
+     * The granted size is printed so a failure here names the cause. */
+    if ((res = katherine_udp_set_rcvbuf(&g_client, CLIENT_RCVBUF)) != 0) {
+        goto err_client;
+    }
+    uint32_t granted = 0;
+    if (katherine_udp_rcvbuf(&g_client, &granted) == 0) {
+        printf("# client queue: %u B granted for a request of %d\n", granted, CLIENT_RCVBUF);
+    }
 
     if ((res = katherine_udp_init_bound(&g_mock, "127.0.0.1", PORT_MOCK, "127.0.0.1", PORT_CLIENT, MOCK_TIMEOUT_MS))
         != 0) {
