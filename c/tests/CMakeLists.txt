@@ -56,6 +56,7 @@ katherine_add_test(NAME test_repr SOURCES test_repr.c LABELS unit)
 # fixed pair of uncommon high ports (see the individual files). No hardware,
 # no daemon, no global resource.
 katherine_add_test(NAME test_issue16 SOURCES test_issue16.c LABELS unit)
+katherine_add_test(NAME test_gen2_decode SOURCES test_gen2_decode.c LABELS unit)
 katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
 
 # Test-pulse validation. Its byte-exact datagram check drives a mock readout

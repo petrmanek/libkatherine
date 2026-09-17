@@ -156,6 +156,21 @@ handle_trigger_info(katherine_acquisition_t *acq, const uint64_t *data)
     // The info is discarded.
 }
 
+// Gen2 splits the trigger across two words, 0x4 carrying the timestamp's low
+// half and 0x6 the high half with the channel mask and the event counter. Both
+// are discarded, as the Gen1 trigger info above is and as the reference
+// implementation also does -- what matters here is that they are recognized:
+// 0x4 is the pixel header on Gen1, so a Gen2 stream decoded by the Gen1 loop
+// turns every trigger into a fabricated hit with nonsense coordinates.
+// Exposing the contents is an API question, the same one for both generations,
+// and it is not answered by recognizing them.
+static inline void
+handle_trigger_event(katherine_acquisition_t *acq, const uint64_t *data)
+{
+    (void) acq;
+    (void) data;
+}
+
 static inline void
 handle_unknown_msg(katherine_acquisition_t *acq, const uint64_t *data)
 {
@@ -330,48 +345,118 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 }
 
 /**
+ * Switch cases for the headers every readout generation spells alike: the
+ * frame lifecycle and the data-driven timestamp offset. Shared so that a
+ * generation's map below declares only what makes it different.
+ * \param acq Acquisition the handlers act on
+ * \param md Measurement-data word being dispatched
+ */
+#define ACQ_HDR_CASES_COMMON(acq, md) \
+    case 0x5: handle_timestamp_offset_driven_mode(acq, md); break; \
+    case 0x7: handle_new_frame(acq, md); break; \
+    case 0x8: handle_frame_start_timestamp_lsb(acq, md); break; \
+    case 0x9: handle_frame_start_timestamp_msb(acq, md); break; \
+    case 0xA: handle_frame_end_timestamp_lsb(acq, md); break; \
+    case 0xB: handle_frame_end_timestamp_msb(acq, md); break; \
+    case 0xC: handle_current_frame_finished(acq, md); break; \
+    case 0xD: handle_lost_pixel_count(acq, md); break; \
+    case 0xE: handle_aborted_measurement(acq, md); break
+
+/**
+ * Whether a Gen1 header carries a pixel. One header does, 0x4.
+ * \param hdr Header nibble of a measurement-data word
+ */
+#define ACQ_HDR_IS_PIXEL_GEN1(hdr) ((hdr) == 0x4)
+/**
+ * Chip a Gen1 pixel came from. Always 0: one header, one chip.
+ * \param hdr Header nibble, unused
+ */
+#define ACQ_HDR_CHIP_GEN1(hdr)     0
+/**
+ * Gen1's non-pixel headers: the trigger info under 0x2 and 0x3, plus the
+ * common cases.
+ * \param acq Acquisition the handlers act on
+ * \param md Measurement-data word being dispatched
+ */
+#define ACQ_HDR_CASES_GEN1(acq, md) \
+    case 0x2: \
+    case 0x3: \
+        handle_trigger_info(acq, md); \
+        break; \
+        ACQ_HDR_CASES_COMMON(acq, md)
+
+/**
+ * Whether a Gen2 header carries a pixel. Four do, 0x0 through 0x3, one per
+ * chip -- so the header is both the discriminator and the chip index.
+ *
+ * Measured on hw_type 3 / fw_version 5 with one chip attached: 152 251 of
+ * 152 287 words in a three-frame run arrived as 0x0, and not one as 0x4. The
+ * Gen1 map recognizes none of those as pixels, and reads the trigger word
+ * under 0x4 as one.
+ *
+ * \param hdr Header nibble of a measurement-data word
+ */
+#define ACQ_HDR_IS_PIXEL_GEN2(hdr) ((hdr) <= 0x3)
+/**
+ * Chip a Gen2 pixel came from, which is the header itself.
+ * \param hdr Header nibble of a pixel word
+ */
+#define ACQ_HDR_CHIP_GEN2(hdr)     (hdr)
+/**
+ * Gen2's non-pixel headers: the trigger event's two halves under 0x4 and 0x6,
+ * plus the common cases. 0x2 and 0x3 are absent because Gen2 spends them on
+ * chips 2 and 3.
+ * \param acq Acquisition the handlers act on
+ * \param md Measurement-data word being dispatched
+ */
+#define ACQ_HDR_CASES_GEN2(acq, md) \
+    case 0x4: \
+    case 0x6: \
+        handle_trigger_event(acq, md); \
+        break; \
+        ACQ_HDR_CASES_COMMON(acq, md)
+
+/**
  * Define one monomorphized decode loop.
+ *
+ * Instantiated per generation as well as per mode and divider, so that the
+ * header map is a constant the compiler can fold: the pixel test becomes a
+ * comparison against a literal, the chip index either a zero or the header
+ * itself, and every case the generation cannot see is dead code. A runtime
+ * header-normalization table would cost a load before the branch and keep both
+ * generations' handlers live in one loop.
+ *
  * \param SUFFIX Pixel type the loop decodes into
  * \param TAG Suffix distinguishing this instance from the mode's others
  * \param MAP md.h field map the words are decoded through
+ * \param GEN Readout generation whose header map applies, GEN1 or GEN2
  */
-#define DEFINE_ACQ_IMPL(SUFFIX, TAG, MAP) \
+#define DEFINE_ACQ_IMPL(SUFFIX, TAG, MAP, GEN) \
     static inline void \
-    handle_measurement_data_##SUFFIX##TAG(katherine_acquisition_t *acq, const uint64_t *md) \
+    handle_measurement_data_##SUFFIX##TAG##_##GEN(katherine_acquisition_t *acq, const uint64_t *md) \
     { \
         char hdr = EXTRACT(*md, md, header); \
 \
-        if (hdr == 0x4) { \
+        if (ACQ_HDR_IS_PIXEL_##GEN(hdr)) { \
             if (acq->pixel_buffer_valid == acq->pixel_buffer_max_valid) { \
                 flush_buffer(acq); \
             } \
 \
-            katherine_px_##SUFFIX##_t *px = \
-                (katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid; \
+            katherine_px_##SUFFIX##_t *px = (katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid; \
 \
-            MAP(px, md, acq, 0); \
+            MAP(px, md, acq, (uint8_t) ACQ_HDR_CHIP_##GEN(hdr)); \
 \
             ++acq->pixel_buffer_valid; \
         } else { \
             switch (hdr) { \
-            case 0x2: handle_trigger_info(acq, md); break; \
-            case 0x3: handle_trigger_info(acq, md); break; \
-            case 0x5: handle_timestamp_offset_driven_mode(acq, md); break; \
-            case 0x7: handle_new_frame(acq, md); break; \
-            case 0x8: handle_frame_start_timestamp_lsb(acq, md); break; \
-            case 0x9: handle_frame_start_timestamp_msb(acq, md); break; \
-            case 0xA: handle_frame_end_timestamp_lsb(acq, md); break; \
-            case 0xB: handle_frame_end_timestamp_msb(acq, md); break; \
-            case 0xC: handle_current_frame_finished(acq, md); break; \
-            case 0xD: handle_lost_pixel_count(acq, md); break; \
-            case 0xE: handle_aborted_measurement(acq, md); break; \
-            default:  handle_unknown_msg(acq, md); break; \
+                ACQ_HDR_CASES_##GEN(acq, md); \
+            default: handle_unknown_msg(acq, md); break; \
             } \
         } \
     } \
 \
     static katherine_error_t \
-    acquisition_read_##SUFFIX##TAG(katherine_acquisition_t *acq) \
+    acquisition_read_##SUFFIX##TAG##_##GEN(katherine_acquisition_t *acq) \
     { \
         static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
 \
@@ -431,7 +516,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                    short is not a datum, and decoding it would decode the \
                    bytes that happen to follow it in the buffer. */ \
                 for (i = 0; i + KATHERINE_MD_SIZE <= received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
-                    handle_measurement_data_##SUFFIX##TAG(acq, (const uint64_t *) it); \
+                    handle_measurement_data_##SUFFIX##TAG##_##GEN(acq, (const uint64_t *) it); \
                 } \
             } else if (acq->handlers.data_received != NULL) { \
                 acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received); \
@@ -466,26 +551,51 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
  * \param SUFFIX Pixel type the loop decodes into
  * \param SHIFT log2 of the fine ticks in one coarse tick
  */
-#define DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, SHIFT) DEFINE_ACQ_IMPL(SUFFIX, _s##SHIFT, pmd_##SUFFIX##_s##SHIFT##_map)
+#define DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, SHIFT, GEN) \
+    DEFINE_ACQ_IMPL(SUFFIX, _s##SHIFT, pmd_##SUFFIX##_s##SHIFT##_map, GEN)
 
 /**
  * Define the decode loops of one timestamp-bearing mode, for every divider.
  * \param SUFFIX Pixel type the loops decode into
  */
-#define DEFINE_ACQ_IMPL_EVERY_SHIFT(SUFFIX) \
-    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 2) \
-    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 3) \
-    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 4) \
-    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 5)
+#define DEFINE_ACQ_IMPL_EVERY_SHIFT(SUFFIX, GEN) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 2, GEN) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 3, GEN) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 4, GEN) \
+    DEFINE_ACQ_IMPL_SHIFTED(SUFFIX, 5, GEN)
 
-DEFINE_ACQ_IMPL_EVERY_SHIFT(f_toa_tot)
-DEFINE_ACQ_IMPL_EVERY_SHIFT(toa_tot)
-DEFINE_ACQ_IMPL_EVERY_SHIFT(f_toa_only)
-DEFINE_ACQ_IMPL_EVERY_SHIFT(toa_only)
+/**
+ * Instantiate one mode's loops for both readout generations.
+ *
+ * Eighteen loops exist per generation -- four dividers for each of the four
+ * timestamp-bearing modes, plus one each for the two Event+iToT modes -- so
+ * thirty-six in all.
+ *
+ * \param M Instantiating macro to apply, shifted or unshifted
+ * \param SUFFIX Pixel type the loops decode into
+ */
+#define DEFINE_ACQ_IMPL_EVERY_GEN(M, SUFFIX) \
+    M(SUFFIX, GEN1) \
+    M(SUFFIX, GEN2)
 
-DEFINE_ACQ_IMPL(f_event_count_itot, , pmd_f_event_count_itot_map)
-DEFINE_ACQ_IMPL(event_count_itot, , pmd_event_count_itot_map)
+DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_EVERY_SHIFT, f_toa_tot)
+DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_EVERY_SHIFT, toa_tot)
+DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_EVERY_SHIFT, f_toa_only)
+DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_EVERY_SHIFT, toa_only)
 
+/**
+ * Define the decode loops of one mode that carries no timestamp, and so needs
+ * no per-divider instance.
+ * \param SUFFIX Pixel type the loop decodes into
+ * \param GEN Readout generation whose header map applies
+ */
+#define DEFINE_ACQ_IMPL_UNSHIFTED(SUFFIX, GEN) DEFINE_ACQ_IMPL(SUFFIX, , pmd_##SUFFIX##_map, GEN)
+
+DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_UNSHIFTED, f_event_count_itot)
+DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_UNSHIFTED, event_count_itot)
+
+#undef DEFINE_ACQ_IMPL_UNSHIFTED
+#undef DEFINE_ACQ_IMPL_EVERY_GEN
 #undef DEFINE_ACQ_IMPL_EVERY_SHIFT
 #undef DEFINE_ACQ_IMPL_SHIFTED
 #undef DEFINE_ACQ_IMPL
@@ -592,6 +702,75 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
 
 
 /**
+ * Reach the decode loop for one generation, across every mode and divider.
+ *
+ * Three dimensions, not two: the pixel format, the pixel-clock divider the
+ * timestamp decoders are instantiated over, and the readout generation whose
+ * header map applies. A divider outside the set means the acquisition never
+ * went through katherine_acquisition_begin(), and is refused rather than
+ * guessed -- guessing would misscale every timestamp in the run.
+ *
+ * Written once and instantiated per generation, so that the thirty-six loops
+ * are reached without thirty-six lines of near-identical dispatch. The
+ * generation is decided once per call, never inside the loop.
+ *
+ * \param acq Acquisition to read
+ * \param res Lvalue the loop's result is assigned to
+ * \param GEN Readout generation whose loops to dispatch to
+ */
+#define ACQ_DISPATCH(acq, res, GEN) \
+    switch ((acq)->px_mode) { \
+    case KATHERINE_TPX3_PX_TOA_TOT: \
+        if ((acq)->fast_vco_enabled) { \
+            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            case 2:  (res) = acquisition_read_f_toa_tot_s2##_##GEN(acq); break; \
+            case 3:  (res) = acquisition_read_f_toa_tot_s3##_##GEN(acq); break; \
+            case 4:  (res) = acquisition_read_f_toa_tot_s4##_##GEN(acq); break; \
+            case 5:  (res) = acquisition_read_f_toa_tot_s5##_##GEN(acq); break; \
+            default: (res) = KATHERINE_E_INVAL; break; \
+            } \
+        } else { \
+            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            case 2:  (res) = acquisition_read_toa_tot_s2##_##GEN(acq); break; \
+            case 3:  (res) = acquisition_read_toa_tot_s3##_##GEN(acq); break; \
+            case 4:  (res) = acquisition_read_toa_tot_s4##_##GEN(acq); break; \
+            case 5:  (res) = acquisition_read_toa_tot_s5##_##GEN(acq); break; \
+            default: (res) = KATHERINE_E_INVAL; break; \
+            } \
+        } \
+        break; \
+    case KATHERINE_TPX3_PX_ONLY_TOA: \
+        if ((acq)->fast_vco_enabled) { \
+            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            case 2:  (res) = acquisition_read_f_toa_only_s2##_##GEN(acq); break; \
+            case 3:  (res) = acquisition_read_f_toa_only_s3##_##GEN(acq); break; \
+            case 4:  (res) = acquisition_read_f_toa_only_s4##_##GEN(acq); break; \
+            case 5:  (res) = acquisition_read_f_toa_only_s5##_##GEN(acq); break; \
+            default: (res) = KATHERINE_E_INVAL; break; \
+            } \
+        } else { \
+            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            case 2:  (res) = acquisition_read_toa_only_s2##_##GEN(acq); break; \
+            case 3:  (res) = acquisition_read_toa_only_s3##_##GEN(acq); break; \
+            case 4:  (res) = acquisition_read_toa_only_s4##_##GEN(acq); break; \
+            case 5:  (res) = acquisition_read_toa_only_s5##_##GEN(acq); break; \
+            default: (res) = KATHERINE_E_INVAL; break; \
+            } \
+        } \
+        break; \
+    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT: \
+        if ((acq)->fast_vco_enabled) { \
+            (res) = acquisition_read_f_event_count_itot##_##GEN(acq); \
+        } else { \
+            (res) = acquisition_read_event_count_itot##_##GEN(acq); \
+        } \
+        break; \
+    default: \
+        (res) = KATHERINE_E_INVAL; \
+        break; \
+    }
+
+/**
  * Read measurement data from acquisition.
  *
  * Returns once the acquisition leaves the running state, whether it finished,
@@ -640,64 +819,17 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
 
-    // Two dimensions here, not one: the pixel format, and the pixel-clock
-    // divider the timestamp decoders are instantiated over. A divider outside
-    // the set means the acquisition never went through
-    // katherine_acquisition_begin(), and is refused rather than guessed --
-    // guessing would misscale every timestamp in the run.
-    switch (acq->px_mode) {
-    case KATHERINE_TPX3_PX_TOA_TOT:
-        if (acq->fast_vco_enabled) {
-            switch (acq->toa_coarse_tick_to_fine_shift) {
-            case 2:  res = acquisition_read_f_toa_tot_s2(acq); break;
-            case 3:  res = acquisition_read_f_toa_tot_s3(acq); break;
-            case 4:  res = acquisition_read_f_toa_tot_s4(acq); break;
-            case 5:  res = acquisition_read_f_toa_tot_s5(acq); break;
-            default: res = KATHERINE_E_INVAL; break;
-            }
-        } else {
-            switch (acq->toa_coarse_tick_to_fine_shift) {
-            case 2:  res = acquisition_read_toa_tot_s2(acq); break;
-            case 3:  res = acquisition_read_toa_tot_s3(acq); break;
-            case 4:  res = acquisition_read_toa_tot_s4(acq); break;
-            case 5:  res = acquisition_read_toa_tot_s5(acq); break;
-            default: res = KATHERINE_E_INVAL; break;
-            }
-        }
-        break;
 
-    case KATHERINE_TPX3_PX_ONLY_TOA:
-        if (acq->fast_vco_enabled) {
-            switch (acq->toa_coarse_tick_to_fine_shift) {
-            case 2:  res = acquisition_read_f_toa_only_s2(acq); break;
-            case 3:  res = acquisition_read_f_toa_only_s3(acq); break;
-            case 4:  res = acquisition_read_f_toa_only_s4(acq); break;
-            case 5:  res = acquisition_read_f_toa_only_s5(acq); break;
-            default: res = KATHERINE_E_INVAL; break;
-            }
-        } else {
-            switch (acq->toa_coarse_tick_to_fine_shift) {
-            case 2:  res = acquisition_read_toa_only_s2(acq); break;
-            case 3:  res = acquisition_read_toa_only_s3(acq); break;
-            case 4:  res = acquisition_read_toa_only_s4(acq); break;
-            case 5:  res = acquisition_read_toa_only_s5(acq); break;
-            default: res = KATHERINE_E_INVAL; break;
-            }
-        }
-        break;
-
-    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT:
-        if (acq->fast_vco_enabled) {
-            res = acquisition_read_f_event_count_itot(acq);
-        } else {
-            res = acquisition_read_event_count_itot(acq);
-        }
-        break;
-
-    default:
-        res = KATHERINE_E_INVAL;
-        break;
+    /* A readout that never answered the enumeration probe reports generation 0
+       and is decoded as Gen1, which is what every readout this library drove
+       before Gen2 was recognized. */
+    if (acq->device->device_info.gen >= 2) {
+        ACQ_DISPATCH(acq, res, GEN2);
+    } else {
+        ACQ_DISPATCH(acq, res, GEN1);
     }
+
+#undef ACQ_DISPATCH
 
     // One exit for every mode and every outcome, the aborted and timed-out
     // ones included, so the device stops reporting a measurement in flight
