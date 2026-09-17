@@ -23,6 +23,7 @@ empty_method(void)
 #ifdef KATHERINE_WIN
 
 #include <errno.h>
+#include <limits.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <katherine/error.h>
@@ -383,6 +384,16 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
         }
     }
 
+    {
+        // Increase receive buffer size because the default one is too small to handle bursts of hits.
+        const int bytes = KATHERINE_UDP_RCVBUF_DEFAULT;
+        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, (const char *) &bytes, sizeof(bytes)) == SOCKET_ERROR) {
+            u->last_os_error = WSAGetLastError();
+            res              = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
+            goto err_rcvbuf;
+        }
+    }
+
     // Set remote socket address.
     u->addr_remote.sin_family = AF_INET;
     u->addr_remote.sin_port   = htons(remote_port);
@@ -407,6 +418,7 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
 
 err_mutex:
 err_remote:
+err_rcvbuf:
 err_timeout:
 err_bind:
 err_local_addr:
@@ -804,6 +816,107 @@ int
 katherine_udp_last_os_error(const katherine_udp_t *u)
 {
     return u->last_os_error;
+}
+
+/**
+ * Choose how much the OS queues for a session before it discards a datagram
+ * that arrived and has not been read yet.
+ *
+ * Sessions open with KATHERINE_UDP_RCVBUF_DEFAULT, which that macro justifies;
+ * this is for a caller who knows their data rate, or their stalls, better.
+ * Raising it after an acquisition has begun is allowed and takes effect for
+ * datagrams not yet queued, but the datagrams already lost cannot be asked for
+ * again, so a caller sizing for a known burst should do it beforehand.
+ *
+ * The request is advisory and succeeds either way, which is what
+ * katherine_udp_rcvbuf() is for: Winsock may grant less than was asked, and it
+ * may account the total differently from the payload it holds. It applies no
+ * administrative ceiling of the POSIX kind, and it does not double the request
+ * as Linux does, so a reading here is closer to what was asked for.
+ *
+ * \param u UDP session
+ * \param bytes Requested queue size; 0 asks for the OS minimum rather than
+ *   leaving the size alone
+ *
+ * \retval KATHERINE_E_OK on success, including when the OS granted less than
+ *   was asked for.
+ * \retval KATHERINE_E_INVAL if the option or its size was rejected; see
+ *   WSAGetLastError() and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the request failed at the OS level for a reason
+ *   none of the other codes cover, or the handle is not an open socket; see
+ *   katherine_udp_last_os_error().
+ */
+katherine_error_t
+katherine_udp_set_rcvbuf(katherine_udp_t *u, uint32_t bytes)
+{
+    katherine_error_t res = 0;
+
+    // Signed, and narrower than the argument: the option is an int either way,
+    // so a request above INT_MAX is capped rather than wrapped to a negative
+    // one, which the OS would refuse for the wrong reason.
+    const int want = (bytes > (uint32_t) INT_MAX) ? INT_MAX : (int) bytes;
+
+    if (setsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, (const char *) &want, sizeof(want))
+        == SOCKET_ERROR) {
+        u->last_os_error = WSAGetLastError();
+        res              = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
+        goto err_setsockopt;
+    }
+
+    return KATHERINE_E_OK;
+
+err_setsockopt:
+    return res;
+}
+
+/**
+ * Read how much the OS is actually queueing for a session.
+ *
+ * Worth reading rather than assuming, since neither the default nor a request
+ * through katherine_udp_set_rcvbuf() is necessarily what was granted: the OS
+ * may clamp silently. This is how a caller learns it got less than it asked
+ * for, the only other symptom being lost measurement data.
+ *
+ * The number is the OS's own accounting, not a payload capacity. Unlike Linux,
+ * Winsock neither doubles the request nor applies an administrative ceiling, so
+ * a reading here is closer to what was asked for than the POSIX counterpart's.
+ *
+ * \param u UDP session
+ * \param bytes Where to store the size, in bytes
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if bytes is NULL, or the option or its size was
+ *   rejected; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the query failed at the OS level for a reason
+ *   none of the other codes cover, or the handle is not an open socket; see
+ *   katherine_udp_last_os_error().
+ */
+katherine_error_t
+katherine_udp_rcvbuf(const katherine_udp_t *u, uint32_t *bytes)
+{
+    katherine_error_t res = 0;
+
+    if (bytes == NULL) {
+        res = KATHERINE_E_INVAL;
+        goto err_bytes_null;
+    }
+
+    int got = 0;
+    int len = (int) sizeof(got);
+    if (getsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, (char *) &got, &len) == SOCKET_ERROR) {
+        res = katherine_udp_map_socket_error(WSAGetLastError(), KATHERINE_E_IO);
+        goto err_getsockopt;
+    }
+
+    // Negative is not a size the OS is documented to report, and a caller
+    // comparing an unsigned reading against its request must not be handed one.
+    *bytes = (got < 0) ? 0 : (uint32_t) got;
+
+    return KATHERINE_E_OK;
+
+err_getsockopt:
+err_bytes_null:
+    return res;
 }
 
 #endif /* KATHERINE_WIN */

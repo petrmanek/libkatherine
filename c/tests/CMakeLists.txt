@@ -97,6 +97,14 @@ endif()
 # threads, and none of the fixed ports that would make it RUN_SERIAL.
 katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit)
 
+# The receive queue a session asks the OS for: that the shipped default clears
+# one whole measurement datagram, that opening a session asks for more than the
+# OS floor, and that a request is clamped rather than refused. Asserts the
+# mechanism and never a byte count, since the size is host policy. Sockets, but
+# only through the public katherine_udp_* API and on uncommon high ports of its
+# own, like test_udp_pinning.c above.
+katherine_add_test(NAME test_udp_rcvbuf SOURCES test_udp_rcvbuf.c LABELS unit)
+
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
 # call sites unchanged and drives one real failure through each target of
 # its errno mapping, plus a success path. Sockets, but only through the

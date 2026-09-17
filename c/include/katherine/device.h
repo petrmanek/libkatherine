@@ -152,7 +152,6 @@ typedef enum katherine_device_flags {
 KATHERINE_EXPORTED katherine_error_t
 katherine_device_init(katherine_device_t *device, const char *addr, uint32_t flags);
 
-
 KATHERINE_EXPORTED void
 katherine_device_fini(katherine_device_t *device);
 

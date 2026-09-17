@@ -32,27 +32,18 @@
 // Uncomment the following line to enable network trace:
 // #define KATHERINE_DEBUG_UDP 2
 
-// Datagrams from another host that one receive call of a pinned session
-// (see katherine_udp_pin_remote()) discards before it gives up and reports
-// KATHERINE_E_TIMEOUT. Each discard rearms the socket's receive timeout, so
-// an unbounded loop would let a chatty stray source stretch a call of a
-// session with a 100 ms timeout for as long as it kept sending.
+/// The maximum number of consecutively discarded datagrams before a timeout
+/// condition is reported.
 #define KATHERINE_UDP_PIN_MAX_DISCARDS 32
+
+/// Initial size of a UDP receive buffer, as requested from the OS when the
+/// socket is first instantiated. The OS default is insufficiently small.
+#define KATHERINE_UDP_RCVBUF_DEFAULT   4194304
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * Render a UDP session: its local and remote endpoints (dotted-quad IPv4
- * address and port, hand-formatted -- no inet_ntop(), so this needs no
- * platform-specific include beyond what this header already pulls in),
- * whether its remote address is pinned (see katherine_udp_pin_remote()) and
- * its command-response correlation state (see
- * katherine_udp_set_strict_ack()). The socket handle and the mutex are
- * omitted: neither is meaningful in a log line, and the mutex additionally
- * has no portable readable state.
- */
 KATHERINE_EXPORTED int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);
 
@@ -92,10 +83,14 @@ katherine_udp_mutex_lock(katherine_udp_t *u);
 KATHERINE_EXPORTED katherine_error_t
 katherine_udp_mutex_unlock(katherine_udp_t *u);
 
-// The OS-level detail behind a session's last transport failure (0 if it
-// succeeded, or failed without one -- see katherine/error.h).
 KATHERINE_EXPORTED int
 katherine_udp_last_os_error(const katherine_udp_t *u);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_udp_set_rcvbuf(katherine_udp_t *u, uint32_t bytes);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_udp_rcvbuf(const katherine_udp_t *u, uint32_t *bytes);
 
 #ifdef __cplusplus
 }
