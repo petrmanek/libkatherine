@@ -73,7 +73,8 @@
 
 #define DEFINE_PMD_MAP(SUFFIX) \
     static inline void \
-    pmd_##SUFFIX##_map(katherine_px_##SUFFIX##_t *dst, const uint64_t *src, const katherine_acquisition_t *acq)
+    pmd_##SUFFIX##_map(katherine_px_##SUFFIX##_t *dst, const uint64_t *src, \
+        const katherine_acquisition_t *acq, uint8_t chip)
 
 // Timestamp-bearing decoders are instantiated once per pixel-clock divider, so
 // the coarse-to-fine scale is a constant the compiler can see. Reading it from
@@ -83,8 +84,8 @@
 // the set is closed.
 #define DEFINE_PMD_MAP_S(SUFFIX, SHIFT) \
     static inline void \
-    pmd_##SUFFIX##_s##SHIFT##_map( \
-        katherine_px_##SUFFIX##_t *dst, const uint64_t *src, const katherine_acquisition_t *acq)
+    pmd_##SUFFIX##_s##SHIFT##_map(katherine_px_##SUFFIX##_t *dst, const uint64_t *src, \
+        const katherine_acquisition_t *acq, uint8_t chip)
 
 #define DEFINE_PMD_MAP_EVERY_SHIFT(M) \
     M(2) \
@@ -126,6 +127,13 @@
     dst->timestamp = (((uint64_t) EXTRACT(*src, BASE_TYPE, toa) << (SHIFT)) + acq->last_toa_offset) \
         - (uint64_t) (FTOA) + acq->phase_offsets[dst->coord.x]
 
+// The chip is not in the word: on the readouts that carry more than one it is
+// the measurement-data header, which the decode loop has already extracted, so
+// it arrives as an argument. Single-header readouts pass a constant the
+// compiler folds away.
+#define DEFINE_PMD_PAIR_CHIP() \
+    dst->chip = chip
+
 #define DEFINE_PMD_PAIR_COORD(BASE_TYPE) \
     { \
         dst->coord.x = (uint8_t) EXTRACT(*src, BASE_TYPE, coord_x); \
@@ -162,6 +170,7 @@
 #define DEFINE_PMD_MAP_F_TOA_TOT(SHIFT) \
     DEFINE_PMD_MAP_S(f_toa_tot, SHIFT) \
     { \
+        DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_f_toa_tot); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_f_toa_tot, SHIFT, EXTRACT(*src, pmd_f_toa_tot, ftoa)); \
         DEFINE_PMD_PAIR(tot, uint16_t, pmd_f_toa_tot); \
@@ -191,6 +200,7 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_TOT)
 #define DEFINE_PMD_MAP_TOA_TOT(SHIFT) \
     DEFINE_PMD_MAP_S(toa_tot, SHIFT) \
     { \
+        DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_toa_tot); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_toa_tot, SHIFT, 0); \
         DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_tot); \
@@ -217,6 +227,7 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_TOA_TOT)
 #define DEFINE_PMD_MAP_F_TOA_ONLY(SHIFT) \
     DEFINE_PMD_MAP_S(f_toa_only, SHIFT) \
     { \
+        DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_f_toa_only); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_f_toa_only, SHIFT, EXTRACT(*src, pmd_f_toa_only, ftoa)); \
     }
@@ -241,6 +252,7 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
 #define DEFINE_PMD_MAP_TOA_ONLY(SHIFT) \
     DEFINE_PMD_MAP_S(toa_only, SHIFT) \
     { \
+        DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_toa_only); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_toa_only, SHIFT, 0); \
         DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_only); \
@@ -267,6 +279,7 @@ DEFINE_PMD_MAP(f_event_count_itot)
 {
     (void) acq;
 
+    DEFINE_PMD_PAIR_CHIP();
     DEFINE_PMD_PAIR_COORD(pmd_f_event_count_itot);
     DEFINE_PMD_PAIR(event_count, uint16_t, pmd_f_event_count_itot);
     DEFINE_PMD_PAIR(integral_tot, uint16_t, pmd_f_event_count_itot);
@@ -302,6 +315,7 @@ DEFINE_PMD_MAP(event_count_itot)
 {
     (void) acq;
 
+    DEFINE_PMD_PAIR_CHIP();
     DEFINE_PMD_PAIR_COORD(pmd_event_count_itot);
     DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_event_count_itot);
     DEFINE_PMD_PAIR(event_count, uint16_t, pmd_event_count_itot);

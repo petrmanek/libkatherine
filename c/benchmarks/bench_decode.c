@@ -161,7 +161,7 @@ build_canned_buffer(uint8_t *buf, size_t words)
             if (hdr == 0x4) { \
                 if (valid == max_valid) valid = 0; \
                 katherine_px_##SUFFIX##_t *dst = &slot[valid]; \
-                MAP(dst, &word, &acq); \
+                MAP(dst, &word, &acq, 0); \
                 acc += (CHECKSUM); \
                 ++valid; \
             } else { \

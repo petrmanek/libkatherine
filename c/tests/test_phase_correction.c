@@ -169,7 +169,7 @@ decode_one(const katherine_acquisition_t *acq, uint8_t x, uint16_t coarse, uint8
 
     katherine_px_f_toa_tot_t dst;
     memset(&dst, 0, sizeof(dst));
-    pmd_f_toa_tot_s4_map(&dst, &md, acq);
+    pmd_f_toa_tot_s4_map(&dst, &md, acq, 0 /* chip: single-header readout */);
     return dst.timestamp;
 }
 

@@ -346,7 +346,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 flush_buffer(acq); \
             } \
 \
-            MAP((katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid, md, acq); \
+            katherine_px_##SUFFIX##_t *px = \
+                (katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid; \
+\
+            MAP(px, md, acq, 0); \
+\
             ++acq->pixel_buffer_valid; \
         } else { \
             switch (hdr) { \

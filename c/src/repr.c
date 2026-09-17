@@ -266,7 +266,7 @@ int
 katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_f_toa_tot{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_f_toa_tot{chip: %u, coord: ", (unsigned) v->chip);
     REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(
         buf, cap, off, ", timestamp: %llu, tot: %u}", (unsigned long long) v->timestamp, (unsigned) v->tot);
@@ -278,7 +278,7 @@ int
 katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_toa_tot{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_toa_tot{chip: %u, coord: ", (unsigned) v->chip);
     REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(
         buf, cap, off, ", timestamp: %llu, hit_count: %u, tot: %u}", (unsigned long long) v->timestamp, (unsigned) v->hit_count,
@@ -291,7 +291,7 @@ int
 katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_f_toa_only{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_f_toa_only{chip: %u, coord: ", (unsigned) v->chip);
     REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", timestamp: %llu}", (unsigned long long) v->timestamp);
     return (int) off;
@@ -302,7 +302,7 @@ int
 katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_toa_only{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_toa_only{chip: %u, coord: ", (unsigned) v->chip);
     REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", timestamp: %llu, hit_count: %u}", (unsigned long long) v->timestamp, (unsigned) v->hit_count);
     return (int) off;
@@ -313,7 +313,7 @@ int
 katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_f_event_count_itot{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_f_event_count_itot{chip: %u, coord: ", (unsigned) v->chip);
     REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", event_count: %u, integral_tot: %u}", (unsigned) v->event_count,
         (unsigned) v->integral_tot);
@@ -325,7 +325,7 @@ int
 katherine_px_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_event_count_itot_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "px_event_count_itot{coord: ");
+    REPR_APPENDF(buf, cap, off, "px_event_count_itot{chip: %u, coord: ", (unsigned) v->chip);
     REPR_NEST(buf, cap, off, katherine_tpx3_coord_snprint, &v->coord);
     REPR_APPENDF(buf, cap, off, ", hit_count: %u, event_count: %u, integral_tot: %u}", (unsigned) v->hit_count,
         (unsigned) v->event_count, (unsigned) v->integral_tot);

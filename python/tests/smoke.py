@@ -500,12 +500,12 @@ def check_pixel_types(tap, katherine):
     wrong kind of value, and neither compiles into a failure anywhere else.
     """
     fields = {
-        'PxToaTot':             ['x', 'y', 'timestamp', 'hit_count', 'tot'],
-        'PxFastToaTot':         ['x', 'y', 'timestamp', 'tot'],
-        'PxToaOnly':            ['x', 'y', 'timestamp', 'hit_count'],
-        'PxFastToaOnly':        ['x', 'y', 'timestamp'],
-        'PxEventCountItot':     ['x', 'y', 'hit_count', 'event_count', 'integral_tot'],
-        'PxFastEventCountItot': ['x', 'y', 'event_count', 'integral_tot'],
+        'PxToaTot':             ['chip', 'x', 'y', 'timestamp', 'hit_count', 'tot'],
+        'PxFastToaTot':         ['chip', 'x', 'y', 'timestamp', 'tot'],
+        'PxToaOnly':            ['chip', 'x', 'y', 'timestamp', 'hit_count'],
+        'PxFastToaOnly':        ['chip', 'x', 'y', 'timestamp'],
+        'PxEventCountItot':     ['chip', 'x', 'y', 'hit_count', 'event_count', 'integral_tot'],
+        'PxFastEventCountItot': ['chip', 'x', 'y', 'event_count', 'integral_tot'],
     }
     for name, names in fields.items():
         cls = getattr(katherine, name)

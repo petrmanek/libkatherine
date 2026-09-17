@@ -50,55 +50,58 @@ test_coord(void)
 static void
 test_px_f_toa_tot(void)
 {
-    katherine_px_f_toa_tot_t v = {{1, 2}, 123456789012ULL, 300};
+    katherine_px_f_toa_tot_t v = {.chip = 0, .coord = {1, 2}, .timestamp = 123456789012ULL, .tot = 300};
     char buf[128];
     int n = katherine_px_f_toa_tot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_f_toa_tot{coord: coord{x: 1, y: 2}, timestamp: 123456789012, tot: 300}");
+    CHECK_GOLDEN(n, buf, "px_f_toa_tot{chip: 0, coord: coord{x: 1, y: 2}, timestamp: 123456789012, tot: 300}");
 }
 
 static void
 test_px_toa_tot(void)
 {
-    katherine_px_toa_tot_t v = {{3, 4}, 999999999999ULL, 9, 65000};
+    katherine_px_toa_tot_t v = {
+        .chip = 1, .coord = {3, 4}, .timestamp = 999999999999ULL, .hit_count = 9, .tot = 65000};
     char buf[128];
     int n = katherine_px_toa_tot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_toa_tot{coord: coord{x: 3, y: 4}, timestamp: 999999999999, hit_count: 9, tot: 65000}");
+    CHECK_GOLDEN(n, buf, "px_toa_tot{chip: 1, coord: coord{x: 3, y: 4}, timestamp: 999999999999, hit_count: 9, tot: 65000}");
 }
 
 static void
 test_px_f_toa_only(void)
 {
-    katherine_px_f_toa_only_t v = {{5, 6}, 42};
+    katherine_px_f_toa_only_t v = {.chip = 2, .coord = {5, 6}, .timestamp = 42};
     char buf[128];
     int n = katherine_px_f_toa_only_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_f_toa_only{coord: coord{x: 5, y: 6}, timestamp: 42}");
+    CHECK_GOLDEN(n, buf, "px_f_toa_only{chip: 2, coord: coord{x: 5, y: 6}, timestamp: 42}");
 }
 
 static void
 test_px_toa_only(void)
 {
-    katherine_px_toa_only_t v = {{7, 8}, 84, 3};
+    katherine_px_toa_only_t v = {.chip = 3, .coord = {7, 8}, .timestamp = 84, .hit_count = 3};
     char buf[128];
     int n = katherine_px_toa_only_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_toa_only{coord: coord{x: 7, y: 8}, timestamp: 84, hit_count: 3}");
+    CHECK_GOLDEN(n, buf, "px_toa_only{chip: 3, coord: coord{x: 7, y: 8}, timestamp: 84, hit_count: 3}");
 }
 
 static void
 test_px_f_event_count_itot(void)
 {
-    katherine_px_f_event_count_itot_t v = {{9, 10}, 11, 222};
+    katherine_px_f_event_count_itot_t v = {
+        .chip = 0, .coord = {9, 10}, .event_count = 11, .integral_tot = 222};
     char buf[128];
     int n = katherine_px_f_event_count_itot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_f_event_count_itot{coord: coord{x: 9, y: 10}, event_count: 11, integral_tot: 222}");
+    CHECK_GOLDEN(n, buf, "px_f_event_count_itot{chip: 0, coord: coord{x: 9, y: 10}, event_count: 11, integral_tot: 222}");
 }
 
 static void
 test_px_event_count_itot(void)
 {
-    katherine_px_event_count_itot_t v = {{11, 12}, 5, 33, 444};
+    katherine_px_event_count_itot_t v = {
+        .chip = 7, .coord = {11, 12}, .hit_count = 5, .event_count = 33, .integral_tot = 444};
     char buf[128];
     int n = katherine_px_event_count_itot_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "px_event_count_itot{coord: coord{x: 11, y: 12}, hit_count: 5, event_count: 33, integral_tot: 444}");
+    CHECK_GOLDEN(n, buf, "px_event_count_itot{chip: 7, coord: coord{x: 11, y: 12}, hit_count: 5, event_count: 33, integral_tot: 444}");
 }
 
 // Both bool states, across the two triggers used again in test_config().

@@ -53,11 +53,12 @@ extern "C" {
 //
 // The epoch is offset by the larger of one coarse tick and the fine field's
 // span of 16 ticks -- so 50/25/25/25 ns by the frequency, one coarse tick only
-// where a coarse tick is itself at least that wide. This is deliberate and must not be removed: the fine counter is
-// subtracted from the coarse one, which would underflow for a hit in the very
-// first coarse tick after an offset reset, and an unsigned wrap there produces
-// a timestamp some 914 years in the future rather than a slightly early one.
-// Biasing the epoch makes that unrepresentable at no per-hit cost.
+// where a coarse tick is itself at least that wide. This is deliberate and
+// must not be removed: the fine counter is subtracted from the coarse one,
+// which would underflow for a hit in the very first coarse tick after an
+// offset reset, and an unsigned wrap there produces a timestamp some 914 years
+// in the future rather than a slightly early one. Biasing the epoch makes that
+// unrepresentable at no per-hit cost.
 //
 // Differences between timestamps are therefore exact, and every absolute value
 // carries the same constant offset. Two consequences worth knowing:
@@ -83,11 +84,12 @@ extern "C" {
 // quantity it names rather than as a counter state. Measured on a Gen1 readout
 // with test pulses, where the injected charge and the number of pulses are both
 // chosen:
-// event_count reads exactly the pulse count (1, 3, 7, 20 and 100 reproduced);
-// hit_count likewise, up to its saturation;
-// integral_tot is linear in the pulse count at fixed amplitude, 17.0 per
-// pulse across a twentyfold range;
-// tot is linear in amplitude, about 0.050 per mV from 110 mV to 610 mV.
+//   event_count reads exactly the pulse count (1, 3, 7, 20 and 100
+//     reproduced);
+//   hit_count likewise, up to its saturation;
+//   integral_tot is linear in the pulse count at fixed amplitude, 17.0 per
+//     pulse across a twentyfold range;
+//   tot is linear in amplitude, about 0.050 per mV from 110 mV to 610 mV.
 // The last two agree with each other, integral_tot for a single pulse matching
 // tot for the same pulse, which is what an integral of ToT should do.
 // Saturation values (Table 4): tot and integral_tot at 1022, the 4-bit
@@ -106,36 +108,40 @@ KATHERINE_EXPORTED int
 katherine_tpx3_coord_snprint(char *buf, size_t cap, const katherine_tpx3_coord_t *v);
 
 typedef struct katherine_px_f_toa_tot {
-    katherine_tpx3_coord_t coord;
-    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
-    uint16_t tot;       ///< Decoded time over threshold; see the file header
+    uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
+    katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
+    uint64_t timestamp;           ///< Fine-oscillator ticks; see the file header
+    uint16_t tot;                 ///< Decoded time over threshold; see the file header
 } katherine_px_f_toa_tot_t;
 
 KATHERINE_EXPORTED int
 katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v);
 
 typedef struct katherine_px_toa_tot {
-    katherine_tpx3_coord_t coord;
-    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
-    uint8_t hit_count;  ///< Decoded pixel hit counter, saturating at 14 (Table 4)
-    uint16_t tot;       ///< Decoded time over threshold; see the file header
+    uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
+    katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
+    uint64_t timestamp;           ///< Fine-oscillator ticks; see the file header
+    uint8_t hit_count;            ///< Decoded pixel hit counter, saturating at 14 (Table 4)
+    uint16_t tot;                 ///< Decoded time over threshold; see the file header
 } katherine_px_toa_tot_t;
 
 KATHERINE_EXPORTED int
 katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v);
 
 typedef struct katherine_px_f_toa_only {
-    katherine_tpx3_coord_t coord;
-    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
+    uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
+    katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
+    uint64_t timestamp;           ///< Fine-oscillator ticks; see the file header
 } katherine_px_f_toa_only_t;
 
 KATHERINE_EXPORTED int
 katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v);
 
 typedef struct katherine_px_toa_only {
-    katherine_tpx3_coord_t coord;
-    uint64_t timestamp; ///< Fine-oscillator ticks; see the file header
-    uint8_t hit_count;  ///< Decoded pixel hit counter, saturating at 14 (Table 4)
+    uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
+    katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
+    uint64_t timestamp;           ///< Fine-oscillator ticks; see the file header
+    uint8_t hit_count;            ///< Decoded pixel hit counter, saturating at 14 (Table 4)
 } katherine_px_toa_only_t;
 
 KATHERINE_EXPORTED int
@@ -147,19 +153,21 @@ katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only
 // report. Confirmed on a Gen1 readout: over 3012 pixels at high occupancy the
 // field read zero throughout while the event counter saturated.
 typedef struct katherine_px_f_event_count_itot {
-    katherine_tpx3_coord_t coord;
-    uint16_t event_count;  ///< Decoded event count; see the file header
-    uint16_t integral_tot; ///< Decoded integral of time over threshold; see the file header
+    uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
+    katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
+    uint16_t event_count;         ///< Decoded event count; see the file header
+    uint16_t integral_tot;        ///< Decoded integral of time over threshold; see the file header
 } katherine_px_f_event_count_itot_t;
 
 KATHERINE_EXPORTED int
 katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v);
 
 typedef struct katherine_px_event_count_itot {
-    katherine_tpx3_coord_t coord;
-    uint8_t hit_count;     ///< Decoded pixel hit counter, saturating at 14 (Table 4)
-    uint16_t event_count;  ///< Decoded event count; see the file header
-    uint16_t integral_tot; ///< Decoded integral of time over threshold; see the file header
+    uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
+    katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
+    uint8_t hit_count;            ///< Decoded pixel hit counter, saturating at 14 (Table 4)
+    uint16_t event_count;         ///< Decoded event count; see the file header
+    uint16_t integral_tot;        ///< Decoded integral of time over threshold; see the file header
 } katherine_px_event_count_itot_t;
 
 KATHERINE_EXPORTED int

@@ -998,6 +998,10 @@ cdef class PxFastToaTot:
        return sizeof(cpx.katherine_px_f_toa_tot_t)
 
     @property
+    def chip(self):
+       return self._c_px.chip
+
+    @property
     def x(self):
        return self._c_px.coord.x
 
@@ -1027,6 +1031,10 @@ cdef class PxToaTot:
     @staticmethod
     def RAW_SIZE():
        return sizeof(cpx.katherine_px_toa_tot_t)
+
+    @property
+    def chip(self):
+       return self._c_px.chip
 
     @property
     def x(self):
@@ -1064,6 +1072,10 @@ cdef class PxFastToaOnly:
        return sizeof(cpx.katherine_px_f_toa_only_t)
 
     @property
+    def chip(self):
+       return self._c_px.chip
+
+    @property
     def x(self):
        return self._c_px.coord.x
 
@@ -1089,6 +1101,10 @@ cdef class PxToaOnly:
     @staticmethod
     def RAW_SIZE():
        return sizeof(cpx.katherine_px_toa_only_t)
+
+    @property
+    def chip(self):
+       return self._c_px.chip
 
     @property
     def x(self):
@@ -1122,6 +1138,10 @@ cdef class PxFastEventCountItot:
        return sizeof(cpx.katherine_px_f_event_count_itot_t)
 
     @property
+    def chip(self):
+       return self._c_px.chip
+
+    @property
     def x(self):
        return self._c_px.coord.x
 
@@ -1151,6 +1171,10 @@ cdef class PxEventCountItot:
     @staticmethod
     def RAW_SIZE():
        return sizeof(cpx.katherine_px_event_count_itot_t)
+
+    @property
+    def chip(self):
+       return self._c_px.chip
 
     @property
     def x(self):

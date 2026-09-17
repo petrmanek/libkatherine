@@ -16,6 +16,7 @@ cdef extern from 'katherine/px.h':
     int katherine_tpx3_coord_snprint(char *buf, size_t cap, const katherine_tpx3_coord_t *v)
 
     ctypedef struct katherine_px_f_toa_tot_t:
+        uint8_t chip
         katherine_tpx3_coord_t coord
         uint64_t timestamp
         uint16_t tot
@@ -23,6 +24,7 @@ cdef extern from 'katherine/px.h':
     int katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v)
 
     ctypedef struct katherine_px_toa_tot_t:
+        uint8_t chip
         katherine_tpx3_coord_t coord
         uint64_t timestamp
         uint8_t hit_count
@@ -31,12 +33,14 @@ cdef extern from 'katherine/px.h':
     int katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v)
 
     ctypedef struct katherine_px_f_toa_only_t:
+        uint8_t chip
         katherine_tpx3_coord_t coord
         uint64_t timestamp
 
     int katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v)
 
     ctypedef struct katherine_px_toa_only_t:
+        uint8_t chip
         katherine_tpx3_coord_t coord
         uint64_t timestamp
         uint8_t hit_count
@@ -44,6 +48,7 @@ cdef extern from 'katherine/px.h':
     int katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v)
 
     ctypedef struct katherine_px_f_event_count_itot_t:
+        uint8_t chip
         katherine_tpx3_coord_t coord
         uint16_t event_count
         uint16_t integral_tot
@@ -51,6 +56,7 @@ cdef extern from 'katherine/px.h':
     int katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v)
 
     ctypedef struct katherine_px_event_count_itot_t:
+        uint8_t chip
         katherine_tpx3_coord_t coord
         uint8_t hit_count
         uint16_t event_count

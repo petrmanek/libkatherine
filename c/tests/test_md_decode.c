@@ -304,10 +304,10 @@ combine_f_toa_tot(uint16_t coarse, uint8_t ftoa, uint64_t offset, uint8_t fine_s
     katherine_px_f_toa_tot_t dst;
     memset(&dst, 0, sizeof(dst));
     switch (fine_shift) {
-    case 2:  pmd_f_toa_tot_s2_map(&dst, &md, &acq); break;
-    case 3:  pmd_f_toa_tot_s3_map(&dst, &md, &acq); break;
-    case 4:  pmd_f_toa_tot_s4_map(&dst, &md, &acq); break;
-    case 5:  pmd_f_toa_tot_s5_map(&dst, &md, &acq); break;
+    case 2:  pmd_f_toa_tot_s2_map(&dst, &md, &acq, 0); break;
+    case 3:  pmd_f_toa_tot_s3_map(&dst, &md, &acq, 0); break;
+    case 4:  pmd_f_toa_tot_s4_map(&dst, &md, &acq, 0); break;
+    case 5:  pmd_f_toa_tot_s5_map(&dst, &md, &acq, 0); break;
     default: KT_CHECK(false); return 0;
     }
     return dst.timestamp;
