@@ -11,7 +11,7 @@ katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
 # threads, builds everywhere -- same shape as test_bitfields above.
 katherine_add_test(NAME test_dacs_validate SOURCES test_dacs_validate.c LABELS unit)
 
-# The bias DACs' ranges and SI conversion, both transcribed from the Timepix3
+# Timepix3's DAC ranges and SI conversion, both transcribed from its
 # manual: Table 11's field widths and Table 28's steps. Pure arithmetic over a
 # static table, so it needs nothing.
 katherine_add_test(NAME test_dacs_metadata SOURCES test_dacs_metadata.c LABELS unit)

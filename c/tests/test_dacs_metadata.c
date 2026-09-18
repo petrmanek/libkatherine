@@ -1,6 +1,6 @@
 /**
  * \file
- * \brief The bias DACs' ranges and their conversion to SI units.
+ * \brief The Timepix3 DACs' ranges and their conversion to SI units.
  *
  * Two tables of the Timepix3 manual are transcribed into the library: Table
  * 11's "DAC Value" column widths, which give each DAC its maximum, and Table

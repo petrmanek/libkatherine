@@ -1405,7 +1405,7 @@ katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v)
 }
 
 /**
- * Name of a bias DAC, as the Tpx3 manual spells it.
+ * Name of a Timepix3 DAC, as its manual spells it.
  * \param dac DAC to name
  * \return Null-terminated string, owned by the library. "unknown" for a value
  *   outside the enumeration.
@@ -1419,7 +1419,7 @@ katherine_tpx3_dac_name(katherine_tpx3_dac_t dac)
 }
 
 /**
- * Largest value a bias DAC accepts.
+ * Largest value a Timepix3 DAC accepts.
  * \param dac DAC to ask about
  * \return The maximum, inclusive: a setting equal to it is valid and
  *   katherine_tpx3_dacs_validate() accepts it, one above it is rejected. 0 for a
@@ -1434,7 +1434,7 @@ katherine_tpx3_dac_max(katherine_tpx3_dac_t dac)
 }
 
 /**
- * Convert a bias DAC setting to SI units.
+ * Convert a Timepix3 DAC setting to SI units.
  *
  * Nominal, not calibrated: these are the design figures of Tpx3 manual
  * Table 28, and a real chip departs from them, which is why per-chip

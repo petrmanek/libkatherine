@@ -74,12 +74,12 @@ KATHERINE_EXPORTED int
 katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v);
 
 
-/** Number of bias DACs the chip carries. */
+/** Number of DACs a Timepix3 carries. */
 #define KATHERINE_TPX3_DAC_COUNT 18
 
 /**
- * The chip's eighteen bias DACs, named as the Timepix3 manual names them
- * (Table 11) and ordered as it codes them.
+ * Timepix3's eighteen DACs, named as its manual names them (Table 11) and
+ * ordered as it codes them.
  *
  * This is where the DACs are described; everything else that names one refers
  * here. Every field is a raw DAC setting, not a physical quantity: what each
@@ -131,7 +131,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v);
 
 /**
- * The eighteen bias DACs, in katherine_tpx3_dacs_named_t and
+ * Timepix3's eighteen DACs, in katherine_tpx3_dacs_named_t and
  * katherine_tpx3_dacs_t::array order. That order is the chip's own DAC Code
  * (Timepix3 manual Table 11) minus one.
  *

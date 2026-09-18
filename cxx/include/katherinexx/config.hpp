@@ -57,7 +57,7 @@ enum class polarity : int {
 namespace tpx3 {
 
 /**
- * The chip's bias DACs. Namespaced because which DACs exist, how wide each
+ * Timepix3's DACs. Namespaced because which DACs exist, how wide each
  * is and what it biases are all Timepix3's; a second ASIC brings its own.
  */
 using dacs = katherine_tpx3_dacs_t;

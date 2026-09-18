@@ -624,7 +624,7 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 // is namespaced in 2.0 because its width is Timepix3's: a byte per axis suits
 // a 256 x 256 matrix and not Timepix4's 448 x 512, and widening it for every
 // ASIC would cost each Timepix2 and Timepix3 hit two bytes it cannot use.
-// The bias DACs, namespaced in 2.0 because which DACs exist, how wide each
+// Timepix3's DACs, namespaced in 2.0 because which DACs exist, how wide each
 // is and what it biases are all Timepix3's. The struct tags, both typedefs
 // and the two functions all shipped in 1.x.
 #define katherine_dacs                        katherine_tpx3_dacs
