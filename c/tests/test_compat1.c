@@ -201,6 +201,97 @@ test_coord_keeps_its_1x_spellings(void)
 }
 
 // ------------------------------------------------------------------
+// The function-like aliases: every 1.x call spelling, named once each.
+//
+// Compile-time only, with an arity to get wrong as well as a target: an alias
+// that expands to the wrong function or takes the wrong number of arguments is
+// a build failure here and nowhere else, because nothing else in the tree
+// spells these names. Most of them need a readout, so none of the calls is
+// allowed to run -- the branch is guarded by a volatile the compiler cannot
+// fold, which keeps the bodies type-checked without making them unreachable
+// code MSVC would warn about.
+//
+// The emulator's four aliases are absent: the shim defines them only when
+// katherine/emulator.h precedes it, and naming them here would need this test
+// to link against an optional build feature. Forty-six of the fifty remain.
+static void
+test_function_aliases(void)
+{
+    static volatile int never = 0;
+
+    // Zeroed so that nothing is read uninitialised even in principle.
+    katherine_device_t dev           = {0};
+    katherine_udp_t udp              = {0};
+    katherine_acquisition_t acq      = {0};
+    katherine_px_config_t px         = {0};
+    katherine_config_t cfg           = {0};
+    katherine_tpx3_dacs_t dacs       = {0};
+    katherine_trigger_t trg          = {0};
+    katherine_test_pulse_config_t tp = {0};
+    katherine_bmc_t bmc              = {0};
+    katherine_bpc_t bpc              = {0};
+    katherine_readout_status_t rs    = {0};
+    katherine_comm_status_t cs       = {0};
+    katherine_tpx3_coord_t crd       = {0};
+    char cbuf[64]                    = {0};
+    unsigned char vbuf[64]           = {0};
+    size_t sz                        = 0;
+    float f                          = 0.0f;
+
+    if (never) {
+        (void) katherine_acquisition_abort(&acq);
+        (void) katherine_acquisition_begin(&acq, &cfg, KATHERINE_TPX3_READOUT_SEQUENTIAL, KATHERINE_TPX3_PX_TOA_TOT, false, false);
+        (void) katherine_acquisition_init(&acq, &dev, vbuf, 0, 0, 0, 0);
+        (void) katherine_acquisition_read(&acq);
+        (void) katherine_acquisition_setup(&dev, &trg, false, &trg);
+        (void) katherine_acquisition_stop(&acq);
+        (void) katherine_configure(&dev, &cfg);
+        (void) katherine_dacs_snprint(cbuf, 0, &dacs);
+        (void) katherine_dacs_validate(&dacs);
+        (void) katherine_device_init(&dev, "x");
+        (void) katherine_get_adc_voltage(&dev, 0, &f);
+        (void) katherine_get_chip_id(&dev, cbuf);
+        (void) katherine_get_comm_status(&dev, &cs);
+        (void) katherine_get_readout_status(&dev, &rs);
+        (void) katherine_get_readout_temperature(&dev, &f);
+        (void) katherine_get_sensor_temperature(&dev, &f);
+        (void) katherine_output_block_config_update(&dev);
+        (void) katherine_perform_digital_test(&dev);
+        (void) katherine_px_config_load_bmc_data(&px, &bmc);
+        (void) katherine_px_config_load_bmc_file(&px, "x");
+        (void) katherine_px_config_load_bpc_data(&px, &bpc);
+        (void) katherine_px_config_load_bpc_file(&px, "x");
+        (void) katherine_set_acq_mode(&dev, KATHERINE_TPX3_PX_TOA_TOT, false);
+        (void) katherine_set_acq_time(&dev, 0.0);
+        (void) katherine_set_all_pixel_config(&dev, &px);
+        (void) katherine_set_bias(&dev, 0, 0.0f);
+        (void) katherine_set_dacs(&dev, &dacs);
+        (void) katherine_set_no_frames(&dev, 0);
+        (void) katherine_set_sensor_register(&dev, 0, 0);
+        (void) katherine_set_seq_readout_start(&dev, 0);
+        (void) katherine_set_test_pulses(&dev, &tp);
+        (void) katherine_str_acquisition_mode(KATHERINE_TPX3_PX_TOA_TOT);
+        (void) katherine_str_acquisition_status(KATHERINE_ACQUISITION_STATE_NOT_STARTED);
+        (void) katherine_str_readout_type(KATHERINE_TPX3_READOUT_SEQUENTIAL);
+        (void) katherine_timer_set(&dev);
+        (void) katherine_tpx3_dacs_validate(&dacs);
+        (void) katherine_udp_init(&udp, 0, "x", 0, 0);
+        (void) katherine_udp_init_bound(&udp, "x", 0, "x", 0, 0);
+        (void) katherine_udp_mutex_lock(&udp);
+        (void) katherine_udp_mutex_unlock(&udp);
+        (void) katherine_udp_recv(&udp, vbuf, &sz);
+        (void) katherine_udp_recv_exact(&udp, vbuf, 0);
+        (void) katherine_udp_send_exact(&udp, vbuf, 0);
+        (void) katherine_udp_set_remote(&udp, "x", 0);
+        (void) katherine_update_sensor_registers(&dev);
+        (void) katherine_coord_snprint(cbuf, 0, &crd);
+    }
+
+    // Reaching here is the whole result: the file compiled with every 1.x
+    // spelling named at its 1.x arity.
+    KT_CHECK_EQ(never, 0);
+}
+
 // The object-like aliases: the renamed types, enumerators and one struct
 // field, under their 1.x spellings.
 //
@@ -324,6 +415,7 @@ main(void)
     KT_RUN(test_dacs_validate_success);
     KT_RUN(test_udp_round_trip_success);
     KT_RUN(test_coord_keeps_its_1x_spellings);
+    KT_RUN(test_function_aliases);
     KT_RUN(test_type_aliases);
     KT_RUN(test_enumerator_aliases);
     KT_RUN(test_register_aliases);
