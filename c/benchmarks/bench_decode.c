@@ -52,6 +52,8 @@
 // see the file comment. md.h pulls in "bitfields.h" (EXTRACT/INSERT)
 // itself, the same way it does for c/src/acquisition.c; monoclock.h wraps
 // the platform monotonic clock.
+#include <stdbool.h>
+
 #include "protocol/md.h"
 #include "monoclock.h"
 
@@ -98,11 +100,13 @@ next_rand(uint64_t *state)
     return x;
 }
 
-// Fills `words` consecutive six-byte pixel measurement data, header 0x4, with
+// Fills `words` consecutive six-byte pixel measurement data with
 // deterministic pseudo-random field values built through the very
 // INSERT()/_BITS_pmd_* triads md.h's decoders read them back with -- the
 // same principle c/tests/test_md_decode.c uses, so buffer and decoder can
-// never disagree. The toa_tot field names are used to reach the full 44
+// never disagree. The header is the single 0x4 of the first generation, or
+// the four per-chip headers of the second, which is the only thing gen2
+// changes. The toa_tot field names are used to reach the full 44
 // non-header bits of the word; every other variant below reads some subset
 // of those same bit positions, exactly as the real hardware's fixed wire
 // layout is reinterpreted differently per acquisition mode. Written and
@@ -111,18 +115,19 @@ next_rand(uint64_t *state)
 // endianness -- it never leaves this process, so wire byte order does not
 // apply.
 static void
-build_canned_buffer(uint8_t *buf, size_t words)
+build_canned_buffer(uint8_t *buf, size_t words, bool gen2)
 {
     uint64_t seed = 0x9E3779B97F4A7C15ull;
 
     for (size_t i = 0; i < words; ++i) {
-        uint64_t r  = next_rand(&seed);
-        uint64_t md = INSERT((uint64_t) 0, md, header, (uint64_t) 0x4);
-        md          = INSERT(md, pmd_toa_tot, coord_x, r);
-        md          = INSERT(md, pmd_toa_tot, coord_y, r >> 8);
-        md          = INSERT(md, pmd_toa_tot, toa, r >> 16);
-        md          = INSERT(md, pmd_toa_tot, tot, r >> 30);
-        md          = INSERT(md, pmd_toa_tot, hit_count, r >> 40);
+        uint64_t r        = next_rand(&seed);
+        const uint64_t hd = gen2 ? (i & 0x3u) : 0x4u;
+        uint64_t md       = INSERT((uint64_t) 0, md, header, hd);
+        md                = INSERT(md, pmd_toa_tot, coord_x, r);
+        md                = INSERT(md, pmd_toa_tot, coord_y, r >> 8);
+        md                = INSERT(md, pmd_toa_tot, toa, r >> 16);
+        md                = INSERT(md, pmd_toa_tot, tot, r >> 30);
+        md                = INSERT(md, pmd_toa_tot, hit_count, r >> 40);
         memcpy(buf + i * KATHERINE_MD_SIZE, &md, KATHERINE_MD_SIZE);
     }
 }
@@ -135,9 +140,9 @@ build_canned_buffer(uint8_t *buf, size_t words)
 // dead one; the running total is folded into the volatile g_sink exactly
 // once per pass rather than per hit, so the sink itself never becomes the
 // bottleneck it exists to prevent.
-#define DEFINE_BENCH_DECODE(SUFFIX, MAP, CHECKSUM) \
+#define DEFINE_BENCH_DECODE(SUFFIX, TAG, MAP, CHECKSUM, GEN) \
     static void \
-    bench_decode_##SUFFIX(const uint8_t *buf, size_t words, uint64_t *out_checksum) \
+    bench_decode_##SUFFIX##TAG(const uint8_t *buf, size_t words, uint64_t *out_checksum) \
     { \
         static katherine_px_##SUFFIX##_t slot[BENCH_SLOT_BYTES / sizeof(katherine_px_##SUFFIX##_t)]; \
         const size_t max_valid      = sizeof(slot) / sizeof(slot[0]); \
@@ -158,10 +163,10 @@ build_canned_buffer(uint8_t *buf, size_t words)
                disassembly), so the measured work is identical. */ \
             memcpy(&word, p, sizeof(word)); \
             char hdr = EXTRACT(word, md, header); \
-            if (hdr == 0x4) { \
+            if (KATHERINE_MD_HEADER_IS_PIXEL_##GEN(hdr)) { \
                 if (valid == max_valid) valid = 0; \
                 katherine_px_##SUFFIX##_t *dst = &slot[valid]; \
-                MAP(dst, &word, &acq, 0); \
+                MAP(dst, &word, &acq, (uint8_t) KATHERINE_MD_HEADER_CHIP_##GEN(hdr)); \
                 acc += (CHECKSUM); \
                 ++valid; \
             } else { \
@@ -176,12 +181,18 @@ build_canned_buffer(uint8_t *buf, size_t words)
     }
 
 // clang-format off
-DEFINE_BENCH_DECODE(f_toa_tot, pmd_f_toa_tot_s4_map,    (uint64_t) dst->coord.x + dst->coord.y + dst->tot + dst->timestamp)
-DEFINE_BENCH_DECODE(toa_tot, pmd_toa_tot_s4_map,      (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot)
-DEFINE_BENCH_DECODE(f_toa_only, pmd_f_toa_only_s4_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp)
-DEFINE_BENCH_DECODE(toa_only, pmd_toa_only_s4_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count)
-DEFINE_BENCH_DECODE(f_event_count_itot, pmd_f_event_count_itot_map, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot)
-DEFINE_BENCH_DECODE(event_count_itot, pmd_event_count_itot_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot)
+DEFINE_BENCH_DECODE(f_toa_tot, , pmd_f_toa_tot_s4_map,    (uint64_t) dst->coord.x + dst->coord.y + dst->tot + dst->timestamp, GEN1)
+DEFINE_BENCH_DECODE(toa_tot, , pmd_toa_tot_s4_map,      (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot, GEN1)
+DEFINE_BENCH_DECODE(f_toa_only, , pmd_f_toa_only_s4_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp, GEN1)
+DEFINE_BENCH_DECODE(toa_only, , pmd_toa_only_s4_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count, GEN1)
+DEFINE_BENCH_DECODE(f_event_count_itot, , pmd_f_event_count_itot_map, (uint64_t) dst->coord.x + dst->coord.y + dst->event_count + dst->integral_tot, GEN1)
+DEFINE_BENCH_DECODE(event_count_itot, , pmd_event_count_itot_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->hit_count + dst->event_count + dst->integral_tot, GEN1)
+
+// One variant under the second generation's map: four pixel headers instead of
+// one, and the chip index taken from the header rather than a literal zero.
+// One figure, because that dispatch is what differs -- the field extraction is
+// already covered by every row above.
+DEFINE_BENCH_DECODE(toa_tot, _gen2, pmd_toa_tot_s4_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot, GEN2)
 // clang-format on
 
 #undef DEFINE_BENCH_DECODE
@@ -257,7 +268,7 @@ main(void)
     // reserves on the real md_buffer for the same reason.
     uint8_t *buf = (uint8_t *) malloc(bytes + sizeof(uint64_t));
     if (buf == NULL) return 1;
-    build_canned_buffer(buf, words);
+    build_canned_buffer(buf, words, false);
 
     g_memcpy_scratch = (uint8_t *) malloc(bytes);
     if (g_memcpy_scratch == NULL) {
@@ -271,6 +282,8 @@ main(void)
     run_bench("toa_only", bench_decode_toa_only, buf, words);
     run_bench("f_event_count_itot", bench_decode_f_event_count_itot, buf, words);
     run_bench("event_count_itot", bench_decode_event_count_itot, buf, words);
+    build_canned_buffer(buf, words, true);
+    run_bench("toa_tot_gen2", bench_decode_toa_tot_gen2, buf, words);
     run_bench("memcpy", bench_decode_memcpy, buf, words);
 
     free(g_memcpy_scratch);

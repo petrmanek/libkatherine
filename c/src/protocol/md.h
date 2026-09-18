@@ -59,6 +59,44 @@
 #define _BITS_md_lost_px_n_lost_mask         MASK(44)
 #define _BITS_md_lost_px_n_lost_type         uint64_t
 
+// clang-format off
+// Which headers carry a pixel, and which chip one came from. Here beside the
+// header field rather than in the read loop, so that the decode benchmark
+// dispatches on the same predicates; the case lists stay in the loop, where
+// they name its handlers.
+
+/**
+ * Whether a Gen1 header carries a pixel. One header does, 0x4.
+ * \param hdr Header nibble of a measurement-data word
+ */
+#define KATHERINE_MD_HEADER_IS_PIXEL_GEN1(hdr) ((hdr) == 0x4)
+
+/**
+ * Chip a Gen1 pixel came from. Always 0: one header, one chip.
+ * \param hdr Header nibble, unused
+ */
+#define KATHERINE_MD_HEADER_CHIP_GEN1(hdr)     0
+
+/**
+ * Whether a Gen2 header carries a pixel. Four do, 0x0 through 0x3, one per
+ * chip -- so the header is both the discriminator and the chip index.
+ *
+ * Measured on hw_type 3 / fw_version 5 with one chip attached: 152 251 of
+ * 152 287 words in a three-frame run arrived as 0x0, and not one as 0x4. The
+ * Gen1 map recognizes none of those as pixels, and reads the trigger word
+ * under 0x4 as one.
+ *
+ * \param hdr Header nibble of a measurement-data word
+ */
+#define KATHERINE_MD_HEADER_IS_PIXEL_GEN2(hdr) ((hdr) <= 0x3)
+
+/**
+ * Chip a Gen2 pixel came from, which is the header itself.
+ * \param hdr Header nibble of a pixel word
+ */
+#define KATHERINE_MD_HEADER_CHIP_GEN2(hdr)     (hdr)
+// clang-format on
+
 
 // For MD's which correspond to pixels, we
 // define a direct mapping function named by

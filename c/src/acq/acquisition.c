@@ -353,7 +353,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
  * \param acq Acquisition the handlers act on
  * \param md Measurement-data word being dispatched
  */
-#define ACQ_HDR_CASES_COMMON(acq, md) \
+#define KATHERINE_MD_HEADER_CASES_COMMON(acq, md) \
     case 0x5: handle_timestamp_offset_driven_mode(acq, md); break; \
     case 0x7: handle_new_frame(acq, md); break; \
     case 0x8: handle_frame_start_timestamp_lsb(acq, md); break; \
@@ -365,45 +365,18 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     case 0xE: handle_aborted_measurement(acq, md); break
 
 /**
- * Whether a Gen1 header carries a pixel. One header does, 0x4.
- * \param hdr Header nibble of a measurement-data word
- */
-#define ACQ_HDR_IS_PIXEL_GEN1(hdr) ((hdr) == 0x4)
-/**
- * Chip a Gen1 pixel came from. Always 0: one header, one chip.
- * \param hdr Header nibble, unused
- */
-#define ACQ_HDR_CHIP_GEN1(hdr)     0
-/**
  * Gen1's non-pixel headers: the trigger info under 0x2 and 0x3, plus the
  * common cases.
  * \param acq Acquisition the handlers act on
  * \param md Measurement-data word being dispatched
  */
-#define ACQ_HDR_CASES_GEN1(acq, md) \
+#define KATHERINE_MD_HEADER_CASES_GEN1(acq, md) \
     case 0x2: \
     case 0x3: \
         handle_trigger_info(acq, md); \
         break; \
-        ACQ_HDR_CASES_COMMON(acq, md)
+        KATHERINE_MD_HEADER_CASES_COMMON(acq, md)
 
-/**
- * Whether a Gen2 header carries a pixel. Four do, 0x0 through 0x3, one per
- * chip -- so the header is both the discriminator and the chip index.
- *
- * Measured on hw_type 3 / fw_version 5 with one chip attached: 152 251 of
- * 152 287 words in a three-frame run arrived as 0x0, and not one as 0x4. The
- * Gen1 map recognizes none of those as pixels, and reads the trigger word
- * under 0x4 as one.
- *
- * \param hdr Header nibble of a measurement-data word
- */
-#define ACQ_HDR_IS_PIXEL_GEN2(hdr) ((hdr) <= 0x3)
-/**
- * Chip a Gen2 pixel came from, which is the header itself.
- * \param hdr Header nibble of a pixel word
- */
-#define ACQ_HDR_CHIP_GEN2(hdr)     (hdr)
 /**
  * Gen2's non-pixel headers: the trigger event's two halves under 0x4 and 0x6,
  * plus the common cases. 0x2 and 0x3 are absent because Gen2 spends them on
@@ -411,12 +384,12 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
  * \param acq Acquisition the handlers act on
  * \param md Measurement-data word being dispatched
  */
-#define ACQ_HDR_CASES_GEN2(acq, md) \
+#define KATHERINE_MD_HEADER_CASES_GEN2(acq, md) \
     case 0x4: \
     case 0x6: \
         handle_trigger_event(acq, md); \
         break; \
-        ACQ_HDR_CASES_COMMON(acq, md)
+        KATHERINE_MD_HEADER_CASES_COMMON(acq, md)
 
 /**
  * Define one monomorphized decode loop.
@@ -439,19 +412,19 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     { \
         char hdr = EXTRACT(*md, md, header); \
 \
-        if (ACQ_HDR_IS_PIXEL_##GEN(hdr)) { \
+        if (KATHERINE_MD_HEADER_IS_PIXEL_##GEN(hdr)) { \
             if (acq->pixel_buffer_valid == acq->pixel_buffer_max_valid) { \
                 flush_buffer(acq); \
             } \
 \
             katherine_px_##SUFFIX##_t *px = (katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid; \
 \
-            MAP(px, md, acq, (uint8_t) ACQ_HDR_CHIP_##GEN(hdr)); \
+            MAP(px, md, acq, (uint8_t) KATHERINE_MD_HEADER_CHIP_##GEN(hdr)); \
 \
             ++acq->pixel_buffer_valid; \
         } else { \
             switch (hdr) { \
-                ACQ_HDR_CASES_##GEN(acq, md); \
+                KATHERINE_MD_HEADER_CASES_##GEN(acq, md); \
             default: handle_unknown_msg(acq, md); break; \
             } \
         } \
