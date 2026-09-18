@@ -308,6 +308,11 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  *   CreateMutex() and katherine_udp_last_os_error(), which reports
  *   WSAStartup()'s own return value in the first case and the
  *   GetLastError() code in the second.
+ *
+ * No timeout appears here, where the POSIX counterpart has one: that code
+ * comes from pthread_mutex_init(3) reporting EAGAIN, and this transport
+ * creates its mutex through CreateMutex(), whose failure is reported
+ * unmapped for the reason given at that call.
  */
 katherine_error_t
 katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
