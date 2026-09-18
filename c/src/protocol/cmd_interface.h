@@ -77,6 +77,8 @@
  *
  * \retval KATHERINE_E_OK on success, once every byte has been handed to the
  *   socket.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
  *   none of the other codes cover; see sendto(2) and
  *   katherine_udp_last_os_error().
@@ -108,6 +110,8 @@ err:
  * \param val6 Command opcode.
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
  *   none of the other codes cover; see sendto(2) and
  *   katherine_udp_last_os_error().
@@ -134,6 +138,8 @@ katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
  * \param val0 Argument byte.
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
  *   none of the other codes cover; see sendto(2) and
  *   katherine_udp_last_os_error().
@@ -163,6 +169,8 @@ katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
  * \param value Payload; only its low 32 bits reach the wire.
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
  *   none of the other codes cover; see sendto(2) and
  *   katherine_udp_last_os_error().
@@ -191,6 +199,8 @@ katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64
  * \param value Payload; only its low 32 bits reach the wire.
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
  *   none of the other codes cover; see sendto(2) and
  *   katherine_udp_last_os_error().
@@ -217,6 +227,8 @@ katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
  * \param value Payload, transmitted as its IEEE-754 bytes.
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
  *   none of the other codes cover; see sendto(2) and
  *   katherine_udp_last_os_error().

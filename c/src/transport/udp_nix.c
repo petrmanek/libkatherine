@@ -404,6 +404,9 @@ katherine_udp_fini(katherine_udp_t *u)
  *
  * \retval KATHERINE_E_OK on success, the whole message having been handed to
  *   the network stack.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked, which
+ *   needs the caller to have made the session's socket non-blocking; see
+ *   sendto(2) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_IO if the message could not be handed to the network
  *   stack -- no route to the session's remote host, a datagram too large to
  *   send in one piece, or any other OS-level failure none of the other codes
