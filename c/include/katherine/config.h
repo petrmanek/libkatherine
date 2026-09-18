@@ -41,26 +41,29 @@ typedef struct katherine_device katherine_device_t;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 
+/** What a pixel reports: which quantities a hit carries, and so which hit type the decoder produces. */
 typedef enum katherine_tpx3_px_mode {
-    KATHERINE_TPX3_PX_TOA_TOT          = 0,
-    KATHERINE_TPX3_PX_ONLY_TOA         = 1,
-    KATHERINE_TPX3_PX_EVENT_COUNT_ITOT = 2,
+    KATHERINE_TPX3_PX_TOA_TOT          = 0, ///< Time of arrival and time over threshold.
+    KATHERINE_TPX3_PX_ONLY_TOA         = 1, ///< Time of arrival alone.
+    KATHERINE_TPX3_PX_EVENT_COUNT_ITOT = 2, ///< How many events the pixel saw, and their summed time over threshold.
 } katherine_tpx3_px_mode_t;
 
 KATHERINE_EXPORTED const char *
 katherine_str_px_mode(katherine_tpx3_px_mode_t mode);
 
 
+/** One trigger condition, used for both starting and stopping an acquisition. */
 typedef struct katherine_trigger {
-    bool enabled;
-    char channel;
-    bool use_falling_edge;
+    bool enabled;          ///< Whether this trigger is armed at all.
+    char channel;          ///< Input the trigger listens on.
+    bool use_falling_edge; ///< True to fire on the falling edge, false on the rising.
 } katherine_trigger_t;
 
 KATHERINE_EXPORTED int
 katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v);
 
 
+/** Injected test pulses, which exercise the pixel chain with no radiation present. */
 typedef struct katherine_test_pulse_config {
     bool enabled;      ///< true if test pulses should be injected during acquisition
     bool digital_only; ///< false: pulse the analog frontend (amplitude = VTP_coarse - VTP_fine, DAC LSBs 5 mV / 2.5 mV), true: pulse the digital discriminator input
@@ -78,31 +81,20 @@ katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_
 #define KATHERINE_TPX3_DAC_COUNT 18
 
 /**
- * Timepix3's eighteen DACs, named as its manual names them (Table 11) and
- * ordered as it codes them.
+ * Timepix3's eighteen DACs, named and ordered consistently with specification.
  *
- * This is where the DACs are described; everything else that names one refers
- * here. Every field is a raw DAC setting, not a physical quantity: what each
- * one spans is per DAC, and katherine_tpx3_dac_max() and
- * katherine_tpx3_dac_to_si() answer that. Ibias_* bias a current, the rest
- * set a voltage.
- *
- * These are per-chip calibration data. The manual's defaults suit no
- * particular chip, and a vector of zeros is not a neutral starting point:
- * measured on a Gen1 readout, zeroed Vfbk and PLL_Vcntrl leave every pixel
- * of the matrix firing. Copy a vector known to work on the chip at hand.
- *
- * The manual documents no function for the individual DACs -- its section
- * 4.5.1 carries Table 28 and nothing else, and 4.5.2 and 4.5.4 are empty
- * headings -- so nothing is claimed here beyond what the names and that
- * table support.
+ * \details
+ * Names that begin with V and I control voltages and currents, respectively.
+ * Valid ranges start at zero, and end depending on DAC, see upper bounds returned
+ * by katherine_tpx3_dac_max().
+ * To map digital value to a resulting SI reading, see katherine_tpx3_dac_to_si().
  */
 typedef struct katherine_tpx3_dacs_named {
     uint16_t Ibias_Preamp_ON;   ///< Preamplifier bias while the pixel is on.
     uint16_t Ibias_Preamp_OFF;  ///< Preamplifier bias while power pulsing holds it off.
     uint16_t Vpreamp_NCAS;      ///< Preamplifier cascode voltage.
     uint16_t Ibias_Ikrum;       ///< Krummenacher feedback current, which sets the return to baseline and so the time over threshold.
-    uint16_t Vfbk;              ///< Preamplifier feedback (baseline) voltage. Zero is not neutral; see above.
+    uint16_t Vfbk;              ///< Preamplifier feedback (baseline) voltage. Zeroing it makes the whole matrix self-trigger.
     uint16_t Vthreshold_fine;   ///< Discriminator threshold, fine part. With the coarse part it forms the 13-bit threshold of Table 28.
     uint16_t Vthreshold_coarse; ///< Discriminator threshold, coarse part.
     uint16_t Ibias_DiscS1_ON;   ///< First discriminator stage bias while the pixel is on.
@@ -115,13 +107,14 @@ typedef struct katherine_tpx3_dacs_named {
     uint16_t VTP_coarse;        ///< Test-pulse amplitude, coarse part. The injected amplitude is VTP_coarse - VTP_fine; see katherine_test_pulse_config_t.
     uint16_t VTP_fine;          ///< Test-pulse amplitude, fine part.
     uint16_t Ibias_CP_PLL;      ///< PLL charge-pump bias.
-    uint16_t PLL_Vcntrl;        ///< PLL control voltage. Zero is not neutral; see above.
+    uint16_t PLL_Vcntrl;        ///< PLL control voltage.
 } katherine_tpx3_dacs_named_t;
 
 
+/** Every Timepix3 DAC, reachable either by name or by the index katherine_tpx3_dac_t gives it. */
 typedef union katherine_tpx3_dacs {
-    uint16_t array[KATHERINE_TPX3_DAC_COUNT];
-    katherine_tpx3_dacs_named_t named;
+    uint16_t array[KATHERINE_TPX3_DAC_COUNT]; ///< Indexed by katherine_tpx3_dac_t, which is what a scan wants.
+    katherine_tpx3_dacs_named_t named;        ///< The same values under the Timepix3 manual's names.
 } katherine_tpx3_dacs_t;
 
 KATHERINE_EXPORTED int
@@ -131,13 +124,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v);
 
 /**
- * Timepix3's eighteen DACs, in katherine_tpx3_dacs_named_t and
- * katherine_tpx3_dacs_t::array order. That order is the chip's own DAC Code
- * (Timepix3 manual Table 11) minus one.
- *
- * Each enumerator copies the description of the field it indexes, so the
- * DACs are described in one place -- katherine_tpx3_dacs_named_t -- and here only
- * referred to.
+ * Named addresses used to index katherine_tpx3_dacs_t::array.
  */
 typedef enum katherine_tpx3_dac {
     KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON = 0, ///< \copydoc katherine_tpx3_dacs_named_t::Ibias_Preamp_ON
@@ -163,10 +150,6 @@ typedef enum katherine_tpx3_dac {
 /**
  * The physical quantity a DAC sets, and so the unit
  * katherine_tpx3_dac_to_si() reports it in.
- *
- * Not namespaced, unlike the DACs themselves: which DACs exist and how wide
- * they are is Timepix3's, but a DAC either biases a current or sets a
- * voltage on any ASIC, so a second one would use this unchanged.
  */
 typedef enum katherine_dac_unit {
     KATHERINE_DAC_UNIT_AMP = 0, ///< Amperes; the DAC biases a current.
@@ -192,7 +175,7 @@ katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac
  * katherine_actual_phases() gives the phases actually generated.
  */
 typedef enum katherine_tpx3_phase {
-    KATHERINE_TPX3_PHASE_1  = 0, ///< All clocks measure with the same phase, no ToA phase correction is required.
+    KATHERINE_TPX3_PHASE_1  = 0, ///< All clocks measure with the same phase, ToA phase correction is not required.
     KATHERINE_TPX3_PHASE_2  = 1, ///< 2  clock phases, ToA phase correction is required.
     KATHERINE_TPX3_PHASE_4  = 2, ///< 4  clock phases, ToA phase correction is required.
     KATHERINE_TPX3_PHASE_8  = 3, ///< 8  clock phases, ToA phase correction is required.
@@ -249,20 +232,24 @@ typedef enum katherine_polarity {
 KATHERINE_EXPORTED const char *
 katherine_str_polarity(katherine_polarity_t polarity);
 
+/**
+ * Everything katherine_configure() sends to a readout before an acquisition.
+ * Designed to render safe settings when zero-initialized.
+ */
 typedef struct katherine_config {
-    katherine_px_config_t pixel_config;
+    katherine_px_config_t pixel_config; ///< Per-pixel settings for the whole matrix.
 
-    unsigned char bias_id;
+    unsigned char bias_id; ///< Which bias supply to drive, for a readout that has more than one.
 
-    double acq_time; // ns
-    int no_frames;
+    double acq_time; ///< Shutter time per frame, in nanoseconds.
+    int no_frames;   ///< Frames to measure; data-driven readout accepts only one.
 
-    float bias;
-    katherine_trigger_t start_trigger;
-    bool delayed_start;
-    katherine_trigger_t stop_trigger;
+    float bias;                        ///< Sensor bias voltage, in volts. Its sign must match the carriers the sensor collects.
+    katherine_trigger_t start_trigger; ///< What starts the acquisition.
+    bool delayed_start;                ///< True to hold the shutter closed until the start trigger rather than opening at once.
+    katherine_trigger_t stop_trigger;  ///< What stops it.
 
-    bool gray_disable;
+    bool gray_disable; ///< True to turn off the sensor's Gray-coded counters, which then count in plain binary.
 
     /**
      * Carriers the sensor collects. Zero is KATHERINE_POLARITY_HOLES, so a
@@ -285,10 +272,10 @@ typedef struct katherine_config {
     katherine_tpx3_phase_t phase;
     bool correct_phase; ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
 
-    katherine_tpx3_freq_t freq;
-    katherine_tpx3_dacs_t dacs;
+    katherine_tpx3_freq_t freq; ///< Pixel clock frequency, which sets the timestamp resolution.
+    katherine_tpx3_dacs_t dacs; ///< The chip's DACs, including the threshold.
 
-    katherine_test_pulse_config_t test_pulse_config;
+    katherine_test_pulse_config_t test_pulse_config; ///< Test pulses, injected only while katherine_test_pulse_config_t::enabled is set.
 } katherine_config_t;
 
 KATHERINE_EXPORTED int
@@ -341,6 +328,7 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
  * \{
  */
 
+/** Sensor registers reachable through katherine_set_sensor_register(). */
 typedef enum katherine_tpx3_reg {
     KATHERINE_TPX3_REG_TEST_PULSE_METHOD = 0,
     /**
