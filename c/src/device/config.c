@@ -548,7 +548,7 @@ err_unsupported:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_token_count(katherine_device_t *device, uint8_t token_count)
+katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
 {
     katherine_error_t res;
 

@@ -308,7 +308,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_set_no_frames(katherine_device_t *device, int no_frames);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_token_count(katherine_device_t *device, uint8_t token_count);
+katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value);
