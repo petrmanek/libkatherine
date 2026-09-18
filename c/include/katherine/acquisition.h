@@ -33,6 +33,7 @@
  * \{
  */
 
+/// Bytes in one measurement datum on the wire.
 #define KATHERINE_MD_SIZE 6
 
 // Uncomment the following line to enable acquisition logging:
@@ -42,22 +43,26 @@
 extern "C" {
 #endif
 
+/** A readout timestamp in the two halves the protocol sends it as. */
 typedef struct katherine_frame_info_time_split {
     // The least significant half is declared first so that the union below
     // composes correctly on a little-endian host: the low bytes of d and
     // the first member share the same addresses. (Declared the other way
     // around, d read as (lsb << 32) | msb.)
-    uint32_t lsb, msb;
+    uint32_t lsb; ///< Low half, as its own measurement datum carried it.
+    uint32_t msb; ///< High half, as its own measurement datum carried it.
 } katherine_frame_info_time_split_t;
 
+/** The same timestamp read either as its two halves or as one number. */
 typedef union katherine_frame_info_time {
-    katherine_frame_info_time_split_t b;
-    uint64_t d;
+    katherine_frame_info_time_split_t b; ///< The halves, as received.
+    uint64_t d;                          ///< The whole, composed.
 } katherine_frame_info_time_t;
 
 KATHERINE_EXPORTED int
 katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_info_time_t *v);
 
+/** What the readout reported about one frame, and what libkatherine saw of it. */
 typedef struct katherine_frame_info {
     uint64_t received_pixels; ///< The number of hit pixels actually received by libkatherine
     uint64_t sent_pixels;     ///< The number of hit pixels reported sent by Katherine device
@@ -96,12 +101,17 @@ typedef struct katherine_acquisition_handlers {
     void (*data_received)(void *, const char *, size_t); ///< Raw, undecoded measurement data as received
 } katherine_acquisition_handlers_t;
 
-// 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
-// 1.2.17, the argument of CMD_TYPE_SEQ_READOUT_START): at least one mature
-// client implementation of this protocol inverts its own internal enum
-// (data-driven = 0) and compensates for it when encoding the command. Do
-// not "fix" this enum to match such an implementation; its values already
-// match the wire directly.
+/**
+ * How the sensor moves hits out of the matrix.
+ *
+ * \internal
+ * 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
+ * 1.2.17, the argument of CMD_TYPE_SEQ_READOUT_START): at least one mature
+ * client implementation of this protocol inverts its own internal enum
+ * (data-driven = 0) and compensates for it when encoding the command. Do
+ * not "fix" this enum to match such an implementation; its values already
+ * match the wire directly.
+ */
 typedef enum katherine_tpx3_readout_mode {
     KATHERINE_TPX3_READOUT_SEQUENTIAL  = 0, ///< Frame-based mode: hits are sequentially read out from the matrix at the end of each frame, potentially resulting in dead time between frames. At most the entire matrix (65k pixels) can be hit.
     KATHERINE_TPX3_READOUT_DATA_DRIVEN = 1  ///< Data-driven mode: hits are propagated through super-pixels while the measurement is ongoing, causing local (but importantly, not global) dead time. Be careful in noisy or data-intensive environments, this mode can produce a lot of data (up to 40 Mhit/s).
@@ -110,6 +120,7 @@ typedef enum katherine_tpx3_readout_mode {
 KATHERINE_EXPORTED const char *
 katherine_str_readout_mode(katherine_tpx3_readout_mode_t mode);
 
+/** Where an acquisition has got to; read it from katherine_acquisition_t::state. */
 typedef enum katherine_acquisition_state {
     KATHERINE_ACQUISITION_STATE_NOT_STARTED = 0, ///< The detector is not sensitive, call katherine_acquisition_begin to start measurement.
     KATHERINE_ACQUISITION_STATE_RUNNING     = 1, ///< The detector is sensitive and collecting data, call katherine_acquisition_read() to retrieve its output or katherine_acquisition_{stop,abort}() to interrupt it. Note that for decode_data == false, only katherine_acquisition_abort() is viable.
@@ -133,12 +144,20 @@ typedef enum katherine_phase_correction {
 KATHERINE_EXPORTED const char *
 katherine_str_phase_correction(katherine_phase_correction_t v);
 
+/**
+ * One acquisition: the device it runs on, what was asked of it, the buffers it
+ * decodes through and the counters it fills in.
+ *
+ * Allocated by the caller and initialized by katherine_acquisition_init(), so
+ * every member is visible. Only the handlers and the counters are a caller's
+ * business; the rest is the read loop's state and is documented as such.
+ */
 typedef struct katherine_acquisition {
-    katherine_device_t *device;
-    void *user_ctx;
+    katherine_device_t *device; ///< Device this acquisition runs on, as passed to katherine_acquisition_init().
+    void *user_ctx;             ///< The caller's context, handed back to every handler untouched.
 
-    katherine_acquisition_state_t state;
-    bool aborted;
+    katherine_acquisition_state_t state; ///< Where the acquisition has got to.
+    bool aborted;                        ///< Internal: true once an abort has been requested, which is how the read loop tells a dried-up stream from a lost one.
 
     // PINNED for the ASIC work (Petr, 2026-09-04): nothing in an acquisition
     // should be chip-type aware, and these two are Timepix3's. They belong in
@@ -146,9 +165,9 @@ typedef struct katherine_acquisition {
     // katherine_configure(), read back by katherine_acquisition_begin() --
     // which is where the configuration restructure puts them. Left here until
     // Timepix2 or Timepix4 lands and forces the issue.
-    katherine_tpx3_readout_mode_t readout_mode;
-    katherine_tpx3_px_mode_t px_mode;
-    bool fast_vco_enabled;
+    katherine_tpx3_readout_mode_t readout_mode; ///< Readout mode in force, chosen at katherine_acquisition_begin().
+    katherine_tpx3_px_mode_t px_mode;           ///< Pixel mode in force, which decides the hit type the handlers receive.
+    bool fast_vco_enabled;                      ///< Whether the fast oscillator is on, which decides the fast hit variant.
 
     char *md_buffer;       ///< Buffer for a single incoming datagram containing MD, allocated by katherine_acquisition_init().
     size_t md_buffer_size; ///< Capacity of md_buffer in bytes. Must exceed the largest datagram a readout can send.
@@ -173,14 +192,14 @@ typedef struct katherine_acquisition {
      * manner.
      */
     bool decode_data;
-    char *pixel_buffer;
-    size_t pixel_buffer_size;
-    size_t pixel_buffer_valid;
-    size_t pixel_buffer_max_valid;
+    char *pixel_buffer;            ///< Decoded hits awaiting delivery, allocated by katherine_acquisition_init().
+    size_t pixel_buffer_size;      ///< Capacity of pixel_buffer in bytes.
+    size_t pixel_buffer_valid;     ///< Internal: hits currently in the buffer.
+    size_t pixel_buffer_max_valid; ///< Internal: hits that fit, which is the batch size a handler is given.
 
-    int requested_frames;
+    int requested_frames;            ///< Frames asked for at katherine_acquisition_begin().
     double requested_frame_duration; ///< Requested duration of a single frame, in seconds
-    int completed_frames;
+    int completed_frames;            ///< Frames finished so far.
     size_t dropped_measurement_data; ///< Number of MD words the decoder did not recognise since acquisition start.
 
     /**
@@ -193,12 +212,12 @@ typedef struct katherine_acquisition {
      */
     uint64_t truncated_measurement_data;
 
-    time_t acq_start_time;
-    int report_timeout;
-    int fail_timeout;
+    time_t acq_start_time; ///< Internal: when the acquisition began, as time() reports it.
+    int report_timeout;    ///< Milliseconds of silence from the readout after which a partly filled pixel buffer is delivered; zero disables.
+    int fail_timeout;      ///< Milliseconds allowed past the requested measurement's own duration before the acquisition is declared timed out; zero disables.
 
-    katherine_acquisition_handlers_t handlers;
-    katherine_frame_info_t current_frame_info;
+    katherine_acquisition_handlers_t handlers; ///< The callbacks; set them after katherine_acquisition_init() and before beginning.
+    katherine_frame_info_t current_frame_info; ///< Internal: the frame being filled, handed to frame_ended when it closes.
 
     /**
      * Timestamp offset in effect, in fine-oscillator ticks. Carries the epoch
@@ -230,7 +249,7 @@ typedef struct katherine_acquisition {
      */
     uint8_t phase_offsets[KATHERINE_TPX3_MATRIX_WIDTH];
 
-    bool frame_active;
+    bool frame_active; ///< Internal: whether a frame is currently open.
 } katherine_acquisition_t;
 
 KATHERINE_EXPORTED int

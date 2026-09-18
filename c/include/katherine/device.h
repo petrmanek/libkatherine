@@ -102,6 +102,10 @@ KATHERINE_EXPORTED katherine_device_derived_info_t
 katherine_device_derived_info_recognize(uint8_t hw_type);
 
 
+/**
+ * An open connection to a readout: its two UDP sessions, what it reported
+ * about itself, and what this library derives from that.
+ */
 typedef struct katherine_device {
     /**
      * Slow control communication channel, which carries commands and

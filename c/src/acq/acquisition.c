@@ -842,6 +842,9 @@ err_unsupported:
  * \param readout_mode Readout mode
  * \param px_mode Acquisition mode
  * \param fast_vco_enabled Enable fast voltage-controlled oscillators
+ * \param decode_data True to decode measurement data into pixels and track
+ *   the frame lifecycle, false to hand the raw stream to the data_received
+ *   handler; see katherine_acquisition_t::decode_data, which this sets
  *
  * \retval KATHERINE_E_OK on success, with the readout armed and the
  *   acquisition running.
