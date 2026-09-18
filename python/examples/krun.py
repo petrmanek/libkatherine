@@ -67,7 +67,7 @@ def configure():
     c.phase             = k.Tpx3Phase.PHASE_1
     c.freq              = k.Tpx3Freq.FREQ_40
 
-    dacs = k.Dacs()
+    dacs = k.Tpx3Dacs()
     dacs.Ibias_Preamp_ON       = 128
     dacs.Ibias_Preamp_OFF      = 8
     dacs.Vpreamp_NCAS          = 128
@@ -87,7 +87,7 @@ def configure():
     dacs.Ibias_CP_PLL          = 128
     dacs.PLL_Vcntrl            = 128
 
-    px_config = k.PxConfig.from_bmc('chipconfig.bmc')
+    px_config = k.Tpx3PxConfig.from_bmc('chipconfig.bmc')
 
     # Test pulses are disabled unless requested above. (No explicit setup
     # is needed: a new Config keeps them off.)
@@ -97,7 +97,7 @@ def configure():
         dacs.VTP_coarse = 128
         dacs.VTP_fine   = 352
 
-        c.test_pulse_config = k.TestPulseConfig(
+        c.test_pulse_config = k.Tpx3TestPulseConfig(
             enabled=True,
             count=100,
             period=6401)  # clock cycles, ~160 us @ 40 MHz
@@ -143,7 +143,7 @@ def print_chip_id(device):
 
 
 def run_acquisition(dev, c):
-    acq = k.Acquisition(dev, k.MD_SIZE() * 34952533, k.PxFastToaTot.RAW_SIZE() * 4096, 500, 10000)
+    acq = k.Acquisition(dev, k.MD_SIZE() * 34952533, k.Tpx3PxFastToaTot.RAW_SIZE() * 4096, 500, 10000)
     acq.observer = MyObserver()
 
     print('Acquisition started')

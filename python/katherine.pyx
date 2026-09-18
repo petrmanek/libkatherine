@@ -164,7 +164,7 @@ cdef class Device:
          check_return_code(res)
          return voltage
 
-    def set_test_pulses(self, TestPulseConfig test_pulse_config):
+    def set_test_pulses(self, Tpx3TestPulseConfig test_pulse_config):
          res = cconfig.katherine_set_test_pulses(self._c_device, &test_pulse_config._c_test_pulse_config)
          check_return_code(res)
 
@@ -172,7 +172,7 @@ cdef class Device:
          res = cconfig.katherine_configure(self._c_device, &config._c_config)
          check_return_code(res)
 
-    def set_all_pixel_config(self, PxConfig px_config):
+    def set_all_pixel_config(self, Tpx3PxConfig px_config):
          res = cconfig.katherine_set_all_pixel_config(self._c_device, &px_config._c_px_config)
          check_return_code(res)
 
@@ -216,7 +216,7 @@ cdef class Device:
          res = cconfig.katherine_timer_set(self._c_device)
          check_return_code(res)
 
-    def set_dacs(self, Dacs dacs):
+    def set_dacs(self, Tpx3Dacs dacs):
          res = cconfig.katherine_set_dacs(self._c_device, &dacs._c_dacs)
          check_return_code(res)
 
@@ -377,7 +377,7 @@ cdef class Trigger:
          self._c_trigger.use_falling_edge = val
 
 
-cdef class TestPulseConfig:
+cdef class Tpx3TestPulseConfig:
     cdef cconfig.katherine_test_pulse_config_t _c_test_pulse_config
 
     def __init__(self, enabled=False, digital_only=False, external=False, count=0, period=0, phase=0, cdata=None):
@@ -443,7 +443,7 @@ cdef class TestPulseConfig:
          self._c_test_pulse_config.phase = val
 
 
-cdef class Dacs:
+cdef class Tpx3Dacs:
     cdef cconfig.katherine_tpx3_dacs_t _c_dacs
 
     def __init__(self, cdata=None):
@@ -598,7 +598,7 @@ cdef class Dacs:
        self._c_dacs.named.PLL_Vcntrl = val
 
 
-cdef class PxConfig:
+cdef class Tpx3PxConfig:
     cdef cpx_config.katherine_px_config_t _c_px_config
 
     def __init__(self, cdata=None):
@@ -613,14 +613,14 @@ cdef class PxConfig:
       cdef cpx_config.katherine_px_config_t config
       res = cpx_config.katherine_px_config_load_bmc_file(&config, path.encode())
       check_return_code(res)
-      return PxConfig(cdata=config)
+      return Tpx3PxConfig(cdata=config)
 
     @staticmethod
     def from_bpc(path):
       cdef cpx_config.katherine_px_config_t config
       res = cpx_config.katherine_px_config_load_bpc_file(&config, path.encode())
       check_return_code(res)
-      return PxConfig(cdata=config)
+      return Tpx3PxConfig(cdata=config)
 
     @staticmethod
     def from_bmc_data(data):
@@ -630,7 +630,7 @@ cdef class PxConfig:
       cdef cpx_config.katherine_px_config_t config
       res = cpx_config.katherine_px_config_load_bmc_data(&config, <const cpx_config.katherine_bmc_t *> &view[0])
       check_return_code(res)
-      return PxConfig(cdata=config)
+      return Tpx3PxConfig(cdata=config)
 
     @staticmethod
     def from_bpc_data(data):
@@ -640,7 +640,7 @@ cdef class PxConfig:
       cdef cpx_config.katherine_px_config_t config
       res = cpx_config.katherine_px_config_load_bpc_data(&config, <const cpx_config.katherine_bpc_t *> &view[0])
       check_return_code(res)
-      return PxConfig(cdata=config)
+      return Tpx3PxConfig(cdata=config)
 
     @staticmethod
     cdef cpx.katherine_tpx3_coord_t _coord(int x, int y) except *:
@@ -653,24 +653,24 @@ cdef class PxConfig:
       return coord
 
     def set_test_bit(self, int x, int y, bool enabled):
-      cpx_config.katherine_px_config_set_test_bit(&self._c_px_config, PxConfig._coord(x, y), enabled)
+      cpx_config.katherine_px_config_set_test_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y), enabled)
 
     def get_test_bit(self, int x, int y):
-      return cpx_config.katherine_px_config_get_test_bit(&self._c_px_config, PxConfig._coord(x, y))
+      return cpx_config.katherine_px_config_get_test_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y))
 
     def set_mask_bit(self, int x, int y, bool masked):
-      cpx_config.katherine_px_config_set_mask_bit(&self._c_px_config, PxConfig._coord(x, y), masked)
+      cpx_config.katherine_px_config_set_mask_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y), masked)
 
     def get_mask_bit(self, int x, int y):
-      return cpx_config.katherine_px_config_get_mask_bit(&self._c_px_config, PxConfig._coord(x, y))
+      return cpx_config.katherine_px_config_get_mask_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y))
 
     def set_loc_thl(self, int x, int y, uint8_t loc_thl):
       if loc_thl > 15:
          raise ValueError('local threshold adjustment must lie within 0 to 15')
-      cpx_config.katherine_px_config_set_loc_thl(&self._c_px_config, PxConfig._coord(x, y), loc_thl)
+      cpx_config.katherine_px_config_set_loc_thl(&self._c_px_config, Tpx3PxConfig._coord(x, y), loc_thl)
 
     def get_loc_thl(self, int x, int y):
-      return cpx_config.katherine_px_config_get_loc_thl(&self._c_px_config, PxConfig._coord(x, y))
+      return cpx_config.katherine_px_config_get_loc_thl(&self._c_px_config, Tpx3PxConfig._coord(x, y))
 
 @_unique
 class Polarity(_Enum):
@@ -866,9 +866,9 @@ cdef class Config:
 
     @property
     def dacs(self):
-       return Dacs(cdata=self._c_config.dacs)
+       return Tpx3Dacs(cdata=self._c_config.dacs)
 
-    cdef _set_dacs(self, Dacs val):
+    cdef _set_dacs(self, Tpx3Dacs val):
          memcpy(&self._c_config.dacs, &val._c_dacs, sizeof(self._c_config.dacs))
 
     @dacs.setter
@@ -877,9 +877,9 @@ cdef class Config:
 
     @property
     def pixel_config(self):
-       return PxConfig(cdata=self._c_config.pixel_config)
+       return Tpx3PxConfig(cdata=self._c_config.pixel_config)
 
-    cdef _set_pixel_config(self, PxConfig val):
+    cdef _set_pixel_config(self, Tpx3PxConfig val):
          memcpy(&self._c_config.pixel_config, &val._c_px_config, sizeof(self._c_config.pixel_config))
 
     @pixel_config.setter
@@ -888,9 +888,9 @@ cdef class Config:
 
     @property
     def test_pulse_config(self):
-       return TestPulseConfig(cdata=self._c_config.test_pulse_config)
+       return Tpx3TestPulseConfig(cdata=self._c_config.test_pulse_config)
 
-    cdef _set_test_pulse_config(self, TestPulseConfig val):
+    cdef _set_test_pulse_config(self, Tpx3TestPulseConfig val):
          memcpy(&self._c_config.test_pulse_config, &val._c_test_pulse_config, sizeof(self._c_config.test_pulse_config))
 
     @test_pulse_config.setter
@@ -922,7 +922,7 @@ class AcquisitionState(_Enum):
 
 
 @_unique
-class PhaseCorrection(_Enum):
+class Tpx3PhaseCorrection(_Enum):
     NONE     = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_NONE
     SOFTWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_SOFTWARE
     HARDWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_HARDWARE
@@ -995,7 +995,7 @@ cdef class FrameInfo:
        return self._c_info.completed
 
 
-cdef class PxFastToaTot:
+cdef class Tpx3PxFastToaTot:
     cdef cpx.katherine_px_f_toa_tot_t _c_px
 
     def __init__(self, cdata=None):
@@ -1030,7 +1030,7 @@ cdef class PxFastToaTot:
        return self._c_px.tot
 
 
-cdef class PxToaTot:
+cdef class Tpx3PxToaTot:
     cdef cpx.katherine_px_toa_tot_t _c_px
 
     def __init__(self, cdata=None):
@@ -1069,7 +1069,7 @@ cdef class PxToaTot:
        return self._c_px.tot
 
 
-cdef class PxFastToaOnly:
+cdef class Tpx3PxFastToaOnly:
     cdef cpx.katherine_px_f_toa_only_t _c_px
 
     def __init__(self, cdata=None):
@@ -1100,7 +1100,7 @@ cdef class PxFastToaOnly:
        return self._c_px.timestamp
 
 
-cdef class PxToaOnly:
+cdef class Tpx3PxToaOnly:
     cdef cpx.katherine_px_toa_only_t _c_px
 
     def __init__(self, cdata=None):
@@ -1135,7 +1135,7 @@ cdef class PxToaOnly:
        return self._c_px.timestamp
 
 
-cdef class PxFastEventCountItot:
+cdef class Tpx3PxFastEventCountItot:
     cdef cpx.katherine_px_f_event_count_itot_t _c_px
 
     def __init__(self, cdata=None):
@@ -1170,7 +1170,7 @@ cdef class PxFastEventCountItot:
        return self._c_px.integral_tot
 
 
-cdef class PxEventCountItot:
+cdef class Tpx3PxEventCountItot:
     cdef cpx.katherine_px_event_count_itot_t _c_px
 
     def __init__(self, cdata=None):
@@ -1351,7 +1351,7 @@ cdef class Acquisition:
 
     @property
     def phase_correction(self):
-       return PhaseCorrection(self._c_acq.phase_correction)
+       return Tpx3PhaseCorrection(self._c_acq.phase_correction)
 
     @property
     def phase_count(self):
@@ -1362,7 +1362,7 @@ cdef class Acquisition:
        return self._c_acq.frame_active
 
     def timestamp_phase_offset(self, int x, int y):
-       return cacquisition.katherine_acquisition_timestamp_phase_offset(self._c_acq, PxConfig._coord(x, y))
+       return cacquisition.katherine_acquisition_timestamp_phase_offset(self._c_acq, Tpx3PxConfig._coord(x, y))
 
 
 cdef void _forward_frame_started(void *user_ctx, int frame_idx) noexcept:
@@ -1378,27 +1378,27 @@ cdef void _forward_data_received(void *user_ctx, const char *data, size_t count)
 
 cdef void _forward_pixels_received_f_toa_tot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cpx.katherine_px_f_toa_tot_t *dpx = <const cpx.katherine_px_f_toa_tot_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxFastToaTot(cdata=dpx[i]) for i in range(count)])
+    (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxFastToaTot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_toa_tot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cpx.katherine_px_toa_tot_t *dpx = <const cpx.katherine_px_toa_tot_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxToaTot(cdata=dpx[i]) for i in range(count)])
+    (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxToaTot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_f_toa_only(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cpx.katherine_px_f_toa_only_t *dpx = <const cpx.katherine_px_f_toa_only_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxFastToaOnly(cdata=dpx[i]) for i in range(count)])
+    (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxFastToaOnly(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_toa_only(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cpx.katherine_px_toa_only_t *dpx = <const cpx.katherine_px_toa_only_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxToaOnly(cdata=dpx[i]) for i in range(count)])
+    (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxToaOnly(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_f_event_count_itot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cpx.katherine_px_f_event_count_itot_t *dpx = <const cpx.katherine_px_f_event_count_itot_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxFastEventCountItot(cdata=dpx[i]) for i in range(count)])
+    (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxFastEventCountItot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_event_count_itot(void *user_ctx, const void *px, size_t count) noexcept:
     cdef const cpx.katherine_px_event_count_itot_t *dpx = <const cpx.katherine_px_event_count_itot_t *> px
-    (<Acquisition> user_ctx).observer.pixels_received([PxEventCountItot(cdata=dpx[i]) for i in range(count)])
+    (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxEventCountItot(cdata=dpx[i]) for i in range(count)])
 
 def MD_SIZE():
    return cacquisition.KATHERINE_MD_SIZE

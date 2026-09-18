@@ -233,7 +233,7 @@ def build_config(katherine):
     configure() and python/examples/krun.py's configure() use, less the
     pixel matrix: the emulated readout models the upload protocol (it counts
     the 16384 configuration words and acknowledges them) but not the matrix
-    contents, so the all-zero matrix a fresh PxConfig starts out with is
+    contents, so the all-zero matrix a fresh Tpx3PxConfig starts out with is
     uploaded and accepted like any other."""
     c = katherine.Config()
 
@@ -252,7 +252,7 @@ def build_config(katherine):
     c.phase = katherine.Tpx3Phase.PHASE_1
     c.freq = katherine.Tpx3Freq.FREQ_40
 
-    dacs = katherine.Dacs()
+    dacs = katherine.Tpx3Dacs()
     dacs.Ibias_Preamp_ON = 128
     dacs.Ibias_Preamp_OFF = 8
     dacs.Vpreamp_NCAS = 128
@@ -273,7 +273,7 @@ def build_config(katherine):
     dacs.PLL_Vcntrl = 128
     c.dacs = dacs
 
-    c.pixel_config = katherine.PxConfig()
+    c.pixel_config = katherine.Tpx3PxConfig()
 
     return c
 
@@ -307,7 +307,7 @@ def run_acquisition(katherine, device):
     # frame, so that the hits of the one frame under test reach the handler
     # in one call.
     acq = katherine.Acquisition(
-        device, katherine.MD_SIZE() * 4096, katherine.PxFastToaTot.RAW_SIZE() * 1024, 500, 10000)
+        device, katherine.MD_SIZE() * 4096, katherine.Tpx3PxFastToaTot.RAW_SIZE() * 1024, 500, 10000)
     probe = make_probe(katherine)
     acq.observer = probe
 
@@ -326,16 +326,16 @@ def check_reprs(tap, katherine, device):
     sanity checks for a couple of objects that do need the daemon (their
     field values are already checked elsewhere in run_checks())."""
 
-    tp = katherine.TestPulseConfig(enabled=True, digital_only=False, external=False, count=100, period=65, phase=0)
-    tap.check_eq('TestPulseConfig repr matches the C golden byte-for-byte', repr(tp),
+    tp = katherine.Tpx3TestPulseConfig(enabled=True, digital_only=False, external=False, count=100, period=65, phase=0)
+    tap.check_eq('Tpx3TestPulseConfig repr matches the C golden byte-for-byte', repr(tp),
         'test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}')
 
     trig = katherine.Trigger(enabled=True, channel=3, use_falling_edge=False)
     tap.check_eq('Trigger repr matches the C golden byte-for-byte', repr(trig),
         'trigger{enabled: true, channel: 3, use_falling_edge: false}')
 
-    px = katherine.PxConfig()
-    tap.check_eq('PxConfig repr matches the C golden byte-for-byte (all-zero matrix)', repr(px),
+    px = katherine.Tpx3PxConfig()
+    tap.check_eq('Tpx3PxConfig repr matches the C golden byte-for-byte (all-zero matrix)', repr(px),
         'px_config{words: 16384, xor64: 0x0000000000000000}')
 
     rs_repr = repr(device.get_readout_status())
@@ -381,8 +381,8 @@ def check_enums(tap, katherine):
     tap.check_eq('Polarity enumerates every carrier',
                  [(m.name, m.value) for m in katherine.Polarity],
                  [('HOLES', 0), ('ELECTRONS', 1)])
-    tap.check_eq('PhaseCorrection enumerates every outcome',
-                 [(m.name, m.value) for m in katherine.PhaseCorrection],
+    tap.check_eq('Tpx3PhaseCorrection enumerates every outcome',
+                 [(m.name, m.value) for m in katherine.Tpx3PhaseCorrection],
                  [('NONE', 0), ('SOFTWARE', 1), ('HARDWARE', 2)])
     # TEST_PULSE_PERIOD is absent on purpose: C aliases it to
     # TEST_PULSE_METHOD, both naming register 0, and @unique forbids an alias.
@@ -419,7 +419,7 @@ def check_enum_rendering(tap, katherine):
         # for this one they disagree: the C enumerator is READOUT_SEQUENTIAL.
         'Tpx3ReadoutMode': ['sequential', 'data_driven'],
         'AcquisitionState': ['not_started', 'running', 'succeeded', 'timed_out'],
-        'PhaseCorrection': ['none', 'software', 'hardware'],
+        'Tpx3PhaseCorrection': ['none', 'software', 'hardware'],
     }
     for name, strings in expected.items():
         cls = getattr(katherine, name)
@@ -510,12 +510,12 @@ def check_pixel_types(tap, katherine):
     wrong kind of value, and neither compiles into a failure anywhere else.
     """
     fields = {
-        'PxToaTot':             ['chip', 'x', 'y', 'timestamp', 'hit_count', 'tot'],
-        'PxFastToaTot':         ['chip', 'x', 'y', 'timestamp', 'tot'],
-        'PxToaOnly':            ['chip', 'x', 'y', 'timestamp', 'hit_count'],
-        'PxFastToaOnly':        ['chip', 'x', 'y', 'timestamp'],
-        'PxEventCountItot':     ['chip', 'x', 'y', 'hit_count', 'event_count', 'integral_tot'],
-        'PxFastEventCountItot': ['chip', 'x', 'y', 'event_count', 'integral_tot'],
+        'Tpx3PxToaTot':             ['chip', 'x', 'y', 'timestamp', 'hit_count', 'tot'],
+        'Tpx3PxFastToaTot':         ['chip', 'x', 'y', 'timestamp', 'tot'],
+        'Tpx3PxToaOnly':            ['chip', 'x', 'y', 'timestamp', 'hit_count'],
+        'Tpx3PxFastToaOnly':        ['chip', 'x', 'y', 'timestamp'],
+        'Tpx3PxEventCountItot':     ['chip', 'x', 'y', 'hit_count', 'event_count', 'integral_tot'],
+        'Tpx3PxFastEventCountItot': ['chip', 'x', 'y', 'event_count', 'integral_tot'],
     }
     for name, names in fields.items():
         cls = getattr(katherine, name)
@@ -575,7 +575,7 @@ def check_udp(tap, katherine):
     # exercise the mapping itself, so this one would have passed even while
     # the mapping was broken.
     tap.check_raises('a wrongly sized BMC buffer raises ValueError',
-                     ValueError, katherine.PxConfig.from_bmc_data, b'too short')
+                     ValueError, katherine.Tpx3PxConfig.from_bmc_data, b'too short')
 
     # MemoryError is deliberately not provoked. Reaching KATHERINE_E_NOMEM
     # means exhausting an allocation this test would have to make enormous,
