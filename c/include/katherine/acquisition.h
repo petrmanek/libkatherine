@@ -150,8 +150,8 @@ typedef struct katherine_acquisition {
     katherine_tpx3_px_mode_t px_mode;
     bool fast_vco_enabled;
 
-    char *md_buffer;
-    size_t md_buffer_size;
+    char *md_buffer;       ///< Buffer for a single incoming datagram containing MD, allocated by katherine_acquisition_init().
+    size_t md_buffer_size; ///< Capacity of md_buffer in bytes. Must exceed the largest datagram a readout can send.
 
     /**
      * Whether measurement data is decoded into pixels, chosen at

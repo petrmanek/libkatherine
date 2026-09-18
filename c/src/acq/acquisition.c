@@ -262,7 +262,9 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
  * \param acq Acquisition to initialize
  * \param device Katherine device
  * \param ctx User context (may be used to convey useful info)
- * \param md_buffer_size Size of the measurement data buffer in bytes; at least 65536 on real hardware
+ * \param md_buffer_size Size of the measurement data buffer in bytes. It has
+ *   to exceed the largest datagram the readout sends, which depends on the
+ *   model; 65536 covers every model measured so far.
  * \param pixel_buffer_size Size of the pixel buffer in bytes
  * \param report_timeout Timeout for reporting incomplete pixel buffers (ms). Set zero to disable.
  * \param fail_timeout Timeout for any device communication (ms). Set zero to disable.
