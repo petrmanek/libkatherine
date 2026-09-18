@@ -11,7 +11,7 @@ from libc.stdint cimport uint8_t, uint32_t
 from cpx cimport katherine_tpx3_coord_t
 
 cdef extern from 'katherine/px_config.h':
-    ctypedef unsigned char katherine_bmc_px_t
+    ctypedef uint8_t katherine_bmc_px_t
 
     ctypedef struct katherine_bmc_t:
         katherine_bmc_px_t px_config[65536]
@@ -21,7 +21,7 @@ cdef extern from 'katherine/px_config.h':
 
     int katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v)
 
-    ctypedef unsigned char katherine_bpc_px_t
+    ctypedef uint8_t katherine_bpc_px_t
 
     ctypedef struct katherine_bpc_t:
         katherine_bpc_px_t px_config[65536]

@@ -41,14 +41,17 @@ extern "C" {
 // unsigned char : 2;
 // }) katherine_bmc_px_t;
 
-typedef unsigned char katherine_bmc_px_t;
+/// One pixel's settings in the BMC layout: the bitfield commented out above.
+typedef uint8_t katherine_bmc_px_t;
 
+/** A whole matrix in the BMC layout, one byte per pixel, as a BurdaMan .bmc file holds it. */
 typedef struct katherine_bmc {
-    katherine_bmc_px_t px_config[65536];
+    katherine_bmc_px_t px_config[65536]; ///< One configuration byte per pixel of the matrix.
 } katherine_bmc_t;
 
+/** A whole matrix in the form the readout is sent, which is what katherine_set_all_pixel_config() uploads. */
 typedef struct katherine_px_config {
-    uint32_t words[16384];
+    uint32_t words[16384]; ///< The matrix packed as the readout takes it; the accessors below address one pixel at a time.
 } katherine_px_config_t;
 
 /**
@@ -61,10 +64,12 @@ typedef struct katherine_px_config {
 KATHERINE_EXPORTED int
 katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v);
 
-typedef unsigned char katherine_bpc_px_t;
+/// One pixel's settings in the BPC layout: the same bits as katherine_bmc_px_t with the four threshold bits in the opposite order.
+typedef uint8_t katherine_bpc_px_t;
 
+/** A whole matrix in the BPC layout, one byte per pixel, as a Pixet .bpc file holds it. */
 typedef struct katherine_bpc {
-    katherine_bpc_px_t px_config[65536];
+    katherine_bpc_px_t px_config[65536]; ///< One configuration byte per pixel of the matrix.
 } katherine_bpc_t;
 
 

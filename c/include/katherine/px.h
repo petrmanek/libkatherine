@@ -96,17 +96,22 @@ extern "C" {
 // hit_count at 14 (not 15). The chip's fine counter saturates at 15, which
 // the combination above consumes rather than reports.
 
-/** Columns in the Timepix3 pixel matrix, and so rows: it is square. */
-#define KATHERINE_TPX3_MATRIX_WIDTH 256
+/** Columns in the Timepix3 pixel matrix. */
+#define KATHERINE_TPX3_MATRIX_WIDTH  256
 
+/** Rows in the Timepix3 pixel matrix, equal to its columns: the matrix is square. */
+#define KATHERINE_TPX3_MATRIX_HEIGHT 256
+
+/** A pixel's place in the matrix, KATHERINE_TPX3_MATRIX_WIDTH by KATHERINE_TPX3_MATRIX_HEIGHT. */
 typedef struct katherine_tpx3_coord {
-    uint8_t x;
-    uint8_t y;
+    uint8_t x; ///< Column, 0 to KATHERINE_TPX3_MATRIX_WIDTH - 1.
+    uint8_t y; ///< Row, 0 to KATHERINE_TPX3_MATRIX_HEIGHT - 1.
 } katherine_tpx3_coord_t;
 
 KATHERINE_EXPORTED int
 katherine_tpx3_coord_snprint(char *buf, size_t cap, const katherine_tpx3_coord_t *v);
 
+/** A hit decoded in ToA+ToT mode with the fast oscillator on: arrival time including the fine counter, and time over threshold. */
 typedef struct katherine_px_f_toa_tot {
     uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
     katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
@@ -117,6 +122,7 @@ typedef struct katherine_px_f_toa_tot {
 KATHERINE_EXPORTED int
 katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v);
 
+/** A hit decoded in ToA+ToT mode with the fast oscillator off: arrival time to the pixel clock, time over threshold, and the hit counter. */
 typedef struct katherine_px_toa_tot {
     uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
     katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
@@ -128,6 +134,7 @@ typedef struct katherine_px_toa_tot {
 KATHERINE_EXPORTED int
 katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v);
 
+/** A hit decoded in ToA-only mode with the fast oscillator on: arrival time including the fine counter. */
 typedef struct katherine_px_f_toa_only {
     uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
     katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
@@ -137,6 +144,7 @@ typedef struct katherine_px_f_toa_only {
 KATHERINE_EXPORTED int
 katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v);
 
+/** A hit decoded in ToA-only mode with the fast oscillator off: arrival time to the pixel clock, and the hit counter. */
 typedef struct katherine_px_toa_only {
     uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
     katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
@@ -147,11 +155,7 @@ typedef struct katherine_px_toa_only {
 KATHERINE_EXPORTED int
 katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v);
 
-// No hit counter: with the fast oscillator on, bits [3:0] of an Event+iToT
-// word are dummy (Tpx3 manual Figure 1, p8) -- this is the one mode where the
-// fast variant carries less than the slow one, there being no fine ToA to
-// report. Confirmed on a Gen1 readout: over 3012 pixels at high occupancy the
-// field read zero throughout while the event counter saturated.
+/** A hit decoded in Event+iToT mode with the fast oscillator on: how many events the pixel saw, and their summed time over threshold. */
 typedef struct katherine_px_f_event_count_itot {
     uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
     katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
@@ -162,6 +166,7 @@ typedef struct katherine_px_f_event_count_itot {
 KATHERINE_EXPORTED int
 katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v);
 
+/** A hit decoded in Event+iToT mode with the fast oscillator off: the event count, the summed time over threshold, and the hit counter. */
 typedef struct katherine_px_event_count_itot {
     uint8_t chip;                 ///< Chip that registered the hit, as the readout addresses it (indexed from 0).
     katherine_tpx3_coord_t coord; ///< 2D coordinates of the pixel that registered the hit, within the chip.
