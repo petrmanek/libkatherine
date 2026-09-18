@@ -220,6 +220,34 @@ test_gen2_does_not_mistake_a_trigger_for_a_pixel(void)
 }
 
 static void
+test_gen2_triggers_between_pixels_disturb_nothing(void)
+{
+    // Triggers among the pixels rather than alone in the stream: every trigger
+    // reaches the handler that discards it, and none of them lands on a chip
+    // or in the dropped count.
+    unsigned char stream[16 * MD_SIZE];
+    size_t n = 0;
+
+    make_md(stream + (n++) * MD_SIZE, 0x7, 0);
+    for (unsigned chip = 0; chip <= 3; ++chip) {
+        make_md(stream + (n++) * MD_SIZE, 0x4, 0xABCDEF); // trigger, low half
+        make_md(stream + (n++) * MD_SIZE, chip, 0x123456 + chip);
+        make_md(stream + (n++) * MD_SIZE, 0x6, 0x123456); // trigger, high half
+    }
+    make_md(stream + (n++) * MD_SIZE, 0xC, 4);
+
+    struct stats s;
+    (void) run_stream(2, stream, n, &s);
+
+    // The four pixels, one per chip, and nothing the triggers added, took or
+    // left behind as dropped.
+    KT_CHECK_EQ(s.pixels, 4u);
+    KT_CHECK_EQ(s.chips_seen, 0xFu);
+    KT_CHECK_EQ(s.frames_started, 1);
+    KT_CHECK_EQ(s.frames_ended, 1);
+}
+
+static void
 test_frame_lifecycle_is_generation_independent(void)
 {
     unsigned char stream[4 * MD_SIZE];
@@ -241,6 +269,7 @@ main(void)
     KT_RUN(test_gen2_decodes_all_four_chip_headers);
     KT_RUN(test_gen1_loses_every_gen2_pixel);
     KT_RUN(test_gen2_does_not_mistake_a_trigger_for_a_pixel);
+    KT_RUN(test_gen2_triggers_between_pixels_disturb_nothing);
     KT_RUN(test_frame_lifecycle_is_generation_independent);
     return kt_summary();
 }
