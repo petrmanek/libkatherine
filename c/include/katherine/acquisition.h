@@ -181,7 +181,7 @@ typedef struct katherine_acquisition {
     int requested_frames;
     double requested_frame_duration; ///< Requested duration of a single frame, in seconds
     int completed_frames;
-    size_t dropped_measurement_data;
+    size_t dropped_measurement_data; ///< Number of MD words the decoder did not recognise since acquisition start.
 
     /**
      * Datagrams received that exactly filled md_buffer_size, the portable
