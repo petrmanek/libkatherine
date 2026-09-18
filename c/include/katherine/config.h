@@ -173,6 +173,9 @@ typedef enum katherine_dac_unit {
     KATHERINE_DAC_UNIT_VOLT,    ///< Volts; the DAC sets a voltage.
 } katherine_dac_unit_t;
 
+KATHERINE_EXPORTED const char *
+katherine_tpx3_dac_name(katherine_tpx3_dac_t dac);
+
 KATHERINE_EXPORTED uint16_t
 katherine_tpx3_dac_max(katherine_tpx3_dac_t dac);
 

@@ -1264,32 +1264,34 @@ err:
  * them.
  */
 typedef struct {
+    const char *name;          ///< The DAC's name, as the Tpx3 manual spells it.
     uint16_t max;              ///< Largest accepted value; inclusive.
     double lsb;                ///< SI units per step.
     katherine_dac_unit_t unit; ///< Quantity lsb is measured in.
 } katherine_dac_info_t;
 
 /** The table itself, one row per DAC. */
-static const katherine_dac_info_t KATHERINE_DAC_INFO[KATHERINE_TPX3_DAC_COUNT] = {
+static const katherine_dac_info_t KATHERINE_TPX3_DAC_INFO[KATHERINE_TPX3_DAC_COUNT] = {
     // clang-format off
-    {255, 20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_Preamp_ON     [7:0]
-    {15,  20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_Preamp_OFF    [3:0]
-    {255, 5e-3,    KATHERINE_DAC_UNIT_VOLT}, // Vpreamp_NCAS        [7:0]
-    {255, 240e-12, KATHERINE_DAC_UNIT_AMP},  // Ibias_Ikrum         [7:0]
-    {255, 5e-3,    KATHERINE_DAC_UNIT_VOLT}, // Vfbk                [7:0]
-    {511, 500e-6,  KATHERINE_DAC_UNIT_VOLT}, // Vthreshold_fine     [8:0]
-    {15,  80e-3,   KATHERINE_DAC_UNIT_VOLT}, // Vthreshold_coarse   [3:0]
-    {255, 20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS1_ON     [7:0]
-    {15,  20e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS1_OFF    [3:0]
-    {255, 13e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS2_ON     [7:0]
-    {15,  13e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_DiscS2_OFF    [3:0]
-    {255, 1.08e-9, KATHERINE_DAC_UNIT_AMP},  // Ibias_PixelDAC      [7:0]
-    {255, 40e-9,   KATHERINE_DAC_UNIT_AMP},  // Ibias_TPbufferIn    [7:0]
-    {255, 1e-6,    KATHERINE_DAC_UNIT_AMP},  // Ibias_TPbufferOut   [7:0]
-    {255, 5e-3,    KATHERINE_DAC_UNIT_VOLT}, // VTP_coarse          [7:0]
-    {511, 2.5e-3,  KATHERINE_DAC_UNIT_VOLT}, // VTP_fine            [8:0]
-    {255, 600e-9,  KATHERINE_DAC_UNIT_AMP},  // Ibias_CP_PLL        [7:0]
-    {255, 5.7e-3,  KATHERINE_DAC_UNIT_VOLT}, // PLL_Vcntrl          [7:0]
+  // name                  max  lsb       unit
+    {"Ibias_Preamp_ON",   255, 20e-9,   KATHERINE_DAC_UNIT_AMP},
+    {"Ibias_Preamp_OFF",  15,  20e-9,   KATHERINE_DAC_UNIT_AMP},
+    {"Vpreamp_NCAS",      255, 5e-3,    KATHERINE_DAC_UNIT_VOLT},
+    {"Ibias_Ikrum",       255, 240e-12, KATHERINE_DAC_UNIT_AMP},
+    {"Vfbk",              255, 5e-3,    KATHERINE_DAC_UNIT_VOLT},
+    {"Vthreshold_fine",   511, 500e-6,  KATHERINE_DAC_UNIT_VOLT},
+    {"Vthreshold_coarse", 15,  80e-3,   KATHERINE_DAC_UNIT_VOLT},
+    {"Ibias_DiscS1_ON",   255, 20e-9,   KATHERINE_DAC_UNIT_AMP},
+    {"Ibias_DiscS1_OFF",  15,  20e-9,   KATHERINE_DAC_UNIT_AMP},
+    {"Ibias_DiscS2_ON",   255, 13e-9,   KATHERINE_DAC_UNIT_AMP},
+    {"Ibias_DiscS2_OFF",  15,  13e-9,   KATHERINE_DAC_UNIT_AMP},
+    {"Ibias_PixelDAC",    255, 1.08e-9, KATHERINE_DAC_UNIT_AMP},
+    {"Ibias_TPbufferIn",  255, 40e-9,   KATHERINE_DAC_UNIT_AMP},
+    {"Ibias_TPbufferOut", 255, 1e-6,    KATHERINE_DAC_UNIT_AMP},
+    {"VTP_coarse",        255, 5e-3,    KATHERINE_DAC_UNIT_VOLT},
+    {"VTP_fine",          511, 2.5e-3,  KATHERINE_DAC_UNIT_VOLT},
+    {"Ibias_CP_PLL",      255, 600e-9,  KATHERINE_DAC_UNIT_AMP},
+    {"PLL_Vcntrl",        255, 5.7e-3,  KATHERINE_DAC_UNIT_VOLT},
     // clang-format on
 };
 /**
@@ -1396,10 +1398,24 @@ katherine_error_t
 katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v)
 {
     for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
-        if (v->array[i] > KATHERINE_DAC_INFO[i].max) return KATHERINE_E_INVAL;
+        if (v->array[i] > KATHERINE_TPX3_DAC_INFO[i].max) return KATHERINE_E_INVAL;
     }
 
     return KATHERINE_E_OK;
+}
+
+/**
+ * Name of a bias DAC, as the Tpx3 manual spells it.
+ * \param dac DAC to name
+ * \return Null-terminated string, owned by the library. "unknown" for a value
+ *   outside the enumeration.
+ */
+const char *
+katherine_tpx3_dac_name(katherine_tpx3_dac_t dac)
+{
+    if ((unsigned) dac >= KATHERINE_TPX3_DAC_COUNT) return "unknown";
+
+    return KATHERINE_TPX3_DAC_INFO[dac].name;
 }
 
 /**
@@ -1414,7 +1430,7 @@ katherine_tpx3_dac_max(katherine_tpx3_dac_t dac)
 {
     if ((unsigned) dac >= KATHERINE_TPX3_DAC_COUNT) return 0;
 
-    return KATHERINE_DAC_INFO[dac].max;
+    return KATHERINE_TPX3_DAC_INFO[dac].max;
 }
 
 /**
@@ -1437,7 +1453,7 @@ katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac
 {
     if ((unsigned) dac >= KATHERINE_TPX3_DAC_COUNT) return 0.0;
 
-    if (unit != NULL) *unit = KATHERINE_DAC_INFO[dac].unit;
+    if (unit != NULL) *unit = KATHERINE_TPX3_DAC_INFO[dac].unit;
 
-    return KATHERINE_DAC_INFO[dac].lsb * (double) value;
+    return KATHERINE_TPX3_DAC_INFO[dac].lsb * (double) value;
 }

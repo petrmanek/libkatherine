@@ -244,9 +244,28 @@ test_threshold_corroborates_the_coarse_step(void)
     KT_CHECK_NEAR(coarse + fine, 1.45, 0.006);
 }
 
+/**
+ * The names the library reports are this file's own transcription of the
+ * manual, which is the point: the library reads them from its table and this
+ * reads them from the manual, so a slip in either shows up as a mismatch.
+ */
+static void
+test_names(void)
+{
+    for (size_t i = 0; i < COUNT(TABLE); ++i) {
+        KT_CHECK_STR_EQ(katherine_tpx3_dac_name(TABLE[i].dac), TABLE[i].name);
+    }
+
+    // Outside the enumeration, in both directions, as for the maxima.
+    KT_CHECK_STR_EQ(katherine_tpx3_dac_name((katherine_tpx3_dac_t) KATHERINE_TPX3_DAC_COUNT),
+        "unknown");
+    KT_CHECK_STR_EQ(katherine_tpx3_dac_name((katherine_tpx3_dac_t) -1), "unknown");
+}
+
 int
 main(void)
 {
+    KT_RUN(test_names);
     KT_RUN(test_maxima);
     KT_RUN(test_maxima_agree_with_validate);
     KT_RUN(test_conversion);
