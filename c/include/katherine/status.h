@@ -54,23 +54,9 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
 
 /** Link status between the readout and the ASIC. */
 typedef struct katherine_comm_status {
-    /**
-     * Active sensor output links, one bit per link, as the sensor's own
-     * output-block channel mask reports them.
-     */
-    uint8_t comm_lines_mask;
-
-    /** Aggregate rate carried by those links, in Mb/s. */
-    uint32_t data_rate;
-
-    /**
-     * ASICs found to be answering on those links. The readout reports a count
-     * in an eight-bit field; libkatherine 1.x truncated it to a boolean, which
-     * loses how many of a multi-chip readout's layers are actually populated.
-     * Compare against katherine_device_info_t::max_chip_count, which says how
-     * many the hardware can drive.
-     */
-    uint8_t chip_count;
+    uint8_t comm_lines_mask; ///< Bitmap describing active output links between chip and readout, one bit per link, as the chip's own output-block channel mask reports them.
+    uint32_t data_rate;      ///< Aggregate rate carried by those links, in Mb/s.
+    uint8_t chip_count;      ///< How many chips passed automated digital test during readout startup. Compare against katherine_device_derived_info_t::max_chip_count for what the readout can carry.
 } katherine_comm_status_t;
 
 KATHERINE_EXPORTED int
