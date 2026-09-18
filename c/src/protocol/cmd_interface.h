@@ -440,11 +440,6 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_TOA_CALIBRATION_SETUP    = 0x28,
     CMD_TYPE_NUMBER_OF_TOKENS_SETTING = 0x29,
 
-    // Generation-dependent well beyond scaling: on legacy Gen1 firmware this
-    // opcode is a communication-setup command reading the same byte 0, and
-    // modern Gen1 is unexamined. On Gen2 it returns a raw float that needs an
-    // inverted affine transform to reach amps, and is silent during a
-    // measurement.
     CMD_TYPE_GET_BIAS_CURRENT      = 0x30,
     CMD_TYPE_INTERNAL_TDC_SETTINGS = 0x32,
 
