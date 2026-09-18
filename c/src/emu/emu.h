@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <katherine/device.h>
 #include <katherine/emulator.h>
 
 //
@@ -82,6 +83,16 @@ katherine_emu_store_le(uint8_t *dst, uint64_t value, size_t count)
     for (size_t i = 0; i < count; ++i) {
         dst[i] = (uint8_t) (value >> (8 * i));
     }
+}
+
+// A pixel arrives under header 0x4 on the first generation, under its own
+// chip's index from the second.
+static inline uint8_t
+katherine_emu_pixel_header(const katherine_emu_profile_t *profile, uint8_t chip)
+{
+    const katherine_device_derived_info_t derived = katherine_device_derived_info_recognize(profile->hw_type);
+
+    return (derived.gen >= 2) ? chip : KATHERINE_EMU_MD_PIXEL;
 }
 
 // Splitmix64. Hand-rolled so that the generated streams do not depend on

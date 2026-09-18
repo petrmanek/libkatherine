@@ -200,8 +200,7 @@ print_usage(FILE *out, const char *prog)
         "                               source port for measurement data (default %d)\n"
         "  --client-data-port <port>    destination port for measurement data on\n"
         "                               the client host (default %d)\n"
-        "  --profile <name>             emulated readout profile (only 'gen1-tpx3'\n"
-        "                               is available)\n"
+        "  --profile <name>             gen1-tpx3 | gen2-tpx3\n"
         "  --seed <n>                   seed of the pseudo-random generators\n"
         "  --rate <bytes/s>             measurement data rate limit, 0 to disable\n"
         "  --hits-per-frame <n>         pixel measurement data emitted per frame\n"
@@ -411,8 +410,9 @@ parse_options(int argc, char *argv[], daemon_options_t *options)
         }
     }
 
-    if (strcmp(options->profile_name, "gen1-tpx3") != 0) {
-        fprintf(stderr, "ksim: unsupported --profile '%s' (only 'gen1-tpx3' is available)\n",
+    if (strcmp(options->profile_name, "gen1-tpx3") != 0
+        && strcmp(options->profile_name, "gen2-tpx3") != 0) {
+        fprintf(stderr, "ksim: unsupported --profile '%s' (gen1-tpx3 or gen2-tpx3)\n",
             options->profile_name);
         return EXIT_FAILURE;
     }
@@ -535,6 +535,12 @@ main(int argc, char *argv[])
 
     katherine_emu_profile_t profile;
     katherine_emu_profile_defaults(&profile);
+    if (strcmp(options.profile_name, "gen2-tpx3") == 0) {
+        // The hardware type the library recognizes as the second generation.
+        profile.hw_type     = 0x03;
+        profile.hw_revision = 0x03;
+        profile.fw_version  = 5;
+    }
     if (options.seed_set) profile.seed = options.seed;
     if (options.rate_set) profile.shape_bytes_per_s = options.rate;
     if (options.hits_set) profile.hits_per_frame = options.hits_per_frame;

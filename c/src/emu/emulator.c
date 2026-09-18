@@ -215,6 +215,12 @@ consume_px_config(katherine_emu_t *emu, size_t len)
     }
 }
 
+static uint8_t
+emu_gen(const katherine_emu_t *emu)
+{
+    return katherine_device_derived_info_recognize(emu->profile.hw_type).gen;
+}
+
 static void
 handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
 {
@@ -226,7 +232,20 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
 
     switch (opcode) {
     case CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB:
-        emu->regs.acq_time_lsb = payload;
+        if (emu_gen(emu) >= 2) {
+            // The second generation sends the whole duration here as float
+            // seconds, so both halves come from this one command. Rounding is
+            // load-bearing: a float holds 160 us as a hair under 16000 units,
+            // which truncated would make every frame a tick short.
+            const float seconds = load_float(cmd);
+            const double units  = (seconds > 0.0f) ? (double) seconds * 1e8 + 0.5 : 0.0;
+            const uint64_t u    = (units < 1.8e19) ? (uint64_t) units : 0;
+
+            emu->regs.acq_time_lsb = (uint32_t) (u & 0xFFFFFFFFu);
+            emu->regs.acq_time_msb = (uint32_t) (u >> 32);
+        } else {
+            emu->regs.acq_time_lsb = payload;
+        }
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 

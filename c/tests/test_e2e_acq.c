@@ -201,10 +201,12 @@ static char g_skip_reason[256];
 // on the same device would recover); recreating the device between attempts
 // still sheds anything else a failed attempt may have left queued.
 static const char *
-fixture_init(const char *ksim_path)
+fixture_init(const char *ksim_path, const char *profile)
 {
     char *argv[] = {
         (char *) "ksim",
+        (char *) "--profile",
+        (char *) profile,
         (char *) "--listen",
         (char *) KSIM_LISTEN_ADDR,
         (char *) "--seed",
@@ -853,7 +855,7 @@ main(int argc, char *argv[])
         return 2;
     }
 
-    const char *skip = fixture_init(argv[1]);
+    const char *skip = fixture_init(argv[1], "gen1-tpx3");
     if (skip != NULL) {
         printf("1..0 # SKIP %s\n", skip);
         kspawn_stop(&g_ksim);
@@ -872,6 +874,24 @@ main(int argc, char *argv[])
     KT_RUN(test_phase_request_resolution);
 
     katherine_device_fini(&g_device);
+    kspawn_stop(&g_ksim);
+
+    // Re-run the decode-bearing cases against the same readout emulated as the
+    // second generation, where a pixel carries a per-chip header and the
+    // acquisition time arrives as float seconds. They pass only if the emulator
+    // and the decoder agree about that header map, which is two independent
+    // implementations of it. test_slow_control stays out: it pins the first
+    // generation's reported identity.
+    skip = fixture_init(argv[1], "gen2-tpx3");
+    if (skip != NULL) {
+        printf("# SKIP the second-generation phase: %s\n", skip);
+    } else {
+        printf("# second generation\n");
+        KT_RUN(test_data_driven_frame);
+        KT_RUN(test_sequential_frames);
+
+        katherine_device_fini(&g_device);
+    }
     kspawn_stop(&g_ksim);
 
     KT_RUN(test_control_timeout);

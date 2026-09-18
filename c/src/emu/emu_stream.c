@@ -115,7 +115,7 @@ draw_hit(katherine_emu_stream_t *stream, uint64_t due_ns, emu_hit_t *hit)
 static uint64_t
 build_hit_md(const katherine_emu_stream_t *stream, const emu_hit_t *hit)
 {
-    uint64_t md = EMU_MD_NEW(KATHERINE_EMU_MD_PIXEL);
+    uint64_t md = EMU_MD_NEW(stream->pixel_header);
 
     switch (stream->px_mode) {
     case KATHERINE_TPX3_PX_TOA_TOT:
@@ -332,6 +332,7 @@ katherine_emu_stream_arm(katherine_emu_t *emu, uint8_t readout_mode)
     stream->readout_mode = readout_mode;
     stream->px_mode      = emu->regs.px_mode;
     stream->fast_vco     = emu->regs.fast_vco;
+    stream->pixel_header = katherine_emu_pixel_header(&emu->profile, 0);
 
     // The acquisition time is set as a pair of halves counting ten
     // nanosecond units.

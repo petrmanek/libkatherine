@@ -210,6 +210,7 @@ typedef struct katherine_emu_stream {
     uint8_t readout_mode; ///< Internal: sampled from the acquisition start command
     uint8_t px_mode;      ///< Internal: sampled from the register file when armed
     bool fast_vco;        ///< Internal
+    uint8_t pixel_header; ///< Internal: the header a pixel carries
 
     uint32_t frames_total;  ///< Internal
     uint32_t frame_index;   ///< Internal
