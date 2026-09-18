@@ -30,14 +30,15 @@
 extern "C" {
 #endif
 
+/** One UDP session: a bound socket, the endpoint it talks to, and the lock serializing it. */
 typedef struct katherine_udp {
-    int sock;
-    struct sockaddr_in addr_local;
-    struct sockaddr_in addr_remote;
+    int sock;                       ///< The OS socket handle.
+    struct sockaddr_in addr_local;  ///< Local endpoint this session is bound to.
+    struct sockaddr_in addr_remote; ///< Remote endpoint it sends to; see katherine_udp_set_remote().
 
-    pthread_mutex_t mutex;
+    pthread_mutex_t mutex; ///< Serializes use of the session between threads; taken through katherine_udp_mutex_lock().
 
-    bool remote_pinned;
+    bool remote_pinned; ///< True to keep addr_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
 
     bool strict_ack;                  ///< True to require a command response to repeat the operation code of its request exactly; set through katherine_udp_set_strict_ack().
     uint64_t stray_command_responses; ///< Command response datagrams discarded because they belonged to no request in flight; see katherine_udp_set_strict_ack().

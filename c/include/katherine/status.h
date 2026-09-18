@@ -39,11 +39,12 @@ extern "C" {
 typedef struct katherine_device katherine_device_t;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+/** What a readout answers when asked to identify itself. */
 typedef struct katherine_readout_status {
-    int hw_type;
-    int hw_revision;
-    int hw_serial_number;
-    int fw_version;
+    int hw_type;          ///< Device model, determines form-factor, ports and capabilities.
+    int hw_revision;      ///< Revision number within the device model line.
+    int hw_serial_number; ///< Unique serial number of the unit.
+    int fw_version;       ///< Version of the firmware it is running.
 } katherine_readout_status_t;
 
 KATHERINE_EXPORTED int
@@ -65,6 +66,7 @@ katherine_comm_status_snprint(char *buf, size_t cap, const katherine_comm_status
 KATHERINE_EXPORTED katherine_error_t
 katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status);
 
+/// Buffer size (in bytes) needed by katherine_get_chip_id(), inclusive of the NUL terminator.
 #define KATHERINE_CHIP_ID_STR_SIZE 16
 
 KATHERINE_EXPORTED katherine_error_t

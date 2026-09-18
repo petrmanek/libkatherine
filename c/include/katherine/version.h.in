@@ -26,18 +26,22 @@
  * \{
  */
 
-// Version of libkatherine this header was generated for, split into
-// components and composed forms. These are fixed at build time; use
-// katherine_version() or katherine_version_string() to query the version
-// of the library actually loaded at runtime.
+/// Major version this header was generated for. Fixed at build time; for the
+/// version of the library actually loaded, call katherine_version().
 #define KATHERINE_VERSION_MAJOR  @PROJECT_VERSION_MAJOR@
+/// Minor version this header was generated for.
 #define KATHERINE_VERSION_MINOR  @PROJECT_VERSION_MINOR@
+/// Patch version this header was generated for.
 #define KATHERINE_VERSION_PATCH  @PROJECT_VERSION_PATCH@
+/// The same version as text, including any pre-release suffix; for the loaded
+/// library, call katherine_version_string().
 #define KATHERINE_VERSION_STRING "@PROJECT_VERSION@@KATHERINE_VERSION_SUFFIX@"
 
-// Single-integer form of the version above, suitable for ordered
-// comparisons (e.g. `#if KATHERINE_VERSION_HEX >= KATHERINE_VERSION_MAKE_HEX(1, 2, 0)`).
+/// Composes a major, minor and patch triple into the same single integer
+/// KATHERINE_VERSION_HEX uses, so a comparison can name a specific version.
 #define KATHERINE_VERSION_MAKE_HEX(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+/// This header's version as one integer, for ordered comparisons, e.g.
+/// `#if KATHERINE_VERSION_HEX >= KATHERINE_VERSION_MAKE_HEX(1, 2, 0)`.
 #define KATHERINE_VERSION_HEX (KATHERINE_VERSION_MAKE_HEX(KATHERINE_VERSION_MAJOR, KATHERINE_VERSION_MINOR, KATHERINE_VERSION_PATCH))
 
 #ifdef __cplusplus
