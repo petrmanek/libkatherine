@@ -138,6 +138,7 @@ typedef struct decode_probe {
     char state;
     int completed_frames;
     size_t dropped;
+    uint64_t truncated;
 } decode_probe_t;
 
 static void
@@ -249,6 +250,7 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     probe->state            = acq.state;
     probe->completed_frames = acq.completed_frames;
     probe->dropped          = acq.dropped_measurement_data;
+    probe->truncated        = acq.truncated_measurement_data;
 
     katherine_acquisition_fini(&acq);
     katherine_udp_fini(&dev.data_socket);
@@ -484,6 +486,44 @@ test_partial_datum_ignored(void)
 }
 
 // ------------------------------------------------------------------
+// c) A datagram that exactly fills the buffer is suspected of truncation.
+
+// An exact fit is the only sign the library has that a longer datagram may
+// have been cut to fit: the OS reports the bytes it delivered and nothing
+// about the ones it dropped. So the counter is a prompt to raise
+// md_buffer_size rather than a loss count, and both halves of that matter --
+// silent truncation if it never fires, every full buffer under sustained load
+// reading as a fault if it fires when the fit is not exact.
+static void
+test_exact_fit_datagram_counts_as_maybe_truncated(void)
+{
+    unsigned char stream[MD_BUFFER_MDS * KATHERINE_MD_SIZE];
+    memset(stream, 0, sizeof(stream));
+
+    // A whole frame, then filler pixels out to the buffer's exact capacity.
+    store_md(stream, 0, make_new_frame());
+    for (size_t i = 1; i < MD_BUFFER_MDS - 1; ++i) {
+        store_md(stream, i, make_pixel(1, 1, 0x0101));
+    }
+    store_md(stream, MD_BUFFER_MDS - 1, make_frame_finished(MD_BUFFER_MDS - 2));
+
+    decode_probe_t probe;
+    size_t lens[1] = {MD_BUFFER_MDS * KATHERINE_MD_SIZE};
+    (void) run_stream(stream, lens, 1, 1, &probe);
+
+    KT_CHECK_EQ(probe.truncated, 1u);
+    KT_CHECK_EQ(probe.frames_ended, 1u);
+
+    // One datum short of the capacity: the same stream, nothing suspected.
+    store_md(stream, MD_BUFFER_MDS - 2, make_frame_finished(MD_BUFFER_MDS - 3));
+    lens[0] = (MD_BUFFER_MDS - 1) * KATHERINE_MD_SIZE;
+    (void) run_stream(stream, lens, 1, 1, &probe);
+
+    KT_CHECK_EQ(probe.truncated, 0u);
+    KT_CHECK_EQ(probe.frames_ended, 1u);
+}
+
+// ------------------------------------------------------------------
 
 int
 main(void)
@@ -494,5 +534,6 @@ main(void)
     KT_RUN(test_combine_is_injective);
     KT_RUN(test_toa_offset_reset);
     KT_RUN(test_partial_datum_ignored);
+    KT_RUN(test_exact_fit_datagram_counts_as_maybe_truncated);
     return kt_summary();
 }
