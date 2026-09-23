@@ -683,6 +683,11 @@ katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict)
  * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason
  *   none of the other codes cover; see pthread_mutex_lock(3) and
  *   katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT.
+ *   pthread_mutex_lock(3) documents EBUSY, EDEADLK, EINVAL and EPERM and no
+ *   more, so neither code can arrive however the map is capable of producing
+ *   them.
  */
 katherine_error_t
 katherine_udp_mutex_lock(katherine_udp_t *u)
@@ -709,6 +714,9 @@ katherine_udp_mutex_lock(katherine_udp_t *u)
  *   none of the other codes cover, such as this thread not being the one
  *   holding it; see pthread_mutex_unlock(3) and
  *   katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   for the same reason as the lock above.
  */
 katherine_error_t
 katherine_udp_mutex_unlock(katherine_udp_t *u)
@@ -760,6 +768,10 @@ katherine_udp_last_os_error(const katherine_udp_t *u)
  * \retval KATHERINE_E_IO if the request failed at the OS level for a reason
  *   none of the other codes cover, or the handle is not an open socket; see
  *   setsockopt(2) and katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   which reach this list only through the shared error map; setsockopt(2)
+ *   documents neither.
  */
 katherine_error_t
 katherine_udp_set_rcvbuf(katherine_udp_t *u, uint32_t bytes)
@@ -805,6 +817,10 @@ err_setsockopt:
  * \retval KATHERINE_E_IO if the query failed at the OS level for a reason
  *   none of the other codes cover, or the handle is not an open socket; see
  *   getsockopt(2) and katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   which reach this list only through the shared error map; getsockopt(2)
+ *   documents neither.
  */
 katherine_error_t
 katherine_udp_rcvbuf(const katherine_udp_t *u, uint32_t *bytes)

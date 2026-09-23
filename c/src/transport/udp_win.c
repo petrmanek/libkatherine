@@ -264,6 +264,9 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
  *   CreateMutex() and katherine_udp_last_os_error(), which reports
  *   WSAStartup()'s own return value in the first case and the
  *   GetLastError() code in the second.
+ *
+ * \note Unreachable here: KATHERINE_E_TIMEOUT, for the reason given at
+ *   katherine_udp_init_bound(), which this forwards to.
  */
 katherine_error_t
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -309,10 +312,12 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  *   WSAStartup()'s own return value in the first case and the
  *   GetLastError() code in the second.
  *
- * No timeout appears here, where the POSIX counterpart has one: that code
- * comes from pthread_mutex_init(3) reporting EAGAIN, and this transport
- * creates its mutex through CreateMutex(), whose failure is reported
- * unmapped for the reason given at that call.
+ * \note Unreachable here: KATHERINE_E_TIMEOUT, which the POSIX counterpart
+ *   does report, from pthread_mutex_init(3) returning EAGAIN. This transport
+ *   creates its mutex through CreateMutex(), whose failure is reported
+ *   unmapped for the reason given at that call, and none of WSAStartup,
+ *   socket, bind, setsockopt or inet_pton documents a code that maps to a
+ *   timeout.
  */
 katherine_error_t
 katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
@@ -853,6 +858,10 @@ katherine_udp_last_os_error(const katherine_udp_t *u)
  * \retval KATHERINE_E_IO if the request failed at the OS level for a reason
  *   none of the other codes cover, or the handle is not an open socket; see
  *   katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   which reach this list only through the shared error map; Winsock reports
+ *   neither for this option.
  */
 katherine_error_t
 katherine_udp_set_rcvbuf(katherine_udp_t *u, uint32_t bytes)
@@ -898,6 +907,9 @@ err_setsockopt:
  * \retval KATHERINE_E_IO if the query failed at the OS level for a reason
  *   none of the other codes cover, or the handle is not an open socket; see
  *   katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   for the same reason as the setter above.
  */
 katherine_error_t
 katherine_udp_rcvbuf(const katherine_udp_t *u, uint32_t *bytes)

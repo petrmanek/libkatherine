@@ -791,6 +791,11 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  *   KATHERINE_E_INVAL or KATHERINE_E_TIMEOUT instead.
  * \retval KATHERINE_E_NOMEM if taking the data session's lock ran out of
  *   memory; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *
+ * \note The codes below are returned from the per-generation dispatch
+ *   macros, which the error indexer cannot follow, so it reports them as
+ *   unreachable: KATHERINE_E_INVAL, KATHERINE_E_NOMEM, KATHERINE_E_SYSTEM and
+ *   KATHERINE_E_TIMEOUT.
  */
 katherine_error_t
 katherine_acquisition_read(katherine_acquisition_t *acq)

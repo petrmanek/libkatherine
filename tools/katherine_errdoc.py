@@ -57,6 +57,21 @@ DB = os.path.join(REPO, "build", "compile_commands.json")
 # command.
 ERR_MARKER = re.compile(r"\\return\s+Error code\b")
 RETVAL = re.compile(r"\\retval\s+(KATHERINE_E_[A-Z_]+)")
+
+# Where a docstring and this index disagree for a reason a reader can check,
+# the docstring says so and says why, and these two phrases make that machine
+# readable. Both take the codes they name out of the comparison, in opposite
+# directions, and both are written as ordinary prose inside a \note so that
+# Doxygen renders them rather than warning about an unknown command.
+#
+# "Unreachable here:" means the index believes a code arrives and reading the
+# code says it cannot -- the usual cause being a shared error mapper, which
+# reports what the mapping can produce rather than what a given caller can
+# trigger. "The indexer cannot follow" means the reverse: the code really is
+# returned, along a path this tool's call graph does not reach, macro-generated
+# dispatch being the case in hand.
+EXEMPT_UNREACHABLE = re.compile(r"Unreachable here:((?:[^\n]|\n\s*\*)*?)(?:\.|\\)")
+EXEMPT_UNSEEN = re.compile(r"indexer cannot follow[^:]*:((?:[^\n]|\n\s*\*)*?)(?:\.|\\)")
 CODE = re.compile(r"\bKATHERINE_E_[A-Z_]+\b")
 
 
@@ -584,6 +599,24 @@ class Index:
             return set()
         return set(RETVAL.findall(entry[2]))
 
+    def exempt(self, name):
+        """Codes the docstring declares the index wrong about, with a reason.
+
+        Returns (unreachable, unseen): the first to be dropped from what the
+        index claims, the second added to it.
+        """
+        entry = self.doc.get(name)
+        if not entry:
+            return set(), set()
+        text = entry[2]
+        out = []
+        for pattern in (EXEMPT_UNREACHABLE, EXEMPT_UNSEEN):
+            found = set()
+            for m in pattern.finditer(text):
+                found |= set(CODE.findall(m.group(1)))
+            out.append(found)
+        return out[0], out[1]
+
 
 def build(paths):
     if not os.path.exists(DB):
@@ -765,6 +798,12 @@ def main():
             continue
         have = index.documented(n)
         want = index.total[n] | {"KATHERINE_E_OK"}
+
+        # A docstring may declare, with a reason, that this index is wrong
+        # about a code; see EXEMPT_UNREACHABLE and EXEMPT_UNSEEN.
+        unreachable, unseen = index.exempt(n)
+        want = (want - unreachable) | (unseen & have)
+
         if have != want:
             bad += 1
             f, line, _ = index.doc.get(n, ("?", 0, ""))
