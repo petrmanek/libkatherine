@@ -66,11 +66,13 @@
     #   error "iOS support not available"
     #elif TARGET_OS_MAC
     #   define KATHERINE_NIX
+    #   define KATHERINE_MACOS
     #else
     #   error "Unknown Apple platform"
     #endif
 #elif __linux__
 #   define KATHERINE_NIX
+#   define KATHERINE_LINUX
 #elif __unix__
 #   define KATHERINE_NIX
 #elif defined(_POSIX_VERSION)
