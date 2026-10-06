@@ -58,6 +58,22 @@
 
 #define ROUND_TRIP_TEXT "compat1"
 
+// Both sanitizers abort on an allocation the ENOMEM case below asks for,
+// instead of letting malloc() decline it; allocator_may_return_null makes them
+// return NULL as the C library would. Their runtimes call these at startup;
+// nothing else does.
+const char *
+__asan_default_options(void)
+{
+    return "allocator_may_return_null=1";
+}
+
+const char *
+__tsan_default_options(void)
+{
+    return "allocator_may_return_null=1";
+}
+
 // ------------------------------------------------------------------
 // ETIMEDOUT: a receive on a bound-but-silent socket runs out its timeout,
 // the same condition test_udp_pinning.c drives via an idle peer.
