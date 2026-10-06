@@ -52,6 +52,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#ifdef KATHERINE_LINUX
+// For PR_SET_PDEATHSIG. Linux's alone, so not KATHERINE_NIX, which macOS is
+// too and which has no prctl(); the guard below then leaves the mechanism out.
+#include <sys/prctl.h>
+#endif
 #endif
 
 // One spawned child process. Zero-initialize (`= {0}`) before use if any
@@ -219,6 +224,13 @@ kspawn_start(kspawn_proc_t *proc, const char *path, char *const argv[])
     if (pid < 0) return errno;
 
     if (pid == 0) {
+#ifdef PR_SET_PDEATHSIG
+        // Die with the parent: a test ctest kills on its timeout runs no
+        // cleanup, and the daemon then holds the suite's ports and its lock.
+        (void) prctl(PR_SET_PDEATHSIG, SIGTERM);
+        if (getppid() == 1) _exit(0); // parent already gone; no signal came
+#endif
+
         // Either execv() replaces this image (discarding the inherited copy
         // of the parent's stdio buffers) or _exit() leaves them unflushed,
         // so no buffered parent output can be emitted twice. A failed exec
