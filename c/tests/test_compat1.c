@@ -50,9 +50,9 @@
 #include "ktest.h"
 
 #define HOST            "127.0.0.1"
-#define PORT_SILENT     43700 /* bound, never sent to: the timeout case */
-#define PORT_BADADDR    43703 /* bound only long enough to fail resolving its remote */
-#define PORT_A          43701 /* the round-trip pair */
+#define PORT_SILENT     43700 // bound, never sent to: the timeout case
+#define PORT_BADADDR    43703 // bound only long enough to fail resolving its remote
+#define PORT_A          43701 // the round-trip pair
 #define PORT_B          43702
 #define TIMEOUT_MS      100
 
@@ -111,7 +111,7 @@ static void
 test_acquisition_init_huge_buffer_maps_to_enomem(void)
 {
     katherine_acquisition_t acq;
-    size_t huge = SIZE_MAX - 4096; /* leaves room for the buffer's +sizeof(uint64_t) headroom to not wrap */
+    size_t huge = SIZE_MAX - 4096; // leaves room for the buffer's +sizeof(uint64_t) headroom to not wrap
     KT_CHECK_EQ(katherine_acquisition_init(&acq, NULL, NULL, huge, 1, 0, 0), ENOMEM);
 }
 
@@ -125,7 +125,7 @@ test_acquisition_init_huge_buffer_maps_to_enomem(void)
 static void
 test_px_config_missing_file_maps_to_eio(void)
 {
-    static katherine_px_config_t px_config; /* static: too large for a comfortable stack frame */
+    static katherine_px_config_t px_config; // static: too large for a comfortable stack frame
     KT_CHECK_EQ(katherine_px_config_load_bmc_file(&px_config, "/nonexistent/path/libkatherine-test_compat1.bmc"), EIO);
 }
 
