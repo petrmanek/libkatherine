@@ -37,6 +37,14 @@
  * SPDX-License-Identifier: MIT
  */
 
+// Must precede every include: msleep.h needs nanosleep(), which glibc hides
+// under a strict -std= unless _POSIX_C_SOURCE is set before the first libc
+// header resolves feature-test macros. Same reasoning as c/src/device/config.c,
+// which includes the same header.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
