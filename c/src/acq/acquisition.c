@@ -491,7 +491,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                    short is not a datum, and decoding it would decode the \
                    bytes that happen to follow it in the buffer. */ \
                 for (i = 0; i + KATHERINE_MD_SIZE <= received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
-                    handle_measurement_data_##SUFFIX##TAG##_##GEN(acq, (const uint64_t *) it); \
+                    /* Aligned copy replacing a misaligned cast: identical code on \
+                       x86-64, AArch64 and PPC64; on ARMv7 two loads, not a faulting LDRD. */ \
+                    uint64_t word; \
+                    memcpy(&word, it, sizeof(word)); \
+                    handle_measurement_data_##SUFFIX##TAG##_##GEN(acq, &word); \
                 } \
             } else if (acq->handlers.data_received != NULL) { \
                 acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received); \
