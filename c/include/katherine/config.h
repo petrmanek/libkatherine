@@ -147,6 +147,42 @@ typedef enum katherine_tpx3_dac {
     KATHERINE_TPX3_DAC_PLL_VCNTRL,          ///< \copydoc katherine_tpx3_dacs_named_t::PLL_Vcntrl
 } katherine_tpx3_dac_t;
 
+/** Readings a DAC scan answers: the eighteen Timepix3 DACs and four monitoring outputs. */
+#define KATHERINE_TPX3_DAC_SCAN_COUNT (KATHERINE_TPX3_DAC_COUNT + 4)
+
+/**
+ * Where a scan reading sits in katherine_tpx3_dac_scan_t::array.
+ *
+ * The first eighteen slots are katherine_tpx3_dac_t unchanged, so a setting
+ * and its measurement share an index. The four after them are the chip's
+ * monitoring outputs, which no DAC sets -- Timepix3 manual Table 11, whose
+ * nominal values the descriptions quote.
+ */
+typedef enum katherine_tpx3_dac_scan_slot {
+    KATHERINE_TPX3_DAC_SCAN_BANDGAP_OUTPUT = KATHERINE_TPX3_DAC_COUNT, ///< Band-gap output voltage, nominally 637 mV.
+    KATHERINE_TPX3_DAC_SCAN_BANDGAP_TEMP,                              ///< Band-gap temperature voltage.
+    KATHERINE_TPX3_DAC_SCAN_IBIAS_DAC,                                 ///< Biasing DAC voltage, nominally 1.16 V.
+    KATHERINE_TPX3_DAC_SCAN_IBIAS_DAC_CAS,                             ///< Biasing DAC cascode voltage, nominally 950 mV.
+} katherine_tpx3_dac_scan_slot_t;
+
+/** What the readout measured at each scan slot, in Volts. */
+typedef union katherine_tpx3_dac_scan {
+    float array[KATHERINE_TPX3_DAC_SCAN_COUNT]; ///< Indexed by katherine_tpx3_dac_scan_slot_t.
+    struct {
+        float dac[KATHERINE_TPX3_DAC_COUNT]; ///< Indexed by katherine_tpx3_dac_t, in katherine_tpx3_dacs_t::array order.
+        float BandGap_output;                ///< \copydoc KATHERINE_TPX3_DAC_SCAN_BANDGAP_OUTPUT
+        float BandGap_temp;                  ///< \copydoc KATHERINE_TPX3_DAC_SCAN_BANDGAP_TEMP
+        float Ibias_dac;                     ///< \copydoc KATHERINE_TPX3_DAC_SCAN_IBIAS_DAC
+        float Ibias_dac_cas;                 ///< \copydoc KATHERINE_TPX3_DAC_SCAN_IBIAS_DAC_CAS
+    } named;                                 ///< The same readings under the manual's names.
+} katherine_tpx3_dac_scan_t;
+
+KATHERINE_EXPORTED const char *
+katherine_tpx3_dac_scan_slot_name(katherine_tpx3_dac_scan_slot_t slot);
+
+KATHERINE_EXPORTED uint8_t
+katherine_tpx3_dac_scan_sense_code(katherine_tpx3_dac_scan_slot_t slot);
+
 /**
  * The physical quantity a DAC sets, and so the unit
  * katherine_tpx3_dac_to_si() reports it in.
