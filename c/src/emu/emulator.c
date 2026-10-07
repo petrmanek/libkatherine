@@ -215,6 +215,26 @@ consume_px_config(katherine_emu_t *emu, size_t len)
     }
 }
 
+// What the readout's converter does to a bias read-back: 12 bits over 2.5 V,
+// offset by half scale, through the divider and its compensation. One step is
+// about 0.505 V, which is why a set 150 V reads back 149.883 and a set 0 reads
+// slightly negative.
+#define EMU_ADC_Q    (2.5f / 4096.0f)
+#define EMU_ADC_MID  1.225f
+#define EMU_BIAS_DIV 0.00113067356f
+#define EMU_ADC_COMP 0.935f
+
+static float
+bias_readback(float set_volts)
+{
+    const float at_mid = set_volts * EMU_BIAS_DIV / EMU_ADC_COMP + EMU_ADC_MID;
+    int counts         = (int) (at_mid / EMU_ADC_Q);
+
+    if (counts < 0) counts = 0;
+    if (counts > 4095) counts = 4095;
+
+    return EMU_ADC_COMP * ((float) counts * EMU_ADC_Q - EMU_ADC_MID) / EMU_BIAS_DIV;
+}
 static uint8_t
 emu_gen(const katherine_emu_t *emu)
 {
@@ -320,12 +340,16 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_GET_BIAS_VOLTAGE:
-        queue_float(emu, (uint8_t) opcode, emu->regs.bias);
+        queue_float(emu, (uint8_t) opcode, bias_readback(emu->regs.bias));
         break;
 
     case CMD_TYPE_GET_BIAS_CURRENT:
-        // No current model: the emulated bias supply is unloaded.
-        queue_float(emu, (uint8_t) opcode, 0.0f);
+        // Absent below the second generation, where the operation code means
+        // something else; absent mid-measurement too. Either way the readout
+        // says nothing and the caller times out.
+        if (emu_gen(emu) >= 2 && !emu->stream.armed) {
+            queue_float(emu, (uint8_t) opcode, emu->profile.bias_sense_zero);
+        }
         break;
 
     case CMD_TYPE_GET_ADC_VOLTAGE:
@@ -491,6 +515,7 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
 
     memcpy(profile->chip_id, "A1-W0001", sizeof("A1-W0001"));
 
+    profile->bias_sense_zero     = 2.024f;
     profile->readout_temperature = 30.0f;
     profile->sensor_temperature  = 40.0f;
 

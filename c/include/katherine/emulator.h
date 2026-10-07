@@ -78,6 +78,7 @@ typedef struct katherine_emu_profile {
 
     char chip_id[KATHERINE_EMU_CHIP_ID_SIZE]; ///< Chip identifier, in the `A1-W0001` notation
 
+    float bias_sense_zero;     ///< Sense voltage the bias supply reads at no current; see katherine_get_bias_leakage()
     float readout_temperature; ///< Temperature reported for the readout board, in Celsius
     float sensor_temperature;  ///< Temperature the chip's own sensor reports, in Celsius
 
