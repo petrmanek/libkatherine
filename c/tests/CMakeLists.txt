@@ -151,9 +151,11 @@ if(KATHERINE_BUILD_EMULATOR)
     # is single-threaded, so the CRT's objection does not apply.
     target_compile_definitions(test_e2e_acq PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 
-    # The bias read-back and its sense reading, driven in memory: no daemon,
-    # no ports, so nothing here needs a serial slot.
-    katherine_add_test(NAME test_bias SOURCES test_bias.c LABELS emu)
+    # The bias read-back and its sense reading, against the emulator in
+    # memory and against a mock readout on ports of its own: no daemon, so no
+    # serial slot.
+    katherine_add_test(NAME test_bias SOURCES test_bias.c LABELS emu
+        PROPERTIES SKIP_RETURN_CODE 77)
 
     # Recovery of a pixel-configuration upload whose acknowledgement the
     # daemon is told to drop. Same daemon, same fixed ports, hence the same
