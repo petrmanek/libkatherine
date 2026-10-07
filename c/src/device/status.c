@@ -195,7 +195,8 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_ECHO_CHIP_ID, crd);
     if (res) goto err;
 
-    int chip_id = *(int *) crd;
+    int chip_id;
+    memcpy(&chip_id, crd, sizeof(chip_id));
 
     // A response whose identifier fields are all zero cannot come from a
     // readout: the chip letter is encoded one-based, so a real identifier
@@ -278,7 +279,7 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
     res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_HW_READOUT_TEMPERATURE, crd);
     if (res) goto err;
 
-    *temperature = *(float *) crd;
+    memcpy(temperature, crd, sizeof(*temperature));
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return KATHERINE_E_OK;
@@ -355,7 +356,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_SENSOR_TEMPERATURE, crd);
     if (res) goto err;
 
-    *temperature = *(float *) crd;
+    memcpy(temperature, crd, sizeof(*temperature));
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return KATHERINE_E_OK;
@@ -488,7 +489,7 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
     res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_ADC_VOLTAGE, crd);
     if (res) goto err;
 
-    *voltage = *(float *) crd;
+    memcpy(voltage, crd, sizeof(*voltage));
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return KATHERINE_E_OK;
