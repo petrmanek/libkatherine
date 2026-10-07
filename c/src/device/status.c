@@ -498,3 +498,170 @@ err:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return res;
 }
+
+/**
+ * Read a bias supply's voltage back.
+ *
+ * The readout converts for us, so this is volts. Quantised at about 0.505 V
+ * per step of its 12-bit converter, and slightly negative at rest.
+ *
+ * \param device Katherine device
+ * \param bias_id Index of the bias supply
+ * \param voltage Retrieved voltage, in Volts
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
+ *   control session's receive timeout, or strays exhausted the discard budget.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
+ * \retval KATHERINE_E_STRAY if another command's responses kept arriving
+ *   until the discard budget ran out.
+ * \retval KATHERINE_E_INVAL if \p bias_id is not one this readout provides,
+ *   or if a socket call or the lock rejected an argument; see sendto(2),
+ *   recvfrom(2), pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, so how many bias supplies it has is unknown.
+ * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
+ *   reason none of the other codes cover.
+ * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3).
+ */
+katherine_error_t
+katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
+{
+    katherine_error_t res;
+
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
+
+    if (bias_id >= device->derived_info.bias_supply_count) {
+        res = KATHERINE_E_INVAL;
+        goto err_bias_id;
+    }
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err_lock;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    // Both bytes carry the index: the manual specifies byte 4, the Gen2
+    // firmware reads byte 0, and the reference implementation sets both.
+    res = katherine_cmd_send64_i64(&device->control_socket, CMD_TYPE_GET_BIAS_VOLTAGE, bias_id, bias_id);
+    if (res) goto err_send;
+
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_BIAS_VOLTAGE, crd);
+    if (res) goto err_recv;
+
+    if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err_recv:
+err_send:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_lock:
+err_bias_id:
+err_enumerated:
+    return res;
+}
+
+/**
+ * Read the leakage current flowing through the sensor.
+ *
+ * The zero point is not calibrated per unit, so readings carry an offset of
+ * up to about 0.4 uA.
+ *
+ * \param device Katherine device
+ * \param bias_id Index of the bias supply
+ * \param current Retrieved leakage current, in microamperes
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_UNSUPPORTED if the device is not known to answer this
+ *   command: one first-generation firmware spends the same operation code on a
+ *   communication-setup command reading the same byte, so it is refused rather
+ *   than sent hopefully.
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, so its generation is unknown.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
+ *   control session's receive timeout, which is also what a measurement in
+ *   flight produces: the operation code is absent from the Gen2 firmware's
+ *   mid-acquisition dispatcher.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
+ * \retval KATHERINE_E_STRAY if another command's responses kept arriving
+ *   until the discard budget ran out.
+ * \retval KATHERINE_E_INVAL if \p bias_id is not one this readout provides,
+ *   or if a socket call or the lock rejected an argument; see sendto(2),
+ *   recvfrom(2) and pthread_mutex_lock(3).
+ * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
+ *   reason none of the other codes cover.
+ * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3).
+ */
+katherine_error_t
+katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *current)
+{
+    katherine_error_t res;
+
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
+
+    if (device->derived_info.gen < 2) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_generation;
+    }
+
+    if (bias_id >= device->derived_info.bias_supply_count) {
+        res = KATHERINE_E_INVAL;
+        goto err_bias_id;
+    }
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err_lock;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    res = katherine_cmd_send64_i64(&device->control_socket, CMD_TYPE_GET_BIAS_CURRENT, bias_id, bias_id);
+    if (res) goto err_send;
+
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_BIAS_CURRENT, crd);
+    if (res) goto err_recv;
+
+    // Both from the reference implementation alone: no datasheet, manual or
+    // firmware source states either, and both are second generation only.
+    //
+    // TODO: measure the zero per unit. It is not a constant -- one readout
+    //   here reads 2.0264 V at no current -- so it belongs in the device,
+    //   with a calibration entry point.
+    // TODO: measure the scale properly, with a bias scan against a known
+    //   load, rather than inheriting 166.67 uA/V from one line of the
+    //   reference.
+    // TODO: find the first-generation equivalent. The reference carries the
+    //   same open question, and this call refuses below the second generation
+    //   partly because of it.
+    static const float gen2_sense_zero_v = 2.024f;
+    static const float gen2_sense_ohms   = 6000.0f;
+
+    float sense;
+    memcpy(&sense, crd, sizeof(sense));
+    if (current != NULL) *current = 1e6f * (gen2_sense_zero_v - sense) / gen2_sense_ohms;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err_recv:
+err_send:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_lock:
+err_bias_id:
+err_generation:
+err_enumerated:
+    return res;
+}

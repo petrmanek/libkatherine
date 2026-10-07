@@ -84,6 +84,12 @@ katherine_perform_digital_test(katherine_device_t *device);
 KATHERINE_EXPORTED katherine_error_t
 katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage);
 
+KATHERINE_EXPORTED katherine_error_t
+katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *current);
+
 #ifdef __cplusplus
 }
 #endif
