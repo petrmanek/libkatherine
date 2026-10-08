@@ -50,6 +50,14 @@
 // ramp: the emulator models no analog front end, only the protocol.
 #define KATHERINE_EMU_DAC_SCAN_VOLT     0.001f
 
+// What the four monitoring outputs read. The manual states a nominal value
+// for three of them (Tpx3 Table 11); the band-gap temperature voltage it
+// does not, so that one is a plausible constant.
+#define KATHERINE_EMU_BANDGAP_OUTPUT_V  0.637f
+#define KATHERINE_EMU_BANDGAP_TEMP_V    0.550f
+#define KATHERINE_EMU_IBIAS_DAC_V       1.160f
+#define KATHERINE_EMU_IBIAS_DAC_CAS_V   0.950f
+
 // Data plane geometry.
 #define KATHERINE_EMU_MATRIX_SIZE       256
 #define KATHERINE_EMU_TICK_NS           25 /* readout timer period at 40 MHz */

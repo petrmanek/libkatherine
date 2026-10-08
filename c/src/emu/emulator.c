@@ -235,6 +235,43 @@ bias_readback(float set_volts)
 
     return EMU_ADC_COMP * ((float) counts * EMU_ADC_Q - EMU_ADC_MID) / EMU_BIAS_DIV;
 }
+
+// What the emulated chip presents at one DAC monitor: the register value
+// scaled into volts for a DAC, the manual's nominal level for a monitoring
+// output. Synthetic, like the ADC ramp -- the emulator models the protocol,
+// not an analog front end.
+static float
+dac_scan_volts(const katherine_emu_t *emu, uint8_t monitor)
+{
+    static const float MONITOR[] = {
+        KATHERINE_EMU_BANDGAP_OUTPUT_V,
+        KATHERINE_EMU_BANDGAP_TEMP_V,
+        KATHERINE_EMU_IBIAS_DAC_V,
+        KATHERINE_EMU_IBIAS_DAC_CAS_V,
+    };
+
+    if (monitor < KATHERINE_EMU_DAC_COUNT) {
+        return KATHERINE_EMU_DAC_SCAN_VOLT * (float) emu->regs.dac[monitor];
+    }
+
+    return MONITOR[monitor - KATHERINE_EMU_DAC_COUNT];
+}
+
+// Monitor a monitor index selects, Tpx3 manual Table 11 read backwards: the
+// DACs answer to indices 1 to 18 and the monitoring outputs to 28 to 31.
+// KATHERINE_EMU_DAC_SCAN_REPLIES for an index selecting neither, zero -- the
+// chip's SenseOFF -- included.
+static uint8_t
+dac_scan_monitor(uint8_t index)
+{
+    if (index >= 1 && index <= KATHERINE_EMU_DAC_COUNT) return (uint8_t) (index - 1);
+    if (index >= 28 && index <= 31) {
+        return (uint8_t) (KATHERINE_EMU_DAC_COUNT + (index - 28));
+    }
+
+    return KATHERINE_EMU_DAC_SCAN_REPLIES;
+}
+
 static uint8_t
 emu_gen(const katherine_emu_t *emu)
 {
@@ -446,15 +483,24 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
     case CMD_TYPE_GET_ALL_DAC_SCAN:
         // One response datagram per scanned DAC, every one of them carrying
         // the single-DAC scan's identifier and never this command's: both
-        // the count and the identifier are the firmware's behaviour. The
-        // voltages are synthetic, as the ADC ramp above is -- the register
-        // code scaled into volts, and zero for the four band-gap read-backs
-        // the emulator keeps no register for.
+        // the count and the identifier are the firmware's behaviour, which
+        // walks this same handler once per monitor.
         for (uint8_t i = 0; i < KATHERINE_EMU_DAC_SCAN_REPLIES; ++i) {
-            float volts = i < KATHERINE_EMU_DAC_COUNT ? KATHERINE_EMU_DAC_SCAN_VOLT * (float) emu->regs.dac[i] : 0.0f;
-            queue_float(emu, (uint8_t) CMD_TYPE_INTERNAL_DAC_SCAN, volts);
+            queue_float(emu, (uint8_t) CMD_TYPE_INTERNAL_DAC_SCAN, dac_scan_volts(emu, i));
         }
         break;
+
+    case CMD_TYPE_INTERNAL_DAC_SCAN: {
+        // The same reading for one monitor, selected by the chip's own
+        // monitor index in byte 0 with the chip index in byte 1. An index
+        // selecting no output is answered all the same, the firmware neither
+        // checking the index nor having anything else to send.
+        const uint8_t monitor = dac_scan_monitor(cmd[0]);
+        const float volts     = monitor < KATHERINE_EMU_DAC_SCAN_REPLIES ? dac_scan_volts(emu, monitor) : 0.0f;
+
+        queue_float(emu, (uint8_t) opcode, volts);
+        break;
+    }
 
     case CMD_TYPE_TEST_PULSE_SETTING:
         emu->regs.tp_count       = (uint16_t) (cmd[0] | (cmd[1] << 8));

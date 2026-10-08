@@ -157,6 +157,37 @@ katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
 }
 
 /**
+ * Send a command whose two argument bytes are the lowest payload bytes, as
+ * the single-monitor DAC scan does with its monitor index and chip index.
+ *
+ * Composing the datagram cannot fail, so every code below is the send's.
+ *
+ * \param udp Session to send on.
+ * \param val6 Command opcode.
+ * \param val0 First argument byte.
+ * \param val1 Second argument byte.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
+ *   none of the other codes cover; see sendto(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
+ *   katherine_udp_last_os_error().
+ */
+static inline katherine_error_t
+katherine_cmd_send601(katherine_udp_t *udp, uint8_t val6, uint8_t val0, uint8_t val1)
+{
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+    cmd.b[0]            = val0;
+    cmd.b[1]            = val1;
+    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
+}
+
+/**
  * Send a command with both a sub-index and a payload word, as the DAC
  * setters and sensor-register writes use.
  *
