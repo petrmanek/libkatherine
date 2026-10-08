@@ -17,10 +17,9 @@
  * assertion here that the accessor returns what the fixture stored would be a
  * tautology and would pass against a table that paired the wrong columns.
  *
- * The sign was measured on hardware rather than taken from a document -- see
- * misc/phase-evidence-2026-08-28/ -- and is the opposite of what the reference
- * implementation applies, so it is asserted explicitly and by direction rather
- * than only by magnitude.
+ * The sign was measured on hardware rather than taken from a document, and is
+ * the opposite of what the reference implementation applies, so it is asserted
+ * explicitly and by direction rather than only by magnitude.
  *
  * \author Petr Mánek
  * \date 30.8.26
