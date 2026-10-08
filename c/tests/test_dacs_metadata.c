@@ -262,48 +262,22 @@ test_names(void)
     KT_CHECK_STR_EQ(katherine_tpx3_dac_name((katherine_tpx3_dac_t) -1), "unknown");
 }
 
-// A scan reading is selected by the chip's own five-bit sense code, which
-// Table 11 gives as 1 to 18 for the DACs and 28 to 31 for the monitoring
-// outputs. The slots the library exposes are contiguous over both, so the
-// mapping is not the identity and is worth pinning: an off-by-one here reads
-// the neighbouring DAC and reports it under the right name.
-static void
-test_scan_sense_codes(void)
-{
-    for (unsigned slot = 0; slot < KATHERINE_TPX3_DAC_COUNT; ++slot) {
-        KT_CHECK_EQ(katherine_tpx3_dac_scan_sense_code((katherine_tpx3_dac_scan_slot_t) slot),
-            slot + 1);
-    }
-
-    KT_CHECK_EQ(katherine_tpx3_dac_scan_sense_code(KATHERINE_TPX3_DAC_SCAN_BANDGAP_OUTPUT), 28);
-    KT_CHECK_EQ(katherine_tpx3_dac_scan_sense_code(KATHERINE_TPX3_DAC_SCAN_BANDGAP_TEMP), 29);
-    KT_CHECK_EQ(katherine_tpx3_dac_scan_sense_code(KATHERINE_TPX3_DAC_SCAN_IBIAS_DAC), 30);
-    KT_CHECK_EQ(katherine_tpx3_dac_scan_sense_code(KATHERINE_TPX3_DAC_SCAN_IBIAS_DAC_CAS), 31);
-
-    // Outside the enumeration the answer is the chip's SenseOFF, which
-    // selects no output at all rather than the first one.
-    KT_CHECK_EQ(
-        katherine_tpx3_dac_scan_sense_code((katherine_tpx3_dac_scan_slot_t) KATHERINE_TPX3_DAC_SCAN_COUNT),
-        0);
-    KT_CHECK_EQ(katherine_tpx3_dac_scan_sense_code((katherine_tpx3_dac_scan_slot_t) -1), 0);
-}
-
-// And the first eighteen slots name the DACs they measure, which is what
+// The first eighteen monitors name the DACs they measure, which is what
 // makes a setting and its reading pair up by index.
 static void
-test_scan_slot_names(void)
+test_monitor_names(void)
 {
     for (size_t i = 0; i < COUNT(TABLE); ++i) {
-        KT_CHECK_STR_EQ(katherine_tpx3_dac_scan_slot_name((katherine_tpx3_dac_scan_slot_t) TABLE[i].dac),
+        KT_CHECK_STR_EQ(katherine_tpx3_dac_monitor_name((katherine_tpx3_dac_monitor_t) TABLE[i].dac),
             TABLE[i].name);
     }
 
-    KT_CHECK_STR_EQ(katherine_tpx3_dac_scan_slot_name(KATHERINE_TPX3_DAC_SCAN_BANDGAP_OUTPUT),
+    KT_CHECK_STR_EQ(katherine_tpx3_dac_monitor_name(KATHERINE_TPX3_DAC_MONITOR_BANDGAP_OUTPUT),
         "BandGap output");
-    KT_CHECK_STR_EQ(katherine_tpx3_dac_scan_slot_name(KATHERINE_TPX3_DAC_SCAN_IBIAS_DAC_CAS),
+    KT_CHECK_STR_EQ(katherine_tpx3_dac_monitor_name(KATHERINE_TPX3_DAC_MONITOR_IBIAS_DAC_CAS),
         "Ibias_dac_cas");
     KT_CHECK_STR_EQ(
-        katherine_tpx3_dac_scan_slot_name((katherine_tpx3_dac_scan_slot_t) KATHERINE_TPX3_DAC_SCAN_COUNT),
+        katherine_tpx3_dac_monitor_name((katherine_tpx3_dac_monitor_t) KATHERINE_TPX3_DAC_MONITOR_COUNT),
         "unknown");
 }
 
@@ -317,7 +291,6 @@ main(void)
     KT_RUN(test_units);
     KT_RUN(test_stated_ranges);
     KT_RUN(test_threshold_corroborates_the_coarse_step);
-    KT_RUN(test_scan_sense_codes);
-    KT_RUN(test_scan_slot_names);
+    KT_RUN(test_monitor_names);
     return kt_summary();
 }

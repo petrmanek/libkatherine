@@ -1459,7 +1459,7 @@ katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac
 }
 
 /** Names of the monitoring outputs, Tpx3 manual Table 11. */
-static const char *const KATHERINE_TPX3_DAC_SCAN_SLOT_INFO[] = {
+static const char *const KATHERINE_TPX3_DAC_MONITOR_INFO[] = {
     "BandGap output",
     "BandGap_Temp",
     "Ibias_dac",
@@ -1467,43 +1467,20 @@ static const char *const KATHERINE_TPX3_DAC_SCAN_SLOT_INFO[] = {
 };
 
 /**
- * Name of a DAC scan slot.
- * \param slot Slot to name
- * \return The DAC's name for the first eighteen slots, the monitoring
+ * Name of a DAC monitor.
+ * \param monitor Monitor to name
+ * \return The DAC's name for the first eighteen monitors, the monitoring
  *   output's name for the four after them, "unknown" outside the enumeration.
  */
 const char *
-katherine_tpx3_dac_scan_slot_name(katherine_tpx3_dac_scan_slot_t slot)
+katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
 {
-    if ((unsigned) slot < KATHERINE_TPX3_DAC_COUNT) {
-        return katherine_tpx3_dac_name((katherine_tpx3_dac_t) slot);
+    if ((unsigned) monitor < KATHERINE_TPX3_DAC_COUNT) {
+        return katherine_tpx3_dac_name((katherine_tpx3_dac_t) monitor);
     }
-    if ((unsigned) slot < KATHERINE_TPX3_DAC_SCAN_COUNT) {
-        return KATHERINE_TPX3_DAC_SCAN_SLOT_INFO[(unsigned) slot - KATHERINE_TPX3_DAC_COUNT];
+    if ((unsigned) monitor < KATHERINE_TPX3_DAC_MONITOR_COUNT) {
+        return KATHERINE_TPX3_DAC_MONITOR_INFO[(unsigned) monitor - KATHERINE_TPX3_DAC_COUNT];
     }
 
     return "unknown";
-}
-
-/**
- * Sense code a DAC scan slot is read under.
- *
- * The chip multiplexes one analog output; this five-bit code is what selects
- * what that output carries. Table 11 gives the DACs codes 1 to 18 -- one more
- * than katherine_tpx3_dac_t, which is the code minus one -- and the
- * monitoring outputs 28 to 31.
- *
- * \param slot Slot to ask about
- * \return The code, or zero for a slot outside the enumeration. Zero is the
- *   chip's own SenseOFF, so it selects no output rather than the first one.
- */
-uint8_t
-katherine_tpx3_dac_scan_sense_code(katherine_tpx3_dac_scan_slot_t slot)
-{
-    if ((unsigned) slot < KATHERINE_TPX3_DAC_COUNT) return (uint8_t) (slot + 1);
-    if ((unsigned) slot < KATHERINE_TPX3_DAC_SCAN_COUNT) {
-        return (uint8_t) (28 + ((unsigned) slot - KATHERINE_TPX3_DAC_COUNT));
-    }
-
-    return 0;
 }
