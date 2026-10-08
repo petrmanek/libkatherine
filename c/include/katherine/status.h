@@ -94,6 +94,9 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *c
 KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_monitor_t monitor, float *voltage);
 
+KATHERINE_EXPORTED katherine_error_t
+katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_voltages_t *voltages);
+
 #ifdef __cplusplus
 }
 #endif

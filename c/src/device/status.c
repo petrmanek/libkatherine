@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <katherine/status.h>
@@ -748,6 +749,96 @@ err_send:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
 err_lock:
 err_monitor:
+err_chip_index:
+err_unsupported:
+    return res;
+}
+
+/**
+ * Read the voltage at every DAC monitor, in Volts.
+ *
+ * One command, twenty-two answers: the readout walks the monitors itself,
+ * settling and reading each as katherine_tpx3_get_dac_monitor_voltage()
+ * does for one, and sends a response datagram per monitor. The whole sequence
+ * therefore takes on the order of a hundred milliseconds, though no single
+ * answer is slower than the individual command's.
+ *
+ * Monitors whose answers never arrive are left NaN, so a caller that gets an
+ * error back can still see which readings did.
+ *
+ * \note The readout answers under the single-monitor read's identifier rather
+ *   than this command's, so a session in strict acknowledgement mode refuses
+ *   the answers; see katherine_udp_set_strict_ack().
+ *
+ * \param device Katherine device
+ * \param chip_index Index of the chip to read
+ * \param voltages Retrieved voltages, in Volts, indexed by
+ *   katherine_tpx3_dac_monitor_t
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, so how many chips it can address is unknown.
+ * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout
+ *   can address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_TIMEOUT if the readout stopped answering partway
+ *   through the sequence, or did not start.
+ * \retval KATHERINE_E_BAD_CRD if an answer was not a command response.
+ * \retval KATHERINE_E_STRAY if another command's responses kept arriving
+ *   until the discard budget ran out, or if the session is in strict
+ *   acknowledgement mode; see the note above.
+ * \retval KATHERINE_E_INVAL if a socket call or the lock rejected an
+ *   argument; see sendto(2), recvfrom(2) and pthread_mutex_lock(3).
+ * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
+ *   reason none of the other codes cover.
+ * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3).
+ * \see katherine_tpx3_get_dac_monitor_voltage
+ */
+katherine_error_t
+katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_voltages_t *voltages)
+{
+    katherine_error_t res;
+
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_unsupported;
+    }
+
+    if (chip_index >= device->derived_info.max_chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip_index;
+    }
+
+    if (voltages != NULL) {
+        for (size_t i = 0; i < KATHERINE_TPX3_DAC_MONITOR_COUNT; ++i) {
+            voltages->array[i] = NAN;
+        }
+    }
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err_lock;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    res = katherine_cmd_send60(&device->control_socket, CMD_TYPE_GET_ALL_DAC_SCAN, chip_index);
+    if (res) goto err_send;
+
+    for (size_t i = 0; i < KATHERINE_TPX3_DAC_MONITOR_COUNT; ++i) {
+        char crd[KATHERINE_CMD_CRD_SIZE];
+        res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_ALL_DAC_SCAN, crd);
+        if (res) goto err_recv;
+
+        if (voltages != NULL) memcpy(&voltages->array[i], crd, sizeof(voltages->array[i]));
+    }
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err_recv:
+err_send:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_lock:
 err_chip_index:
 err_unsupported:
     return res;
