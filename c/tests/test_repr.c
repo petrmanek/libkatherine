@@ -174,6 +174,35 @@ test_dacs(void)
     CHECK_GOLDEN(n, buf, DACS_GOLDEN);
 }
 
+// A reading per monitor, ascending by a sixteenth of a volt, so a value
+// printed under the wrong name is visible in the golden string.
+static void
+fill_dac_voltages(katherine_tpx3_dac_voltages_t *v)
+{
+    for (unsigned monitor = 0; monitor < KATHERINE_TPX3_DAC_MONITOR_COUNT; ++monitor) {
+        v->array[monitor] = 0.0625f * (float) monitor;
+    }
+}
+
+static const char *DAC_VOLTAGES_GOLDEN = "dac_voltages{Ibias_Preamp_ON: 0.0000, Ibias_Preamp_OFF: 0.0625, Vpreamp_NCAS: 0.1250, "
+                                         "Ibias_Ikrum: 0.1875, Vfbk: 0.2500, Vthreshold_fine: 0.3125, Vthreshold_coarse: 0.3750, "
+                                         "Ibias_DiscS1_ON: 0.4375, Ibias_DiscS1_OFF: 0.5000, Ibias_DiscS2_ON: 0.5625, "
+                                         "Ibias_DiscS2_OFF: 0.6250, Ibias_PixelDAC: 0.6875, Ibias_TPbufferIn: 0.7500, "
+                                         "Ibias_TPbufferOut: 0.8125, VTP_coarse: 0.8750, VTP_fine: 0.9375, Ibias_CP_PLL: 1.0000, "
+                                         "PLL_Vcntrl: 1.0625, BandGap output: 1.1250, BandGap_Temp: 1.1875, Ibias_dac: 1.2500, "
+                                         "Ibias_dac_cas: 1.3125}";
+
+static void
+test_dac_voltages(void)
+{
+    katherine_tpx3_dac_voltages_t v;
+    fill_dac_voltages(&v);
+
+    char buf[768];
+    int n = katherine_tpx3_dac_voltages_snprint(buf, sizeof(buf), &v);
+    CHECK_GOLDEN(n, buf, DAC_VOLTAGES_GOLDEN);
+}
+
 // Two nonzero words, chosen so the fold is hand-checkable: pair (words[0],
 // words[1]) folds to (words[0] << 32) | words[1], every other pair is zero,
 // so the whole-array fold is exactly that one nonzero pair.
@@ -481,6 +510,7 @@ main(void)
     KT_RUN(test_trigger);
     KT_RUN(test_test_pulse_config);
     KT_RUN(test_dacs);
+    KT_RUN(test_dac_voltages);
     KT_RUN(test_px_config);
     KT_RUN(test_frame_info_time);
     KT_RUN(test_frame_info);

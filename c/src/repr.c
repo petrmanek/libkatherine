@@ -396,6 +396,27 @@ katherine_tpx3_dacs_snprint(char *buf, size_t cap, const katherine_tpx3_dacs_t *
 }
 
 /**
+ * Render every DAC monitor's voltage under the monitor's own name, so the
+ * twenty-two values stay readable without the reader counting positions.
+ * \copydetails katherine_tpx3_coord_snprint
+ */
+int
+katherine_tpx3_dac_voltages_snprint(char *buf, size_t cap, const katherine_tpx3_dac_voltages_t *v)
+{
+    size_t off = 0;
+
+    REPR_APPENDF(buf, cap, off, "dac_voltages{");
+    for (unsigned monitor = 0; monitor < KATHERINE_TPX3_DAC_MONITOR_COUNT; ++monitor) {
+        REPR_APPENDF(buf, cap, off, "%s%s: %.4f", monitor == 0 ? "" : ", ",
+            katherine_tpx3_dac_monitor_name((katherine_tpx3_dac_monitor_t) monitor),
+            (double) v->array[monitor]);
+    }
+    REPR_APPENDF(buf, cap, off, "}");
+
+    return (int) off;
+}
+
+/**
  * Render a digest of the pixel configuration matrix (word count and a
  * 64-bit XOR fold, never the 16384 words themselves -- see px_config_xor64()
  * above for how the fold is computed).

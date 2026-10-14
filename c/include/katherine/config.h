@@ -177,6 +177,9 @@ typedef union katherine_tpx3_dac_voltages {
     } named;                                 ///< The same readings under the manual's names.
 } katherine_tpx3_dac_voltages_t;
 
+KATHERINE_EXPORTED int
+katherine_tpx3_dac_voltages_snprint(char *buf, size_t cap, const katherine_tpx3_dac_voltages_t *v);
+
 KATHERINE_EXPORTED const char *
 katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor);
 
