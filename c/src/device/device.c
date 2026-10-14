@@ -118,11 +118,11 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
 
 
 /**
- * Pin the readout to the interface it is being driven over.
+ * Pin the readout to a single physical interface.
  *
- * A readout that has not been told polls every interface it has, which adds
- * latency to every command it answers. The choice made here spares it that
- * for the rest of its runtime, holding until it is restarted.
+ * A readout that has not been told which interface drives it polls them all,
+ * which adds latency to every command it answers. The choice made here
+ * spares it that for the rest of its runtime, holding until it is restarted.
  *
  * katherine_device_init() does this at open, so there is normally nothing to
  * call: it is for a caller that suppressed that step.
@@ -134,7 +134,7 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * \see KATHERINE_DEVICE_DONT_SELECT_INTERFACE
  *
  * \param device Katherine device
- * \param iface Interface to pin the readout to
+ * \param iface Physical interface the readout should serve
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if \p iface is not an interface this library
