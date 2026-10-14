@@ -162,6 +162,11 @@ if(KATHERINE_BUILD_EMULATOR)
     katherine_add_test(NAME test_dac_scan SOURCES test_dac_scan.c LABELS emu
         PROPERTIES SKIP_RETURN_CODE 77)
 
+    # Telling a second-generation readout which transport drives it. Opens a
+    # real device, so it wants device.c's fixed ports and a serial slot.
+    katherine_add_test(NAME test_interface_select SOURCES test_interface_select.c LABELS emu
+        PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77)
+
     # Recovery of a pixel-configuration upload whose acknowledgement the
     # daemon is told to drop. Same daemon, same fixed ports, hence the same
     # properties as above.
@@ -178,4 +183,4 @@ endif()
 # are registered only when the emulator feature is on, so they are named as
 # such rather than looking like omissions.
 katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c test_bias.c
-    test_dac_scan.c)
+    test_dac_scan.c test_interface_select.c)

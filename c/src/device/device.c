@@ -15,6 +15,7 @@
 #include <katherine/device.h>
 #include <katherine/acquisition.h>
 #include <katherine/status.h>
+#include "../protocol/cmd_interface.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -117,6 +118,71 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
 
 
 /**
+ * Pin the readout to the interface it is being driven over.
+ *
+ * A readout that has not been told polls every interface it has, which adds
+ * latency to every command it answers. The choice made here spares it that
+ * for the rest of its runtime, holding until it is restarted.
+ *
+ * katherine_device_init() does this at open, so there is normally nothing to
+ * call: it is for a caller that suppressed that step.
+ *
+ * \note The parameter is named `iface` because the Windows COM headers
+ *   define `interface` as a macro.
+ *
+ * \see katherine_device_init
+ * \see KATHERINE_DEVICE_DONT_SELECT_INTERFACE
+ *
+ * \param device Katherine device
+ * \param iface Interface to pin the readout to
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if \p iface is not an interface this library
+ *   can select, or if the send or the lock rejected an argument; see
+ *   sendto(2), pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked.
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
+ *   none of the other codes cover; see sendto(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory.
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3).
+ */
+katherine_error_t
+katherine_device_select_interface(katherine_device_t *device, katherine_interface_t iface)
+{
+    // What the readout reads for each interface, in its own encoding.
+    static const uint8_t INTERFACE_BYTE[] = {
+        [KATHERINE_INTERFACE_ETHERNET] = 0,
+    };
+
+    const size_t n = sizeof(INTERFACE_BYTE) / sizeof(INTERFACE_BYTE[0]);
+
+    katherine_error_t res;
+
+    if (iface <= KATHERINE_INTERFACE_UNKNOWN || (size_t) iface >= n) {
+        res = KATHERINE_E_INVAL;
+        goto err_iface;
+    }
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err_lock;
+
+    // Unacknowledged, so nothing waits for a reply.
+    res = katherine_cmd_send60(&device->control_socket, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[iface]);
+    if (res) goto err_send;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err_send:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_lock:
+err_iface:
+    return res;
+}
+
+/**
  * Initialize Katherine device.
  * \param device Katherine device
  * \param addr IP address
@@ -127,10 +193,10 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * \retval KATHERINE_E_ADDR if the given address is not a valid IPv4 address,
  *   or the control or data socket's fixed local port could not be bound;
  *   see inet_pton(3) and bind(2).
- * \retval KATHERINE_E_IO if opening the control or data socket, or setting
- *   its options, failed at the OS level for a reason none of the other
- *   codes cover; see socket(2), setsockopt(2), and
- *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if opening the control or data socket, setting its
+ *   options, or telling the readout which interface drives it failed at the
+ *   OS level for a reason none of the other codes cover; see socket(2),
+ *   setsockopt(2), sendto(2), and katherine_udp_last_os_error().
  * \retval KATHERINE_E_INVAL if opening the socket, setting its options, or
  *   initializing its mutex reported an invalid argument; see socket(2),
  *   setsockopt(2), pthread_mutex_init(3), and katherine_udp_last_os_error().
@@ -142,8 +208,9 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  *   initialized, for a reason none of the other codes cover; see
  *   pthread_mutex_init(3) and katherine_udp_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the socket's mutex could not be
- *   initialized for lack of a non-memory system resource; see
- *   pthread_mutex_init(3) and katherine_udp_last_os_error().
+ *   initialized for lack of a non-memory system resource, or if telling the
+ *   readout which interface drives it would have blocked; see
+ *   pthread_mutex_init(3), sendto(2) and katherine_udp_last_os_error().
  */
 katherine_error_t
 katherine_device_init(katherine_device_t *device, const char *addr, uint32_t flags)
@@ -184,10 +251,24 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     }
 
     (void) (flags & KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS); // TODO
-    (void) (flags & KATHERINE_DEVICE_DONT_SELECT_INTERFACE); // TODO
+
+    // Only where it does something: the first generation's dispatcher has no
+    // such command and drops it without a reply. Asking requires knowing the
+    // generation, so suppressing the probe above suppresses this too.
+    //
+    // TODO: a USB interface will need the other value of this command, sent
+    //   over whichever interface is live when it is sent.
+    if ((flags & KATHERINE_DEVICE_DONT_SELECT_INTERFACE) == 0
+        && device->derived_info.supported && device->derived_info.gen >= 2) {
+        if ((res = katherine_device_select_interface(device, KATHERINE_INTERFACE_ETHERNET)) != 0) {
+            goto err_select;
+        }
+    }
 
     return KATHERINE_E_OK;
 
+err_select:
+    katherine_udp_fini(&device->data_socket);
 err_data:
     katherine_udp_fini(&device->control_socket);
 err_control:
