@@ -1,6 +1,10 @@
 /**
  * \file
- * \brief The GPIO channels: what they can be set to, and what a probe reports.
+ * \brief The acquisition unit's registers: the GPIO channels and the shutter
+ *   delays.
+ *
+ * Both features are words written to and read from one register bank, so both
+ * are checked against one mock readout that speaks nothing but that bank.
  *
  * \author Petr Mánek
  * \date 18.9.26
@@ -13,6 +17,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 
 // katherine/katherine.h must precede kthread.h on Windows; see
@@ -492,6 +497,62 @@ test_g_the_emulated_unit_composes_the_level_register(void)
 
 #endif /* KATHERINE_TEST_EMULATOR */
 
+// h) The shutter delays are two registers of their own. The caller gives
+// seconds and the library turns them into the counts the readout keeps, so
+// the check is that a microsecond and two and a half milliseconds arrive as
+// 100 and 250000 -- which is the ten-nanosecond tick, asserted through the
+// API rather than against a constant the caller can no longer see.
+static void
+test_h_the_shutter_delays_are_two_registers(void)
+{
+    katherine_device_t device;
+    kthread_t thread;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 2);
+
+    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 1e-6, 2.5e-3), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_REQUIRE(g_captured_count == 2);
+
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], 0x21);
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x06);
+    KT_CHECK_EQ(load_word(g_captured[0]), 100);
+
+    KT_CHECK_EQ(g_captured[1][KATHERINE_CMD_SUBIDX_BYTE], 0x07);
+    KT_CHECK_EQ(load_word(g_captured[1]), 250000);
+
+    katherine_udp_fini(&device.control_socket);
+
+    // Rounding is to the nearest count, not towards zero: four nanoseconds
+    // more than a microsecond is still 100 counts, six more is 101.
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 2);
+    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 1.004e-6, 1.006e-6), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_REQUIRE(g_captured_count == 2);
+    KT_CHECK_EQ(load_word(g_captured[0]), 100);
+    KT_CHECK_EQ(load_word(g_captured[1]), 101);
+
+    katherine_udp_fini(&device.control_socket);
+
+    // A delay the register cannot hold is refused before anything is sent,
+    // and so is a negative one and a NaN. The widest it holds is 2^32-1
+    // counts of ten nanoseconds, a touch under 43 seconds.
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+
+    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 43.0, 0.0), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    KT_CHECK_EQ(katherine_set_shutter_delays(&device, -1e-9, 0.0), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 0.0, (double) NAN), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    katherine_udp_fini(&device.control_socket);
+}
+
 int
 main(void)
 {
@@ -507,6 +568,7 @@ main(void)
     KT_RUN(test_d_the_ready_signal_is_one_word_of_two_masks);
     KT_RUN(test_e_settings_the_readout_cannot_carry_are_refused);
     KT_RUN(test_f_a_probe_reads_levels_and_only_the_valid_counters);
+    KT_RUN(test_h_the_shutter_delays_are_two_registers);
 #ifdef KATHERINE_TEST_EMULATOR
     KT_RUN(test_g_the_emulated_unit_composes_the_level_register);
 #endif

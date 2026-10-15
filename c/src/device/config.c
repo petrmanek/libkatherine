@@ -1494,3 +1494,92 @@ katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
 
     return "unknown";
 }
+
+/**
+ * Set how long the readout waits after a trigger before it opens or closes
+ * the shutter.
+ *
+ * Both delays are set together; there is no way to change one alone. Which
+ * of them the readout acts on is the delayed-start flag of
+ * katherine_acquisition_setup(). A delay is honoured to 10 ns or better.
+ *
+ * \note Nothing in that call's parameters arms the stop delay, so setting it
+ *   alone changes nothing yet.
+ *
+ * \param device Katherine device
+ * \param start_seconds Delay between the start trigger and the shutter
+ *   opening, in seconds
+ * \param stop_seconds Delay between the stop trigger and the shutter
+ *   closing, in seconds
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge a write
+ *   within the control session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
+ *   command response.
+ * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while
+ *   responses to other commands kept coming.
+ * \retval KATHERINE_E_INVAL if a delay is negative, not a number, or longer
+ *   than this readout can hold, or a socket call rejected an argument; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
+ *   reason none of the other codes cover.
+ * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3).
+ */
+katherine_error_t
+katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)
+{
+    katherine_error_t res;
+
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
+
+    // What the registers count in, which is the readout's business and not
+    // the caller's: seconds go in, and the width of the register is what
+    // bounds them. A delay too long to hold is refused rather than truncated,
+    // and a comparison that rejects a NaN is written the way round that does.
+    static const double tick_ns = 10.0;
+
+    const double start_f = start_seconds * 1e9 / tick_ns;
+    const double stop_f  = stop_seconds * 1e9 / tick_ns;
+
+    if (!(start_f >= 0.0 && start_f <= (double) UINT32_MAX)
+        || !(stop_f >= 0.0 && stop_f <= (double) UINT32_MAX)) {
+        res = KATHERINE_E_INVAL;
+        goto err_range;
+    }
+
+    const uint32_t start_ticks = (uint32_t) (start_f + 0.5);
+    const uint32_t stop_ticks  = (uint32_t) (stop_f + 0.5);
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err_lock;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    // The second generation's trigger word carries a flag that arms the stop
+    // delay. Nothing in this library's trigger parameters sets it, so the
+    // register is written and waits for one.
+    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY, start_ticks);
+    if (res) goto err_start;
+
+    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY, stop_ticks);
+    if (res) goto err_stop;
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err_stop:
+err_start:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_lock:
+err_range:
+err_enumerated:
+    return res;
+}

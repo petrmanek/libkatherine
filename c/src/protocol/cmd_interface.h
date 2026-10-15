@@ -884,6 +884,9 @@ K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int6
  * bank, which is why its registers are a type of their own.
  */
 typedef enum katherine_acq_unit_reg {
+    KATHERINE_ACQ_UNIT_REG_TRIGGER_SETUP        = 0x05, ///< Trigger source and edge, in the low half-word.
+    KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY  = 0x06, ///< Ticks between the trigger and the shutter opening.
+    KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY = 0x07, ///< Ticks between the trigger and the shutter closing.
     KATHERINE_ACQ_UNIT_REG_GPIO_DIRECTION_SETUP = 0x09, ///< Channel directions, with the multiplexer fields of the first two channels. Reads back the channel levels and which tick counters are valid.
     KATHERINE_ACQ_UNIT_REG_MULTIPLEXER_SETUP    = 0x0A, ///< Multiplexer fields of the remaining channels.
     KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0      = 0x0B, ///< Ticks channel 0 last spent high. Every timed channel takes two registers from here, the high time before the low.
