@@ -92,7 +92,8 @@ typedef struct katherine_device_derived_info {
     uint8_t bias_supply_count;       ///< Bias supplies this readout provides, addressed from 0.
     uint8_t accessible_gpio_count;   ///< GPIO channels brought out where a user can reach them.
     uint8_t all_gpio_count;          ///< GPIO channels the readout has, reachable or not. At least accessible_gpio_count.
-    uint8_t tdc_channel_count;       ///< Channels the readout's timing unit watches, each with a counter of its own.
+    uint8_t tdc_channel_count;       ///< The number of channels watched by the readout's timing unit, each with a counter of its own.
+    uint8_t pulse_channel_count;     ///< The number of channels driven by the readout's pulse generator.
     bool supported;                  ///< Whether this library can drive this readout today. Also the enumeration guard: a device that has been neither enumerated nor declared has this false, because the structure is zeroed, and the generation-dependent calls refuse to run on it.
 } katherine_device_derived_info_t;
 

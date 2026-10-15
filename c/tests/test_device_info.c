@@ -103,6 +103,11 @@ test_the_readouts_we_can_name(void)
     KT_CHECK_EQ(gen1.tdc_channel_count, 3u);
     KT_CHECK_EQ(gen2.tdc_channel_count, 5u);
 
+    // The pulse generator is a second-generation feature; the first carries
+    // no operation code for it.
+    KT_CHECK_EQ(gen1.pulse_channel_count, 0u);
+    KT_CHECK_EQ(gen2.pulse_channel_count, 4u);
+
     // Accessible can never exceed total, and no row may claim more channels
     // than an array sized for the largest readout can hold.
     for (size_t i = 0; i < sizeof(KNOWN) / sizeof(KNOWN[0]); ++i) {
@@ -110,6 +115,7 @@ test_the_readouts_we_can_name(void)
         KT_CHECK(row.accessible_gpio_count <= row.all_gpio_count);
         KT_CHECK(row.all_gpio_count <= KATHERINE_MAX_GPIO_COUNT);
         KT_CHECK(row.tdc_channel_count <= KATHERINE_MAX_TDC_CHANNEL_COUNT);
+        KT_CHECK(row.pulse_channel_count <= KATHERINE_MAX_PULSE_CHANNEL_COUNT);
     }
 
     const katherine_device_derived_info_t tpx4 = katherine_device_derived_info_recognize(0x0A);

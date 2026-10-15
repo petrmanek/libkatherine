@@ -140,16 +140,16 @@ typedef struct katherine_emu_log_entry {
 // these fields; they change without notice.
 
 /** Internal: number of internal DAC registers of the sensor. */
-#define KATHERINE_EMU_DAC_COUNT         18
+#define KATHERINE_EMU_DAC_COUNT        18
 
 /** Internal: number of configuration registers of the sensor. */
-#define KATHERINE_EMU_SENSOR_REG_COUNT  12
+#define KATHERINE_EMU_SENSOR_REG_COUNT 12
 
 /** Internal: number of setup words of the acquisition unit. */
-#define KATHERINE_EMU_ACQ_SETUP_WORDS   32
+#define KATHERINE_EMU_ACQ_SETUP_WORDS  32
 
 /** Internal: number of setup words of the trigger generator. */
-#define KATHERINE_EMU_TRIGGER_GEN_WORDS 32
+#define KATHERINE_EMU_PULSE_WORDS      32
 
 /** Internal: capacity of the response queue, in datagrams. An unrecognized
  *  opcode gets no response (the readout firmware's command dispatcher has
@@ -157,15 +157,15 @@ typedef struct katherine_emu_log_entry {
  *  backlog here; the margin instead covers a legitimate burst, such as an
  *  all-DAC scan's several dozen replies. A queue that does overflow drops
  *  the excess and counts it, as a datagram transport would. */
-#define KATHERINE_EMU_CRD_QUEUE_CAP     256
+#define KATHERINE_EMU_CRD_QUEUE_CAP    256
 
 /** Internal: capacity of the command log, in entries. Holds a full
  *  configuration session together with one recovery flood; beyond that,
  *  the oldest entries are dropped. */
-#define KATHERINE_EMU_LOG_CAP           2048
+#define KATHERINE_EMU_LOG_CAP          2048
 
 /** Internal: number of measurement data generated ahead of the consumer. */
-#define KATHERINE_EMU_STAGE_MDS         1024
+#define KATHERINE_EMU_STAGE_MDS        1024
 
 /** Internal: state of a pseudo-random generator. */
 typedef struct katherine_emu_prng {
@@ -175,10 +175,10 @@ typedef struct katherine_emu_prng {
 /** Internal: register file of the emulated readout. Commands write here;
  *  the data plane samples the acquisition-relevant entries when armed. */
 typedef struct katherine_emu_regs {
-    uint16_t dac[KATHERINE_EMU_DAC_COUNT];                 ///< Internal
-    uint32_t sensor_reg[KATHERINE_EMU_SENSOR_REG_COUNT];   ///< Internal
-    uint32_t acq_setup[KATHERINE_EMU_ACQ_SETUP_WORDS];     ///< Internal
-    uint32_t trigger_gen[KATHERINE_EMU_TRIGGER_GEN_WORDS]; ///< Internal
+    uint16_t dac[KATHERINE_EMU_DAC_COUNT];               ///< Internal
+    uint32_t sensor_reg[KATHERINE_EMU_SENSOR_REG_COUNT]; ///< Internal
+    uint32_t acq_setup[KATHERINE_EMU_ACQ_SETUP_WORDS];   ///< Internal
+    uint32_t pulse[KATHERINE_EMU_PULSE_WORDS];           ///< Internal
 
     float bias; ///< Internal
 

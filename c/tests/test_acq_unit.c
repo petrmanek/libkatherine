@@ -1,10 +1,10 @@
 /**
  * \file
- * \brief The acquisition unit's registers: the GPIO channels and the shutter
- *   delays.
+ * \brief Registers of the acquisition unit and of the trigger generator: the
+ *   GPIO channels, the shutter delays and the generated pulses.
  *
- * Both features are words written to and read from one register bank, so both
- * are checked against one mock readout that speaks nothing but that bank.
+ * All three are words written to and read from a register bank, so all three
+ * are checked against one mock readout that speaks nothing but those banks.
  *
  * \author Petr Mánek
  * \date 18.9.26
@@ -65,6 +65,7 @@ _Static_assert(KATHERINE_GPIO_HIGH == 32, "the mapping enumeration must end at t
 #define DEVICE_TIMEOUT_MS 2000
 
 #define MAX_CAPTURED      16
+
 #define ACQ_UNIT_REGS     32
 
 static katherine_udp_t g_mock;
@@ -105,7 +106,11 @@ mock_readout(void *arg)
 
         crd[KATHERINE_CMD_OPCODE_BYTE] = cmd[KATHERINE_CMD_OPCODE_BYTE];
         crd[KATHERINE_CMD_SUBIDX_BYTE] = reg;
-        if (cmd[KATHERINE_CMD_OPCODE_BYTE] == 0x22) {
+        // A generator read-back answers under the acquisition unit's
+        // identifier rather than its own, as the firmware does.
+        if (cmd[KATHERINE_CMD_OPCODE_BYTE] == 0x24) crd[KATHERINE_CMD_OPCODE_BYTE] = 0x22;
+
+        if (crd[KATHERINE_CMD_OPCODE_BYTE] == 0x22) {
             store_word(crd, g_reg[reg % ACQ_UNIT_REGS]);
         }
 
@@ -553,6 +558,201 @@ test_h_the_shutter_delays_are_two_registers(void)
     katherine_udp_fini(&device.control_socket);
 }
 
+// i) The generator takes eleven writes, and the enable word comes last:
+// writing it is what starts the generator, so everything it acts on has to be
+// in place already.
+static void
+test_i_the_generator_is_enabled_last(void)
+{
+    katherine_device_t device;
+    katherine_pulse_config_t config;
+    kthread_t thread;
+
+    memset(&config, 0, sizeof(config));
+
+    // The internal channel pulses, channel 2 passes the input through
+    // inverted, and the oscillator stands in for the trigger.
+    config.channel[0].enabled        = true;
+    config.channel[0].length_seconds = 5e-6; // 500 counts of 10 ns
+    config.channel[0].delay_seconds  = 250e-9;
+    config.channel[2].enabled        = true;
+    config.channel[2].output         = KATHERINE_PULSE_OUTPUT_PASSTHROUGH_INVERTED;
+    config.only_when_ready           = true;
+    config.source                    = KATHERINE_PULSE_SOURCE_OSCILLATOR;
+    config.oscillator_frequency_hz   = 1e6; // 50 MHz over this is a divisor of 50
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 11);
+
+    KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_REQUIRE(g_captured_count == 11);
+
+    // The setup word: channel 2's output is 3 at bit 4 and the ready gate
+    // at bit 8. The edge bit stays clear, the source being the oscillator.
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], 0x23);
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x01);
+    KT_CHECK_EQ(load_word(g_captured[0]), 0x00000130u);
+
+    // Then a length and a delay per channel, registers 2 through 9.
+    KT_CHECK_EQ(g_captured[1][KATHERINE_CMD_SUBIDX_BYTE], 0x02);
+    KT_CHECK_EQ(load_word(g_captured[1]), 500);
+    KT_CHECK_EQ(g_captured[2][KATHERINE_CMD_SUBIDX_BYTE], 0x03);
+    KT_CHECK_EQ(load_word(g_captured[2]), 25);
+    KT_CHECK_EQ(g_captured[8][KATHERINE_CMD_SUBIDX_BYTE], 0x09);
+
+    // The oscillator divisor, and the enable word last of all: the generator
+    // bit, the oscillator bit, and channel 2's output gate at bit 1.
+    KT_CHECK_EQ(g_captured[9][KATHERINE_CMD_SUBIDX_BYTE], 0x0E);
+    KT_CHECK_EQ(load_word(g_captured[9]), 50);
+    KT_CHECK_EQ(g_captured[10][KATHERINE_CMD_SUBIDX_BYTE], 0x00);
+    KT_CHECK_EQ(load_word(g_captured[10]), 0xC0000002u);
+
+    katherine_udp_fini(&device.control_socket);
+}
+
+// i2) Channels the readout does not have take their defaults, whatever the
+// caller asked for, as they do for GPIO and for the timing unit. Every
+// supported readout carries all four today, so the count is forced here to
+// exercise the bound rather than wait for a model that trips it.
+static void
+test_i2_channels_the_generator_lacks_take_their_defaults(void)
+{
+    katherine_device_t device;
+    katherine_pulse_config_t config;
+    kthread_t thread;
+
+    memset(&config, 0, sizeof(config));
+    config.channel[0].enabled        = true;
+    config.channel[0].length_seconds = 5e-6;
+    config.channel[3].enabled        = true;
+    config.channel[3].output         = KATHERINE_PULSE_OUTPUT_PASSTHROUGH_INVERTED;
+    config.channel[3].delay_seconds  = 1.0; // would be refused if it were read
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    device.derived_info.pulse_channel_count = 2;
+
+    // Two channels, so five writes rather than eleven: the setup word, a
+    // length and a delay each, and the divisor and enable words.
+    mock_start(&thread, 7);
+
+    KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_REQUIRE(g_captured_count == 7);
+
+    // Channel 3 contributes nothing: no output field, no enable gate, and
+    // its out-of-range delay never reaches a register.
+    KT_CHECK_EQ(load_word(g_captured[0]), 0x00000000u);
+    KT_CHECK_EQ(g_captured[6][KATHERINE_CMD_SUBIDX_BYTE], 0x00);
+    KT_CHECK_EQ(load_word(g_captured[6]), 0x80000000u);
+
+    katherine_udp_fini(&device.control_socket);
+}
+
+// j) A delay longer than its register is refused rather than truncated, and
+// a first-generation readout is refused the command outright.
+static void
+test_j_the_generator_refuses_what_it_cannot_carry(void)
+{
+    katherine_device_t device;
+    katherine_pulse_config_t config;
+    katherine_pulse_counts_t counts;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+
+    // The delay register is 24 bits of 10 ns, so it tops out a touch under
+    // 0.168 s; a delay past that is refused rather than truncated.
+    memset(&config, 0, sizeof(config));
+    config.channel[1].delay_seconds = 0.17;
+    KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    config.channel[1].delay_seconds = -1e-9;
+    KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    // An oscillator rate the divisor cannot reach is refused too: the
+    // divisor is at least one, so the rate cannot exceed the oscillator.
+    memset(&config, 0, sizeof(config));
+    config.source                  = KATHERINE_PULSE_SOURCE_OSCILLATOR;
+    config.oscillator_frequency_hz = 60e6;
+    KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    memset(&config, 0, sizeof(config));
+    config.channel[0].output = (katherine_pulse_output_t) 4;
+    KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    katherine_udp_fini(&device.control_socket);
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+    memset(&config, 0, sizeof(config));
+    KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), KATHERINE_E_UNSUPPORTED);
+    KT_CHECK_EQ(katherine_get_pulse_generator_counts(&device, &counts), KATHERINE_E_UNSUPPORTED);
+    KT_CHECK_EQ(katherine_reset_pulse_generator_counts(&device), KATHERINE_E_UNSUPPORTED);
+    expect_nothing_sent();
+
+    katherine_udp_fini(&device.control_socket);
+}
+
+// k) The probe reads four registers, one of which is the generator's own
+// clock -- so the tick this library documents can be checked against what
+// the readout says rather than taken on trust.
+static void
+test_k_the_generator_reports_its_own_clock(void)
+{
+    katherine_device_t device;
+    katherine_pulse_counts_t state;
+    kthread_t thread;
+
+    memset(g_reg, 0, sizeof(g_reg));
+    g_reg[0x0A] = 1234;
+    g_reg[0x0B] = 5678;
+    g_reg[0x0C] = 42;
+    g_reg[0x0D] = 100;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 4);
+
+    KT_CHECK_EQ(katherine_get_pulse_generator_counts(&device, &state), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+
+    // The counts come back as seconds: 1234 and 5678 counts of ten
+    // nanoseconds, which is the resolution the call documents and which the
+    // readout's own clock register corroborates below.
+    KT_CHECK(fabs(state.low_seconds - 12.34e-6) < 1e-12);
+    KT_CHECK(fabs(state.high_seconds - 56.78e-6) < 1e-12);
+    KT_CHECK_EQ(state.rising_edges, 42);
+
+    // A hundred megahertz is one tick of ten nanoseconds, so the readout
+    // says the same resolution the conversion above assumed.
+    KT_CHECK_EQ(state.clock_mhz, 100);
+
+    katherine_udp_fini(&device.control_socket);
+}
+
+// l) And the counter is reset by writing zero to the register it is read
+// from, which is why the call takes no value.
+static void
+test_l_the_edge_counter_is_reset_by_writing_zero(void)
+{
+    katherine_device_t device;
+    kthread_t thread;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 1);
+
+    KT_CHECK_EQ(katherine_reset_pulse_generator_counts(&device), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], 0x23);
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x0C);
+    KT_CHECK_EQ(load_word(g_captured[0]), 0);
+
+    katherine_udp_fini(&device.control_socket);
+}
+
 int
 main(void)
 {
@@ -569,6 +769,11 @@ main(void)
     KT_RUN(test_e_settings_the_readout_cannot_carry_are_refused);
     KT_RUN(test_f_a_probe_reads_levels_and_only_the_valid_counters);
     KT_RUN(test_h_the_shutter_delays_are_two_registers);
+    KT_RUN(test_i_the_generator_is_enabled_last);
+    KT_RUN(test_i2_channels_the_generator_lacks_take_their_defaults);
+    KT_RUN(test_j_the_generator_refuses_what_it_cannot_carry);
+    KT_RUN(test_k_the_generator_reports_its_own_clock);
+    KT_RUN(test_l_the_edge_counter_is_reset_by_writing_zero);
 #ifdef KATHERINE_TEST_EMULATOR
     KT_RUN(test_g_the_emulated_unit_composes_the_level_register);
 #endif

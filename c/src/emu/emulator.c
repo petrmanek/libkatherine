@@ -501,7 +501,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_INTERNAL_TRIGGER_GENERATOR:
-        emu->regs.trigger_gen[subindex & (KATHERINE_EMU_TRIGGER_GEN_WORDS - 1)] = payload;
+        emu->regs.pulse[subindex & (KATHERINE_EMU_PULSE_WORDS - 1)] = payload;
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
@@ -514,7 +514,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         // protocol/cmd_interface.h) is measured against a model of the peer
         // and not only against the same table read twice.
         queue_word(emu, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, subindex,
-            emu->regs.trigger_gen[subindex & (KATHERINE_EMU_TRIGGER_GEN_WORDS - 1)]);
+            emu->regs.pulse[subindex & (KATHERINE_EMU_PULSE_WORDS - 1)]);
         break;
 
     case CMD_TYPE_GET_ACQUISITION_UNIT_DATA:

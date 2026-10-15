@@ -880,7 +880,7 @@ K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int6
  * Named after the signals the firmware's own dispatcher assigns them, so
  * that a register can be looked up in either. Five bits of address, of which
  * the firmware decodes more than this library has reason to name; the
- * internal trigger generator answers a command of its own and has a separate
+ * pulse generator answers a command of its own and has a separate
  * bank, which is why its registers are a type of their own.
  */
 typedef enum katherine_acq_unit_reg {
@@ -978,6 +978,117 @@ katherine_cmd_acq_unit_read(katherine_udp_t *udp, katherine_acq_unit_reg_t reg, 
     if (res) return res;
 
     if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != (uint8_t) reg) return KATHERINE_E_BAD_CRD;
+
+    const unsigned char *b = (const unsigned char *) crd;
+    *value                 = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+
+    return KATHERINE_E_OK;
+}
+
+/**
+ * Registers of the pulse generator's bank, carried in the sub-index byte of
+ * katherine_cmd_pulse_generator_write() and katherine_cmd_pulse_generator_read().
+ *
+ * A bank of its own, four bits wide, whose addresses overlap the acquisition
+ * unit's and mean something else: 0x0A is this generator's low-time counter
+ * and the acquisition unit's multiplexer half. A type each is what keeps one
+ * from reaching the other.
+ *
+ * The enable register is written last, because writing it is what starts the
+ * generator, so everything it acts on is in place by then. Eleven writes in
+ * all: the setup word, a length and a delay per channel, the oscillator
+ * divisor, and that enable word.
+ *
+ * The reference implementation leaves the three per-channel output gates
+ * clear and enables only the generator as a whole, so a signal it never drove
+ * can appear on a connector here.
+ */
+typedef enum katherine_pulse_reg {
+    KATHERINE_PULSE_REG_ENABLE      = 0x00, ///< Per-channel output gates, the oscillator, and the generator itself.
+    KATHERINE_PULSE_REG_SETUP       = 0x01, ///< Output selection per channel, the ready gate, and the trigger edge.
+    KATHERINE_PULSE_REG_LENGTH_0    = 0x02, ///< Pulse length of channel 0. Each channel takes two registers from here, the length before the delay.
+    KATHERINE_PULSE_REG_LOW_TIME    = 0x0A, ///< Clock counts of the trigger's last low interval.
+    KATHERINE_PULSE_REG_HIGH_TIME   = 0x0B, ///< Clock counts of its last high interval.
+    KATHERINE_PULSE_REG_EDGE_COUNT  = 0x0C, ///< Rising edges counted. Writing zero resets the count.
+    KATHERINE_PULSE_REG_CLOCK       = 0x0D, ///< Frequency of the generator's clock, in megahertz.
+    KATHERINE_PULSE_REG_OSC_DIVISOR = 0x0E, ///< Divisor applied to the oscillator to make the simulated trigger.
+} katherine_pulse_reg_t;
+
+/**
+ * Write one register of the readout's pulse generator.
+ *
+ * A second register bank, addressed exactly as the acquisition unit's is:
+ * the index in byte 4, the word in bytes 0 to 3.
+ *
+ * Requires the session's lock to be held, and the session to have been
+ * drained.
+ *
+ * \param udp Session to send on.
+ * \param reg Register index.
+ * \param value Word to store.
+ *
+ * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
+ *   session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
+ *   command response.
+ * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
+ *   responses to other commands kept coming.
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
+ *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ */
+static inline katherine_error_t
+katherine_cmd_pulse_generator_write(katherine_udp_t *udp, katherine_pulse_reg_t reg, uint32_t value)
+{
+    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_INTERNAL_TRIGGER_GENERATOR, reg, (int64_t) value);
+    if (res) return res;
+
+    return katherine_cmd_wait_ack(udp, CMD_TYPE_INTERNAL_TRIGGER_GENERATOR);
+}
+
+/**
+ * Read one register of the readout's pulse generator.
+ *
+ * Answered under the acquisition unit's read-back identifier rather than this
+ * command's, which katherine_cmd_reply_id() knows about, with the register
+ * index repeated in byte 4 as that command does.
+ *
+ * Requires the session's lock to be held, and the session to have been
+ * drained.
+ *
+ * \param udp Session to send on.
+ * \param reg Register index.
+ * \param value Word read.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
+ *   session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
+ *   command response, or answered for another register.
+ * \retval KATHERINE_E_STRAY if the answer never arrived while
+ *   responses to other commands kept coming.
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
+ *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ */
+static inline katherine_error_t
+katherine_cmd_pulse_generator_read(katherine_udp_t *udp, katherine_pulse_reg_t reg, uint32_t *value)
+{
+    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, reg, 0);
+    if (res) return res;
+
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(udp, CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, crd);
+    if (res) return res;
+
+    if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != reg) return KATHERINE_E_BAD_CRD;
 
     const unsigned char *b = (const unsigned char *) crd;
     *value                 = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
