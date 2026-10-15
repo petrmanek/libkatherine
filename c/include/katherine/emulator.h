@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
+#include <katherine/gpio.h>
 
 /**
  * \defgroup katherine_emulator Emulator
@@ -78,6 +79,18 @@ typedef struct katherine_emu_profile {
 
     char chip_id[KATHERINE_EMU_CHIP_ID_SIZE]; ///< Chip identifier, in the `A1-W0001` notation
 
+    /**
+     * What each GPIO channel reads while configured as an input: a level,
+     * and the tick counts of a periodic signal on it. Both counts zero means
+     * a constant level, which is what the readout reports for a channel
+     * whose edges it has not seen.
+     */
+    struct {
+        bool level;          ///< Level the channel reads
+        uint32_t high_ticks; ///< Ticks spent high; see KATHERINE_GPIO_TICK_NS
+        uint32_t low_ticks;  ///< Ticks spent low
+    } gpio[KATHERINE_MAX_GPIO_COUNT];
+
     float bias_sense_zero;     ///< Sense voltage the bias supply reads at no current; see katherine_get_bias_leakage()
     float readout_temperature; ///< Temperature reported for the readout board, in Celsius
     float sensor_temperature;  ///< Temperature the chip's own sensor reports, in Celsius
@@ -125,10 +138,10 @@ typedef struct katherine_emu_log_entry {
 #define KATHERINE_EMU_SENSOR_REG_COUNT  12
 
 /** Internal: number of setup words of the acquisition unit. */
-#define KATHERINE_EMU_ACQ_SETUP_WORDS   8
+#define KATHERINE_EMU_ACQ_SETUP_WORDS   32
 
 /** Internal: number of setup words of the trigger generator. */
-#define KATHERINE_EMU_TRIGGER_GEN_WORDS 8
+#define KATHERINE_EMU_TRIGGER_GEN_WORDS 32
 
 /** Internal: capacity of the response queue, in datagrams. An unrecognized
  *  opcode gets no response (the readout firmware's command dispatcher has

@@ -47,6 +47,14 @@
 #define KATHERINE_CMD_OPCODE_BYTE        6
 
 /**
+ * Byte of a command, and of a response, carrying the sub-index: which
+ * register an acquisition-unit or trigger-generator access means. The
+ * readout echoes it back, so a response can be matched to the register it
+ * answers for and not merely to the command.
+ */
+#define KATHERINE_CMD_SUBIDX_BYTE        4
+
+/**
  * Non-correlating response datagrams one katherine_cmd_wait_ack_crd() call
  * discards before it gives up with KATHERINE_E_STRAY.
  *
@@ -864,3 +872,88 @@ K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int6
 #undef K_DEFINE_CMD_ARG1
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+/**
+ * Write one register of the readout's acquisition unit.
+ *
+ * The unit is a bank of 32-bit registers and this command is the only way
+ * into it: the firmware stores the payload at the index in byte 4 and
+ * acknowledges, with every field layout above that being the FPGA's. Callers
+ * therefore compose words, not commands.
+ *
+ * Requires the session's lock to be held, and the session to have been
+ * drained: a sequence of these is one transaction, not several.
+ *
+ * \param udp Session to send on.
+ * \param reg Register index.
+ * \param value Word to store.
+ *
+ * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
+ *   session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
+ *   command response.
+ * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
+ *   responses to other commands kept coming.
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
+ *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ */
+static inline katherine_error_t
+katherine_cmd_acq_unit_write(katherine_udp_t *udp, uint8_t reg, uint32_t value)
+{
+    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_ACQUISITION_SETUP, reg, (int64_t) value);
+    if (res) return res;
+
+    return katherine_cmd_wait_ack(udp, CMD_TYPE_ACQUISITION_SETUP);
+}
+
+/**
+ * Read one register of the readout's acquisition unit.
+ *
+ * The answer carries the word in bytes 0 to 3 and repeats the register index
+ * in byte 4, which is checked: a sequence of reads that arrived out of order,
+ * or one answer of which was lost, is then an error rather than a word
+ * attributed to the wrong register.
+ *
+ * Requires the session's lock to be held, and the session to have been
+ * drained.
+ *
+ * \param udp Session to send on.
+ * \param reg Register index.
+ * \param value Word read.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
+ *   session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
+ *   command response, or answered for another register.
+ * \retval KATHERINE_E_STRAY if the answer never arrived while responses to
+ *   other commands kept coming.
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
+ *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
+ *   and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
+ *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ */
+static inline katherine_error_t
+katherine_cmd_acq_unit_read(katherine_udp_t *udp, uint8_t reg, uint32_t *value)
+{
+    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, reg, 0);
+    if (res) return res;
+
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(udp, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, crd);
+    if (res) return res;
+
+    if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != reg) return KATHERINE_E_BAD_CRD;
+
+    const unsigned char *b = (const unsigned char *) crd;
+    *value                 = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+
+    return KATHERINE_E_OK;
+}

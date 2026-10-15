@@ -272,6 +272,49 @@ dac_scan_monitor(uint8_t index)
     return KATHERINE_EMU_DAC_SCAN_REPLIES;
 }
 
+// What one acquisition-unit register reads back. Most of them answer with
+// the word that was written, but four are composed by the unit itself, and
+// those four are the ones a GPIO probe reads:
+//
+//   0x09  time_valid[3:0] . "00" . mux[9:0] . direction[7:0] . level[7:0]
+//   0x0A  "00" . mux[39:10]
+//   0x0B  high ticks of channel 0, 0x0C its low ticks, and so on to 0x12
+//
+// Field placement follows the unit's own decode. Channels 4 to 7 have no
+// timing registers at all, which is why a probe can only time four.
+static uint32_t
+acq_unit_readback(const katherine_emu_t *emu, uint8_t reg)
+{
+    const uint32_t written = emu->regs.acq_setup[reg & (KATHERINE_EMU_ACQ_SETUP_WORDS - 1)];
+
+    switch (reg) {
+    case 0x09: {
+        uint32_t out = written & 0x03FF0000u; /* the multiplexer bits, as written */
+
+        for (unsigned i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+            if (emu->profile.gpio[i].level) out |= 1u << i;
+        }
+        for (unsigned i = 0; i < 4; ++i) {
+            const bool timed = emu->profile.gpio[i].high_ticks != 0 || emu->profile.gpio[i].low_ticks != 0;
+            if (timed) out |= 1u << (28 + i);
+        }
+
+        return out | (written & 0x0000FF00u); /* the direction bits, as written */
+    }
+
+    case 0x0B:
+    case 0x0D:
+    case 0x0F:
+    case 0x11: return emu->profile.gpio[(reg - 0x0B) / 2].high_ticks;
+
+    case 0x0C:
+    case 0x0E:
+    case 0x10:
+    case 0x12: return emu->profile.gpio[(reg - 0x0C) / 2].low_ticks;
+
+    default: return written;
+    }
+}
 static uint8_t
 emu_gen(const katherine_emu_t *emu)
 {
@@ -453,12 +496,12 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_ACQUISITION_SETUP:
-        emu->regs.acq_setup[subindex % KATHERINE_EMU_ACQ_SETUP_WORDS] = payload;
+        emu->regs.acq_setup[subindex & (KATHERINE_EMU_ACQ_SETUP_WORDS - 1)] = payload;
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
     case CMD_TYPE_INTERNAL_TRIGGER_GENERATOR:
-        emu->regs.trigger_gen[subindex % KATHERINE_EMU_TRIGGER_GEN_WORDS] = payload;
+        emu->regs.trigger_gen[subindex & (KATHERINE_EMU_TRIGGER_GEN_WORDS - 1)] = payload;
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
@@ -470,14 +513,12 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         // client's tolerance for it (katherine_cmd_reply_id(),
         // protocol/cmd_interface.h) is measured against a model of the peer
         // and not only against the same table read twice.
-        //
-        // Which register is read is taken from byte 4, where the matching
-        // write puts its index; the response carries the value alone, since
-        // nothing establishes that the firmware echoes the index back. Both
-        // are details of a command this library does not yet issue -- only
-        // the identifier is load-bearing here.
-        queue_word(emu, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, 0,
-            emu->regs.trigger_gen[subindex % KATHERINE_EMU_TRIGGER_GEN_WORDS]);
+        queue_word(emu, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, subindex,
+            emu->regs.trigger_gen[subindex & (KATHERINE_EMU_TRIGGER_GEN_WORDS - 1)]);
+        break;
+
+    case CMD_TYPE_GET_ACQUISITION_UNIT_DATA:
+        queue_word(emu, (uint8_t) opcode, subindex, acq_unit_readback(emu, subindex));
         break;
 
     case CMD_TYPE_GET_ALL_DAC_SCAN:

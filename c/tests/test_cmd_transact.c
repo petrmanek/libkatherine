@@ -515,6 +515,55 @@ test_transact_flushes_sends_and_correlates(void)
     expect_quiet(&g_client);
 }
 
+// k) An acquisition-unit read is answered with the register index repeated in
+// byte 4, and that repetition is checked: a sequence of reads whose answers
+// arrived out of order, or one of whose answers was lost, must be an error
+// and not a word filed under the wrong register.
+//
+// Driven with a queued answer rather than a thread, as the cases above are:
+// loopback delivery completes before the send returns, so the answer is
+// already waiting when the read runs.
+
+#define ACQ_UNIT_REG   0x09
+#define ACQ_UNIT_VALUE 0xDEADBEEFu
+
+// Like mock_reply(), with the register index the readout repeats.
+static void
+mock_reply_reg(katherine_udp_t *mock, uint8_t reply_id, uint8_t reg, uint32_t payload)
+{
+    unsigned char crd[KATHERINE_CMD_CRD_SIZE] = {0};
+
+    crd[0]                         = (unsigned char) (payload & 0xFFu);
+    crd[1]                         = (unsigned char) ((payload >> 8) & 0xFFu);
+    crd[2]                         = (unsigned char) ((payload >> 16) & 0xFFu);
+    crd[3]                         = (unsigned char) ((payload >> 24) & 0xFFu);
+    crd[KATHERINE_CMD_SUBIDX_BYTE] = reg;
+    crd[KATHERINE_CMD_OPCODE_BYTE] = reply_id;
+
+    KT_CHECK_EQ(katherine_udp_send_exact(mock, crd, sizeof(crd)), 0);
+}
+
+static void
+test_acq_unit_read_checks_the_register_it_answers_for(void)
+{
+    uint32_t value = 0;
+
+    mock_reply_reg(&g_mock, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, ACQ_UNIT_REG,
+        ACQ_UNIT_VALUE);
+    KT_CHECK_EQ(katherine_cmd_acq_unit_read(&g_client, ACQ_UNIT_REG, &value), 0);
+    KT_CHECK_EQ(value, ACQ_UNIT_VALUE);
+
+    // The same answer, for the neighbouring register: right identifier,
+    // right length, wrong register.
+    value = 0;
+    mock_reply_reg(&g_mock, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, ACQ_UNIT_REG + 1,
+        ACQ_UNIT_VALUE);
+    KT_CHECK_EQ(katherine_cmd_acq_unit_read(&g_client, ACQ_UNIT_REG, &value), KATHERINE_E_BAD_CRD);
+    KT_CHECK_EQ(value, 0);
+
+    expect_quiet(&g_client);
+}
+
 #ifdef KATHERINE_TEST_EMULATOR
 // j) The emulated readout reproduces both substitutions, so the tolerance
 // above is checked against a model of the peer rather than only against
@@ -578,6 +627,7 @@ main(void)
     KT_RUN(test_strict_mode_rejects_documented_reply_identifiers);
     KT_RUN(test_flush_consumes_without_blocking);
     KT_RUN(test_transact_flushes_sends_and_correlates);
+    KT_RUN(test_acq_unit_read_checks_the_register_it_answers_for);
 #ifdef KATHERINE_TEST_EMULATOR
     KT_RUN(test_emulated_readout_reproduces_reply_identifiers);
 #endif
