@@ -203,6 +203,46 @@ test_dac_voltages(void)
     CHECK_GOLDEN(n, buf, DAC_VOLTAGES_GOLDEN);
 }
 
+// One timed channel and one the readout does not time, so the golden string
+// shows both shapes: the counts are rendered only where they were measured.
+static void
+fill_gpio_monitor(katherine_gpio_monitor_t *v)
+{
+    memset(v, 0, sizeof(*v));
+
+    v->channel[0].level      = true;
+    v->channel[0].signal     = KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC;
+    v->channel[0].high_ticks = 300000;
+    v->channel[0].low_ticks  = 200000;
+
+    v->channel[1].signal = KATHERINE_GPIO_MONITOR_SIGNAL_CONSTANT;
+
+    // Counts left over on a channel that was never timed must not be
+    // rendered, which is what the third channel checks.
+    v->channel[2].high_ticks = 1234;
+}
+
+static const char *GPIO_STATE_GOLDEN = "gpio_monitor{channel0: gpio_channel_monitor{level: 1, signal: periodic, high_ticks: 300000, "
+                                       "low_ticks: 200000, frequency: 200.0, duty_cycle: 0.6000}, "
+                                       "channel1: gpio_channel_monitor{level: 0, signal: constant}, "
+                                       "channel2: gpio_channel_monitor{level: 0, signal: unknown}, "
+                                       "channel3: gpio_channel_monitor{level: 0, signal: unknown}, "
+                                       "channel4: gpio_channel_monitor{level: 0, signal: unknown}, "
+                                       "channel5: gpio_channel_monitor{level: 0, signal: unknown}, "
+                                       "channel6: gpio_channel_monitor{level: 0, signal: unknown}, "
+                                       "channel7: gpio_channel_monitor{level: 0, signal: unknown}}";
+
+static void
+test_gpio_monitor(void)
+{
+    katherine_gpio_monitor_t v;
+    fill_gpio_monitor(&v);
+
+    char buf[1024];
+    int n = katherine_gpio_monitor_snprint(buf, sizeof(buf), &v);
+    CHECK_GOLDEN(n, buf, GPIO_STATE_GOLDEN);
+}
+
 // Two nonzero words, chosen so the fold is hand-checkable: pair (words[0],
 // words[1]) folds to (words[0] << 32) | words[1], every other pair is zero,
 // so the whole-array fold is exactly that one nonzero pair.
@@ -511,6 +551,7 @@ main(void)
     KT_RUN(test_test_pulse_config);
     KT_RUN(test_dacs);
     KT_RUN(test_dac_voltages);
+    KT_RUN(test_gpio_monitor);
     KT_RUN(test_px_config);
     KT_RUN(test_frame_info_time);
     KT_RUN(test_frame_info);

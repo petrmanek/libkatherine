@@ -417,6 +417,48 @@ katherine_tpx3_dac_voltages_snprint(char *buf, size_t cap, const katherine_tpx3_
 }
 
 /**
+ * Render what one GPIO channel reads. The tick counts are rendered only for
+ * a channel whose period was measured, there being nothing to say about the
+ * others.
+ * \copydetails katherine_tpx3_coord_snprint
+ */
+int
+katherine_gpio_channel_monitor_snprint(char *buf, size_t cap, const katherine_gpio_channel_monitor_t *v)
+{
+    size_t off = 0;
+
+    REPR_APPENDF(buf, cap, off, "gpio_channel_monitor{level: %d, signal: %s", v->level ? 1 : 0,
+        katherine_str_gpio_monitor_signal(v->signal));
+    if (v->signal == KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC) {
+        REPR_APPENDF(buf, cap, off, ", high_ticks: %u, low_ticks: %u, frequency: %.1f, duty_cycle: %.4f",
+            (unsigned) v->high_ticks, (unsigned) v->low_ticks, katherine_gpio_channel_frequency(v),
+            katherine_gpio_channel_duty_cycle(v));
+    }
+    REPR_APPENDF(buf, cap, off, "}");
+
+    return (int) off;
+}
+
+/**
+ * Render what every GPIO channel reads.
+ * \copydetails katherine_tpx3_coord_snprint
+ */
+int
+katherine_gpio_monitor_snprint(char *buf, size_t cap, const katherine_gpio_monitor_t *v)
+{
+    size_t off = 0;
+
+    REPR_APPENDF(buf, cap, off, "gpio_monitor{");
+    for (unsigned i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+        REPR_APPENDF(buf, cap, off, "%schannel%u: ", i == 0 ? "" : ", ", i);
+        REPR_NEST(buf, cap, off, katherine_gpio_channel_monitor_snprint, &v->channel[i]);
+    }
+    REPR_APPENDF(buf, cap, off, "}");
+
+    return (int) off;
+}
+
+/**
  * Render a digest of the pixel configuration matrix (word count and a
  * 64-bit XOR fold, never the 16384 words themselves -- see px_config_xor64()
  * above for how the fold is computed).
