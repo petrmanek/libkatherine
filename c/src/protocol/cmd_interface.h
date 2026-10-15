@@ -874,6 +874,30 @@ K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int6
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
+ * Registers of the readout's acquisition unit, carried in the sub-index byte
+ * of katherine_cmd_acq_unit_write() and katherine_cmd_acq_unit_read().
+ *
+ * Named after the signals the firmware's own dispatcher assigns them, so
+ * that a register can be looked up in either. Five bits of address, of which
+ * the firmware decodes more than this library has reason to name; the
+ * internal trigger generator answers a command of its own and has a separate
+ * bank, which is why its registers are a type of their own.
+ */
+typedef enum katherine_acq_unit_reg {
+    KATHERINE_ACQ_UNIT_REG_GPIO_DIRECTION_SETUP = 0x09, ///< Channel directions, with the multiplexer fields of the first two channels. Reads back the channel levels and which tick counters are valid.
+    KATHERINE_ACQ_UNIT_REG_MULTIPLEXER_SETUP    = 0x0A, ///< Multiplexer fields of the remaining channels.
+    KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0      = 0x0B, ///< Ticks channel 0 last spent high. Every timed channel takes two registers from here, the high time before the low.
+    KATHERINE_ACQ_UNIT_REG_READY_COMPLETE_SETUP = 0x13, ///< Composition of the ready signal.
+    KATHERINE_ACQ_UNIT_REG_GPIO_TERMINATION_EN  = 0x16, ///< Terminations, one bit per channel.
+} katherine_acq_unit_reg_t;
+
+/** Channels the acquisition unit times, which is fewer than a readout has. */
+#define KATHERINE_ACQ_UNIT_GPIO_TIMED_CHANNELS 4
+
+/** Width of one channel's field in the output multiplexer. */
+#define KATHERINE_ACQ_UNIT_GPIO_MUX_BITS       5
+
+/**
  * Write one register of the readout's acquisition unit.
  *
  * The unit is a bank of 32-bit registers and this command is the only way
@@ -885,7 +909,7 @@ K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int6
  * drained: a sequence of these is one transaction, not several.
  *
  * \param udp Session to send on.
- * \param reg Register index.
+ * \param reg Register to address.
  * \param value Word to store.
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
@@ -903,9 +927,9 @@ K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int6
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
-katherine_cmd_acq_unit_write(katherine_udp_t *udp, uint8_t reg, uint32_t value)
+katherine_cmd_acq_unit_write(katherine_udp_t *udp, katherine_acq_unit_reg_t reg, uint32_t value)
 {
-    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_ACQUISITION_SETUP, reg, (int64_t) value);
+    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_ACQUISITION_SETUP, (uint8_t) reg, (int64_t) value);
     if (res) return res;
 
     return katherine_cmd_wait_ack(udp, CMD_TYPE_ACQUISITION_SETUP);
@@ -923,7 +947,7 @@ katherine_cmd_acq_unit_write(katherine_udp_t *udp, uint8_t reg, uint32_t value)
  * drained.
  *
  * \param udp Session to send on.
- * \param reg Register index.
+ * \param reg Register to address.
  * \param value Word read.
  *
  * \retval KATHERINE_E_OK on success.
@@ -941,16 +965,16 @@ katherine_cmd_acq_unit_write(katherine_udp_t *udp, uint8_t reg, uint32_t value)
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
-katherine_cmd_acq_unit_read(katherine_udp_t *udp, uint8_t reg, uint32_t *value)
+katherine_cmd_acq_unit_read(katherine_udp_t *udp, katherine_acq_unit_reg_t reg, uint32_t *value)
 {
-    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, reg, 0);
+    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, (uint8_t) reg, 0);
     if (res) return res;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     res = katherine_cmd_wait_ack_crd(udp, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, crd);
     if (res) return res;
 
-    if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != reg) return KATHERINE_E_BAD_CRD;
+    if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != (uint8_t) reg) return KATHERINE_E_BAD_CRD;
 
     const unsigned char *b = (const unsigned char *) crd;
     *value                 = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);

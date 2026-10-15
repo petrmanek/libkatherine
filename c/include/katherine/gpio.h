@@ -118,7 +118,7 @@ typedef enum katherine_gpio_ready {
 /** Configuration of a single GPIO channel. */
 typedef struct katherine_gpio_channel_config {
     katherine_gpio_mapping_t mapping; ///< Programmed function of the channel, which determines whether it acts as an input or output, and in the latter case, what signal it carries. Be advised that depending on device model some channels can only support input mode, or only support output mode. This is reported in device documentation.
-    bool termination;                 ///< True to terminate the line with the readout's internal pull-down resistor, which is meaningful for an input. Only the channels reaching a connector can be terminated, see katherine_device_derived_info_t::accessible_gpio_count; katherine_set_gpio_setup() refuses the others.
+    bool termination;                 ///< True to terminate the line with the readout's internal pull-down resistor, which is meaningful for an input. Only the channels reaching a connector can be terminated, see katherine_device_derived_info_t::accessible_gpio_count; katherine_set_gpio_config() refuses the others.
     katherine_gpio_ready_t ready;     ///< Whether and how the channel contributes to the composed ready signal.
 } katherine_gpio_channel_config_t;
 
@@ -129,7 +129,7 @@ typedef struct katherine_gpio_config {
 
 /** Automated classification of the signal a monitored GPIO channel carries. */
 typedef enum katherine_gpio_monitor_signal {
-    KATHERINE_GPIO_MONITOR_SIGNAL_UNKNOWN = 0, ///< No clear pattern was detected. The logic level was still sampled nonetheless.
+    KATHERINE_GPIO_MONITOR_SIGNAL_UNKNOWN = 0, ///< The readout does not time this channel, so its level was sampled without a classification. Which channels a readout times depends on the model.
     KATHERINE_GPIO_MONITOR_SIGNAL_CONSTANT,    ///< The signal appears constant. No rising/falling edge registered within the readout's measuring window (~5 seconds).
     KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC,    ///< Rising and falling edges were registered, so the tick counts below are meaningful.
 } katherine_gpio_monitor_signal_t;
@@ -146,6 +146,15 @@ typedef struct katherine_gpio_channel_monitor {
 typedef struct katherine_gpio_monitor {
     katherine_gpio_channel_monitor_t channel[KATHERINE_MAX_GPIO_COUNT]; ///< One entry per channel, of which the readout fills its own katherine_device_derived_info_t::all_gpio_count. The rest carry nothing.
 } katherine_gpio_monitor_t;
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_config_t *config);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_gpio_config_t *config);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state);
 
 KATHERINE_EXPORTED const char *
 katherine_str_gpio_mapping(katherine_gpio_mapping_t mapping);

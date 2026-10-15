@@ -82,7 +82,8 @@ katherine_add_test(NAME test_acq_guard SOURCES test_acq_guard.c LABELS unit)
 # test_tp does and for the same reason -- the flush, the send and the receive
 # of a transaction happen inside one library call.
 katherine_add_test(NAME test_cmd_transact SOURCES test_cmd_transact.c LABELS unit)
-katherine_add_test(NAME test_gpio SOURCES test_gpio.c LABELS unit)
+katherine_add_test(NAME test_gpio SOURCES test_gpio.c LABELS unit
+    PROPERTIES SKIP_RETURN_CODE 77)
 # One further case drives the protocol emulator in memory, to check that the
 # emulated readout answers the two commands the firmware answers under a
 # substituted identifier the same way it does. It needs the emulator in the
