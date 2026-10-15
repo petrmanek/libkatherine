@@ -537,18 +537,41 @@ test_acquisition_setup_word(void)
         KT_REQUIRE(false);
     }
 
-    // Every field at its maximum in-range value: channel 7 fills bits
-    // 1..3 exactly, so a mask regression (channel bleeding into the edge
-    // or delayed-start flags) cannot hide.
+    // Declared rather than enumerated, because the layout follows the
+    // generation and this case checks both of them.
+    const katherine_device_info_t gen1 = {.hw_type = 0x01};
+    const katherine_device_info_t gen2 = {.hw_type = 0x03};
+
+    // Every field at its maximum in-range value: on the first generation
+    // channel 7 fills bits 1..3 exactly, so a mask regression (channel
+    // bleeding into the edge or delayed-start flags) cannot hide.
     katherine_trigger_t start = {.enabled = true, .channel = 7, .use_falling_edge = true};
     katherine_trigger_t end   = {.enabled = false, .channel = 0, .use_falling_edge = false};
+    KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
     check_setup_word(&dev, &capture, &start, true, &end, 0x3F, 0x00);
 
-    // Out-of-range channels truncate to their low three bits instead of
-    // corrupting the flags above the field: 9 -> 1, 10 -> 2.
+    // The same triggers on the second generation, whose channel is a bit
+    // wider and whose flags therefore sit a bit higher: the edge moves from
+    // bit 4 to 5 and the delay from 5 to 6, so 0x3F becomes 0x6F.
+    KT_REQUIRE(katherine_device_declare(&dev, &gen2) == 0);
+    check_setup_word(&dev, &capture, &start, true, &end, 0x6F, 0x00);
+
+    // Out-of-range channels truncate instead of corrupting the flags above
+    // the field: on the first generation 9 -> 1 and 10 -> 2.
     start = (katherine_trigger_t) {.enabled = false, .channel = 9, .use_falling_edge = false};
     end   = (katherine_trigger_t) {.enabled = true, .channel = 10, .use_falling_edge = true};
+    KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
     check_setup_word(&dev, &capture, &start, false, &end, 0x02, 0x15);
+
+    // Where the second generation keeps a bit more of them: 9 stays 9 and 10
+    // stays 10, and the falling edge of the second sits at bit 5.
+    KT_REQUIRE(katherine_device_declare(&dev, &gen2) == 0);
+    check_setup_word(&dev, &capture, &start, false, &end, 0x12, 0x35);
+
+    // And a readout of unknown generation is refused, there being no layout
+    // to choose.
+    memset(&dev.derived_info, 0, sizeof(dev.derived_info));
+    KT_CHECK_EQ(katherine_acquisition_setup(&dev, &start, false, &end), KATHERINE_E_STATE);
 
     katherine_udp_fini(&dev.control_socket);
     katherine_udp_fini(&capture);

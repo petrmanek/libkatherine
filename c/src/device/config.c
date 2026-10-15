@@ -814,6 +814,8 @@ err:
  * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
  *   sendto(2) and katherine_udp_last_os_error(). An out-of-range trigger
  *   channel is masked rather than rejected.
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, so its generation is unknown.
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
@@ -822,6 +824,8 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
 {
     katherine_error_t res;
 
+    if (!device->derived_info.supported) return KATHERINE_E_STATE;
+
     res = katherine_udp_mutex_lock(&device->control_socket);
     if (res) return res;
 
@@ -829,25 +833,31 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     cmd[6]      = CMD_TYPE_ACQUISITION_SETUP;
     cmd[4]      = 0x05;
 
-    // This is the Gen1 trigger-word layout (manual sec. 1.2.19): a 3-bit
-    // channel, edge at bit 4, delayed-start at bit 5. The Gen2 FPGA decodes
-    // a different layout -- a 4-bit channel with edge and delayed-start each
-    // shifted up one bit -- and the Gen2 manual's own trigger-word table is
-    // wrong for its own hardware: it still describes this Gen1 layout. Do
-    // not "correct" the encoding below from either a Gen2 source or that
-    // table; it is right for the Gen1 wire format it targets.
+    // Two layouts, one per generation, and the Gen2 manual's own
+    // trigger-word table describes the Gen1 one -- so do not "correct" either
+    // encoding from it. The first generation reads a 3-bit channel at bit 1,
+    // the edge at 4 and the delayed start at 5 (manual sec. 1.2.19); the
+    // second reads a 4-bit channel at bit 1, the edge at 5 and the delay at
+    // 6. The masks keep an out-of-range channel from bleeding into the flags
+    // above it.
     //
-    // The channel occupies three bits (1..3, manual sec. 1.2.19): the mask
-    // keeps an out-of-range channel from bleeding into the edge and
-    // delayed-start flags above it.
+    // The two agree only for a rising edge on channels 0 to 7 with no delay.
+    // A falling edge encoded the first way sets the top bit of the second
+    // way's channel, which is how a Gen2 readout came to listen on the wrong
+    // input.
+    const bool gen2         = device->derived_info.gen >= 2;
+    const int channel_mask  = gen2 ? 0xF : 0x7;
+    const int edge_shift    = gen2 ? 5 : 4;
+    const int delayed_shift = gen2 ? 6 : 5;
+
     cmd[0] |= start_trigger->enabled;
-    cmd[0] |= (start_trigger->channel & 0x7) << 1;
-    cmd[0] |= start_trigger->use_falling_edge << 4;
-    cmd[0] |= delayed_start << 5;
+    cmd[0] |= (start_trigger->channel & channel_mask) << 1;
+    cmd[0] |= start_trigger->use_falling_edge << edge_shift;
+    cmd[0] |= delayed_start << delayed_shift;
 
     cmd[1] |= end_trigger->enabled;
-    cmd[1] |= (end_trigger->channel & 0x7) << 1;
-    cmd[1] |= end_trigger->use_falling_edge << 4;
+    cmd[1] |= (end_trigger->channel & channel_mask) << 1;
+    cmd[1] |= end_trigger->use_falling_edge << edge_shift;
 
     res = katherine_cmd_transact(&device->control_socket, cmd, sizeof(cmd), NULL);
     if (res) goto err;
