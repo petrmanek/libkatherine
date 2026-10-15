@@ -26,5 +26,6 @@
 #include <katherine/device.h>
 #include <katherine/status.h>
 #include <katherine/gpio.h>
+#include <katherine/tdc.h>
 #include <katherine/toa.h>
 #include <katherine/udp.h>

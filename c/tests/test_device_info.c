@@ -98,10 +98,18 @@ test_the_readouts_we_can_name(void)
     KT_CHECK_EQ(gen2.accessible_gpio_count, 4u);
     KT_CHECK_EQ(gen2.all_gpio_count, 8u);
 
-    // Accessible can never exceed total, for any row.
+    // The timing unit watches three channels on the first generation and
+    // five on the second, each with a counter of its own.
+    KT_CHECK_EQ(gen1.tdc_channel_count, 3u);
+    KT_CHECK_EQ(gen2.tdc_channel_count, 5u);
+
+    // Accessible can never exceed total, and no row may claim more channels
+    // than an array sized for the largest readout can hold.
     for (size_t i = 0; i < sizeof(KNOWN) / sizeof(KNOWN[0]); ++i) {
         const katherine_device_derived_info_t row = katherine_device_derived_info_recognize(KNOWN[i]);
         KT_CHECK(row.accessible_gpio_count <= row.all_gpio_count);
+        KT_CHECK(row.all_gpio_count <= KATHERINE_MAX_GPIO_COUNT);
+        KT_CHECK(row.tdc_channel_count <= KATHERINE_MAX_TDC_CHANNEL_COUNT);
     }
 
     const katherine_device_derived_info_t tpx4 = katherine_device_derived_info_recognize(0x0A);

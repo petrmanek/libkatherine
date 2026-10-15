@@ -84,6 +84,8 @@ katherine_add_test(NAME test_acq_guard SOURCES test_acq_guard.c LABELS unit)
 katherine_add_test(NAME test_cmd_transact SOURCES test_cmd_transact.c LABELS unit)
 katherine_add_test(NAME test_gpio SOURCES test_gpio.c LABELS unit
     PROPERTIES SKIP_RETURN_CODE 77)
+katherine_add_test(NAME test_tdc SOURCES test_tdc.c LABELS unit
+    PROPERTIES SKIP_RETURN_CODE 77)
 # One further case drives the protocol emulator in memory, to check that the
 # emulated readout answers the two commands the firmware answers under a
 # substituted identifier the same way it does. It needs the emulator in the
@@ -91,6 +93,8 @@ katherine_add_test(NAME test_gpio SOURCES test_gpio.c LABELS unit
 # file needs nothing but sockets and is registered unconditionally.
 if(KATHERINE_BUILD_EMULATOR)
     target_compile_definitions(test_cmd_transact PRIVATE KATHERINE_TEST_EMULATOR)
+    target_compile_definitions(test_gpio PRIVATE KATHERINE_TEST_EMULATOR)
+    target_compile_definitions(test_tdc PRIVATE KATHERINE_TEST_EMULATOR)
 endif()
 
 # Remote-address pinning of the UDP layer. Sockets, but only through the

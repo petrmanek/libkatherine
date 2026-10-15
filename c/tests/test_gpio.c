@@ -18,7 +18,9 @@
 // katherine/katherine.h must precede kthread.h on Windows; see
 // test_cmd_transact.c, which documents the include order.
 #include <katherine/katherine.h>
+#ifdef KATHERINE_TEST_EMULATOR
 #include <katherine/emulator.h>
+#endif
 
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
@@ -450,6 +452,7 @@ test_f_a_probe_reads_levels_and_only_the_valid_counters(void)
     katherine_udp_fini(&device.control_socket);
 }
 
+#ifdef KATHERINE_TEST_EMULATOR
 // g) And the emulated readout composes that register the same way, from the
 // pins its profile describes -- so the layout the case above reads is
 // checked against a model of the unit as well as against a crafted word.
@@ -487,6 +490,8 @@ test_g_the_emulated_unit_composes_the_level_register(void)
     katherine_emu_fini(&emu);
 }
 
+#endif /* KATHERINE_TEST_EMULATOR */
+
 int
 main(void)
 {
@@ -502,7 +507,9 @@ main(void)
     KT_RUN(test_d_the_ready_signal_is_one_word_of_two_masks);
     KT_RUN(test_e_settings_the_readout_cannot_carry_are_refused);
     KT_RUN(test_f_a_probe_reads_levels_and_only_the_valid_counters);
+#ifdef KATHERINE_TEST_EMULATOR
     KT_RUN(test_g_the_emulated_unit_composes_the_level_register);
+#endif
 
     mocks_fini();
     return kt_summary();

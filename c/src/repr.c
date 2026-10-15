@@ -178,10 +178,10 @@ katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_dev
 
     REPR_APPENDF(buf, cap, off,
         "device_derived_info{name: %s, chip_type: %s, gen: %u, max_chip_count: %u, "
-        "bias_supply_count: %u, accessible_gpio_count: %u, all_gpio_count: %u, supported: %s}",
+        "bias_supply_count: %u, accessible_gpio_count: %u, all_gpio_count: %u, tdc_channel_count: %u, supported: %s}",
         v->name, katherine_str_chip_type(v->chip_type), (unsigned) v->gen,
         (unsigned) v->max_chip_count, (unsigned) v->bias_supply_count,
-        (unsigned) v->accessible_gpio_count, (unsigned) v->all_gpio_count,
+        (unsigned) v->accessible_gpio_count, (unsigned) v->all_gpio_count, (unsigned) v->tdc_channel_count,
         katherine_str_bool(v->supported));
     return (int) off;
 }

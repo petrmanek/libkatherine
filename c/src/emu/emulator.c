@@ -569,6 +569,15 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
+    case CMD_TYPE_INTERNAL_TDC_READ_COUNTS:
+        // One datagram per counter register, five of them, carrying the
+        // count alone: the firmware repeats neither an index nor anything
+        // else, so their order is all that ties a count to its channel.
+        for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
+            queue_word(emu, (uint8_t) opcode, 0, emu->profile.tdc_counts[i]);
+        }
+        break;
+
     case CMD_TYPE_INTERFACE_SELECTION:
         // Switches the transport of the readout and answers nothing.
         break;

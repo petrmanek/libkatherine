@@ -18,6 +18,7 @@
 #include <katherine/global.h>
 #include <katherine/error.h>
 #include <katherine/gpio.h>
+#include <katherine/tdc.h>
 
 /**
  * \defgroup katherine_emulator Emulator
@@ -90,6 +91,13 @@ typedef struct katherine_emu_profile {
         uint32_t high_ticks; ///< Ticks spent high; see KATHERINE_GPIO_TICK_NS
         uint32_t low_ticks;  ///< Ticks spent low
     } gpio[KATHERINE_MAX_GPIO_COUNT];
+
+    /**
+     * Edges the timing unit reports having timestamped on each channel. The
+     * readout counts these itself; the emulator answers whatever the profile
+     * says, there being no signals to count.
+     */
+    uint32_t tdc_counts[KATHERINE_MAX_TDC_CHANNEL_COUNT];
 
     float bias_sense_zero;     ///< Sense voltage the bias supply reads at no current; see katherine_get_bias_leakage()
     float readout_temperature; ///< Temperature reported for the readout board, in Celsius
