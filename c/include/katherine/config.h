@@ -355,7 +355,7 @@ katherine_set_seq_readout_start(katherine_device_t *device, int arg);
  */
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger);
+katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds);

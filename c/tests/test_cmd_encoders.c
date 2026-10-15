@@ -448,7 +448,7 @@ test_general_config_word(void)
 // ------------------------------------------------------------------
 // 6. The acquisition-setup (0x21/0x05) trigger word.
 
-// A self-contained sender/capture pair: katherine_acquisition_setup()
+// A self-contained sender/capture pair: katherine_set_acquisition_triggers()
 // takes a whole device, so its control session is initialized in place
 // inside a device shell (never copied -- the embedded mutex must only be
 // initialized and finalized, not duplicated). The capture peer never
@@ -461,7 +461,7 @@ static void
 check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const katherine_trigger_t *start,
     bool delayed_start, const katherine_trigger_t *end, unsigned char b0, unsigned char b1)
 {
-    KT_CHECK_EQ(katherine_acquisition_setup(dev, start, delayed_start, end), KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(dev, start, delayed_start, end), KATHERINE_E_TIMEOUT);
 
     unsigned char got[8];
     size_t n = sizeof(got);
@@ -571,7 +571,7 @@ test_acquisition_setup_word(void)
     // And a readout of unknown generation is refused, there being no layout
     // to choose.
     memset(&dev.derived_info, 0, sizeof(dev.derived_info));
-    KT_CHECK_EQ(katherine_acquisition_setup(&dev, &start, false, &end), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&dev, &start, false, &end), KATHERINE_E_STATE);
 
     katherine_udp_fini(&dev.control_socket);
     katherine_udp_fini(&capture);

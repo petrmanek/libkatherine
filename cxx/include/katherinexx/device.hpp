@@ -242,9 +242,9 @@ public:
     }
 
     void
-    acquisition_setup(const katherine::trigger& start_trigger, bool delayed_start, const katherine::trigger& end_trigger)
+    set_acquisition_triggers(const katherine::trigger& start_trigger, bool delayed_start, const katherine::trigger& end_trigger)
     {
-        int res = katherine_acquisition_setup(&dev_, &start_trigger, delayed_start, &end_trigger);
+        int res = katherine_set_acquisition_triggers(&dev_, &start_trigger, delayed_start, &end_trigger);
 
         if (res != 0) {
             throw katherine::system_error{res};

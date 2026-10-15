@@ -17,7 +17,7 @@ shipped in this repository -- they are the source of truth:
   * c/include/katherine/config.h - sensor register sub-indices
                                   (katherine_tpx3_reg_t), acquisition setup
                                   and test pulse byte layouts (see
-                                  katherine_acquisition_setup() and
+                                  katherine_set_acquisition_triggers() and
                                   katherine_set_test_pulses() in
                                   c/src/config.c)
   * c/src/crd.h                - control response bitfields (readout
@@ -475,7 +475,7 @@ local function dissect_control(buffer, pinfo, tree)
     elseif opcode == 0x21 then
         -- Acquisition setup: byte[4] is a fixed sub-address (0x05 in the
         -- reference implementation), byte[0]/byte[1] pack the start/end
-        -- trigger configuration (katherine_acquisition_setup(), c/src/config.c).
+        -- trigger configuration (katherine_set_acquisition_triggers(), c/src/config.c).
         root:add(f_sub_address, buffer(4, 1))
         root:add(f_start_trig_en, buffer(0, 1))
         root:add(f_start_trig_ch, buffer(0, 1))

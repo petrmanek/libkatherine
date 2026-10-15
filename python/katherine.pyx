@@ -196,8 +196,8 @@ cdef class Device:
          res = cconfig.katherine_set_seq_readout_start(self._c_device, arg)
          check_return_code(res)
 
-    def acquisition_setup(self, Trigger start_trigger, bool delayed_start, Trigger end_trigger):
-         res = cconfig.katherine_acquisition_setup(self._c_device, &start_trigger._c_trigger, delayed_start, &end_trigger._c_trigger)
+    def set_acquisition_triggers(self, Trigger start_trigger, bool delayed_start, Trigger end_trigger):
+         res = cconfig.katherine_set_acquisition_triggers(self._c_device, &start_trigger._c_trigger, delayed_start, &end_trigger._c_trigger)
          check_return_code(res)
 
     def set_sensor_register(self, reg_idx, int32_t reg_value):

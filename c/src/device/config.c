@@ -79,7 +79,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_bias(device, config->bias_id, config->bias);
     if (res) goto err;
 
-    res = katherine_acquisition_setup(device, &config->start_trigger, config->delayed_start, &config->stop_trigger);
+    res = katherine_set_acquisition_triggers(device, &config->start_trigger, config->delayed_start, &config->stop_trigger);
     if (res) goto err;
 
     res = katherine_set_sensor_register(device, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
@@ -791,7 +791,7 @@ err:
 }
 
 /**
- * Prepare readout for acquisition.
+ * Set the start and end triggers of an acquisition.
  * \param device Katherine device
  * \param start_trigger I/O trigger signalling acquisition start
  * \param delayed_start Flag indicating whether acquisition start is delayed
@@ -820,18 +820,14 @@ err:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
+katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
 {
     katherine_error_t res;
 
-    if (!device->derived_info.supported) return KATHERINE_E_STATE;
-
-    res = katherine_udp_mutex_lock(&device->control_socket);
-    if (res) return res;
-
-    char cmd[8] = {0};
-    cmd[6]      = CMD_TYPE_ACQUISITION_SETUP;
-    cmd[4]      = 0x05;
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
 
     // Two layouts, one per generation, and the Gen2 manual's own
     // trigger-word table describes the Gen1 one -- so do not "correct" either
@@ -850,23 +846,34 @@ katherine_acquisition_setup(katherine_device_t *device, const katherine_trigger_
     const int edge_shift    = gen2 ? 5 : 4;
     const int delayed_shift = gen2 ? 6 : 5;
 
-    cmd[0] |= start_trigger->enabled;
-    cmd[0] |= (start_trigger->channel & channel_mask) << 1;
-    cmd[0] |= start_trigger->use_falling_edge << edge_shift;
-    cmd[0] |= delayed_start << delayed_shift;
+    uint32_t start = (uint32_t) start_trigger->enabled;
+    start |= (uint32_t) (start_trigger->channel & channel_mask) << 1;
+    start |= (uint32_t) start_trigger->use_falling_edge << edge_shift;
+    start |= (uint32_t) delayed_start << delayed_shift;
 
-    cmd[1] |= end_trigger->enabled;
-    cmd[1] |= (end_trigger->channel & channel_mask) << 1;
-    cmd[1] |= end_trigger->use_falling_edge << edge_shift;
+    uint32_t end = (uint32_t) end_trigger->enabled;
+    end |= (uint32_t) (end_trigger->channel & channel_mask) << 1;
+    end |= (uint32_t) end_trigger->use_falling_edge << edge_shift;
 
-    res = katherine_cmd_transact(&device->control_socket, cmd, sizeof(cmd), NULL);
-    if (res) goto err;
+    // One register of the acquisition unit, the start trigger in its low byte
+    // and the end trigger in the next.
+    const uint32_t word = (end << 8) | start;
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err_lock;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_TRIGGER_SETUP, word);
+    if (res) goto err_write;
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return KATHERINE_E_OK;
 
-err:
+err_write:
     (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_lock:
+err_enumerated:
     return res;
 }
 

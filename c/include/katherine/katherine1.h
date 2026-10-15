@@ -208,12 +208,12 @@ katherine1_set_seq_readout_start(katherine_device_t *device, int arg)
     return katherine1_map_result(katherine_set_seq_readout_start(device, arg));
 }
 
-/** \legacy1{katherine_acquisition_setup} */
+/** \legacy1{katherine_set_acquisition_triggers} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
 {
-    return katherine1_map_result(katherine_acquisition_setup(device, start_trigger, delayed_start, end_trigger));
+    return katherine1_map_result(katherine_set_acquisition_triggers(device, start_trigger, delayed_start, end_trigger));
 }
 
 /** \legacy1{katherine_set_sensor_register} */
