@@ -24,6 +24,10 @@
  * \ingroup katherine_c_api
  * \brief Setting up the readout's input and output channels, and reading what
  *   they carry.
+ *
+ * These calls reach the readout's acquisition unit, which serves them only
+ * while no acquisition is armed or running. During one they fail with
+ * KATHERINE_E_TIMEOUT, so a channel cannot be watched while measuring.
  */
 
 /**
@@ -80,8 +84,8 @@ typedef enum katherine_gpio_mapping {
     KATHERINE_GPIO_LEVEL_6, ///< Logic level of channel 6, repeated onto this channel.
     KATHERINE_GPIO_LEVEL_7, ///< Logic level of channel 7, repeated onto this channel.
 
-    KATHERINE_GPIO_READY_LOCAL,    ///< High when all locally connected chips are ready to take data.
-    KATHERINE_GPIO_READY_COMPOSED, ///< High when all locally connected chips are ready to take data, composed together with GPIO inputs. \see katherine_gpio_channel_config_t::ready
+    KATHERINE_GPIO_READY_LOCAL,    ///< High while this readout is armed and waiting for its start trigger. Low while idle, during the start delay, and while the shutter is open.
+    KATHERINE_GPIO_READY_COMPOSED, ///< The local ready signal conjoined with the GPIO channels given a role in it, which is how several readouts agree that every one of them is armed. \see katherine_gpio_channel_config_t::ready
 
     KATHERINE_GPIO_EVENT_TRIGGER, ///< Reserved for on-readout event analysis.
 
@@ -136,7 +140,7 @@ typedef enum katherine_gpio_monitor_signal {
 
 /** Measured state of a single GPIO channel. */
 typedef struct katherine_gpio_channel_monitor {
-    bool level;                             ///< Logic level sampled at the exact moment of the probe. True for logic high, false for logic low.
+    bool level;                             ///< Logic level sampled at the exact moment of the probe. True for logic high, false for logic low. An input that nothing drives and nothing terminates keeps its last charge, so its level carries no information.
     katherine_gpio_monitor_signal_t signal; ///< Readout's classification of the signal patterns.
     uint32_t high_ticks;                    ///< The number of ticks the channel last spent high. A single tick corresponds to \ref KATHERINE_GPIO_TICK_NS. Can be used to determine signal duty cycle. Only meaningful if signal == KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC.
     uint32_t low_ticks;                     ///< The number of ticks the channel last spent low. A single tick corresponds to \ref KATHERINE_GPIO_TICK_NS. Can be used to determine signal duty cycle. Only meaningful if signal == KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC.
