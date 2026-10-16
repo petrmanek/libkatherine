@@ -9,6 +9,7 @@
 from libcpp cimport bool
 from libc.stdint cimport uint8_t, uint32_t
 from cdevice cimport katherine_device_t
+from cconfig cimport katherine_tpx3_dac_voltages_t
 
 cdef extern from 'katherine/status.h':
     ctypedef struct katherine_readout_status_t:
@@ -35,3 +36,7 @@ cdef extern from 'katherine/status.h':
     int katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     int katherine_tpx3_perform_digital_test(katherine_device_t *device)
     int katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
+    int katherine_get_bias(katherine_device_t *device, unsigned char bias_id, float *voltage)
+    int katherine_get_bias_leakage(katherine_device_t *device, unsigned char bias_id, float *voltage)
+    int katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_index, int monitor, float *voltage)
+    int katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_voltages_t *voltages)

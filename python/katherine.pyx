@@ -11,7 +11,7 @@
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, int32_t
-from libc.string cimport memcpy
+from libc.string cimport memcpy, memset
 from libcpp cimport bool
 # Imported under private names on purpose. A module-scope `from enum import
 # Enum` makes katherine.Enum a public attribute of this module and pulls it
@@ -25,6 +25,9 @@ import array as _array
 cimport cdevice
 cimport cstatus
 cimport cconfig
+cimport cgpio
+cimport ctdc
+cimport cpulse
 cimport cpx
 cimport cpx_config
 cimport cacquisition
@@ -83,6 +86,300 @@ __version__ = cversion.katherine_version_string().decode('UTF-8')
 
 def version():
     return cversion.katherine_version()
+
+
+# ------------------------------------------------------------------
+# Sizes and units the readout's peripherals are counted in, taken from the
+# library rather than repeated: a caller sizing a channel list or converting
+# a tick reads them here.
+
+GPIO_COUNT = cgpio.KATHERINE_MAX_GPIO_COUNT
+GPIO_TICK_NS = cgpio.KATHERINE_GPIO_TICK_NS
+TDC_CHANNEL_COUNT = ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT
+PULSE_CHANNEL_COUNT = cpulse.KATHERINE_MAX_PULSE_CHANNEL_COUNT
+TPX3_DAC_MONITOR_COUNT = cconfig.KATHERINE_TPX3_DAC_MONITOR_COUNT
+
+
+@_unique
+class GpioMapping(_Enum):
+    """What a GPIO channel is, and what it carries as an output."""
+    INPUT              = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_INPUT
+    LOW                = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LOW
+    PULSE_INTERNAL     = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_INTERNAL
+    PULSE_CHANNEL_0    = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_CHANNEL_0
+    PULSE_CHANNEL_1    = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_CHANNEL_1
+    PULSE_CHANNEL_2    = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_CHANNEL_2
+    LEVEL_0            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_0
+    LEVEL_1            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_1
+    LEVEL_2            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_2
+    LEVEL_3            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_3
+    LEVEL_4            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_4
+    LEVEL_5            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_5
+    LEVEL_6            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_6
+    LEVEL_7            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_7
+    READY_LOCAL        = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_READY_LOCAL
+    READY_COMPOSED     = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_READY_COMPOSED
+    EVENT_TRIGGER      = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_EVENT_TRIGGER
+    CHIP_0_PIXEL_DATA  = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_CHIP_0_PIXEL_DATA
+    CHIP_1_PIXEL_DATA  = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_CHIP_1_PIXEL_DATA
+    CHIP_2_PIXEL_DATA  = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_CHIP_2_PIXEL_DATA
+    CHIP_3_PIXEL_DATA  = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_CHIP_3_PIXEL_DATA
+    SHUTTER            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SHUTTER
+    CASCADE_CHAIN      = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_CASCADE_CHAIN
+    CLOCK              = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_CLOCK
+    SYNC_SIGNAL        = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SYNC_SIGNAL
+    SPARE_0            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SPARE_0
+    SPARE_1            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SPARE_1
+    SPARE_2            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SPARE_2
+    SPARE_3            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SPARE_3
+    SPARE_4            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SPARE_4
+    SPARE_5            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SPARE_5
+    SPARE_6            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_SPARE_6
+    HIGH               = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_HIGH
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'shutter'."""
+        return cgpio.katherine_str_gpio_mapping(self.value).decode('UTF-8')
+
+
+@_unique
+class GpioReady(_Enum):
+    """How a GPIO channel takes part in the composed ready signal."""
+    UNUSED    = cgpio.katherine_gpio_ready_t.KATHERINE_GPIO_READY_UNUSED
+    WHEN_HIGH = cgpio.katherine_gpio_ready_t.KATHERINE_GPIO_READY_WHEN_HIGH
+    WHEN_LOW  = cgpio.katherine_gpio_ready_t.KATHERINE_GPIO_READY_WHEN_LOW
+
+
+@_unique
+class GpioMonitorSignal(_Enum):
+    """What a GPIO channel's level is doing."""
+    UNKNOWN  = cgpio.katherine_gpio_monitor_signal_t.KATHERINE_GPIO_MONITOR_SIGNAL_UNKNOWN
+    CONSTANT = cgpio.katherine_gpio_monitor_signal_t.KATHERINE_GPIO_MONITOR_SIGNAL_CONSTANT
+    PERIODIC = cgpio.katherine_gpio_monitor_signal_t.KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'periodic'."""
+        return cgpio.katherine_str_gpio_monitor_signal(self.value).decode('UTF-8')
+
+
+@_unique
+class TdcSource(_Enum):
+    """What a timing channel listens to."""
+    GPIO_0           = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_GPIO_0
+    GPIO_1           = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_GPIO_1
+    GPIO_2           = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_GPIO_2
+    GPIO_3           = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_GPIO_3
+    CHIP_0_FEEDBACK  = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_CHIP_0_FEEDBACK
+    CHIP_1_FEEDBACK  = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_CHIP_1_FEEDBACK
+    CHIP_2_FEEDBACK  = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_CHIP_2_FEEDBACK
+    CHIP_3_FEEDBACK  = ctdc.katherine_tdc_source_t.KATHERINE_TDC_SOURCE_CHIP_3_FEEDBACK
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'gpio_2'."""
+        return ctdc.katherine_tdc_source_str(self.value).decode('UTF-8')
+
+
+@_unique
+class PulseSource(_Enum):
+    """Where the pulse generator takes its trigger."""
+
+    RISING_EDGE  = cpulse.katherine_pulse_source_t.KATHERINE_PULSE_SOURCE_RISING_EDGE
+    FALLING_EDGE = cpulse.katherine_pulse_source_t.KATHERINE_PULSE_SOURCE_FALLING_EDGE
+    OSCILLATOR   = cpulse.katherine_pulse_source_t.KATHERINE_PULSE_SOURCE_OSCILLATOR
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'oscillator'."""
+        return cpulse.katherine_pulse_source_str(self.value).decode('UTF-8')
+
+
+class PulseOutput(_Enum):
+    """What a generator channel puts out."""
+    PULSE          = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PULSE
+    PULSE_INVERTED = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PULSE_INVERTED
+    PASSTHROUGH          = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PASSTHROUGH
+    PASSTHROUGH_INVERTED = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PASSTHROUGH_INVERTED
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'pulse_inverted'."""
+        return cpulse.katherine_pulse_output_str(self.value).decode('UTF-8')
+
+
+@_unique
+class Tpx3DacMonitor(_Enum):
+    """The four monitoring outputs past the DACs themselves. The first
+    eighteen monitors are Tpx3Dac values unchanged."""
+    BANDGAP_OUTPUT = cconfig.katherine_tpx3_dac_monitor_t.KATHERINE_TPX3_DAC_MONITOR_BANDGAP_OUTPUT
+    BANDGAP_TEMP   = cconfig.katherine_tpx3_dac_monitor_t.KATHERINE_TPX3_DAC_MONITOR_BANDGAP_TEMP
+    IBIAS_DAC      = cconfig.katherine_tpx3_dac_monitor_t.KATHERINE_TPX3_DAC_MONITOR_IBIAS_DAC
+    IBIAS_DAC_CAS  = cconfig.katherine_tpx3_dac_monitor_t.KATHERINE_TPX3_DAC_MONITOR_IBIAS_DAC_CAS
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'BandGap output'."""
+        return cconfig.katherine_tpx3_dac_monitor_name(self.value).decode('UTF-8')
+
+
+# ------------------------------------------------------------------
+# The readout's own peripherals. Their configurations are sequences of small
+# Python objects rather than wrapper classes holding a C array: a channel
+# configuration is three plain fields, and a class per channel would be more
+# code than the conversion it saves.
+
+
+class GpioChannelConfig:
+    """One GPIO channel's setting: what it is, whether the readout terminates
+    it, and how it takes part in the composed ready signal."""
+
+    def __init__(self, mapping=None, termination=False, ready=None):
+        self.mapping = GpioMapping.INPUT if mapping is None else mapping
+        self.termination = termination
+        self.ready = GpioReady.UNUSED if ready is None else ready
+
+    def __repr__(self):
+        return 'GpioChannelConfig(mapping=%s, termination=%r, ready=%s)' % (
+            self.mapping, self.termination, self.ready)
+
+
+class TdcChannelConfig:
+    """One timing channel's setting. The source does not reach a
+    first-generation readout, whose firmware has no field for it."""
+
+    def __init__(self, enabled=False, source=None, use_falling_edge=False):
+        self.enabled = enabled
+        self.source = TdcSource.GPIO_0 if source is None else source
+        self.use_falling_edge = use_falling_edge
+
+    def __repr__(self):
+        return 'TdcChannelConfig(enabled=%r, source=%s, use_falling_edge=%r)' % (
+            self.enabled, self.source, self.use_falling_edge)
+
+
+cdef void _fill_gpio_config(cgpio.katherine_gpio_config_t *config, channels) except *:
+    cdef int i
+    memset(config, 0, sizeof(cgpio.katherine_gpio_config_t))
+    if len(channels) > GPIO_COUNT:
+        raise ValueError('at most %d channels' % GPIO_COUNT)
+    for i in range(len(channels)):
+        config.channel[i].mapping = channels[i].mapping.value
+        config.channel[i].termination = channels[i].termination
+        config.channel[i].ready = channels[i].ready.value
+
+
+cdef void _fill_tdc_config(ctdc.katherine_tdc_config_t *config, channels) except *:
+    cdef int i
+    memset(config, 0, sizeof(ctdc.katherine_tdc_config_t))
+    if len(channels) > TDC_CHANNEL_COUNT:
+        raise ValueError('at most %d channels' % TDC_CHANNEL_COUNT)
+    for i in range(len(channels)):
+        config.channel[i].enabled = channels[i].enabled
+        config.channel[i].source = channels[i].source.value
+        config.channel[i].use_falling_edge = channels[i].use_falling_edge
+
+
+cdef class GpioMonitor:
+    """What every GPIO channel reads, as katherine_probe_gpio() filled it."""
+    cdef cgpio.katherine_gpio_monitor_t _c_state
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cgpio.katherine_gpio_monitor_snprint, &self._c_state)
+
+    def level(self, int channel):
+         self._check(channel)
+         return self._c_state.channel[channel].level
+
+    def signal(self, int channel):
+         self._check(channel)
+         return GpioMonitorSignal(self._c_state.channel[channel].signal)
+
+    def high_ticks(self, int channel):
+         self._check(channel)
+         return self._c_state.channel[channel].high_ticks
+
+    def low_ticks(self, int channel):
+         self._check(channel)
+         return self._c_state.channel[channel].low_ticks
+
+    def frequency(self, int channel):
+         """Hertz, or zero where the readout measured no period."""
+         self._check(channel)
+         return cgpio.katherine_gpio_channel_frequency(&self._c_state.channel[channel])
+
+    def duty_cycle(self, int channel):
+         self._check(channel)
+         return cgpio.katherine_gpio_channel_duty_cycle(&self._c_state.channel[channel])
+
+    def _check(self, int channel):
+         if channel < 0 or channel >= GPIO_COUNT:
+             raise IndexError('channel out of range')
+
+
+cdef class PulseConfig:
+    """What the pulse generator is set to."""
+    cdef cpulse.katherine_pulse_config_t _c_config
+
+    def __init__(self, channels=None, only_when_ready=False,
+                 source=None, oscillator_frequency_hz=0.0):
+         cdef int i
+         memset(&self._c_config, 0, sizeof(cpulse.katherine_pulse_config_t))
+         self._c_config.only_when_ready = only_when_ready
+         self._c_config.source = (PulseSource.RISING_EDGE if source is None else source).value
+         self._c_config.oscillator_frequency_hz = oscillator_frequency_hz
+         if channels is not None:
+             if len(channels) > PULSE_CHANNEL_COUNT:
+                 raise ValueError('at most %d channels' % PULSE_CHANNEL_COUNT)
+             for i in range(len(channels)):
+                 self._c_config.channel[i].enabled = channels[i].get('enabled', False)
+                 self._c_config.channel[i].output = channels[i].get(
+                     'output', PulseOutput.PULSE).value
+                 self._c_config.channel[i].length_seconds = channels[i].get('length_seconds', 0.0)
+                 self._c_config.channel[i].delay_seconds = channels[i].get('delay_seconds', 0.0)
+
+
+cdef class PulseCounts:
+    """What the generator reports about the trigger reaching it."""
+    cdef cpulse.katherine_pulse_counts_t _c_counts
+
+    def __repr__(self):
+         return ('PulseCounts(low_seconds=%g, high_seconds=%g, rising_edges=%d, clock_mhz=%d)'
+                 % (self._c_counts.low_seconds, self._c_counts.high_seconds,
+                    self._c_counts.rising_edges, self._c_counts.clock_mhz))
+
+    @property
+    def low_seconds(self):
+         return self._c_counts.low_seconds
+
+    @property
+    def high_seconds(self):
+         return self._c_counts.high_seconds
+
+    @property
+    def rising_edges(self):
+         return self._c_counts.rising_edges
+
+    @property
+    def clock_mhz(self):
+         """The generator's own clock, which is what makes its resolution self-describing."""
+         return self._c_counts.clock_mhz
+
+
+cdef class Tpx3DacVoltages:
+    """What the readout measured at every DAC monitor, in Volts."""
+    cdef cconfig.katherine_tpx3_dac_voltages_t _c_voltages
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_tpx3_dac_voltages_snprint, &self._c_voltages)
+
+    def __len__(self):
+         return TPX3_DAC_MONITOR_COUNT
+
+    def __getitem__(self, int monitor):
+         if monitor < 0 or monitor >= TPX3_DAC_MONITOR_COUNT:
+             raise IndexError('monitor out of range')
+         return self._c_voltages.array[monitor]
+
+    def name(self, int monitor):
+         if monitor < 0 or monitor >= TPX3_DAC_MONITOR_COUNT:
+             raise IndexError('monitor out of range')
+         return cconfig.katherine_tpx3_dac_monitor_name(<cconfig.katherine_tpx3_dac_monitor_t> monitor).decode('UTF-8')
 
 
 cdef class Device:
@@ -218,6 +515,83 @@ cdef class Device:
 
     def set_dacs(self, Tpx3Dacs dacs):
          res = cconfig.katherine_tpx3_set_dacs(self._c_device, &dacs._c_dacs)
+         check_return_code(res)
+
+    def get_bias(self, unsigned char bias_id):
+         cdef float voltage
+         res = cstatus.katherine_get_bias(self._c_device, bias_id, &voltage)
+         check_return_code(res)
+         return voltage
+
+    def get_bias_leakage(self, unsigned char bias_id):
+         """Volts across the sense resistor, not amperes: the conversion needs
+         a per-unit zero, which is the caller's to calibrate."""
+         cdef float voltage
+         res = cstatus.katherine_get_bias_leakage(self._c_device, bias_id, &voltage)
+         check_return_code(res)
+         return voltage
+
+    def get_dac_monitor_voltage(self, uint8_t chip_index, monitor):
+         cdef float voltage
+         res = cstatus.katherine_tpx3_get_dac_monitor_voltage(self._c_device, chip_index, monitor.value, &voltage)
+         check_return_code(res)
+         return voltage
+
+    def get_dac_monitor_voltages(self, uint8_t chip_index):
+         cdef Tpx3DacVoltages voltages = Tpx3DacVoltages()
+         res = cstatus.katherine_tpx3_get_dac_monitor_voltages(self._c_device, chip_index, &voltages._c_voltages)
+         check_return_code(res)
+         return voltages
+
+    def set_shutter_delays(self, double start_seconds, double stop_seconds):
+         """Both delays in seconds, honoured to 10 ns or better."""
+         res = cconfig.katherine_set_shutter_delays(self._c_device, start_seconds, stop_seconds)
+         check_return_code(res)
+
+    def set_gpio_config(self, channels):
+         """Takes a sequence of GpioChannelConfig, one per channel."""
+         cdef cgpio.katherine_gpio_config_t config
+         _fill_gpio_config(&config, channels)
+         res = cgpio.katherine_set_gpio_config(self._c_device, &config)
+         check_return_code(res)
+
+    def set_composed_ready_signal(self, channels):
+         cdef cgpio.katherine_gpio_config_t config
+         _fill_gpio_config(&config, channels)
+         res = cgpio.katherine_set_composed_ready_signal(self._c_device, &config)
+         check_return_code(res)
+
+    def probe_gpio(self):
+         cdef GpioMonitor state = GpioMonitor()
+         res = cgpio.katherine_probe_gpio(self._c_device, &state._c_state)
+         check_return_code(res)
+         return state
+
+    def set_tdc_config(self, channels):
+         """Takes a sequence of TdcChannelConfig, one per channel."""
+         cdef ctdc.katherine_tdc_config_t config
+         _fill_tdc_config(&config, channels)
+         res = ctdc.katherine_set_tdc_config(self._c_device, &config)
+         check_return_code(res)
+
+    def get_tdc_counts(self):
+         cdef uint32_t counts[ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT]
+         res = ctdc.katherine_get_tdc_counts(self._c_device, counts)
+         check_return_code(res)
+         return [counts[i] for i in range(ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT)]
+
+    def set_pulse_generator(self, PulseConfig config):
+         res = cpulse.katherine_set_pulse_generator(self._c_device, &config._c_config)
+         check_return_code(res)
+
+    def get_pulse_generator_counts(self):
+         cdef PulseCounts counts = PulseCounts()
+         res = cpulse.katherine_get_pulse_generator_counts(self._c_device, &counts._c_counts)
+         check_return_code(res)
+         return counts
+
+    def reset_pulse_generator_counts(self):
+         res = cpulse.katherine_reset_pulse_generator_counts(self._c_device)
          check_return_code(res)
 
 

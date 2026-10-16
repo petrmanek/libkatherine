@@ -439,6 +439,98 @@ def check_enum_rendering(tap, katherine):
     for gone in ('str_acquisition_status', 'str_phase_correction'):
         tap.check_eq('%s is not a module function' % gone, hasattr(katherine, gone), False)
 
+def check_readout_peripherals(tap, katherine):
+    """The GPIO channels, the timing unit and the pulse generator reach
+    Python: their enumerations, their sizes, and the objects a caller builds
+    to configure them.
+
+    No device here, so nothing is sent -- the claim is the weak one WP20 asks
+    for, that every object declared can be built and every property read.
+    """
+    tap.check_eq('GpioMapping enumerates every mapping',
+                 len(list(katherine.GpioMapping)), 33)
+    tap.check_eq('GpioMapping starts at the input',
+                 (katherine.GpioMapping.INPUT.name, katherine.GpioMapping.INPUT.value),
+                 ('INPUT', 0))
+    tap.check_eq('GpioMapping ends at the constant high',
+                 katherine.GpioMapping.HIGH.value, 32)
+    tap.check_eq('GpioReady enumerates every part',
+                 [(m.name, m.value) for m in katherine.GpioReady],
+                 [('UNUSED', 0), ('WHEN_HIGH', 1), ('WHEN_LOW', 2)])
+    tap.check_eq('GpioMonitorSignal enumerates every state',
+                 [(m.name, m.value) for m in katherine.GpioMonitorSignal],
+                 [('UNKNOWN', 0), ('CONSTANT', 1), ('PERIODIC', 2)])
+    tap.check_eq('TdcSource enumerates every source',
+                 len(list(katherine.TdcSource)), 8)
+    tap.check_eq('PulseOutput enumerates every output',
+                 [(m.name, m.value) for m in katherine.PulseOutput],
+                 [('PULSE', 0), ('PULSE_INVERTED', 1), ('PASSTHROUGH', 2), ('PASSTHROUGH_INVERTED', 3)])
+
+    # Rendered by the C library, as every other enumeration is.
+    tap.check_eq('GpioMapping renders as the C library does',
+                 str(katherine.GpioMapping.SHUTTER), 'shutter')
+    tap.check_eq('GpioMonitorSignal renders as the C library does',
+                 str(katherine.GpioMonitorSignal.PERIODIC), 'periodic')
+    tap.check_eq('TdcSource renders as the C library does',
+                 str(katherine.TdcSource.CHIP_2_FEEDBACK), 'chip_2_feedback')
+    tap.check_eq('PulseOutput renders as the C library does',
+                 str(katherine.PulseOutput.PASSTHROUGH_INVERTED), 'passthrough_inverted')
+
+    # The sizes and units come from the library rather than being repeated.
+    tap.check_eq('GPIO_COUNT is the readout\'s channel count', katherine.GPIO_COUNT, 8)
+    tap.check_eq('GPIO_TICK_NS is ten nanoseconds', katherine.GPIO_TICK_NS, 10)
+    tap.check_eq('TDC_CHANNEL_COUNT is five', katherine.TDC_CHANNEL_COUNT, 5)
+    tap.check_eq('PULSE_CHANNEL_COUNT is four', katherine.PULSE_CHANNEL_COUNT, 4)
+    tap.check_eq('TPX3_DAC_MONITOR_COUNT is the DACs plus the monitors',
+                 katherine.TPX3_DAC_MONITOR_COUNT, 22)
+
+    # The configuration objects, built and read back.
+    ch = katherine.GpioChannelConfig(mapping=katherine.GpioMapping.CLOCK, termination=True)
+    tap.check_eq('GpioChannelConfig keeps its mapping', ch.mapping, katherine.GpioMapping.CLOCK)
+    tap.check('GpioChannelConfig has a repr', len(repr(ch)) > 0)
+
+    tdc_ch = katherine.TdcChannelConfig(enabled=True, source=katherine.TdcSource.GPIO_3)
+    tap.check_eq('TdcChannelConfig keeps its source', tdc_ch.source, katherine.TdcSource.GPIO_3)
+    tap.check('TdcChannelConfig has a repr', len(repr(tdc_ch)) > 0)
+
+    gen = katherine.PulseConfig(
+        channels=[{'enabled': True, 'output': katherine.PulseOutput.PULSE,
+                   'length_seconds': 1e-6, 'delay_seconds': 50e-9}],
+        source=katherine.PulseSource.OSCILLATOR, oscillator_frequency_hz=1e6)
+    tap.check('PulseConfig is constructible', gen is not None)
+
+    # And the states, which a probe would fill. Zeroed here, so every
+    # accessor is exercised without a readout.
+    state = katherine.GpioMonitor()
+    tap.check_eq('a zeroed GpioMonitor reads no level', state.level(0), False)
+    tap.check_eq('a zeroed GpioMonitor reports no signal', state.signal(0),
+                 katherine.GpioMonitorSignal.UNKNOWN)
+    tap.check_eq('a zeroed GpioMonitor has no frequency', state.frequency(0), 0.0)
+    tap.check_eq('a zeroed GpioMonitor has no duty cycle', state.duty_cycle(0), 0.0)
+    tap.check_eq('a zeroed GpioMonitor counts no ticks', state.high_ticks(0), 0)
+    tap.check_eq('a zeroed GpioMonitor counts no low ticks', state.low_ticks(0), 0)
+    tap.check('GpioMonitor has a repr', 'gpio_monitor' in repr(state))
+    tap.check_raises('GpioMonitor rejects a channel out of range', IndexError, state.level, 8)
+
+    gen_state = katherine.PulseCounts()
+    tap.check_eq('a zeroed PulseCounts counts no edges', gen_state.rising_edges, 0)
+    tap.check_eq('a zeroed PulseCounts reports no clock', gen_state.clock_mhz, 0)
+    tap.check('PulseCounts has a repr', 'PulseCounts' in repr(gen_state))
+
+    voltages = katherine.Tpx3DacVoltages()
+    tap.check_eq('DAC voltages are as long as the library says', len(voltages),
+                 katherine.TPX3_DAC_MONITOR_COUNT)
+    tap.check_eq('zeroed DAC voltages read zero', voltages[0], 0.0)
+    tap.check_eq('DAC voltages name their DACs', voltages.name(0), 'Ibias_Preamp_ON')
+    tap.check_eq('DAC voltages name their monitors', voltages.name(21), 'Ibias_dac_cas')
+    tap.check('DAC voltages have a repr', 'dac_voltages' in repr(voltages))
+    tap.check_raises('DAC voltages reject a monitor out of range', IndexError,
+                     voltages.__getitem__, 22)
+
+    tap.check_eq('a monitor renders as the manual spells it',
+                 str(katherine.Tpx3DacMonitor.BANDGAP_OUTPUT), 'BandGap output')
+
+
 def check_module_surface(tap, katherine):
     """The module exports its own names and nothing borrowed.
 
@@ -588,6 +680,7 @@ def check_udp(tap, katherine):
 def run_checks(tap, katherine, device):
     check_enums(tap, katherine)
     check_enum_rendering(tap, katherine)
+    check_readout_peripherals(tap, katherine)
     check_module_surface(tap, katherine)
     check_timestamp_functions(tap, katherine)
     check_pixel_types(tap, katherine)

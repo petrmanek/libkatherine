@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: MIT
 
 from libcpp cimport bool
-from libc.stdint cimport uint8_t, uint16_t, int32_t
+from libc.stdint cimport uint8_t, uint16_t, uint32_t, int32_t
 from cdevice cimport katherine_device_t
 from cpx_config cimport katherine_tpx3_px_config_t
 
@@ -59,6 +59,20 @@ cdef extern from 'katherine/config.h':
         katherine_tpx3_dacs_named_t named
 
     int katherine_tpx3_dacs_snprint(char *buf, size_t cap, const katherine_tpx3_dacs_t *v)
+
+    cdef int KATHERINE_TPX3_DAC_MONITOR_COUNT
+
+    ctypedef enum katherine_tpx3_dac_monitor_t:
+        KATHERINE_TPX3_DAC_MONITOR_BANDGAP_OUTPUT
+        KATHERINE_TPX3_DAC_MONITOR_BANDGAP_TEMP
+        KATHERINE_TPX3_DAC_MONITOR_IBIAS_DAC
+        KATHERINE_TPX3_DAC_MONITOR_IBIAS_DAC_CAS
+
+    ctypedef union katherine_tpx3_dac_voltages_t:
+        float array[22]
+
+    int katherine_tpx3_dac_voltages_snprint(char *buf, size_t cap, const katherine_tpx3_dac_voltages_t *v)
+    const char *katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
 
     ctypedef enum katherine_polarity_t:
         KATHERINE_POLARITY_HOLES
@@ -136,3 +150,4 @@ cdef extern from 'katherine/config.h':
     int katherine_tpx3_timer_set(katherine_device_t *device)
     int katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
     int katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *test_pulse_config)
+    int katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)
