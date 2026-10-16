@@ -396,10 +396,32 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
 
     {
         // Increase receive buffer size because the default one is too small to handle bursts of hits.
-        const int bytes = KATHERINE_UDP_RCVBUF_DEFAULT;
-        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, (const char *) &bytes, sizeof(bytes)) == SOCKET_ERROR) {
-            u->last_os_error = WSAGetLastError();
-            res              = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
+        //
+        // Halving on refusal, as the POSIX path does and as the macro's own
+        // documentation promises: winsock answers WSAENOBUFS where a host
+        // cannot spare the buffer, and a session that holds less is better
+        // than one that does not open. Only a session refused even an eighth
+        // fails, and an error a step recovered from is not reported at all.
+        static const int wanted[] = {
+            KATHERINE_UDP_RCVBUF_DEFAULT,
+            KATHERINE_UDP_RCVBUF_DEFAULT / 2,
+            KATHERINE_UDP_RCVBUF_DEFAULT / 4,
+            KATHERINE_UDP_RCVBUF_DEFAULT / 8,
+        };
+        size_t i;
+        int err = 0;
+
+        for (i = 0; i < sizeof(wanted) / sizeof(*wanted); ++i) {
+            if (setsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, (const char *) &wanted[i], sizeof(wanted[i]))
+                != SOCKET_ERROR) {
+                break;
+            }
+            err = WSAGetLastError();
+        }
+
+        if (i == sizeof(wanted) / sizeof(*wanted)) {
+            u->last_os_error = err;
+            res              = katherine_udp_map_socket_error(err, KATHERINE_E_IO);
             goto err_rcvbuf;
         }
     }
