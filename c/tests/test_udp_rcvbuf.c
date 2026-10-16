@@ -210,13 +210,12 @@ test_the_kernel_reports_the_datagrams_it_dropped(void)
                    PORT_DROP_SENDER, 100)
         == 0);
 
-    // Zero asks for the OS minimum, which is the shallowest queue a host will
-    // grant -- and the point here is to overrun it.
-    KT_CHECK_EQ(katherine_udp_set_rcvbuf(&receiver, 0), 0);
-
     // Not counting yet, so nothing is claimed.
     KT_CHECK_EQ(katherine_udp_get_dropped_datagrams(&receiver), 0);
 
+    // Asked for before anything else: a platform without the counter has
+    // nothing below worth doing, and the queue size the flood needs is one
+    // such platform refuses outright.
     const katherine_error_t res = katherine_udp_set_drop_counting(&receiver, true);
     if (res == KATHERINE_E_UNSUPPORTED) {
         printf("# SKIP this platform has no per-socket drop counter\n");
@@ -224,6 +223,12 @@ test_the_kernel_reports_the_datagrams_it_dropped(void)
         return;
     }
     KT_CHECK_EQ(res, 0);
+
+    // Zero asks for the OS minimum on the platforms that have the counter,
+    // which is the shallowest queue they will grant -- and the point here is
+    // to overrun it. macOS rejects it with EINVAL, which is why this follows
+    // the check above rather than preceding it.
+    KT_CHECK_EQ(katherine_udp_set_rcvbuf(&receiver, 0), 0);
 
     KT_REQUIRE(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_DROP_SENDER, "127.0.0.1",
                    PORT_DROP_RECEIVER, 100)
