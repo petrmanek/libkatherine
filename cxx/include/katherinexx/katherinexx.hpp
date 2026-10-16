@@ -22,6 +22,9 @@
 #include <katherinexx/device.hpp>
 #include <katherinexx/config.hpp>
 #include <katherinexx/px_config.hpp>
+#include <katherinexx/gpio.hpp>
+#include <katherinexx/tdc.hpp>
+#include <katherinexx/pulse.hpp>
 #include <katherinexx/toa.hpp>
 #include <katherinexx/udp.hpp>
 #include <katherinexx/version.hpp>

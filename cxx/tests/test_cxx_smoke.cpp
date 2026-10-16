@@ -392,6 +392,63 @@ test_struct_rendering(void)
     KT_CHECK(streamed(px).size() > 0);
 }
 
+// ------------------------------------------------------------------
+// 9. The readout's own peripherals, bound as aliases rather than as wrapper
+// classes.
+//
+// Their enumerations render through overloads in the global namespace, not in
+// katherine::, because an alias of a C enum is found only there -- so an
+// overload written in the wrong namespace compiles and then fails to resolve
+// here, which is the whole point of these lines.
+
+static void
+test_readout_peripherals(void)
+{
+    KT_CHECK(streamed(katherine::gpio_mapping{KATHERINE_GPIO_SHUTTER}).size() > 0);
+    KT_CHECK(streamed(katherine::gpio_monitor_signal{KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC}).size() > 0);
+    KT_CHECK(streamed(katherine::tdc_source{KATHERINE_TDC_SOURCE_GPIO_2}).size() > 0);
+    KT_CHECK(streamed(katherine::pulse_output{KATHERINE_PULSE_OUTPUT_PASSTHROUGH}).size() > 0);
+    KT_CHECK(streamed(KATHERINE_TPX3_DAC_MONITOR_BANDGAP_TEMP).size() > 0);
+
+    // As for the chip's enumerations: two members must not render alike.
+    KT_CHECK(streamed(katherine::gpio_mapping{KATHERINE_GPIO_INPUT})
+        != streamed(katherine::gpio_mapping{KATHERINE_GPIO_HIGH}));
+
+    // The configuration structures are plain aggregates, so an enum assigns
+    // into them without a cast -- which is why they are aliases.
+    katherine::gpio_config gpio{};
+    gpio.channel[0].mapping     = KATHERINE_GPIO_CLOCK;
+    gpio.channel[0].termination = true;
+    gpio.channel[1].ready       = KATHERINE_GPIO_READY_WHEN_LOW;
+    KT_CHECK(gpio.channel[0].mapping == KATHERINE_GPIO_CLOCK);
+
+    katherine::tdc_config tdc{};
+    tdc.channel[0].enabled = true;
+    tdc.channel[0].source  = KATHERINE_TDC_SOURCE_CHIP_1_FEEDBACK;
+    KT_CHECK(tdc.channel[0].source == KATHERINE_TDC_SOURCE_CHIP_1_FEEDBACK);
+
+    katherine::pulse_config gen{};
+    gen.channel[2].output         = KATHERINE_PULSE_OUTPUT_PULSE_INVERTED;
+    gen.channel[2].length_seconds = 1e-6;
+    gen.source                    = KATHERINE_PULSE_SOURCE_OSCILLATOR;
+    gen.oscillator_frequency_hz   = 1e6;
+    KT_CHECK(gen.channel[2].length_seconds == 1e-6);
+
+    // And the states, which render as structures.
+    katherine::gpio_monitor state{};
+    state.channel[0].signal = KATHERINE_GPIO_MONITOR_SIGNAL_CONSTANT;
+    KT_CHECK(streamed(state).size() > 0);
+    KT_CHECK(streamed(state.channel[0]).size() > 0);
+
+    katherine_tpx3_dac_voltages_t voltages{};
+    KT_CHECK(streamed(voltages).size() > 0);
+
+    // The counts the timing unit reports are a fixed-size array, so its
+    // length is the library's constant rather than a number repeated here.
+    katherine::tdc_counts counts{};
+    KT_CHECK(counts.size() == KATHERINE_MAX_TDC_CHANNEL_COUNT);
+}
+
 int
 main(void)
 {
@@ -403,5 +460,6 @@ main(void)
     KT_RUN(test_errors);
     KT_RUN(test_udp);
     KT_RUN(test_struct_rendering);
+    KT_RUN(test_readout_peripherals);
     return kt_summary();
 }

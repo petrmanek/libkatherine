@@ -209,6 +209,74 @@ operator<<(std::ostream& os, const katherine_device_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_device_snprint);
 }
 
+/** Renders a katherine_gpio_monitor_t (via katherine_gpio_monitor_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_gpio_monitor_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_gpio_monitor_snprint);
+}
+
+/** Renders a katherine_gpio_channel_monitor_t (via katherine_gpio_channel_monitor_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_gpio_channel_monitor_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_gpio_channel_monitor_snprint);
+}
+
+/** Renders a katherine_tpx3_dac_voltages_t (via katherine_tpx3_dac_voltages_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_tpx3_dac_voltages_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_dac_voltages_snprint);
+}
+
+// The readout's own enumerations. In the global namespace with the structures
+// above rather than inside katherine::, because katherinexx binds them as
+// aliases of the C types and an alias is found only here -- the same
+// distinction the note below draws for the chip's scoped enums.
+
+/** Renders a katherine_gpio_mapping_t (via katherine_str_gpio_mapping()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_gpio_mapping_t v)
+{
+    return os << katherine_str_gpio_mapping(v);
+}
+
+/** Renders a katherine_gpio_monitor_signal_t (via katherine_str_gpio_monitor_signal()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_gpio_monitor_signal_t v)
+{
+    return os << katherine_str_gpio_monitor_signal(v);
+}
+
+/** Renders a katherine_tdc_source_t (via katherine_tdc_source_str()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_tdc_source_t v)
+{
+    return os << katherine_tdc_source_str(v);
+}
+
+/** Renders a katherine_pulse_source_t (via katherine_pulse_source_str()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_pulse_source_t v)
+{
+    return os << katherine_pulse_source_str(v);
+}
+
+/** Renders a katherine_pulse_output_t (via katherine_pulse_output_str()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_pulse_output_t v)
+{
+    return os << katherine_pulse_output_str(v);
+}
+
+/** Renders a katherine_tpx3_dac_monitor_t (via katherine_tpx3_dac_monitor_name()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_tpx3_dac_monitor_t v)
+{
+    return os << katherine_tpx3_dac_monitor_name(v);
+}
+
 // The enumerations, rendered by the katherine_str_* family rather than by
 // snprint. They need no helper: each of those functions returns a statically
 // allocated string, so the overload is a cast and a stream.

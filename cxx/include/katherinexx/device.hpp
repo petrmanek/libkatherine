@@ -21,6 +21,9 @@
 
 #include <katherinexx/config.hpp>
 #include <katherinexx/error.hpp>
+#include <katherinexx/gpio.hpp>
+#include <katherinexx/pulse.hpp>
+#include <katherinexx/tdc.hpp>
 
 namespace katherine {
 
@@ -161,6 +164,157 @@ public:
         }
 
         return voltage;
+    }
+
+    float
+    bias(unsigned char bias_id)
+    {
+        float voltage;
+        int res = katherine_get_bias(&dev_, bias_id, &voltage);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return voltage;
+    }
+
+    float
+    bias_leakage(unsigned char bias_id)
+    {
+        float voltage;
+        int res = katherine_get_bias_leakage(&dev_, bias_id, &voltage);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return voltage;
+    }
+
+    float
+    dac_monitor_voltage(std::uint8_t chip_index, katherine::tpx3::dac_monitor monitor)
+    {
+        float voltage;
+        int res = katherine_tpx3_get_dac_monitor_voltage(&dev_, chip_index, monitor, &voltage);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return voltage;
+    }
+
+    katherine::tpx3::dac_voltages
+    dac_monitor_voltages(std::uint8_t chip_index)
+    {
+        katherine::tpx3::dac_voltages voltages;
+        int res = katherine_tpx3_get_dac_monitor_voltages(&dev_, chip_index, &voltages);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return voltages;
+    }
+
+    void
+    set_gpio_config(const katherine::gpio_config& config)
+    {
+        int res = katherine_set_gpio_config(&dev_, &config);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    void
+    set_composed_ready_signal(const katherine::gpio_config& config)
+    {
+        int res = katherine_set_composed_ready_signal(&dev_, &config);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    katherine::gpio_monitor
+    probe_gpio()
+    {
+        katherine::gpio_monitor state;
+        int res = katherine_probe_gpio(&dev_, &state);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return state;
+    }
+
+    void
+    set_shutter_delays(double start_seconds, double stop_seconds)
+    {
+        int res = katherine_set_shutter_delays(&dev_, start_seconds, stop_seconds);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    void
+    set_tdc_config(const katherine::tdc_config& config)
+    {
+        int res = katherine_set_tdc_config(&dev_, &config);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    katherine::tdc_counts
+    tdc_counts()
+    {
+        katherine::tdc_counts counts{};
+        int res = katherine_get_tdc_counts(&dev_, counts.data());
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return counts;
+    }
+
+    void
+    set_pulse_generator(const katherine::pulse_config& config)
+    {
+        int res = katherine_set_pulse_generator(&dev_, &config);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    katherine::pulse_counts
+    pulse_generator_counts()
+    {
+        katherine::pulse_counts state;
+        int res = katherine_get_pulse_generator_counts(&dev_, &state);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+
+        return state;
+    }
+
+    void
+    reset_pulse_generator_counts()
+    {
+        int res = katherine_reset_pulse_generator_counts(&dev_);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
     }
 
     // The following methods each drive one step of detector/readout

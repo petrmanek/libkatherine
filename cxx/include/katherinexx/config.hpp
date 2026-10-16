@@ -60,7 +60,9 @@ namespace tpx3 {
  * Timepix3's DACs. Namespaced because which DACs exist, how wide each
  * is and what it biases are all Timepix3's; a second ASIC brings its own.
  */
-using dacs = katherine_tpx3_dacs_t;
+using dacs         = katherine_tpx3_dacs_t;
+using dac_monitor  = katherine_tpx3_dac_monitor_t;
+using dac_voltages = katherine_tpx3_dac_voltages_t;
 
 enum class phase : int {
     p1  = KATHERINE_TPX3_PHASE_1,
