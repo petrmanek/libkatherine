@@ -423,16 +423,21 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
             KATHERINE_UDP_RCVBUF_DEFAULT / 8,
         };
         size_t i;
+        int err = 0;
 
         for (i = 0; i < sizeof(wanted) / sizeof(*wanted); ++i) {
             if (setsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, &wanted[i], sizeof(wanted[i])) == 0) {
                 break;
             }
-            u->last_os_error = errno;
+            err = errno;
         }
 
+        // Kept out of the session until the last size has been refused too: a
+        // session that opened reports no error, and a refusal this loop
+        // recovered from is not one the caller can act on.
         if (i == sizeof(wanted) / sizeof(*wanted)) {
-            res = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
+            u->last_os_error = err;
+            res              = katherine_udp_map_socket_error(err, KATHERINE_E_IO);
             goto err_rcvbuf;
         }
     }
