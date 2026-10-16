@@ -83,46 +83,46 @@ operator<<(std::ostream& os, const katherine_tpx3_coord_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_tpx3_coord_snprint);
 }
 
-/** Renders a katherine_px_f_toa_tot_t (via katherine_px_f_toa_tot_snprint()). */
+/** Renders a katherine_tpx3_px_f_toa_tot_t (via katherine_tpx3_px_f_toa_tot_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_px_f_toa_tot_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_px_f_toa_tot_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_px_f_toa_tot_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_px_f_toa_tot_snprint);
 }
 
-/** Renders a katherine_px_toa_tot_t (via katherine_px_toa_tot_snprint()). */
+/** Renders a katherine_tpx3_px_toa_tot_t (via katherine_tpx3_px_toa_tot_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_px_toa_tot_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_px_toa_tot_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_px_toa_tot_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_px_toa_tot_snprint);
 }
 
-/** Renders a katherine_px_f_toa_only_t (via katherine_px_f_toa_only_snprint()). */
+/** Renders a katherine_tpx3_px_f_toa_only_t (via katherine_tpx3_px_f_toa_only_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_px_f_toa_only_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_px_f_toa_only_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_px_f_toa_only_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_px_f_toa_only_snprint);
 }
 
-/** Renders a katherine_px_toa_only_t (via katherine_px_toa_only_snprint()). */
+/** Renders a katherine_tpx3_px_toa_only_t (via katherine_tpx3_px_toa_only_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_px_toa_only_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_px_toa_only_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_px_toa_only_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_px_toa_only_snprint);
 }
 
-/** Renders a katherine_px_f_event_count_itot_t (via katherine_px_f_event_count_itot_snprint()). */
+/** Renders a katherine_tpx3_px_f_event_count_itot_t (via katherine_tpx3_px_f_event_count_itot_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_px_f_event_count_itot_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_px_f_event_count_itot_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_px_f_event_count_itot_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_px_f_event_count_itot_snprint);
 }
 
-/** Renders a katherine_px_event_count_itot_t (via katherine_px_event_count_itot_snprint()). */
+/** Renders a katherine_tpx3_px_event_count_itot_t (via katherine_tpx3_px_event_count_itot_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_px_event_count_itot_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_px_event_count_itot_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_px_event_count_itot_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_px_event_count_itot_snprint);
 }
 
 /** Renders a katherine_trigger_t (via katherine_trigger_snprint()). */

@@ -123,7 +123,7 @@ test_device_and_acquisition(void)
     // timeouts, touching no socket -- and reports the state of one that has
     // not begun.
     katherine::acquisition<katherine::acq::f_toa_tot> acq{
-        dev, katherine::md_size * 128, sizeof(katherine_px_f_toa_tot_t) * 128, std::chrono::milliseconds{10},
+        dev, katherine::md_size * 128, sizeof(katherine_tpx3_px_f_toa_tot_t) * 128, std::chrono::milliseconds{10},
         std::chrono::milliseconds{50}, true};
 
     KT_CHECK(acq.state() == katherine::acq_state::not_started);
@@ -140,7 +140,7 @@ test_device_and_acquisition(void)
 
     // The handler setters take ownership of a callable; none is invoked here,
     // since nothing will arrive.
-    acq.set_pixels_received_handler([](const katherine_px_f_toa_tot_t *, std::size_t) { });
+    acq.set_pixels_received_handler([](const katherine_tpx3_px_f_toa_tot_t *, std::size_t) { });
     acq.set_frame_started_handler([](int) { });
     acq.set_frame_ended_handler([](int, bool, const katherine::frame_info&) { });
     acq.set_data_received_handler([](const char *, std::size_t) { });

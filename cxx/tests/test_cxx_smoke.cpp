@@ -367,12 +367,12 @@ test_struct_rendering(void)
 {
     KT_CHECK(streamed(katherine::tpx3::coord{1, 2}).size() > 0);
 
-    KT_CHECK(streamed(katherine_px_toa_tot_t{}).size() > 0);
-    KT_CHECK(streamed(katherine_px_f_toa_tot_t{}).size() > 0);
-    KT_CHECK(streamed(katherine_px_toa_only_t{}).size() > 0);
-    KT_CHECK(streamed(katherine_px_f_toa_only_t{}).size() > 0);
-    KT_CHECK(streamed(katherine_px_event_count_itot_t{}).size() > 0);
-    KT_CHECK(streamed(katherine_px_f_event_count_itot_t{}).size() > 0);
+    KT_CHECK(streamed(katherine_tpx3_px_toa_tot_t{}).size() > 0);
+    KT_CHECK(streamed(katherine_tpx3_px_f_toa_tot_t{}).size() > 0);
+    KT_CHECK(streamed(katherine_tpx3_px_toa_only_t{}).size() > 0);
+    KT_CHECK(streamed(katherine_tpx3_px_f_toa_only_t{}).size() > 0);
+    KT_CHECK(streamed(katherine_tpx3_px_event_count_itot_t{}).size() > 0);
+    KT_CHECK(streamed(katherine_tpx3_px_f_event_count_itot_t{}).size() > 0);
 
     KT_CHECK(streamed(katherine::trigger{}).size() > 0);
     KT_CHECK(streamed(katherine::test_pulse_config{}).size() > 0);

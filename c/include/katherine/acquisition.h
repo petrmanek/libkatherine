@@ -221,7 +221,7 @@ typedef struct katherine_acquisition {
 
     /**
      * Timestamp offset in effect, in fine-oscillator ticks. Carries the epoch
-     * bias described at katherine_px_f_toa_tot_t::timestamp, so it is never
+     * bias described at katherine_tpx3_px_f_toa_tot_t::timestamp, so it is never
      * zero during an acquisition and is not the offset the stream delivered.
      */
     uint64_t last_toa_offset;

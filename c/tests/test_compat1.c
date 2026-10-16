@@ -217,6 +217,48 @@ test_coord_keeps_its_1x_spellings(void)
 }
 
 // ------------------------------------------------------------------
+// The six hit layouts under their 1.x spellings, namespaced in 2.0 for the
+// same reason as the coordinate above: a Timepix4 hit is a different shape,
+// not a wider one.
+//
+// Named through the aliases, as the coordinate is, with every field designated --
+// the alias names the struct, so a field that moved would compile here and
+// misread a hit in a caller.
+//
+// The Event+iToT pair reads only the fields common to 1.x and 2.0. 1.x gave
+// the fast variant a hit_count that read a dummy field and 2.0 dropped it;
+// the slow variant gained one, read here to pin each alias to its variant.
+
+static void
+test_hit_layouts_keep_their_1x_spellings(void)
+{
+    char buf[128];
+
+    katherine_px_f_toa_tot_t a = {.chip = 0, .coord = {1, 2}, .timestamp = 3, .tot = 5};
+    KT_CHECK(katherine_px_f_toa_tot_snprint(buf, sizeof(buf), &a) > 0);
+    KT_CHECK_EQ(a.coord.x + a.timestamp + a.tot, 1 + 3 + 5);
+
+    struct katherine_px_toa_tot b = {.coord = {6, 7}, .timestamp = 8, .hit_count = 2, .tot = 9};
+    KT_CHECK(katherine_px_toa_tot_snprint(buf, sizeof(buf), &b) > 0);
+    KT_CHECK_EQ(b.coord.y + b.timestamp + b.hit_count + b.tot, 7 + 8 + 2 + 9);
+
+    katherine_px_f_toa_only_t c = {.coord = {1, 2}, .timestamp = 4};
+    KT_CHECK(katherine_px_f_toa_only_snprint(buf, sizeof(buf), &c) > 0);
+
+    katherine_px_toa_only_t d = {.coord = {1, 2}, .timestamp = 4, .hit_count = 3};
+    KT_CHECK(katherine_px_toa_only_snprint(buf, sizeof(buf), &d) > 0);
+
+    katherine_px_f_event_itot_t e = {.coord = {1, 2}, .event_count = 4, .integral_tot = 5};
+    KT_CHECK(katherine_px_f_event_itot_snprint(buf, sizeof(buf), &e) > 0);
+    KT_CHECK_EQ(e.coord.x + e.event_count + e.integral_tot, 1 + 4 + 5);
+
+    struct katherine_px_event_itot f = {.coord = {1, 2}, .event_count = 4, .integral_tot = 5};
+    KT_CHECK(katherine_px_event_itot_snprint(buf, sizeof(buf), &f) > 0);
+    KT_CHECK_EQ(f.coord.y + f.event_count + f.integral_tot, 2 + 4 + 5);
+    KT_CHECK_EQ(f.hit_count, 0);
+}
+
+// ------------------------------------------------------------------
 // The function-like aliases: every 1.x call spelling, named once each.
 //
 // Compile-time only, with an arity to get wrong as well as a target: an alias
@@ -431,6 +473,7 @@ main(void)
     KT_RUN(test_dacs_validate_success);
     KT_RUN(test_udp_round_trip_success);
     KT_RUN(test_coord_keeps_its_1x_spellings);
+    KT_RUN(test_hit_layouts_keep_their_1x_spellings);
     KT_RUN(test_function_aliases);
     KT_RUN(test_type_aliases);
     KT_RUN(test_enumerator_aliases);

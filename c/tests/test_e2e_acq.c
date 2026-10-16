@@ -174,7 +174,7 @@
 #define FAIL_TIMEOUT_MS      10000
 
 // The acquisition mode under test, and the pixel layout it delivers.
-typedef katherine_px_f_toa_tot_t px_t;
+typedef katherine_tpx3_px_f_toa_tot_t px_t;
 
 // ------------------------------------------------------------------
 // Shared fixture: one daemon and one device for every case that talks to

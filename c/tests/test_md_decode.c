@@ -78,7 +78,7 @@
 #define PIXEL_BUFFER_HITS     64
 
 // The acquisition mode under test, and the pixel layout it delivers.
-typedef katherine_px_toa_tot_t px_t;
+typedef katherine_tpx3_px_toa_tot_t px_t;
 
 // ------------------------------------------------------------------
 // Stream construction.
@@ -307,7 +307,7 @@ combine_f_toa_tot(uint16_t coarse, uint8_t ftoa, uint64_t offset, uint8_t fine_s
     acq.toa_coarse_tick_to_fine_shift = fine_shift;
     acq.last_toa_offset               = bias + offset;
 
-    katherine_px_f_toa_tot_t dst;
+    katherine_tpx3_px_f_toa_tot_t dst;
     memset(&dst, 0, sizeof(dst));
     switch (fine_shift) {
     case 2:  pmd_f_toa_tot_s2_map(&dst, &md, &acq, 0); break;

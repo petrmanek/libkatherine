@@ -165,7 +165,7 @@ katherine_tpx3_toa_epoch_bias(uint8_t coarse_tick_to_fine_shift)
  * Summing the two parts back into one double reintroduces exactly the loss
  * this avoids.
  *
- * The epoch bias described at katherine_px_f_toa_tot_t::timestamp is NOT
+ * The epoch bias described at katherine_tpx3_px_f_toa_tot_t::timestamp is NOT
  * removed here: it is a constant, differences are unaffected, and a timestamp
  * is frame-relative rather than absolute in any case. Use
  * katherine_tpx3_timestamp_to_toa_ftoa() to recover the chip's own quantities.

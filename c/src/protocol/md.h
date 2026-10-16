@@ -106,12 +106,12 @@
 //
 // This function is responsible for mapping MD
 // `src` of bitfield pmd_{A} to a pixel `dst` of
-// type katherine_px_{A}_t. Below are defined
+// type katherine_tpx3_px_{A}_t. Below are defined
 // such functions for all pixel types.
 
 #define DEFINE_PMD_MAP(SUFFIX) \
     static inline void \
-    pmd_##SUFFIX##_map(katherine_px_##SUFFIX##_t *dst, const uint64_t *src, \
+    pmd_##SUFFIX##_map(katherine_tpx3_px_##SUFFIX##_t *dst, const uint64_t *src, \
         const katherine_acquisition_t *acq, uint8_t chip)
 
 // Timestamp-bearing decoders are instantiated once per pixel-clock divider, so
@@ -122,7 +122,7 @@
 // the set is closed.
 #define DEFINE_PMD_MAP_S(SUFFIX, SHIFT) \
     static inline void \
-    pmd_##SUFFIX##_s##SHIFT##_map(katherine_px_##SUFFIX##_t *dst, const uint64_t *src, \
+    pmd_##SUFFIX##_s##SHIFT##_map(katherine_tpx3_px_##SUFFIX##_t *dst, const uint64_t *src, \
         const katherine_acquisition_t *acq, uint8_t chip)
 
 #define DEFINE_PMD_MAP_EVERY_SHIFT(M) \

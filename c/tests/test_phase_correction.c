@@ -166,7 +166,7 @@ decode_one(const katherine_acquisition_t *acq, uint8_t x, uint16_t coarse, uint8
     md          = INSERT(md, pmd_f_toa_tot, toa, (uint64_t) coarse);
     md          = INSERT(md, pmd_f_toa_tot, ftoa, (uint64_t) ftoa);
 
-    katherine_px_f_toa_tot_t dst;
+    katherine_tpx3_px_f_toa_tot_t dst;
     memset(&dst, 0, sizeof(dst));
     pmd_f_toa_tot_s4_map(&dst, &md, acq, 0 /* chip: single-header readout */);
     return dst.timestamp;

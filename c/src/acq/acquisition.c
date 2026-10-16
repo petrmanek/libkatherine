@@ -417,7 +417,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 flush_buffer(acq); \
             } \
 \
-            katherine_px_##SUFFIX##_t *px = (katherine_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid; \
+            katherine_tpx3_px_##SUFFIX##_t *px = (katherine_tpx3_px_##SUFFIX##_t *) acq->pixel_buffer + acq->pixel_buffer_valid; \
 \
             MAP(px, md, acq, (uint8_t) KATHERINE_MD_HEADER_CHIP_##GEN(hdr)); \
 \
@@ -433,7 +433,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     static katherine_error_t \
     acquisition_read_##SUFFIX##TAG##_##GEN(katherine_acquisition_t *acq) \
     { \
-        static const int PIXEL_SIZE = sizeof(katherine_px_##SUFFIX##_t); \
+        static const int PIXEL_SIZE = sizeof(katherine_tpx3_px_##SUFFIX##_t); \
 \
         int lock_res = katherine_udp_mutex_lock(&acq->device->data_socket); \
         if (lock_res != 0) return lock_res; \

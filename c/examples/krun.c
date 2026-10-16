@@ -18,7 +18,7 @@
 #include <katherine/katherine.h>
 
 static const char *remote_addr = "192.168.1.145";
-typedef katherine_px_f_toa_tot_t px_t;
+typedef katherine_tpx3_px_f_toa_tot_t px_t;
 
 // Set the following flag to inject test pulses into a small subset of
 // pixels during the acquisition.

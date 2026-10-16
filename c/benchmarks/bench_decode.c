@@ -144,7 +144,7 @@ build_canned_buffer(uint8_t *buf, size_t words, bool gen2)
     static void \
     bench_decode_##SUFFIX##TAG(const uint8_t *buf, size_t words, uint64_t *out_checksum) \
     { \
-        static katherine_px_##SUFFIX##_t slot[BENCH_SLOT_BYTES / sizeof(katherine_px_##SUFFIX##_t)]; \
+        static katherine_tpx3_px_##SUFFIX##_t slot[BENCH_SLOT_BYTES / sizeof(katherine_tpx3_px_##SUFFIX##_t)]; \
         const size_t max_valid      = sizeof(slot) / sizeof(slot[0]); \
         size_t valid                = 0; \
         katherine_acquisition_t acq = {0}; \
@@ -165,7 +165,7 @@ build_canned_buffer(uint8_t *buf, size_t words, bool gen2)
             char hdr = EXTRACT(word, md, header); \
             if (KATHERINE_MD_HEADER_IS_PIXEL_##GEN(hdr)) { \
                 if (valid == max_valid) valid = 0; \
-                katherine_px_##SUFFIX##_t *dst = &slot[valid]; \
+                katherine_tpx3_px_##SUFFIX##_t *dst = &slot[valid]; \
                 MAP(dst, &word, &acq, (uint8_t) KATHERINE_MD_HEADER_CHIP_##GEN(hdr)); \
                 acc += (CHECKSUM); \
                 ++valid; \

@@ -611,14 +611,14 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 // no 1.x source can contain them and aliasing them would re-pollute the
 // namespace for a compatibility nobody can need.
 
-#define katherine_readout_type                katherine_tpx3_readout_mode
-#define katherine_readout_type_t              katherine_tpx3_readout_mode_t
-#define katherine_acquisition_mode            katherine_tpx3_px_mode
-#define katherine_acquisition_mode_t          katherine_tpx3_px_mode_t
-#define katherine_phase                       katherine_tpx3_phase
-#define katherine_phase_t                     katherine_tpx3_phase_t
-#define katherine_freq                        katherine_tpx3_freq
-#define katherine_freq_t                      katherine_tpx3_freq_t
+#define katherine_readout_type                 katherine_tpx3_readout_mode
+#define katherine_readout_type_t               katherine_tpx3_readout_mode_t
+#define katherine_acquisition_mode             katherine_tpx3_px_mode
+#define katherine_acquisition_mode_t           katherine_tpx3_px_mode_t
+#define katherine_phase                        katherine_tpx3_phase
+#define katherine_phase_t                      katherine_tpx3_phase_t
+#define katherine_freq                         katherine_tpx3_freq
+#define katherine_freq_t                       katherine_tpx3_freq_t
 
 // The pixel coordinate, which 1.x had under all three of these spellings. It
 // is namespaced in 2.0 because its width is Timepix3's: a byte per axis suits
@@ -627,58 +627,84 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 // Timepix3's DACs, namespaced in 2.0 because which DACs exist, how wide each
 // is and what it biases are all Timepix3's. The struct tags, both typedefs
 // and the two functions all shipped in 1.x.
-#define katherine_dacs                        katherine_tpx3_dacs
-#define katherine_dacs_t                      katherine_tpx3_dacs_t
-#define katherine_dacs_named                  katherine_tpx3_dacs_named
-#define katherine_dacs_named_t                katherine_tpx3_dacs_named_t
-#define katherine_dacs_snprint(...)           katherine_tpx3_dacs_snprint(__VA_ARGS__)
-#define katherine_dacs_validate(...)          katherine_tpx3_dacs_validate(__VA_ARGS__)
+#define katherine_dacs                         katherine_tpx3_dacs
+#define katherine_dacs_t                       katherine_tpx3_dacs_t
+#define katherine_dacs_named                   katherine_tpx3_dacs_named
+#define katherine_dacs_named_t                 katherine_tpx3_dacs_named_t
+#define katherine_dacs_snprint(...)            katherine_tpx3_dacs_snprint(__VA_ARGS__)
+#define katherine_dacs_validate(...)           katherine_tpx3_dacs_validate(__VA_ARGS__)
 
-#define katherine_coord                       katherine_tpx3_coord
-#define katherine_coord_t                     katherine_tpx3_coord_t
-#define katherine_coord_snprint(...)          katherine_tpx3_coord_snprint(__VA_ARGS__)
+#define katherine_coord                        katherine_tpx3_coord
+#define katherine_coord_t                      katherine_tpx3_coord_t
+#define katherine_coord_snprint(...)           katherine_tpx3_coord_snprint(__VA_ARGS__)
 
-#define katherine_str_acquisition_mode(...)   katherine_str_px_mode(__VA_ARGS__)
-#define katherine_str_readout_type(...)       katherine_str_readout_mode(__VA_ARGS__)
-#define katherine_str_acquisition_status(...) katherine_str_acquisition_state(__VA_ARGS__)
+// The six hit layouts, namespaced for the same reason as the coordinate they
+// carry: a Timepix4 hit is a different shape, not a wider one. Every struct
+// tag, typedef and renderer shipped in 1.x.
+//
+// 1.x spelled the Event+iToT pair without the counter, and gave the fast
+// variant a hit_count that read a dummy field. 2.0 dropped that field, so a
+// 1.x source reaching for it fails to compile rather than misreading a hit.
+#define katherine_px_f_toa_tot                 katherine_tpx3_px_f_toa_tot
+#define katherine_px_f_toa_tot_t               katherine_tpx3_px_f_toa_tot_t
+#define katherine_px_f_toa_tot_snprint(...)    katherine_tpx3_px_f_toa_tot_snprint(__VA_ARGS__)
+#define katherine_px_toa_tot                   katherine_tpx3_px_toa_tot
+#define katherine_px_toa_tot_t                 katherine_tpx3_px_toa_tot_t
+#define katherine_px_toa_tot_snprint(...)      katherine_tpx3_px_toa_tot_snprint(__VA_ARGS__)
+#define katherine_px_f_toa_only                katherine_tpx3_px_f_toa_only
+#define katherine_px_f_toa_only_t              katherine_tpx3_px_f_toa_only_t
+#define katherine_px_f_toa_only_snprint(...)   katherine_tpx3_px_f_toa_only_snprint(__VA_ARGS__)
+#define katherine_px_toa_only                  katherine_tpx3_px_toa_only
+#define katherine_px_toa_only_t                katherine_tpx3_px_toa_only_t
+#define katherine_px_toa_only_snprint(...)     katherine_tpx3_px_toa_only_snprint(__VA_ARGS__)
+#define katherine_px_f_event_itot              katherine_tpx3_px_f_event_count_itot
+#define katherine_px_f_event_itot_t            katherine_tpx3_px_f_event_count_itot_t
+#define katherine_px_f_event_itot_snprint(...) katherine_tpx3_px_f_event_count_itot_snprint(__VA_ARGS__)
+#define katherine_px_event_itot                katherine_tpx3_px_event_count_itot
+#define katherine_px_event_itot_t              katherine_tpx3_px_event_count_itot_t
+#define katherine_px_event_itot_snprint(...)   katherine_tpx3_px_event_count_itot_snprint(__VA_ARGS__)
+
+#define katherine_str_acquisition_mode(...)    katherine_str_px_mode(__VA_ARGS__)
+#define katherine_str_readout_type(...)        katherine_str_readout_mode(__VA_ARGS__)
+#define katherine_str_acquisition_status(...)  katherine_str_acquisition_state(__VA_ARGS__)
 
 
-#define READOUT_SEQUENTIAL                    KATHERINE_TPX3_READOUT_SEQUENTIAL
-#define READOUT_DATA_DRIVEN                   KATHERINE_TPX3_READOUT_DATA_DRIVEN
+#define READOUT_SEQUENTIAL                     KATHERINE_TPX3_READOUT_SEQUENTIAL
+#define READOUT_DATA_DRIVEN                    KATHERINE_TPX3_READOUT_DATA_DRIVEN
 
-#define ACQUISITION_NOT_STARTED               KATHERINE_ACQUISITION_STATE_NOT_STARTED
-#define ACQUISITION_RUNNING                   KATHERINE_ACQUISITION_STATE_RUNNING
-#define ACQUISITION_SUCCEEDED                 KATHERINE_ACQUISITION_STATE_SUCCEEDED
-#define ACQUISITION_TIMED_OUT                 KATHERINE_ACQUISITION_STATE_TIMED_OUT
+#define ACQUISITION_NOT_STARTED                KATHERINE_ACQUISITION_STATE_NOT_STARTED
+#define ACQUISITION_RUNNING                    KATHERINE_ACQUISITION_STATE_RUNNING
+#define ACQUISITION_SUCCEEDED                  KATHERINE_ACQUISITION_STATE_SUCCEEDED
+#define ACQUISITION_TIMED_OUT                  KATHERINE_ACQUISITION_STATE_TIMED_OUT
 
-#define ACQUISITION_MODE_TOA_TOT              KATHERINE_TPX3_PX_TOA_TOT
-#define ACQUISITION_MODE_ONLY_TOA             KATHERINE_TPX3_PX_ONLY_TOA
-#define ACQUISITION_MODE_EVENT_ITOT           KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
+#define ACQUISITION_MODE_TOA_TOT               KATHERINE_TPX3_PX_TOA_TOT
+#define ACQUISITION_MODE_ONLY_TOA              KATHERINE_TPX3_PX_ONLY_TOA
+#define ACQUISITION_MODE_EVENT_ITOT            KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 
-#define PHASE_1                               KATHERINE_TPX3_PHASE_1
-#define PHASE_2                               KATHERINE_TPX3_PHASE_2
-#define PHASE_4                               KATHERINE_TPX3_PHASE_4
-#define PHASE_8                               KATHERINE_TPX3_PHASE_8
-#define PHASE_16                              KATHERINE_TPX3_PHASE_16
+#define PHASE_1                                KATHERINE_TPX3_PHASE_1
+#define PHASE_2                                KATHERINE_TPX3_PHASE_2
+#define PHASE_4                                KATHERINE_TPX3_PHASE_4
+#define PHASE_8                                KATHERINE_TPX3_PHASE_8
+#define PHASE_16                               KATHERINE_TPX3_PHASE_16
 
-#define FREQ_20                               KATHERINE_TPX3_FREQ_20_MHZ
-#define FREQ_40                               KATHERINE_TPX3_FREQ_40_MHZ
-#define FREQ_80                               KATHERINE_TPX3_FREQ_80_MHZ
-#define FREQ_160                              KATHERINE_TPX3_FREQ_160_MHZ
+#define FREQ_20                                KATHERINE_TPX3_FREQ_20_MHZ
+#define FREQ_40                                KATHERINE_TPX3_FREQ_40_MHZ
+#define FREQ_80                                KATHERINE_TPX3_FREQ_80_MHZ
+#define FREQ_160                               KATHERINE_TPX3_FREQ_160_MHZ
 
-#define TPX3_REG_TEST_PULSE_METHOD            KATHERINE_TPX3_REG_TEST_PULSE_METHOD
-#define TPX3_REG_TEST_PULSE_PERIOD            KATHERINE_TPX3_REG_TEST_PULSE_PERIOD
-#define TPX3_REG_NUMBER_TEST_PULSES           KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
-#define TPX3_REG_OUT_BLOCK_CONFIG             KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
-#define TPX3_REG_PLL_CONFIG                   KATHERINE_TPX3_REG_PLL_CONFIG
-#define TPX3_REG_GENERAL_CONFIG               KATHERINE_TPX3_REG_GENERAL_CONFIG
-#define TPX3_REG_SLVS_CONFIG                  KATHERINE_TPX3_REG_SLVS_CONFIG
-#define TPX3_REG_POWER_PULSING_PATTERN        KATHERINE_TPX3_REG_POWER_PULSING_PATTERN
-#define TPX3_REG_SET_TIMER_LOW                KATHERINE_TPX3_REG_SET_TIMER_LOW
-#define TPX3_REG_SET_TIMER_MID                KATHERINE_TPX3_REG_SET_TIMER_MID
-#define TPX3_REG_SET_TIMER_HIGH               KATHERINE_TPX3_REG_SET_TIMER_HIGH
-#define TPX3_REG_SENSE_DAC_SELECTOR           KATHERINE_TPX3_REG_SENSE_DAC_SELECTOR
-#define TPX3_REG_EXT_DAC_SELECTOR             KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
+#define TPX3_REG_TEST_PULSE_METHOD             KATHERINE_TPX3_REG_TEST_PULSE_METHOD
+#define TPX3_REG_TEST_PULSE_PERIOD             KATHERINE_TPX3_REG_TEST_PULSE_PERIOD
+#define TPX3_REG_NUMBER_TEST_PULSES            KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
+#define TPX3_REG_OUT_BLOCK_CONFIG              KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
+#define TPX3_REG_PLL_CONFIG                    KATHERINE_TPX3_REG_PLL_CONFIG
+#define TPX3_REG_GENERAL_CONFIG                KATHERINE_TPX3_REG_GENERAL_CONFIG
+#define TPX3_REG_SLVS_CONFIG                   KATHERINE_TPX3_REG_SLVS_CONFIG
+#define TPX3_REG_POWER_PULSING_PATTERN         KATHERINE_TPX3_REG_POWER_PULSING_PATTERN
+#define TPX3_REG_SET_TIMER_LOW                 KATHERINE_TPX3_REG_SET_TIMER_LOW
+#define TPX3_REG_SET_TIMER_MID                 KATHERINE_TPX3_REG_SET_TIMER_MID
+#define TPX3_REG_SET_TIMER_HIGH                KATHERINE_TPX3_REG_SET_TIMER_HIGH
+#define TPX3_REG_SENSE_DAC_SELECTOR            KATHERINE_TPX3_REG_SENSE_DAC_SELECTOR
+#define TPX3_REG_EXT_DAC_SELECTOR              KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

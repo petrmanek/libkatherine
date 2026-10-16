@@ -996,18 +996,18 @@ cdef class FrameInfo:
 
 
 cdef class Tpx3PxFastToaTot:
-    cdef cpx.katherine_px_f_toa_tot_t _c_px
+    cdef cpx.katherine_tpx3_px_f_toa_tot_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_toa_tot_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_tpx3_px_f_toa_tot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_f_toa_tot_t)
+       return sizeof(cpx.katherine_tpx3_px_f_toa_tot_t)
 
     @property
     def chip(self):
@@ -1031,18 +1031,18 @@ cdef class Tpx3PxFastToaTot:
 
 
 cdef class Tpx3PxToaTot:
-    cdef cpx.katherine_px_toa_tot_t _c_px
+    cdef cpx.katherine_tpx3_px_toa_tot_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_toa_tot_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_tpx3_px_toa_tot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_toa_tot_t)
+       return sizeof(cpx.katherine_tpx3_px_toa_tot_t)
 
     @property
     def chip(self):
@@ -1070,18 +1070,18 @@ cdef class Tpx3PxToaTot:
 
 
 cdef class Tpx3PxFastToaOnly:
-    cdef cpx.katherine_px_f_toa_only_t _c_px
+    cdef cpx.katherine_tpx3_px_f_toa_only_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_toa_only_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_tpx3_px_f_toa_only_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_f_toa_only_t)
+       return sizeof(cpx.katherine_tpx3_px_f_toa_only_t)
 
     @property
     def chip(self):
@@ -1101,18 +1101,18 @@ cdef class Tpx3PxFastToaOnly:
 
 
 cdef class Tpx3PxToaOnly:
-    cdef cpx.katherine_px_toa_only_t _c_px
+    cdef cpx.katherine_tpx3_px_toa_only_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_toa_only_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_tpx3_px_toa_only_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_toa_only_t)
+       return sizeof(cpx.katherine_tpx3_px_toa_only_t)
 
     @property
     def chip(self):
@@ -1136,18 +1136,18 @@ cdef class Tpx3PxToaOnly:
 
 
 cdef class Tpx3PxFastEventCountItot:
-    cdef cpx.katherine_px_f_event_count_itot_t _c_px
+    cdef cpx.katherine_tpx3_px_f_event_count_itot_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_f_event_count_itot_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_tpx3_px_f_event_count_itot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_f_event_count_itot_t)
+       return sizeof(cpx.katherine_tpx3_px_f_event_count_itot_t)
 
     @property
     def chip(self):
@@ -1171,18 +1171,18 @@ cdef class Tpx3PxFastEventCountItot:
 
 
 cdef class Tpx3PxEventCountItot:
-    cdef cpx.katherine_px_event_count_itot_t _c_px
+    cdef cpx.katherine_tpx3_px_event_count_itot_t _c_px
 
     def __init__(self, cdata=None):
        if cdata is not None:
            self._c_px = cdata
 
     def __repr__(self):
-       return _snprint_repr(<snprint_fn_t> cpx.katherine_px_event_count_itot_snprint, &self._c_px)
+       return _snprint_repr(<snprint_fn_t> cpx.katherine_tpx3_px_event_count_itot_snprint, &self._c_px)
 
     @staticmethod
     def RAW_SIZE():
-       return sizeof(cpx.katherine_px_event_count_itot_t)
+       return sizeof(cpx.katherine_tpx3_px_event_count_itot_t)
 
     @property
     def chip(self):
@@ -1377,27 +1377,27 @@ cdef void _forward_data_received(void *user_ctx, const char *data, size_t count)
     (<Acquisition> user_ctx).observer.data_received(data[:count])
 
 cdef void _forward_pixels_received_f_toa_tot(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_f_toa_tot_t *dpx = <const cpx.katherine_px_f_toa_tot_t *> px
+    cdef const cpx.katherine_tpx3_px_f_toa_tot_t *dpx = <const cpx.katherine_tpx3_px_f_toa_tot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxFastToaTot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_toa_tot(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_toa_tot_t *dpx = <const cpx.katherine_px_toa_tot_t *> px
+    cdef const cpx.katherine_tpx3_px_toa_tot_t *dpx = <const cpx.katherine_tpx3_px_toa_tot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxToaTot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_f_toa_only(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_f_toa_only_t *dpx = <const cpx.katherine_px_f_toa_only_t *> px
+    cdef const cpx.katherine_tpx3_px_f_toa_only_t *dpx = <const cpx.katherine_tpx3_px_f_toa_only_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxFastToaOnly(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_toa_only(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_toa_only_t *dpx = <const cpx.katherine_px_toa_only_t *> px
+    cdef const cpx.katherine_tpx3_px_toa_only_t *dpx = <const cpx.katherine_tpx3_px_toa_only_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxToaOnly(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_f_event_count_itot(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_f_event_count_itot_t *dpx = <const cpx.katherine_px_f_event_count_itot_t *> px
+    cdef const cpx.katherine_tpx3_px_f_event_count_itot_t *dpx = <const cpx.katherine_tpx3_px_f_event_count_itot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxFastEventCountItot(cdata=dpx[i]) for i in range(count)])
 
 cdef void _forward_pixels_received_event_count_itot(void *user_ctx, const void *px, size_t count) noexcept:
-    cdef const cpx.katherine_px_event_count_itot_t *dpx = <const cpx.katherine_px_event_count_itot_t *> px
+    cdef const cpx.katherine_tpx3_px_event_count_itot_t *dpx = <const cpx.katherine_tpx3_px_event_count_itot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxEventCountItot(cdata=dpx[i]) for i in range(count)])
 
 def MD_SIZE():

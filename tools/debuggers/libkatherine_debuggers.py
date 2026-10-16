@@ -18,12 +18,12 @@
 # "<tag>_snprint" (see snprint_name()).
 TAGS = frozenset((
     'katherine_tpx3_coord',
-    'katherine_px_f_toa_tot',
-    'katherine_px_toa_tot',
-    'katherine_px_f_toa_only',
-    'katherine_px_toa_only',
-    'katherine_px_f_event_count_itot',
-    'katherine_px_event_count_itot',
+    'katherine_tpx3_px_f_toa_tot',
+    'katherine_tpx3_px_toa_tot',
+    'katherine_tpx3_px_f_toa_only',
+    'katherine_tpx3_px_toa_only',
+    'katherine_tpx3_px_f_event_count_itot',
+    'katherine_tpx3_px_event_count_itot',
     'katherine_trigger',
     'katherine_test_pulse_config',
     'katherine_tpx3_dacs',

@@ -229,37 +229,37 @@ namespace acq {
  */
 
 struct f_toa_tot {
-    using pixel_type                       = katherine_px_f_toa_tot_t;
+    using pixel_type                       = katherine_tpx3_px_f_toa_tot_t;
     static constexpr tpx3::px_mode mode    = tpx3::px_mode::toa_tot;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct toa_tot {
-    using pixel_type                       = katherine_px_toa_tot_t;
+    using pixel_type                       = katherine_tpx3_px_toa_tot_t;
     static constexpr tpx3::px_mode mode    = tpx3::px_mode::toa_tot;
     static constexpr bool fast_vco_enabled = false;
 };
 
 struct f_toa_only {
-    using pixel_type                       = katherine_px_f_toa_only_t;
+    using pixel_type                       = katherine_tpx3_px_f_toa_only_t;
     static constexpr tpx3::px_mode mode    = tpx3::px_mode::only_toa;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct toa_only {
-    using pixel_type                       = katherine_px_toa_only_t;
+    using pixel_type                       = katherine_tpx3_px_toa_only_t;
     static constexpr tpx3::px_mode mode    = tpx3::px_mode::only_toa;
     static constexpr bool fast_vco_enabled = false;
 };
 
 struct f_event_count_itot {
-    using pixel_type                       = katherine_px_f_event_count_itot_t;
+    using pixel_type                       = katherine_tpx3_px_f_event_count_itot_t;
     static constexpr tpx3::px_mode mode    = tpx3::px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = true;
 };
 
 struct event_count_itot {
-    using pixel_type                       = katherine_px_event_count_itot_t;
+    using pixel_type                       = katherine_tpx3_px_event_count_itot_t;
     static constexpr tpx3::px_mode mode    = tpx3::px_mode::event_count_itot;
     static constexpr bool fast_vco_enabled = false;
 };

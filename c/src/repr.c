@@ -286,7 +286,7 @@ katherine_tpx3_coord_snprint(char *buf, size_t cap, const katherine_tpx3_coord_t
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_tot_t *v)
+katherine_tpx3_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_tpx3_px_f_toa_tot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_toa_tot{chip: %u, coord: ", (unsigned) v->chip);
@@ -298,7 +298,7 @@ katherine_px_f_toa_tot_snprint(char *buf, size_t cap, const katherine_px_f_toa_t
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t *v)
+katherine_tpx3_px_toa_tot_snprint(char *buf, size_t cap, const katherine_tpx3_px_toa_tot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_toa_tot{chip: %u, coord: ", (unsigned) v->chip);
@@ -311,7 +311,7 @@ katherine_px_toa_tot_snprint(char *buf, size_t cap, const katherine_px_toa_tot_t
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_only_t *v)
+katherine_tpx3_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_tpx3_px_f_toa_only_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_toa_only{chip: %u, coord: ", (unsigned) v->chip);
@@ -322,7 +322,7 @@ katherine_px_f_toa_only_snprint(char *buf, size_t cap, const katherine_px_f_toa_
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only_t *v)
+katherine_tpx3_px_toa_only_snprint(char *buf, size_t cap, const katherine_tpx3_px_toa_only_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_toa_only{chip: %u, coord: ", (unsigned) v->chip);
@@ -333,7 +333,7 @@ katherine_px_toa_only_snprint(char *buf, size_t cap, const katherine_px_toa_only
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_f_event_count_itot_t *v)
+katherine_tpx3_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_tpx3_px_f_event_count_itot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_f_event_count_itot{chip: %u, coord: ", (unsigned) v->chip);
@@ -345,7 +345,7 @@ katherine_px_f_event_count_itot_snprint(char *buf, size_t cap, const katherine_p
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_px_event_count_itot_snprint(char *buf, size_t cap, const katherine_px_event_count_itot_t *v)
+katherine_tpx3_px_event_count_itot_snprint(char *buf, size_t cap, const katherine_tpx3_px_event_count_itot_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "px_event_count_itot{chip: %u, coord: ", (unsigned) v->chip);

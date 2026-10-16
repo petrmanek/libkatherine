@@ -56,7 +56,7 @@ static void
 pixels_received(void *ctx, const void *px, size_t count)
 {
     struct stats *s                 = ctx;
-    const katherine_px_toa_tot_t *p = px;
+    const katherine_tpx3_px_toa_tot_t *p = px;
 
     s->pixels += count;
     for (size_t i = 0; i < count; ++i) {
