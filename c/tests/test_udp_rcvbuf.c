@@ -120,7 +120,17 @@ test_a_fresh_session_has_already_asked_for_the_default(void)
     uint32_t as_opened = 0, after_asking = 0;
     KT_REQUIRE(katherine_udp_rcvbuf(&u, &as_opened) == KATHERINE_E_OK);
 
-    KT_REQUIRE(katherine_udp_set_rcvbuf(&u, KATHERINE_UDP_RCVBUF_DEFAULT) == KATHERINE_E_OK);
+    // Refused on a host whose ceiling the default exceeds, which is not a
+    // failure of this case: opening a session answers such a refusal by asking
+    // for less, so the fresh session already holds what the host allowed. What
+    // must hold either way is that asking again does not move it -- that is
+    // what says init had already asked.
+    const katherine_error_t res = katherine_udp_set_rcvbuf(&u, KATHERINE_UDP_RCVBUF_DEFAULT);
+    KT_CHECK(res == KATHERINE_E_OK || res == KATHERINE_E_NOMEM);
+    if (res != KATHERINE_E_OK) {
+        printf("# this host refuses %d B outright (%s)\n", KATHERINE_UDP_RCVBUF_DEFAULT,
+            katherine_strerror(res));
+    }
     KT_REQUIRE(katherine_udp_rcvbuf(&u, &after_asking) == KATHERINE_E_OK);
 
     // Printed either way: it is the only place the granted size is visible,
@@ -151,11 +161,18 @@ test_asking_larger_never_grants_less(void)
     KT_REQUIRE(katherine_udp_set_rcvbuf(&u, GEN2_DATAGRAM_MAX) == KATHERINE_E_OK);
     KT_REQUIRE(katherine_udp_rcvbuf(&u, &one_datagram) == KATHERINE_E_OK);
 
-    KT_REQUIRE(katherine_udp_set_rcvbuf(&u, KATHERINE_UDP_RCVBUF_DEFAULT) == KATHERINE_E_OK);
+    // Hosts divide here: Linux clamps a request above its ceiling and reports
+    // success, macOS refuses it for want of memory. Either answer satisfies
+    // what this case is about, since a refusal leaves the queue where it was
+    // and so still grants no less than the smaller request did.
+    const katherine_error_t at_default_res = katherine_udp_set_rcvbuf(&u, KATHERINE_UDP_RCVBUF_DEFAULT);
+    KT_CHECK(at_default_res == KATHERINE_E_OK || at_default_res == KATHERINE_E_NOMEM);
     KT_REQUIRE(katherine_udp_rcvbuf(&u, &at_default) == KATHERINE_E_OK);
 
-    // Above any plausible ceiling, so this is the clamped case on every host.
-    KT_CHECK_EQ(katherine_udp_set_rcvbuf(&u, (uint32_t) INT_MAX), KATHERINE_E_OK);
+    // Above any plausible ceiling, so this is the clamped case where the host
+    // clamps and the refused case where it does not.
+    const katherine_error_t at_ceiling_res = katherine_udp_set_rcvbuf(&u, (uint32_t) INT_MAX);
+    KT_CHECK(at_ceiling_res == KATHERINE_E_OK || at_ceiling_res == KATHERINE_E_NOMEM);
     KT_REQUIRE(katherine_udp_rcvbuf(&u, &at_ceiling) == KATHERINE_E_OK);
 
     KT_CHECK(at_default >= one_datagram);
@@ -173,7 +190,12 @@ test_a_request_beyond_the_option_is_capped(void)
     katherine_udp_t u;
     KT_REQUIRE(open_session(&u, PORT_A, PORT_B) == KATHERINE_E_OK);
 
-    KT_CHECK_EQ(katherine_udp_set_rcvbuf(&u, UINT32_MAX), KATHERINE_E_OK);
+    // The cap is the point, not the outcome: without it UINT32_MAX reaches the
+    // option as -1 and comes back as an invalid argument. A host that refuses
+    // the capped size for want of memory has still been asked a sane question,
+    // so what must not come back is KATHERINE_E_INVAL.
+    const katherine_error_t res = katherine_udp_set_rcvbuf(&u, UINT32_MAX);
+    KT_CHECK(res == KATHERINE_E_OK || res == KATHERINE_E_NOMEM);
 
     uint32_t bytes = 0;
     KT_CHECK_EQ(katherine_udp_rcvbuf(&u, &bytes), KATHERINE_E_OK);
