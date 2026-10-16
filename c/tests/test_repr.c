@@ -247,7 +247,7 @@ test_gpio_monitor(void)
 // words[1]) folds to (words[0] << 32) | words[1], every other pair is zero,
 // so the whole-array fold is exactly that one nonzero pair.
 static void
-fill_px_config(katherine_px_config_t *p)
+fill_px_config(katherine_tpx3_px_config_t *p)
 {
     memset(p, 0, sizeof(*p));
     p->words[0] = 0x11111111u;
@@ -259,11 +259,11 @@ static const char *PX_CONFIG_GOLDEN = "px_config{words: 16384, xor64: 0x11111111
 static void
 test_px_config(void)
 {
-    katherine_px_config_t p;
+    katherine_tpx3_px_config_t p;
     fill_px_config(&p);
 
     char buf[128];
-    int n = katherine_px_config_snprint(buf, sizeof(buf), &p);
+    int n = katherine_tpx3_px_config_snprint(buf, sizeof(buf), &p);
     CHECK_GOLDEN(n, buf, PX_CONFIG_GOLDEN);
 }
 

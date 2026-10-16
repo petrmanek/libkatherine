@@ -101,7 +101,7 @@ typedef struct katherine_tpx3_dacs_named {
     uint16_t Ibias_DiscS1_OFF;  ///< First discriminator stage bias while power pulsing holds it off.
     uint16_t Ibias_DiscS2_ON;   ///< Second discriminator stage bias while the pixel is on.
     uint16_t Ibias_DiscS2_OFF;  ///< Second discriminator stage bias while power pulsing holds it off.
-    uint16_t Ibias_PixelDAC;    ///< Bias of the per-pixel trim DAC, which scales the four-bit local threshold of katherine_px_config_set_loc_thl().
+    uint16_t Ibias_PixelDAC;    ///< Bias of the per-pixel trim DAC, which scales the four-bit local threshold of katherine_tpx3_px_config_set_loc_thl().
     uint16_t Ibias_TPbufferIn;  ///< Test-pulse buffer input bias.
     uint16_t Ibias_TPbufferOut; ///< Test-pulse buffer output bias.
     uint16_t VTP_coarse;        ///< Test-pulse amplitude, coarse part. The injected amplitude is VTP_coarse - VTP_fine; see katherine_test_pulse_config_t.
@@ -273,7 +273,7 @@ katherine_str_polarity(katherine_polarity_t polarity);
  * Designed to render safe settings when zero-initialized.
  */
 typedef struct katherine_config {
-    katherine_px_config_t pixel_config; ///< Per-pixel settings for the whole matrix.
+    katherine_tpx3_px_config_t pixel_config; ///< Per-pixel settings for the whole matrix.
 
     unsigned char bias_id; ///< Which bias supply to drive, for a readout that has more than one.
 
@@ -322,7 +322,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config);
+katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns);

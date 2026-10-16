@@ -35,7 +35,7 @@ typedef enum krun_toa_format {
 static const krun_toa_format_t print_toa = KRUN_TOA_SECONDS;
 
 void
-paint_test_pixels(katherine_px_config_t *px_config)
+paint_test_pixels(katherine_tpx3_px_config_t *px_config)
 {
     // Enable test pulses for pixels forming the letter 'P' (chosen because
     // it is asymmetric in both axes, making image orientation verifiable).
@@ -71,7 +71,7 @@ paint_test_pixels(katherine_px_config_t *px_config)
                         .x = (uint8_t) x,
                         .y = (uint8_t) y,
                     };
-                    katherine_px_config_set_test_bit(px_config, coord, true);
+                    katherine_tpx3_px_config_set_test_bit(px_config, coord, true);
                     ++n_painted;
                 }
             }
@@ -127,7 +127,7 @@ configure(katherine_config_t *config)
     config->dacs.named.Ibias_CP_PLL      = 128;
     config->dacs.named.PLL_Vcntrl        = 128;
 
-    int res = katherine_px_config_load_bmc_file(&config->pixel_config, "chipconfig.bmc");
+    int res = katherine_tpx3_px_config_load_bmc_file(&config->pixel_config, "chipconfig.bmc");
     if (res != 0) {
         printf("Cannot load pixel configuration. Does the file exist?\n");
         printf("Reason: %s\n", katherine_strerror(res));

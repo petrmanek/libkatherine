@@ -41,7 +41,7 @@
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   configuration commands within the control session's receive timeout; the
  *   pixel-matrix upload and the test-pulse command wait longer than that, see
- *   katherine_set_all_pixel_config() and katherine_set_test_pulses().
+ *   katherine_tpx3_set_all_pixel_config() and katherine_set_test_pulses().
  * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
  *   not that of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
@@ -67,7 +67,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
 {
     katherine_error_t res;
 
-    res = katherine_set_all_pixel_config(device, &config->pixel_config);
+    res = katherine_tpx3_set_all_pixel_config(device, &config->pixel_config);
     if (res) goto err;
 
     res = katherine_set_acq_time(device, config->acq_time);
@@ -219,7 +219,7 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
+katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config)
 {
     katherine_error_t res;
 

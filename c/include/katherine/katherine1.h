@@ -160,12 +160,12 @@ katherine1_configure(katherine_device_t *device, const katherine_config_t *confi
     return katherine1_map_result(katherine_configure(device, config));
 }
 
-/** \legacy1{katherine_set_all_pixel_config} */
+/** \legacy1{katherine_tpx3_set_all_pixel_config} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
+katherine1_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config)
 {
-    return katherine1_map_result(katherine_set_all_pixel_config(device, px_config));
+    return katherine1_map_result(katherine_tpx3_set_all_pixel_config(device, px_config));
 }
 
 /** \legacy1{katherine_set_acq_time} */
@@ -266,36 +266,36 @@ katherine1_set_test_pulses(katherine_device_t *device, const katherine_test_puls
 
 // px_config.h
 
-/** \legacy1{katherine_px_config_load_bmc_file} */
+/** \legacy1{katherine_tpx3_px_config_load_bmc_file} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path)
+katherine1_px_config_load_bmc_file(katherine_tpx3_px_config_t *px_config, const char *file_path)
 {
-    return katherine1_map_result(katherine_px_config_load_bmc_file(px_config, file_path));
+    return katherine1_map_result(katherine_tpx3_px_config_load_bmc_file(px_config, file_path));
 }
 
-/** \legacy1{katherine_px_config_load_bmc_data} */
+/** \legacy1{katherine_tpx3_px_config_load_bmc_data} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc)
+katherine1_px_config_load_bmc_data(katherine_tpx3_px_config_t *px_config, const katherine_tpx3_bmc_t *bmc)
 {
-    return katherine1_map_result(katherine_px_config_load_bmc_data(px_config, bmc));
+    return katherine1_map_result(katherine_tpx3_px_config_load_bmc_data(px_config, bmc));
 }
 
-/** \legacy1{katherine_px_config_load_bpc_file} */
+/** \legacy1{katherine_tpx3_px_config_load_bpc_file} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path)
+katherine1_px_config_load_bpc_file(katherine_tpx3_px_config_t *px_config, const char *file_path)
 {
-    return katherine1_map_result(katherine_px_config_load_bpc_file(px_config, file_path));
+    return katherine1_map_result(katherine_tpx3_px_config_load_bpc_file(px_config, file_path));
 }
 
-/** \legacy1{katherine_px_config_load_bpc_data} */
+/** \legacy1{katherine_tpx3_px_config_load_bpc_data} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc)
+katherine1_px_config_load_bpc_data(katherine_tpx3_px_config_t *px_config, const katherine_tpx3_bpc_t *bpc)
 {
-    return katherine1_map_result(katherine_px_config_load_bpc_data(px_config, bpc));
+    return katherine1_map_result(katherine_tpx3_px_config_load_bpc_data(px_config, bpc));
 }
 
 // status.h
@@ -663,6 +663,26 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 #define katherine_px_event_itot                katherine_tpx3_px_event_count_itot
 #define katherine_px_event_itot_t              katherine_tpx3_px_event_count_itot_t
 #define katherine_px_event_itot_snprint(...)   katherine_tpx3_px_event_count_itot_snprint(__VA_ARGS__)
+
+// The pixel matrix, its two file formats and everything that reads or writes
+// them. Namespaced because the 256 x 256 matrix, the four-bit local threshold
+// and both file layouts are Timepix3's. The loaders already had function-like
+// aliases below; these are the types and the accessors.
+#define katherine_px_config                    katherine_tpx3_px_config
+#define katherine_px_config_t                  katherine_tpx3_px_config_t
+#define katherine_px_config_snprint(...)       katherine_tpx3_px_config_snprint(__VA_ARGS__)
+#define katherine_bmc                          katherine_tpx3_bmc
+#define katherine_bmc_t                        katherine_tpx3_bmc_t
+#define katherine_bmc_px_t                     katherine_tpx3_bmc_px_t
+#define katherine_bpc                          katherine_tpx3_bpc
+#define katherine_bpc_t                        katherine_tpx3_bpc_t
+#define katherine_bpc_px_t                     katherine_tpx3_bpc_px_t
+#define katherine_px_config_set_test_bit(...)  katherine_tpx3_px_config_set_test_bit(__VA_ARGS__)
+#define katherine_px_config_get_test_bit(...)  katherine_tpx3_px_config_get_test_bit(__VA_ARGS__)
+#define katherine_px_config_set_mask_bit(...)  katherine_tpx3_px_config_set_mask_bit(__VA_ARGS__)
+#define katherine_px_config_get_mask_bit(...)  katherine_tpx3_px_config_get_mask_bit(__VA_ARGS__)
+#define katherine_px_config_set_loc_thl(...)   katherine_tpx3_px_config_set_loc_thl(__VA_ARGS__)
+#define katherine_px_config_get_loc_thl(...)   katherine_tpx3_px_config_get_loc_thl(__VA_ARGS__)
 
 #define katherine_str_acquisition_mode(...)    katherine_str_px_mode(__VA_ARGS__)
 #define katherine_str_readout_type(...)        katherine_str_readout_mode(__VA_ARGS__)

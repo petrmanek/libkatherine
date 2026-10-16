@@ -196,7 +196,7 @@ test_px_config(void)
     KT_CHECK(!px.test_bit(c));
 
     // The full 4-bit range, this being the field whose nibble order was
-    // reversed until recently (see katherine_px_config_set_loc_thl()).
+    // reversed until recently (see katherine_tpx3_px_config_set_loc_thl()).
     for (std::uint8_t thl = 0; thl < 16; ++thl) {
         px.set_loc_thl(c, thl);
         KT_CHECK_EQ(px.loc_thl(c), thl);

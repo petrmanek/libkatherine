@@ -92,9 +92,9 @@ test_exact_length_loads(void)
 {
     KT_REQUIRE(write_file(MATRIX_SIZE, -1));
 
-    katherine_px_config_t px_config;
-    KT_CHECK_EQ(katherine_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_OK);
-    KT_CHECK_EQ(katherine_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_OK);
+    katherine_tpx3_px_config_t px_config;
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_OK);
 
     remove(PATH);
 }
@@ -104,9 +104,9 @@ test_short_file_fails(void)
 {
     KT_REQUIRE(write_file(MATRIX_SIZE - 1, -1));
 
-    katherine_px_config_t px_config;
-    KT_CHECK_EQ(katherine_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_IO);
-    KT_CHECK_EQ(katherine_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_IO);
+    katherine_tpx3_px_config_t px_config;
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_IO);
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_IO);
 
     remove(PATH);
 }
@@ -118,9 +118,9 @@ test_long_file_fails(void)
 {
     KT_REQUIRE(write_file(MATRIX_SIZE + 1, -1));
 
-    katherine_px_config_t px_config;
-    KT_CHECK_EQ(katherine_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_IO);
-    KT_CHECK_EQ(katherine_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_IO);
+    katherine_tpx3_px_config_t px_config;
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_IO);
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_IO);
 
     remove(PATH);
 }
@@ -130,9 +130,9 @@ test_empty_file_fails(void)
 {
     KT_REQUIRE(write_file(0, -1));
 
-    katherine_px_config_t px_config;
-    KT_CHECK_EQ(katherine_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_IO);
-    KT_CHECK_EQ(katherine_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_IO);
+    katherine_tpx3_px_config_t px_config;
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bmc_file(&px_config, PATH), KATHERINE_E_IO);
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bpc_file(&px_config, PATH), KATHERINE_E_IO);
 
     remove(PATH);
 }
@@ -142,9 +142,9 @@ test_missing_file_fails(void)
 {
     remove(PATH);
 
-    katherine_px_config_t px_config;
-    KT_CHECK_EQ(katherine_px_config_load_bmc_file(&px_config, "./no/such/directory/matrix.bmc"), KATHERINE_E_IO);
-    KT_CHECK_EQ(katherine_px_config_load_bpc_file(&px_config, "./no/such/directory/matrix.bpc"), KATHERINE_E_IO);
+    katherine_tpx3_px_config_t px_config;
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bmc_file(&px_config, "./no/such/directory/matrix.bmc"), KATHERINE_E_IO);
+    KT_CHECK_EQ(katherine_tpx3_px_config_load_bpc_file(&px_config, "./no/such/directory/matrix.bpc"), KATHERINE_E_IO);
 }
 
 // Guards against a loader that reports success without copying: an all-zero
@@ -153,11 +153,11 @@ test_missing_file_fails(void)
 static void
 test_success_copies_the_matrix(void)
 {
-    katherine_px_config_t px_config;
+    katherine_tpx3_px_config_t px_config;
 
     KT_REQUIRE(write_file(MATRIX_SIZE, -1));
     memset(&px_config, 0xFF, sizeof(px_config));
-    KT_REQUIRE(katherine_px_config_load_bmc_file(&px_config, PATH) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_tpx3_px_config_load_bmc_file(&px_config, PATH) == KATHERINE_E_OK);
 
     const unsigned char *bytes = (const unsigned char *) px_config.words;
     const size_t nbytes        = sizeof(px_config.words);
@@ -170,7 +170,7 @@ test_success_copies_the_matrix(void)
 
     KT_REQUIRE(write_file(MATRIX_SIZE, 0x5A));
     memset(&px_config, 0, sizeof(px_config));
-    KT_REQUIRE(katherine_px_config_load_bmc_file(&px_config, PATH) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_tpx3_px_config_load_bmc_file(&px_config, PATH) == KATHERINE_E_OK);
 
     int marker_seen = 0;
     for (size_t i = 0; i < nbytes; ++i) {

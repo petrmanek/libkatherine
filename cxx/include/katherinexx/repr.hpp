@@ -71,9 +71,9 @@ stream_snprint(std::ostream& os, const T *v, Fn snprint)
 // a katherine::-qualified overload would never be found, because ADL does
 // not see through an alias to a namespace that was never part of the
 // actual type. katherine::px_config likewise needs no overload of its
-// own: it publicly inherits katherine_px_config_t, and ADL for a derived
+// own: it publicly inherits katherine_tpx3_px_config_t, and ADL for a derived
 // class's argument also searches the associated namespaces of its base
-// classes, so the katherine_px_config_t overload below is found for it
+// classes, so the katherine_tpx3_px_config_t overload below is found for it
 // too.
 
 /** Renders a katherine_tpx3_coord_t (via katherine_tpx3_coord_snprint()). */
@@ -146,11 +146,11 @@ operator<<(std::ostream& os, const katherine_tpx3_dacs_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_tpx3_dacs_snprint);
 }
 
-/** Renders a katherine_px_config_t as its digest (via katherine_px_config_snprint()). */
+/** Renders a katherine_tpx3_px_config_t as its digest (via katherine_tpx3_px_config_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_px_config_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_px_config_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_px_config_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_px_config_snprint);
 }
 
 /** Renders a katherine_config_t (via katherine_config_snprint()). */
@@ -315,7 +315,7 @@ operator<<(std::ostream& os, const katherine::config& v)
  * Declared on the base rather than on the acquisition<AcqMode> template, so
  * one overload serves every mode: ADL for a derived class also searches the
  * associated namespaces of its bases, the same rule that lets
- * katherine::px_config reach the katherine_px_config_t overload above.
+ * katherine::px_config reach the katherine_tpx3_px_config_t overload above.
  */
 inline std::ostream&
 operator<<(std::ostream& os, const katherine::base_acquisition& v)

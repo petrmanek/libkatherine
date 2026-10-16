@@ -80,7 +80,7 @@ repr_cursor(char *buf, size_t cap, size_t off, char **dst, size_t *rem)
 // together; the array size (16384) is fixed and even, so every word
 // participates in exactly one pair.
 static uint64_t
-px_config_xor64(const katherine_px_config_t *v)
+px_config_xor64(const katherine_tpx3_px_config_t *v)
 {
     const size_t n = sizeof(v->words) / sizeof(v->words[0]);
     uint64_t acc   = 0;
@@ -465,7 +465,7 @@ katherine_gpio_monitor_snprint(char *buf, size_t cap, const katherine_gpio_monit
  * \copydetails katherine_tpx3_coord_snprint
  */
 int
-katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v)
+katherine_tpx3_px_config_snprint(char *buf, size_t cap, const katherine_tpx3_px_config_t *v)
 {
     size_t off     = 0;
     const size_t n = sizeof(v->words) / sizeof(v->words[0]);
@@ -480,7 +480,7 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     size_t off = 0;
 
     REPR_APPENDF(buf, cap, off, "config{pixel_config: ");
-    REPR_NEST(buf, cap, off, katherine_px_config_snprint, &v->pixel_config);
+    REPR_NEST(buf, cap, off, katherine_tpx3_px_config_snprint, &v->pixel_config);
     REPR_APPENDF(buf, cap, off, ", bias_id: %u, acq_time: %g, no_frames: %d, bias: %g, start_trigger: ", (unsigned) v->bias_id,
         v->acq_time, v->no_frames, (double) v->bias);
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->start_trigger);

@@ -9,7 +9,7 @@
 from libcpp cimport bool
 from libc.stdint cimport uint8_t, uint16_t, int32_t
 from cdevice cimport katherine_device_t
-from cpx_config cimport katherine_px_config_t
+from cpx_config cimport katherine_tpx3_px_config_t
 
 cdef extern from 'katherine/config.h':
     ctypedef enum katherine_tpx3_px_mode_t:
@@ -83,7 +83,7 @@ cdef extern from 'katherine/config.h':
         KATHERINE_TPX3_FREQ_160_MHZ
 
     ctypedef struct katherine_config_t:
-        katherine_px_config_t pixel_config
+        katherine_tpx3_px_config_t pixel_config
 
         unsigned char bias_id
 
@@ -123,7 +123,7 @@ cdef extern from 'katherine/config.h':
         KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
     int katherine_configure(katherine_device_t *device, const katherine_config_t *config)
-    int katherine_set_all_pixel_config(katherine_device_t *device, const katherine_px_config_t *px_config)
+    int katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config)
     int katherine_set_acq_time(katherine_device_t *device, double ns)
     int katherine_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
     int katherine_set_no_frames(katherine_device_t *device, int no_frames)

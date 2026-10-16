@@ -37,7 +37,7 @@ map_fopen_errno(int err)
 }
 
 // Fields of the per-pixel configuration byte. The packed matrix stores one
-// such byte per pixel in the BMC bit layout (see the katherine_bmc_px
+// such byte per pixel in the BMC bit layout (see the katherine_tpx3_bmc_px
 // struct at the head of px_config.h; the loaders below only permute the
 // local threshold bits of the BPC format).
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -80,7 +80,7 @@ reverse_nibble(uint8_t nibble)
 /**
  * Load pixel configuration from a BMC file (in BurdaMan format).
  *
- * The file must hold exactly sizeof(katherine_bmc_t) = 65536 bytes, one
+ * The file must hold exactly sizeof(katherine_tpx3_bmc_t) = 65536 bytes, one
  * configuration byte per pixel of the 256x256 matrix. Any other length fails
  * with KATHERINE_E_IO: a shorter file is a matrix exported for a smaller
  * sensor or a truncated copy, and a longer one belongs to another sensor or
@@ -103,18 +103,18 @@ reverse_nibble(uint8_t nibble)
  *   component the filesystem does not permit; see open(2).
  */
 katherine_error_t
-katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path)
+katherine_tpx3_px_config_load_bmc_file(katherine_tpx3_px_config_t *px_config, const char *file_path)
 {
     katherine_error_t res = 0;
 
-    const size_t expected_size = sizeof(katherine_bmc_t);
+    const size_t expected_size = sizeof(katherine_tpx3_bmc_t);
     FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
         res = map_fopen_errno(errno);
         goto err_fopen;
     }
 
-    katherine_bmc_t *buffer = (katherine_bmc_t *) malloc(expected_size);
+    katherine_tpx3_bmc_t *buffer = (katherine_tpx3_bmc_t *) malloc(expected_size);
     if (buffer == NULL) {
         res = KATHERINE_E_NOMEM;
         goto err_buffer;
@@ -135,7 +135,7 @@ katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *
         goto err_fgetc;
     }
 
-    res = katherine_px_config_load_bmc_data(px_config, buffer);
+    res = katherine_tpx3_px_config_load_bmc_data(px_config, buffer);
 
 err_fgetc:
 err_fread:
@@ -149,7 +149,7 @@ err_fopen:
 /**
  * Load pixel configuration from a BMC file contents (in BurdaMan format).
  *
- * The buffer must be a complete katherine_bmc_t: all 65536 of its bytes are
+ * The buffer must be a complete katherine_tpx3_bmc_t: all 65536 of its bytes are
  * read and transposed into the packed matrix. No length is passed, so there is
  * nothing to check, and every byte value is a legal configuration byte in the
  * BMC layout -- the conversion therefore has no failure path. Handing it a
@@ -161,7 +161,7 @@ err_fopen:
  * \retval KATHERINE_E_OK on success, which is the only outcome.
  */
 katherine_error_t
-katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc)
+katherine_tpx3_px_config_load_bmc_data(katherine_tpx3_px_config_t *px_config, const katherine_tpx3_bmc_t *bmc)
 {
     // Reset the pixel values.
     memset(&px_config->words, 0, 65536);
@@ -183,7 +183,7 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
 /**
  * Load pixel configuration from a BPC file (in Pixet format).
  *
- * The file must hold exactly sizeof(katherine_bpc_t) = 65536 bytes, one
+ * The file must hold exactly sizeof(katherine_tpx3_bpc_t) = 65536 bytes, one
  * configuration byte per pixel of the 256x256 matrix. Any other length fails
  * with KATHERINE_E_IO: a shorter file is a matrix exported for a smaller
  * sensor or a truncated copy, and a longer one belongs to another sensor or
@@ -206,18 +206,18 @@ katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const kather
  *   component the filesystem does not permit; see open(2).
  */
 katherine_error_t
-katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path)
+katherine_tpx3_px_config_load_bpc_file(katherine_tpx3_px_config_t *px_config, const char *file_path)
 {
     katherine_error_t res = 0;
 
-    const size_t expected_size = sizeof(katherine_bpc_t);
+    const size_t expected_size = sizeof(katherine_tpx3_bpc_t);
     FILE *file                 = fopen(file_path, "rb");
     if (file == NULL) {
         res = map_fopen_errno(errno);
         goto err_fopen;
     }
 
-    katherine_bpc_t *buffer = (katherine_bpc_t *) malloc(expected_size);
+    katherine_tpx3_bpc_t *buffer = (katherine_tpx3_bpc_t *) malloc(expected_size);
     if (buffer == NULL) {
         res = KATHERINE_E_NOMEM;
         goto err_buffer;
@@ -238,7 +238,7 @@ katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *
         goto err_fgetc;
     }
 
-    res = katherine_px_config_load_bpc_data(px_config, buffer);
+    res = katherine_tpx3_px_config_load_bpc_data(px_config, buffer);
 
 err_fgetc:
 err_fread:
@@ -252,7 +252,7 @@ err_fopen:
 /**
  * Load pixel configuration from a BPC file contents (in Pixet format).
  *
- * The buffer must be a complete katherine_bpc_t: all 65536 of its bytes are
+ * The buffer must be a complete katherine_tpx3_bpc_t: all 65536 of its bytes are
  * read, the threshold nibble of each is permuted into storage order (see
  * reverse_nibble()), and the result is transposed into the packed matrix. No
  * length is passed, so there is nothing to check, and every byte value maps to
@@ -265,7 +265,7 @@ err_fopen:
  * \retval KATHERINE_E_OK on success, which is the only outcome.
  */
 katherine_error_t
-katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc)
+katherine_tpx3_px_config_load_bpc_data(katherine_tpx3_px_config_t *px_config, const katherine_tpx3_bpc_t *bpc)
 {
     // Reset the pixel values.
     memset(&px_config->words, 0, 65536);
@@ -299,7 +299,7 @@ katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const kather
  * \return The byte, in the BMC bit layout.
  */
 static inline uint8_t
-_px_config_get_byte(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
+_px_config_get_byte(const katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     const int yy = 255 - coord.y;
     return (uint8_t) (px_config->words[(64 * coord.x) + (yy >> 2)] >> (8 * (3 - (yy % 4))));
@@ -312,7 +312,7 @@ _px_config_get_byte(const katherine_px_config_t *px_config, katherine_tpx3_coord
  * \param byte Replacement byte, in the BMC bit layout
  */
 static inline void
-_px_config_set_byte(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t byte)
+_px_config_set_byte(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t byte)
 {
     const int yy    = 255 - coord.y;
     const int shift = 8 * (3 - (yy % 4));
@@ -330,7 +330,7 @@ _px_config_set_byte(katherine_px_config_t *px_config, katherine_tpx3_coord_t coo
  * \param enabled New value of the test bit.
  */
 void
-katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool enabled)
+katherine_tpx3_px_config_set_test_bit(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord, bool enabled)
 {
     const uint8_t byte = _px_config_get_byte(px_config, coord);
     _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, test, enabled));
@@ -343,7 +343,7 @@ katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_tpx
  * \return Current value of the test bit.
  */
 bool
-katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
+katherine_tpx3_px_config_get_test_bit(const katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, test);
 }
@@ -363,7 +363,7 @@ katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katheri
  * \param masked New value of the mask bit.
  */
 void
-katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool masked)
+katherine_tpx3_px_config_set_mask_bit(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord, bool masked)
 {
     const uint8_t byte = _px_config_get_byte(px_config, coord);
     _px_config_set_byte(px_config, coord, (uint8_t) INSERT(byte, bmc_px, mask, masked));
@@ -376,7 +376,7 @@ katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_tpx
  * \return Current value of the mask bit.
  */
 bool
-katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
+katherine_tpx3_px_config_get_mask_bit(const katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     return EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, mask);
 }
@@ -395,7 +395,7 @@ katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katheri
  * \param loc_thl New threshold adjustment DAC value, 0 to 15.
  */
 void
-katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t loc_thl)
+katherine_tpx3_px_config_set_loc_thl(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t loc_thl)
 {
     assert(loc_thl <= 15);
 
@@ -407,14 +407,14 @@ katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_tpx3
  * Get the local threshold adjustment of a single pixel.
  *
  * Returns the chip's threshold DAC tuning value, reversed back out of the
- * storage order described on katherine_px_config_set_loc_thl().
+ * storage order described on katherine_tpx3_px_config_set_loc_thl().
  *
  * \param px_config Configuration matrix to inspect.
  * \param coord Pixel coordinates.
  * \return Current threshold adjustment DAC value, 0 to 15.
  */
 uint8_t
-katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
+katherine_tpx3_px_config_get_loc_thl(const katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord)
 {
     return reverse_nibble(EXTRACT(_px_config_get_byte(px_config, coord), bmc_px, loc_thl));
 }

@@ -100,7 +100,7 @@ public:
     const katherine_config_t *c_config() const { return &conf_; }
 
     // Note: katherine::px_config is a standard-layout type whose only
-    // subobject is the katherine_px_config_t stored in conf_, hence the
+    // subobject is the katherine_tpx3_px_config_t stored in conf_, hence the
     // downcasts below (see the static_assert in px_config.hpp).
     const katherine::px_config& pixel_config() const { return static_cast<const katherine::px_config&>(conf_.pixel_config); }
     katherine::px_config& pixel_config() { return static_cast<katherine::px_config&>(conf_.pixel_config); }

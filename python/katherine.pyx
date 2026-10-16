@@ -173,7 +173,7 @@ cdef class Device:
          check_return_code(res)
 
     def set_all_pixel_config(self, Tpx3PxConfig px_config):
-         res = cconfig.katherine_set_all_pixel_config(self._c_device, &px_config._c_px_config)
+         res = cconfig.katherine_tpx3_set_all_pixel_config(self._c_device, &px_config._c_px_config)
          check_return_code(res)
 
     def set_acq_time(self, double ns):
@@ -599,46 +599,46 @@ cdef class Tpx3Dacs:
 
 
 cdef class Tpx3PxConfig:
-    cdef cpx_config.katherine_px_config_t _c_px_config
+    cdef cpx_config.katherine_tpx3_px_config_t _c_px_config
 
     def __init__(self, cdata=None):
       if cdata is not None:
          self._c_px_config = cdata
 
     def __repr__(self):
-      return _snprint_repr(<snprint_fn_t> cpx_config.katherine_px_config_snprint, &self._c_px_config)
+      return _snprint_repr(<snprint_fn_t> cpx_config.katherine_tpx3_px_config_snprint, &self._c_px_config)
 
     @staticmethod
     def from_bmc(path):
-      cdef cpx_config.katherine_px_config_t config
-      res = cpx_config.katherine_px_config_load_bmc_file(&config, path.encode())
+      cdef cpx_config.katherine_tpx3_px_config_t config
+      res = cpx_config.katherine_tpx3_px_config_load_bmc_file(&config, path.encode())
       check_return_code(res)
       return Tpx3PxConfig(cdata=config)
 
     @staticmethod
     def from_bpc(path):
-      cdef cpx_config.katherine_px_config_t config
-      res = cpx_config.katherine_px_config_load_bpc_file(&config, path.encode())
+      cdef cpx_config.katherine_tpx3_px_config_t config
+      res = cpx_config.katherine_tpx3_px_config_load_bpc_file(&config, path.encode())
       check_return_code(res)
       return Tpx3PxConfig(cdata=config)
 
     @staticmethod
     def from_bmc_data(data):
       cdef const unsigned char[::1] view = data
-      if view.shape[0] != sizeof(cpx_config.katherine_bmc_t):
-         raise ValueError('BMC data must be exactly %d bytes long' % sizeof(cpx_config.katherine_bmc_t))
-      cdef cpx_config.katherine_px_config_t config
-      res = cpx_config.katherine_px_config_load_bmc_data(&config, <const cpx_config.katherine_bmc_t *> &view[0])
+      if view.shape[0] != sizeof(cpx_config.katherine_tpx3_bmc_t):
+         raise ValueError('BMC data must be exactly %d bytes long' % sizeof(cpx_config.katherine_tpx3_bmc_t))
+      cdef cpx_config.katherine_tpx3_px_config_t config
+      res = cpx_config.katherine_tpx3_px_config_load_bmc_data(&config, <const cpx_config.katherine_tpx3_bmc_t *> &view[0])
       check_return_code(res)
       return Tpx3PxConfig(cdata=config)
 
     @staticmethod
     def from_bpc_data(data):
       cdef const unsigned char[::1] view = data
-      if view.shape[0] != sizeof(cpx_config.katherine_bpc_t):
-         raise ValueError('BPC data must be exactly %d bytes long' % sizeof(cpx_config.katherine_bpc_t))
-      cdef cpx_config.katherine_px_config_t config
-      res = cpx_config.katherine_px_config_load_bpc_data(&config, <const cpx_config.katherine_bpc_t *> &view[0])
+      if view.shape[0] != sizeof(cpx_config.katherine_tpx3_bpc_t):
+         raise ValueError('BPC data must be exactly %d bytes long' % sizeof(cpx_config.katherine_tpx3_bpc_t))
+      cdef cpx_config.katherine_tpx3_px_config_t config
+      res = cpx_config.katherine_tpx3_px_config_load_bpc_data(&config, <const cpx_config.katherine_tpx3_bpc_t *> &view[0])
       check_return_code(res)
       return Tpx3PxConfig(cdata=config)
 
@@ -653,24 +653,24 @@ cdef class Tpx3PxConfig:
       return coord
 
     def set_test_bit(self, int x, int y, bool enabled):
-      cpx_config.katherine_px_config_set_test_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y), enabled)
+      cpx_config.katherine_tpx3_px_config_set_test_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y), enabled)
 
     def get_test_bit(self, int x, int y):
-      return cpx_config.katherine_px_config_get_test_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y))
+      return cpx_config.katherine_tpx3_px_config_get_test_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y))
 
     def set_mask_bit(self, int x, int y, bool masked):
-      cpx_config.katherine_px_config_set_mask_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y), masked)
+      cpx_config.katherine_tpx3_px_config_set_mask_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y), masked)
 
     def get_mask_bit(self, int x, int y):
-      return cpx_config.katherine_px_config_get_mask_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y))
+      return cpx_config.katherine_tpx3_px_config_get_mask_bit(&self._c_px_config, Tpx3PxConfig._coord(x, y))
 
     def set_loc_thl(self, int x, int y, uint8_t loc_thl):
       if loc_thl > 15:
          raise ValueError('local threshold adjustment must lie within 0 to 15')
-      cpx_config.katherine_px_config_set_loc_thl(&self._c_px_config, Tpx3PxConfig._coord(x, y), loc_thl)
+      cpx_config.katherine_tpx3_px_config_set_loc_thl(&self._c_px_config, Tpx3PxConfig._coord(x, y), loc_thl)
 
     def get_loc_thl(self, int x, int y):
-      return cpx_config.katherine_px_config_get_loc_thl(&self._c_px_config, Tpx3PxConfig._coord(x, y))
+      return cpx_config.katherine_tpx3_px_config_get_loc_thl(&self._c_px_config, Tpx3PxConfig._coord(x, y))
 
 @_unique
 class Polarity(_Enum):

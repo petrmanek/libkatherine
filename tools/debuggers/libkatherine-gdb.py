@@ -33,7 +33,7 @@
 # See `help set auto-load safe-path` in gdb for the full story. Absent that,
 # `source /path/to/libkatherine-gdb.py` still works at any time.
 #
-# katherine_px_config_t (embeds a 16384-word matrix) and katherine_config_t
+# katherine_tpx3_px_config_t (embeds a 16384-word matrix) and katherine_config_t
 # (embeds one) are themselves larger than gdb's default `max-value-size`
 # (65536 bytes): gdb refuses to fetch a value that big at all, for any
 # type, before any pretty-printer -- ours included -- ever sees it. Printing

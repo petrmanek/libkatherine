@@ -34,7 +34,7 @@ once with, e.g.:
 auto-load, `source /usr/lib/libkatherine.so.<version>-gdb.py` works in any
 session.
 
-Note that `katherine_config_t` and `katherine_px_config_t` embed a 64 KiB
+Note that `katherine_config_t` and `katherine_tpx3_px_config_t` embed a 64 KiB
 pixel matrix, which exceeds GDB's default `max-value-size` — GDB refuses to
 fetch values that large for any printer. `set max-value-size unlimited`
 first when printing those two.

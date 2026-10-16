@@ -11,28 +11,28 @@ from libc.stdint cimport uint8_t, uint32_t
 from cpx cimport katherine_tpx3_coord_t
 
 cdef extern from 'katherine/px_config.h':
-    ctypedef uint8_t katherine_bmc_px_t
+    ctypedef uint8_t katherine_tpx3_bmc_px_t
 
-    ctypedef struct katherine_bmc_t:
-        katherine_bmc_px_t px_config[65536]
+    ctypedef struct katherine_tpx3_bmc_t:
+        katherine_tpx3_bmc_px_t px_config[65536]
 
-    ctypedef struct katherine_px_config_t:
+    ctypedef struct katherine_tpx3_px_config_t:
         uint32_t words[16384]
 
-    int katherine_px_config_snprint(char *buf, size_t cap, const katherine_px_config_t *v)
+    int katherine_tpx3_px_config_snprint(char *buf, size_t cap, const katherine_tpx3_px_config_t *v)
 
-    ctypedef uint8_t katherine_bpc_px_t
+    ctypedef uint8_t katherine_tpx3_bpc_px_t
 
-    ctypedef struct katherine_bpc_t:
-        katherine_bpc_px_t px_config[65536]
+    ctypedef struct katherine_tpx3_bpc_t:
+        katherine_tpx3_bpc_px_t px_config[65536]
 
-    int katherine_px_config_load_bmc_file(katherine_px_config_t *px_config, const char *file_path)
-    int katherine_px_config_load_bmc_data(katherine_px_config_t *px_config, const katherine_bmc_t *bmc)
-    int katherine_px_config_load_bpc_file(katherine_px_config_t *px_config, const char *file_path)
-    int katherine_px_config_load_bpc_data(katherine_px_config_t *px_config, const katherine_bpc_t *bpc)
-    void katherine_px_config_set_test_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool enabled)
-    bool katherine_px_config_get_test_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
-    void katherine_px_config_set_mask_bit(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, bool masked)
-    bool katherine_px_config_get_mask_bit(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
-    void katherine_px_config_set_loc_thl(katherine_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t loc_thl)
-    uint8_t katherine_px_config_get_loc_thl(const katherine_px_config_t *px_config, katherine_tpx3_coord_t coord)
+    int katherine_tpx3_px_config_load_bmc_file(katherine_tpx3_px_config_t *px_config, const char *file_path)
+    int katherine_tpx3_px_config_load_bmc_data(katherine_tpx3_px_config_t *px_config, const katherine_tpx3_bmc_t *bmc)
+    int katherine_tpx3_px_config_load_bpc_file(katherine_tpx3_px_config_t *px_config, const char *file_path)
+    int katherine_tpx3_px_config_load_bpc_data(katherine_tpx3_px_config_t *px_config, const katherine_tpx3_bpc_t *bpc)
+    void katherine_tpx3_px_config_set_test_bit(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord, bool enabled)
+    bool katherine_tpx3_px_config_get_test_bit(const katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord)
+    void katherine_tpx3_px_config_set_mask_bit(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord, bool masked)
+    bool katherine_tpx3_px_config_get_mask_bit(const katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord)
+    void katherine_tpx3_px_config_set_loc_thl(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord, uint8_t loc_thl)
+    uint8_t katherine_tpx3_px_config_get_loc_thl(const katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_t coord)

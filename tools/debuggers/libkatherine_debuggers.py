@@ -27,7 +27,7 @@ TAGS = frozenset((
     'katherine_trigger',
     'katherine_test_pulse_config',
     'katherine_tpx3_dacs',
-    'katherine_px_config',
+    'katherine_tpx3_px_config',
     'katherine_config',
     'katherine_frame_info_time',
     'katherine_frame_info',

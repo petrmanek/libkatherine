@@ -270,7 +270,7 @@ local f_chip_id            = ProtoField.string("katherine.chip_id", "Decoded chi
 local f_digital_test_ok    = ProtoField.uint8("katherine.digital_test.result_byte", "Digital test result byte (64 = OK)", base.DEC)
 
 -- Bulk pixel-matrix upload on the control port, triggered by opcode 0x12
--- (katherine_set_all_pixel_config() in c/src/config.c streams the 64 KiB
+-- (katherine_tpx3_set_all_pixel_config() in c/src/config.c streams the 64 KiB
 -- configuration matrix as 64 raw 1024-byte writes, outside the normal
 -- 8-byte command framing). The same function's error-recovery path
 -- (recover_from_incomplete_set_all_pixel_config()) floods 3*64 further

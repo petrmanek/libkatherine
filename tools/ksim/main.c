@@ -84,7 +84,7 @@
    whole pixel-configuration chunk. */
 #define RECV_BUF_SIZE            2048
 
-/* Size of one pixel-configuration chunk, as sent by katherine_set_all_pixel_config(). */
+/* Size of one pixel-configuration chunk, as sent by katherine_tpx3_set_all_pixel_config(). */
 #define PX_CHUNK_SIZE            1024
 
 /* Length of a command datagram, the byte carrying its operation code (a

@@ -182,7 +182,7 @@ public:
     void
     set_all_pixel_config(const katherine::px_config& px_config)
     {
-        int res = katherine_set_all_pixel_config(&dev_, &px_config);
+        int res = katherine_tpx3_set_all_pixel_config(&dev_, &px_config);
 
         if (res != 0) {
             throw katherine::system_error{res};
