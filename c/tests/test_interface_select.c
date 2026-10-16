@@ -59,17 +59,31 @@
 static katherine_emu_t g_emu;
 static katherine_udp_t g_mock;
 
-// Answers commands out of the emulated readout until the device stops
-// asking. Unpinned, so it replies to whoever asked last, which is the
-// server behaviour a readout has.
+// Answers commands out of the emulated readout until the device stops asking.
+//
+// Replies go to a fixed address rather than to whoever asked last. The device
+// binds its control socket to the wildcard, so the source address its commands
+// carry is whatever the host picks for the route: 127.0.0.1 on Linux, and on
+// macOS 127.0.0.2 -- this mock's own address, since that is where the command
+// was addressed. Answering "whoever asked last" there means answering itself,
+// which it then reads as another command and answers again, with no idle
+// moment for the receive timeout to end the loop. Measured: the mock took
+// 52404 of its own datagrams in six seconds and the test never returned.
+//
+// Pinning the session instead would discard those same commands, for the same
+// reason: the address to answer and the address they arrive from differ.
 static void *
 mock_serve(void *arg)
 {
     (void) arg;
 
+    const struct sockaddr_in reply_to = g_mock.addr_remote;
+
     for (;;) {
         katherine_cmd_t cmd;
         if (katherine_udp_recv_exact(&g_mock, cmd.b, sizeof(cmd.b)) != 0) break;
+
+        g_mock.addr_remote = reply_to;
 
         if (katherine_emu_cmd_in(&g_emu, cmd.b, sizeof(cmd.b)) != 0) continue;
 
