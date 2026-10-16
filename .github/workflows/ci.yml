@@ -204,3 +204,59 @@ jobs:
       # a language dialect cannot change what those cover.
       - name: Test
         run: ctest --test-dir build --output-on-failure -L unit
+
+  # Address and thread sanitizers, one job each. Both in Debug, since a
+  # sanitizer's value is the report and Release's inlining costs the report
+  # its stack frames.
+  #
+  # Worth a leg of its own rather than a flag on the build job: a sanitized
+  # end-to-end run is several times slower than a plain one, and both
+  # sanitizers found real defects on their first run here -- one use of
+  # uninitialized memory in the decode path and one leak in the emulator
+  # daemon that deadlocked the serialized test lane.
+  #
+  # The two cannot share a build: address and thread sanitizers are mutually
+  # exclusive in both compilers.
+  sanitizers:
+    name: sanitizers (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: address
+            flags: -fsanitize=address,undefined -fno-omit-frame-pointer
+          - name: thread
+            flags: -fsanitize=thread -fno-omit-frame-pointer
+    env:
+      CC: clang
+      CXX: clang++
+      CFLAGS: ${{ matrix.flags }}
+      CXXFLAGS: ${{ matrix.flags }}
+      LDFLAGS: ${{ matrix.flags }}
+      # Only the undefined-behaviour sanitizer wants anything from the
+      # runner. c/tests/test_compat1.c sets allocator_may_return_null for its
+      # own ENOMEM case, through weak __asan_default_options() and
+      # __tsan_default_options() hooks that reach that one executable; no
+      # other test asks for a sanitizer option.
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Debug
+          -DKATHERINE_BUILD_CXX=ON
+          -DKATHERINE_BUILD_EXAMPLES=ON
+          -DKATHERINE_BUILD_PYTHON=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # The whole suite, end-to-end tests included: a sanitizer's findings
+      # are mostly in the paths that move data, and those only run there.
+      # The timeout is generous because every one of them is slower under
+      # instrumentation.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --timeout 600
