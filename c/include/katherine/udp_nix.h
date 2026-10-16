@@ -43,6 +43,10 @@ typedef struct katherine_udp {
     bool strict_ack;                  ///< True to require a command response to repeat the operation code of its request exactly; set through katherine_udp_set_strict_ack().
     uint64_t stray_command_responses; ///< Command response datagrams discarded because they belonged to no request in flight; see katherine_udp_set_strict_ack().
 
+    bool count_drops;           ///< True to ask the kernel how many datagrams it dropped for want of queue space; set through katherine_udp_set_drop_counting().
+    uint32_t last_drop_count;   ///< Internal: the kernel's own cumulative counter as of the last datagram, which wraps.
+    uint64_t dropped_datagrams; ///< Datagrams the kernel dropped for want of queue space; read through katherine_udp_get_dropped_datagrams().
+
     int last_os_error; ///< 0 unless the last transport operation failed with an OS-level error code; read through katherine_udp_last_os_error().
 } katherine_udp_t;
 

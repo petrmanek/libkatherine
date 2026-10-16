@@ -92,6 +92,12 @@ katherine_udp_set_rcvbuf(katherine_udp_t *u, uint32_t bytes);
 KATHERINE_EXPORTED katherine_error_t
 katherine_udp_rcvbuf(const katherine_udp_t *u, uint32_t *bytes);
 
+KATHERINE_EXPORTED katherine_error_t
+katherine_udp_set_drop_counting(katherine_udp_t *u, bool enabled);
+
+KATHERINE_EXPORTED uint64_t
+katherine_udp_get_dropped_datagrams(const katherine_udp_t *u);
+
 #ifdef __cplusplus
 }
 #endif

@@ -106,6 +106,67 @@ recv_failure(katherine_udp_t *u, int err)
 }
 
 /**
+ * Receives one datagram and, where the session is counting drops, reads the
+ * kernel's own drop counter out of the ancillary data that accompanies it.
+ *
+ * recvmsg() rather than recvfrom() only when asked: the control-message
+ * walk is per datagram, and the data path takes millions of them.
+ *
+ * The kernel's counter is cumulative over the socket's life and is 32 bits
+ * wide, so what is accumulated here is the difference between successive
+ * readings -- which survives the wrap, the difference being correct modulo
+ * 2^32 as long as fewer than that many drops fall between two datagrams.
+ *
+ * \param u UDP session to receive on
+ * \param data Buffer to receive into
+ * \param count Buffer size in bytes
+ * \param from Set to the sender's address
+ * \param flags recvfrom(2) flags
+ * \return What the underlying receive returned, unchanged.
+ */
+static ssize_t
+recv_one(katherine_udp_t *u, void *data, size_t count, struct sockaddr_in *from, int flags)
+{
+    if (!u->count_drops) {
+        socklen_t addr_len = sizeof(*from);
+        return recvfrom(u->sock, data, count, flags, (struct sockaddr *) from, &addr_len);
+    }
+
+#ifdef SO_RXQ_OVFL
+    struct iovec iov = {.iov_base = data, .iov_len = count};
+    union {
+        struct cmsghdr align;
+        char bytes[CMSG_SPACE(sizeof(uint32_t))];
+    } control;
+    struct msghdr msg = {
+        .msg_name       = from,
+        .msg_namelen    = sizeof(*from),
+        .msg_iov        = &iov,
+        .msg_iovlen     = 1,
+        .msg_control    = control.bytes,
+        .msg_controllen = sizeof(control.bytes),
+    };
+
+    ssize_t res = recvmsg(u->sock, &msg, flags);
+    if (res == -1) return res;
+
+    for (struct cmsghdr *c = CMSG_FIRSTHDR(&msg); c != NULL; c = CMSG_NXTHDR(&msg, c)) {
+        if (c->cmsg_level != SOL_SOCKET || c->cmsg_type != SO_RXQ_OVFL) continue;
+
+        uint32_t dropped;
+        memcpy(&dropped, CMSG_DATA(c), sizeof(dropped));
+        u->dropped_datagrams += (uint32_t) (dropped - u->last_drop_count);
+        u->last_drop_count = dropped;
+    }
+
+    return res;
+#else
+    socklen_t addr_len = sizeof(*from);
+    return recvfrom(u->sock, data, count, flags, (struct sockaddr *) from, &addr_len);
+#endif /* SO_RXQ_OVFL */
+}
+
+/**
  * Receives one datagram from the pinned remote of session u, discarding up to
  * KATHERINE_UDP_PIN_MAX_DISCARDS datagrams from other hosts on the way there.
  * Spending that budget is reported as KATHERINE_E_TIMEOUT, the very code
@@ -142,8 +203,7 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, int 
 {
     for (uint32_t discarded = 0; discarded < KATHERINE_UDP_PIN_MAX_DISCARDS; ++discarded) {
         struct sockaddr_in addr_from;
-        socklen_t addr_len = sizeof(addr_from);
-        ssize_t res        = recvfrom(u->sock, data, count, flags, (struct sockaddr *) &addr_from, &addr_len);
+        ssize_t res = recv_one(u, data, count, &addr_from, flags);
         if (res == -1) {
             return recv_failure(u, errno);
         }
@@ -192,8 +252,7 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, in
         return recv_pinned(u, data, count, received, flags);
     }
 
-    socklen_t addr_len = sizeof(u->addr_remote);
-    ssize_t res        = recvfrom(u->sock, data, count, flags, (struct sockaddr *) &u->addr_remote, &addr_len);
+    ssize_t res = recv_one(u, data, count, &u->addr_remote, flags);
     if (res == -1) {
         return recv_failure(u, errno);
     }
@@ -292,6 +351,9 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     u->remote_pinned           = false;
     u->strict_ack              = false;
     u->stray_command_responses = 0;
+    u->count_drops             = false;
+    u->last_drop_count         = 0;
+    u->dropped_datagrams       = 0;
     u->last_os_error           = 0;
 
     // Create socket.
@@ -848,6 +910,92 @@ katherine_udp_rcvbuf(const katherine_udp_t *u, uint32_t *bytes)
 err_getsockopt:
 err_bytes_null:
     return res;
+}
+
+/**
+ * Ask the kernel to report the datagrams it drops for want of queue space.
+ *
+ * Nothing in the protocol numbers datagrams, so a measurement stream that
+ * overruns its receive queue loses hits with no trace: the readout's own
+ * counters see nothing, the decoder sees a shorter stream, and the only
+ * symptom is a frame whose received pixel count falls short of the count the
+ * readout says it sent. This counter is the one place that loss is visible.
+ *
+ * Off by default, and the receive path pays nothing for it while it is: a
+ * counting session receives through recvmsg(2) and walks one control message
+ * per datagram, which the data path takes millions of.
+ *
+ * The kernel reports its count alongside a datagram it did deliver, so the
+ * count only advances while datagrams arrive: a session whose queue overran
+ * and then went quiet learns what it lost on its next successful receive,
+ * and never if there is none. Read it after a frame rather than expecting it
+ * to be current at the moment of the loss.
+ *
+ * \note Linux only. The option does not exist elsewhere, and where it does
+ *   not this call reports KATHERINE_E_UNSUPPORTED rather than pretending to
+ *   count.
+ *
+ * Either direction zeroes the count, so a caller reads what was dropped since
+ * it last asked rather than a running total it has already seen. What is not
+ * reset is the baseline the deltas are taken against: the kernel's counter
+ * runs whether or not the option is set, and clearing the baseline would make
+ * the next datagram report the session's whole history over again. Drops
+ * suffered while counting was off are therefore added to the first count
+ * after it is switched back on -- they did happen to this session.
+ *
+ * \param u Session to change.
+ * \param enabled True to start counting, false to stop and reset.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_UNSUPPORTED if the platform has no such option.
+ * \retval KATHERINE_E_INVAL if setsockopt(2) rejected the request; see
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if setsockopt(2) failed for any other reason; see
+ *   katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   which reach this list only through the shared error map; setsockopt(2)
+ *   documents neither.
+ * \note The indexer cannot follow a branch the preprocessor removed:
+ *   KATHERINE_E_UNSUPPORTED, which is what a platform without the option
+ *   answers.
+ */
+katherine_error_t
+katherine_udp_set_drop_counting(katherine_udp_t *u, bool enabled)
+{
+#ifdef SO_RXQ_OVFL
+    const int on = enabled ? 1 : 0;
+
+    if (setsockopt(u->sock, SOL_SOCKET, SO_RXQ_OVFL, &on, sizeof(on)) != 0) {
+        u->last_os_error = errno;
+        return katherine_udp_map_socket_error(errno, KATHERINE_E_IO);
+    }
+
+    u->count_drops       = enabled;
+    u->dropped_datagrams = 0;
+    return KATHERINE_E_OK;
+#else
+    (void) enabled;
+    u->count_drops       = false;
+    u->dropped_datagrams = 0;
+    return KATHERINE_E_UNSUPPORTED;
+#endif /* SO_RXQ_OVFL */
+}
+
+/**
+ * Datagrams the kernel has dropped on this session for want of queue space.
+ *
+ * Counts only what fell while katherine_udp_set_drop_counting() was on, and only
+ * what the kernel attributes to a full queue -- a datagram lost on the wire
+ * or dropped by a switch is nobody's to count.
+ *
+ * \param u Session to ask.
+ * \return The count, or zero on a session that was never counting.
+ */
+uint64_t
+katherine_udp_get_dropped_datagrams(const katherine_udp_t *u)
+{
+    return u->dropped_datagrams;
 }
 
 #endif /* KATHERINE_NIX */

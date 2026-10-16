@@ -939,4 +939,36 @@ err_bytes_null:
     return res;
 }
 
+/**
+ * Counting the datagrams the stack drops for want of queue space, which
+ * Windows does not expose per socket.
+ *
+ * \param u Session to change.
+ * \param enabled Disregarded here.
+ *
+ * \retval KATHERINE_E_UNSUPPORTED always. The Linux implementation reads the
+ *   count out of the ancillary data of each datagram, and winsock has no
+ *   equivalent -- its per-interface statistics are not per socket, and
+ *   attributing them to one session would be a guess.
+ */
+katherine_error_t
+katherine_udp_set_drop_counting(katherine_udp_t *u, bool enabled)
+{
+    (void) u;
+    (void) enabled;
+    return KATHERINE_E_UNSUPPORTED;
+}
+
+/**
+ * Datagrams the stack has dropped on this session for want of queue space.
+ * \param u Session to ask.
+ * \return Always zero here; see katherine_udp_set_drop_counting().
+ */
+uint64_t
+katherine_udp_get_dropped_datagrams(const katherine_udp_t *u)
+{
+    (void) u;
+    return 0;
+}
+
 #endif /* KATHERINE_WIN */

@@ -44,6 +44,11 @@
 #define PORT_A             (KPORTS_UDP_RCVBUF + 0)
 #define PORT_B             (KPORTS_UDP_RCVBUF + 1)
 
+// A third pair, for the flood that provokes a drop: the pair above is used by
+// cases that must not have thousands of datagrams queued behind them.
+#define PORT_DROP_RECEIVER (KPORTS_UDP_RCVBUF + 2)
+#define PORT_DROP_SENDER   (KPORTS_UDP_RCVBUF + 3)
+
 #define HOST_LOCAL         "127.0.0.1"
 
 // The largest datagram a Gen2 readout was measured sending, on 2026-09-17.
@@ -179,6 +184,109 @@ test_a_request_beyond_the_option_is_capped(void)
 
 // ------------------------------------------------------------------
 
+// ------------------------------------------------------------------
+// The kernel's own count of datagrams it dropped for want of queue space --
+// the one place a measurement stream's silent loss becomes visible, nothing
+// in the protocol numbering datagrams.
+//
+// Provoked rather than waited for: a socket asked for the smallest queue the
+// host will grant, then flooded with more datagrams than fit before any is
+// read. Whether the host drops on that particular flood is its own policy, so
+// a run that loses nothing is reported and skipped rather than failed; what
+// is asserted unconditionally is that a session not counting reports zero and
+// that the option is accepted.
+
+#define FLOOD_DATAGRAMS 4096
+#define FLOOD_PAYLOAD   1400
+
+static void
+test_the_kernel_reports_the_datagrams_it_dropped(void)
+{
+    katherine_udp_t receiver;
+    katherine_udp_t sender;
+    static unsigned char payload[FLOOD_PAYLOAD];
+
+    KT_REQUIRE(katherine_udp_init_bound(&receiver, "127.0.0.1", PORT_DROP_RECEIVER, "127.0.0.1",
+                   PORT_DROP_SENDER, 100)
+        == 0);
+
+    // Zero asks for the OS minimum, which is the shallowest queue a host will
+    // grant -- and the point here is to overrun it.
+    KT_CHECK_EQ(katherine_udp_set_rcvbuf(&receiver, 0), 0);
+
+    // Not counting yet, so nothing is claimed.
+    KT_CHECK_EQ(katherine_udp_get_dropped_datagrams(&receiver), 0);
+
+    const katherine_error_t res = katherine_udp_set_drop_counting(&receiver, true);
+    if (res == KATHERINE_E_UNSUPPORTED) {
+        printf("# SKIP this platform has no per-socket drop counter\n");
+        katherine_udp_fini(&receiver);
+        return;
+    }
+    KT_CHECK_EQ(res, 0);
+
+    KT_REQUIRE(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_DROP_SENDER, "127.0.0.1",
+                   PORT_DROP_RECEIVER, 100)
+        == 0);
+
+    for (unsigned i = 0; i < FLOOD_DATAGRAMS; ++i) {
+        if (katherine_udp_send_exact(&sender, payload, sizeof(payload)) != 0) break;
+    }
+
+    // Drain what survived, then send one more and receive that too. The
+    // kernel reports its count alongside a delivered datagram, so a flood
+    // that overruns the queue and stops has no later delivery to carry the
+    // count of what it lost -- the extra datagram is what fetches it.
+    unsigned received = 0;
+    for (;;) {
+        unsigned char buf[FLOOD_PAYLOAD];
+        size_t count = sizeof(buf);
+
+        if (katherine_udp_recv_nowait(&receiver, buf, &count) != 0) break;
+        ++received;
+    }
+
+    if (katherine_udp_send_exact(&sender, payload, sizeof(payload)) == 0) {
+        unsigned char buf[FLOOD_PAYLOAD];
+        size_t count = sizeof(buf);
+
+        if (katherine_udp_recv(&receiver, buf, &count) == 0) ++received;
+    }
+
+    const uint64_t dropped = katherine_udp_get_dropped_datagrams(&receiver);
+    printf("# flood: %u sent, %u received, %llu reported dropped\n", FLOOD_DATAGRAMS, received,
+        (unsigned long long) dropped);
+
+    if (dropped == 0) {
+        printf("# SKIP this host dropped nothing on a %u-datagram flood\n", FLOOD_DATAGRAMS);
+    } else {
+        // Whatever was dropped was not received, and the two together cannot
+        // exceed what was sent -- the flood plus the one datagram that
+        // fetched the count.
+        KT_CHECK(received + dropped <= FLOOD_DATAGRAMS + 1);
+        KT_CHECK(received < FLOOD_DATAGRAMS);
+    }
+
+    // Switching it off clears what was counted.
+    KT_CHECK_EQ(katherine_udp_set_drop_counting(&receiver, false), 0);
+    KT_CHECK_EQ(katherine_udp_get_dropped_datagrams(&receiver), 0);
+
+    // Switching it on again also starts from zero, and the baseline the
+    // deltas are taken against survives -- so a quiet period reports nothing
+    // rather than the whole flood a second time.
+    KT_CHECK_EQ(katherine_udp_set_drop_counting(&receiver, true), 0);
+    if (katherine_udp_send_exact(&sender, payload, sizeof(payload)) == 0) {
+        unsigned char buf[FLOOD_PAYLOAD];
+        size_t count = sizeof(buf);
+
+        (void) katherine_udp_recv(&receiver, buf, &count);
+    }
+    KT_CHECK_EQ(katherine_udp_get_dropped_datagrams(&receiver), 0);
+
+    katherine_udp_fini(&sender);
+    katherine_udp_fini(&receiver);
+}
+
 int
 main(void)
 {
@@ -188,5 +296,6 @@ main(void)
     KT_RUN(test_asking_larger_never_grants_less);
     KT_RUN(test_a_request_beyond_the_option_is_capped);
 
+    KT_RUN(test_the_kernel_reports_the_datagrams_it_dropped);
     return kt_summary();
 }
