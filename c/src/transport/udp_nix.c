@@ -408,10 +408,31 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
 
     {
         // Increase receive buffer size because the default one is too small to handle bursts of hits.
-        const int bytes = KATHERINE_UDP_RCVBUF_DEFAULT;
-        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, &bytes, sizeof(bytes)) == -1) {
+        //
+        // Halving on refusal rather than failing the session: Linux clamps a
+        // request above its rmem_max and reports success, while macOS refuses
+        // one its kern.ipc.maxsockbuf cannot cover once mbuf overhead counts
+        // against it -- and the stock ceiling there is the very size asked for,
+        // so every session on such a host failed to open at all. A session that
+        // cannot get even the smallest of these still fails, since a host that
+        // constrained cannot hold a burst of hits whatever it is told.
+        static const int wanted[] = {
+            KATHERINE_UDP_RCVBUF_DEFAULT,
+            KATHERINE_UDP_RCVBUF_DEFAULT / 2,
+            KATHERINE_UDP_RCVBUF_DEFAULT / 4,
+            KATHERINE_UDP_RCVBUF_DEFAULT / 8,
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(wanted) / sizeof(*wanted); ++i) {
+            if (setsockopt(u->sock, SOL_SOCKET, SO_RCVBUF, &wanted[i], sizeof(wanted[i])) == 0) {
+                break;
+            }
             u->last_os_error = errno;
-            res              = katherine_udp_map_socket_error(errno, KATHERINE_E_IO);
+        }
+
+        if (i == sizeof(wanted) / sizeof(*wanted)) {
+            res = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
             goto err_rcvbuf;
         }
     }
@@ -808,8 +829,10 @@ katherine_udp_last_os_error(const katherine_udp_t *u)
  * Choose how much the OS queues for a session before it discards a datagram
  * that arrived and has not been read yet.
  *
- * Sessions open with KATHERINE_UDP_RCVBUF_DEFAULT, which that macro justifies;
- * this is for a caller who knows their data rate, or their stalls, better.
+ * Sessions open with as much of KATHERINE_UDP_RCVBUF_DEFAULT as the host
+ * grants; this is for a caller who knows their data rate, or their stalls,
+ * better. Unlike opening a session, this reports a refusal rather than asking
+ * for less: a caller naming a size is answered about that size.
  * Raising it after an acquisition has begun is allowed and takes effect for
  * datagrams not yet queued, but the datagrams already lost cannot be asked for
  * again, so a caller sizing for a known burst should do it beforehand.

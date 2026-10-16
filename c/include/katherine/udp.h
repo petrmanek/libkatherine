@@ -36,8 +36,10 @@
 /// condition is reported.
 #define KATHERINE_UDP_PIN_MAX_DISCARDS 32
 
-/// Initial size of a UDP receive buffer, as requested from the OS when the
-/// socket is first instantiated. The OS default is insufficiently small.
+/// Largest UDP receive buffer a session asks the OS for when it opens, the OS
+/// default being insufficiently small. A host that refuses it is asked for
+/// successively smaller buffers, so a session may hold less than this; what it
+/// actually holds is read through katherine_udp_rcvbuf().
 #define KATHERINE_UDP_RCVBUF_DEFAULT   4194304
 
 #ifdef __cplusplus
