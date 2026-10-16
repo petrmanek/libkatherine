@@ -58,7 +58,7 @@ katherine_toa_freq_in_range(katherine_tpx3_freq_t freq)
  * resolution of a timestamp, and to divide a coarse tick by a phase count.
  *
  * \see katherine_tpx3_toa_coarse_tick_to_fine_shift
- * \see katherine_actual_phases
+ * \see katherine_tpx3_actual_phases
  *
  * \param freq Pixel-clock frequency selector.
  * \return Fine ticks per coarse tick, or 0 if freq is out of range.

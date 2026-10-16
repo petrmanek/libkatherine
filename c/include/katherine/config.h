@@ -208,7 +208,7 @@ katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac
  * and make the ASIC more stable. Any value other than
  * KATHERINE_TPX3_PHASE_1, however, requires a ToA correction (either by
  * software or readout, if supported). This setting is a request only:
- * katherine_actual_phases() gives the phases actually generated.
+ * katherine_tpx3_actual_phases() gives the phases actually generated.
  */
 typedef enum katherine_tpx3_phase {
     KATHERINE_TPX3_PHASE_1  = 0, ///< All clocks measure with the same phase, ToA phase correction is not required.
@@ -221,7 +221,7 @@ typedef enum katherine_tpx3_phase {
 
 /**
  * Frequency of the main Timepix3 clock (for ToT and ToA, but not fToA).
- * Whether fast-VCO (for fToA) may be enabled is given by katherine_freq_is_fast_vco_supported().
+ * Whether fast-VCO (for fToA) may be enabled is given by katherine_tpx3_freq_is_fast_vco_supported().
  */
 typedef enum katherine_tpx3_freq {
     KATHERINE_TPX3_FREQ_20_MHZ  = 0, ///< f =  20 MHz. Undocumented by the readout manual; corroborated by other client implementations.
@@ -234,13 +234,13 @@ KATHERINE_EXPORTED const char *
 katherine_str_phase(katherine_tpx3_phase_t phase);
 
 KATHERINE_EXPORTED uint8_t
-katherine_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase);
+katherine_tpx3_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase);
 
 KATHERINE_EXPORTED const char *
 katherine_str_freq(katherine_tpx3_freq_t freq);
 
 KATHERINE_EXPORTED bool
-katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq);
+katherine_tpx3_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq);
 
 
 /**

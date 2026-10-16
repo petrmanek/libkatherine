@@ -1351,7 +1351,7 @@ static const uint8_t KATHERINE_ACTUAL_PHASES[4][5] = {
  * \return Phases actually generated, or 0 if either argument is out of range.
  */
 uint8_t
-katherine_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase)
+katherine_tpx3_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase)
 {
     // Signed comparison on purpose: both parameters are enumerations, and a
     // caller passing a negative value would otherwise index far outside the
@@ -1388,7 +1388,7 @@ katherine_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase
  * \return true if fast time stamping is coherent at this frequency.
  */
 bool
-katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
+katherine_tpx3_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
 {
     // Table 17 answers "Fast Time Stamping" Yes for the Fin/8 divider alone,
     // in both DualEdgeClock rows.

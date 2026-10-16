@@ -754,7 +754,7 @@ test_faux_echo_rejected(void)
 // to match.
 static void
 check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool request,
-    katherine_phase_correction_t expect)
+    katherine_tpx3_phase_correction_t expect)
 {
     katherine_acquisition_t acq;
     acq_probe_t probe;
@@ -780,7 +780,7 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
         == 0);
 
     KT_CHECK_EQ(acq.phase_correction, expect);
-    KT_CHECK_EQ(acq.phase_count, katherine_actual_phases(freq, phase));
+    KT_CHECK_EQ(acq.phase_count, katherine_tpx3_actual_phases(freq, phase));
 
     // The table is the mechanism, so it must agree with the outcome: filled
     // only for SOFTWARE, zero everywhere else -- which is what lets the decoder
@@ -792,14 +792,14 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
     // Counting nonzero entries instead would accept a table that paired the
     // wrong columns, or used the wrong step, or repeated with the wrong
     // period.
-    const uint8_t n     = katherine_actual_phases(freq, phase);
+    const uint8_t n     = katherine_tpx3_actual_phases(freq, phase);
     const unsigned fine = katherine_tpx3_toa_coarse_tick_to_fine_ticks(freq);
     unsigned mismatched = 0, nonzero = 0;
 
     for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
         const uint8_t got = acq.phase_offsets[x];
         uint8_t want      = 0;
-        if (expect == KATHERINE_PHASE_CORRECTION_SOFTWARE && n > 1) {
+        if (expect == KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE && n > 1) {
             want = (uint8_t) (((x / 2u) % n) * (fine / n));
         }
         if (got != want) ++mismatched;
@@ -807,7 +807,7 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
     }
     KT_CHECK_EQ(mismatched, 0u);
 
-    if (expect == KATHERINE_PHASE_CORRECTION_SOFTWARE) {
+    if (expect == KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE) {
         // And it must not be uniformly zero, or the comparison above would
         // hold vacuously for a table that was never filled.
         KT_CHECK(nonzero > 0);
@@ -823,21 +823,21 @@ static void
 test_phase_request_resolution(void)
 {
     // Not asked for: nothing happens, however many phases there are.
-    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, false, KATHERINE_PHASE_CORRECTION_NONE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, false, KATHERINE_TPX3_PHASE_CORRECTION_NONE);
 
     // Asked for, and there is something to correct.
-    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
-    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_2, true, KATHERINE_PHASE_CORRECTION_SOFTWARE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true, KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_2, true, KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE);
 
     // Asked for, but the configuration yields a single phase, so there is
     // genuinely nothing to correct. Reported as NONE rather than as SOFTWARE
     // over a table of zeroes: the caller is told, not reassured.
-    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_1, true, KATHERINE_PHASE_CORRECTION_NONE);
+    check_resolution(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_1, true, KATHERINE_TPX3_PHASE_CORRECTION_NONE);
 
     // And where the divider clamps the phase count to one, likewise -- the
     // enumerator asked for more than the clock grants.
-    KT_REQUIRE(katherine_actual_phases(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2) == 1);
-    check_resolution(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2, true, KATHERINE_PHASE_CORRECTION_NONE);
+    KT_REQUIRE(katherine_tpx3_actual_phases(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2) == 1);
+    check_resolution(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2, true, KATHERINE_TPX3_PHASE_CORRECTION_NONE);
 
     // HARDWARE is unreachable until a readout reports the capability, so it is
     // not exercised here; katherine_device_can_correct_timestamp_phase()

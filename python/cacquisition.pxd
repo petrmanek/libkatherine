@@ -42,12 +42,12 @@ cdef extern from 'katherine/acquisition.h':
         void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *)
         void (*data_received)(void *, const char *, size_t)
 
-    ctypedef enum katherine_phase_correction_t:
-        KATHERINE_PHASE_CORRECTION_NONE
-        KATHERINE_PHASE_CORRECTION_SOFTWARE
-        KATHERINE_PHASE_CORRECTION_HARDWARE
+    ctypedef enum katherine_tpx3_phase_correction_t:
+        KATHERINE_TPX3_PHASE_CORRECTION_NONE
+        KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE
+        KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE
 
-    const char *katherine_str_phase_correction(katherine_phase_correction_t v)
+    const char *katherine_str_phase_correction(katherine_tpx3_phase_correction_t v)
 
     ctypedef struct katherine_acquisition_t:
         katherine_device_t *device
@@ -83,7 +83,7 @@ cdef extern from 'katherine/acquisition.h':
 
         uint64_t last_toa_offset
 
-        katherine_phase_correction_t phase_correction
+        katherine_tpx3_phase_correction_t phase_correction
         uint8_t phase_count
 
         bool frame_active

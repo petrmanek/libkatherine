@@ -46,7 +46,7 @@
 static uint8_t
 expected_offset(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, uint8_t x)
 {
-    const uint8_t n = katherine_actual_phases(freq, phase);
+    const uint8_t n = katherine_tpx3_actual_phases(freq, phase);
     if (n <= 1) return 0;
 
     const unsigned coarse = katherine_tpx3_toa_coarse_tick_to_fine_ticks(freq);
@@ -62,9 +62,9 @@ fixture(katherine_acquisition_t *acq, katherine_tpx3_freq_t freq, katherine_tpx3
 {
     memset(acq, 0, sizeof(*acq));
     acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(freq);
-    acq->phase_count                   = katherine_actual_phases(freq, phase);
+    acq->phase_count                   = katherine_tpx3_actual_phases(freq, phase);
     acq->last_toa_offset               = katherine_tpx3_toa_epoch_bias(acq->toa_coarse_tick_to_fine_shift);
-    acq->phase_correction              = correct ? KATHERINE_PHASE_CORRECTION_SOFTWARE : KATHERINE_PHASE_CORRECTION_NONE;
+    acq->phase_correction              = correct ? KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE : KATHERINE_TPX3_PHASE_CORRECTION_NONE;
 
     if (correct) {
         for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
@@ -89,7 +89,7 @@ test_offsets_are_whole_fine_ticks(void)
 
     for (size_t f = 0; f < 4; ++f) {
         for (size_t p = 0; p < 5; ++p) {
-            const uint8_t n       = katherine_actual_phases(FREQS[f], PHASES[p]);
+            const uint8_t n       = katherine_tpx3_actual_phases(FREQS[f], PHASES[p]);
             const unsigned coarse = katherine_tpx3_toa_coarse_tick_to_fine_ticks(FREQS[f]);
 
             KT_REQUIRE(n >= 1);

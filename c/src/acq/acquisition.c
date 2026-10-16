@@ -282,7 +282,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // accessor is readable on an initialized acquisition, and a stray
     // HARDWARE value there would shift by an indeterminate amount. begin()
     // resolves these properly; this only makes the in-between state honest.
-    acq->phase_correction              = KATHERINE_PHASE_CORRECTION_NONE;
+    acq->phase_correction              = KATHERINE_TPX3_PHASE_CORRECTION_NONE;
     acq->phase_count                   = 0;
     acq->toa_coarse_tick_to_fine_shift = 0;
     memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
@@ -590,7 +590,7 @@ DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_UNSHIFTED, event_count_itot)
  * the step is a whole number for every frequency and phase count, because a
  * coarse tick is a power-of-two multiple of the fine tick and the clamped
  * phase count divides it -- but only the CLAMPED count, from
- * katherine_actual_phases(), divides it. The enumerator's own name does not:
+ * katherine_tpx3_actual_phases(), divides it. The enumerator's own name does not:
  * KATHERINE_TPX3_PHASE_16 at KATHERINE_TPX3_FREQ_160_MHZ would give a quarter
  * of a fine tick.
  *
@@ -629,20 +629,20 @@ katherine_tpx3_toa_phase_offset(uint8_t coarse_tick_to_fine_shift, uint8_t phase
  * \param acq Acquisition, where phase-correction may be applied.
  * \param config Readout configuration, which determines phase-correction behavior.
  */
-static katherine_phase_correction_t
+static katherine_tpx3_phase_correction_t
 resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_config_t *config)
 {
     // Not applied if not requested, or all columns use the same phase.
-    if (!config->correct_phase) return KATHERINE_PHASE_CORRECTION_NONE;
-    if (acq->phase_count <= 1) return KATHERINE_PHASE_CORRECTION_NONE;
+    if (!config->correct_phase) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
+    if (acq->phase_count <= 1) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
 
     // Offloaded to hardware if supported.
     if (katherine_device_can_correct_timestamp_phase(acq->device))
-        return KATHERINE_PHASE_CORRECTION_HARDWARE;
+        return KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE;
 
     // Otherwise: there are at least two phases, correction was requested, and hardware does not support offloading
     //            --> we got to do it in software.
-    return KATHERINE_PHASE_CORRECTION_SOFTWARE;
+    return KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE;
 }
 
 /**
@@ -672,7 +672,7 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
     // readout did it instead, the offset is real but absent from the table, so
     // it is computed -- this is a cold path and the arithmetic is the same
     // closed form the table was built from.
-    if (acq->phase_correction == KATHERINE_PHASE_CORRECTION_HARDWARE) {
+    if (acq->phase_correction == KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE) {
         return katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, coord.x);
     }
 
@@ -835,16 +835,16 @@ err_unsupported:
  * fast_vco_enabled is refused with KATHERINE_E_INVAL at any config->freq
  * where fine time stamping is not coherent, since the resulting stream would
  * carry a fine field that cannot be subtracted from its coarse one.
- * katherine_freq_is_fast_vco_supported reports which frequencies qualify, and
+ * katherine_tpx3_freq_is_fast_vco_supported reports which frequencies qualify, and
  * answers without starting an acquisition. Callers deriving times from the
- * phase count want katherine_actual_phases for a related reason -- the phase
+ * phase count want katherine_tpx3_actual_phases for a related reason -- the phase
  * enumerators name what is asked for, not what the divider grants.
  *
  * Both refusals here, this one and the data-driven frame count, precede every
  * socket, so a failed begin() has sent nothing and left the device idle.
  *
- * \see katherine_freq_is_fast_vco_supported
- * \see katherine_actual_phases
+ * \see katherine_tpx3_freq_is_fast_vco_supported
+ * \see katherine_tpx3_actual_phases
  *
  * \param acq Acquisition
  * \param config Configuration
@@ -912,7 +912,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     // owns the criterion. Refused here rather than passed to the sensor,
     // which would answer with a stream whose fine field cannot be subtracted
     // from its coarse one.
-    if (fast_vco_enabled && !katherine_freq_is_fast_vco_supported(config->freq)) {
+    if (fast_vco_enabled && !katherine_tpx3_freq_is_fast_vco_supported(config->freq)) {
         res = KATHERINE_E_INVAL;
         goto err;
     }
@@ -938,13 +938,13 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->pixel_buffer_max_valid = 0;
 
     acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(config->freq);
-    acq->phase_count                   = katherine_actual_phases(config->freq, config->phase);
+    acq->phase_count                   = katherine_tpx3_actual_phases(config->freq, config->phase);
     acq->phase_correction              = resolve_phase_correction(acq, config);
 
     // Only SOFTWARE puts anything in the table. Every other outcome leaves it
     // zeroed, which is what lets the decoder add unconditionally.
     memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
-    if (acq->phase_correction == KATHERINE_PHASE_CORRECTION_SOFTWARE) {
+    if (acq->phase_correction == KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE) {
         for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
             acq->phase_offsets[x] = katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, (uint8_t) x);
         }

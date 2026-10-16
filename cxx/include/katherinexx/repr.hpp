@@ -275,7 +275,7 @@ operator<<(std::ostream& os, acq_state v)
 inline std::ostream&
 operator<<(std::ostream& os, phase_correction v)
 {
-    return os << katherine_str_phase_correction((katherine_phase_correction_t) v);
+    return os << katherine_str_phase_correction((katherine_tpx3_phase_correction_t) v);
 }
 
 }

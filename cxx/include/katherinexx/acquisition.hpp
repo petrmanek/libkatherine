@@ -53,9 +53,9 @@ enum class acq_state {
  * see katherine::base_acquisition::phase_correction().
  */
 enum class phase_correction {
-    none     = KATHERINE_PHASE_CORRECTION_NONE,
-    software = KATHERINE_PHASE_CORRECTION_SOFTWARE,
-    hardware = KATHERINE_PHASE_CORRECTION_HARDWARE
+    none     = KATHERINE_TPX3_PHASE_CORRECTION_NONE,
+    software = KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE,
+    hardware = KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE
 };
 
 // px_mode itself now lives in config.hpp (see the comment there); this

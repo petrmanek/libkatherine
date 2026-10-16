@@ -116,7 +116,7 @@ test_failed_begin_leaves_the_device_idle(void)
 // has no meaning. Reachable without a readout for the same reason as the checks
 // above: the guard precedes every socket.
 //
-// The expectation is derived from katherine_freq_is_fast_vco_supported rather
+// The expectation is derived from katherine_tpx3_freq_is_fast_vco_supported rather
 // than from a list of frequencies written out here, so this keeps testing that
 // the guard agrees with the predicate instead of testing a frozen copy of the
 // predicate's current answer.
@@ -134,7 +134,7 @@ test_fast_vco_refused_where_incoherent(void)
         // Coherent frequencies are skipped rather than asserted: with the
         // guard passed, begin() would go on to sockets a zeroed device does
         // not have.
-        if (katherine_freq_is_fast_vco_supported(all[i])) continue;
+        if (katherine_tpx3_freq_is_fast_vco_supported(all[i])) continue;
 
         memset(&device, 0, sizeof(device));
         memset(&acq, 0, sizeof(acq));

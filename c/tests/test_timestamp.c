@@ -133,7 +133,7 @@ test_recovers_coarse_at_every_divider(void)
 }
 
 // With a fine term, recovery is exact only where a coarse tick holds the whole
-// 16-tick field. That is the same condition katherine_freq_is_fast_vco_supported()
+// 16-tick field. That is the same condition katherine_tpx3_freq_is_fast_vco_supported()
 // reports, and katherine_acquisition_begin() refuses to produce a fine term
 // anywhere else -- so the excluded dividers are unreachable rather than merely
 // untested. Asserted here so the boundary is recorded, not assumed.

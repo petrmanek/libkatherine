@@ -135,14 +135,14 @@ typedef enum katherine_acquisition_state {
  * and only the second leaves an offset that has to be undone to recover the
  * sensor's own counters.
  */
-typedef enum katherine_phase_correction {
-    KATHERINE_PHASE_CORRECTION_NONE     = 0, ///< Not requested, or nothing to correct.
-    KATHERINE_PHASE_CORRECTION_SOFTWARE = 1, ///< Applied by the decoder.
-    KATHERINE_PHASE_CORRECTION_HARDWARE = 2, ///< Offloaded to the readout.
-} katherine_phase_correction_t;
+typedef enum katherine_tpx3_phase_correction {
+    KATHERINE_TPX3_PHASE_CORRECTION_NONE     = 0, ///< Not requested, or nothing to correct.
+    KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE = 1, ///< Applied by the decoder.
+    KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE = 2, ///< Offloaded to the readout.
+} katherine_tpx3_phase_correction_t;
 
 KATHERINE_EXPORTED const char *
-katherine_str_phase_correction(katherine_phase_correction_t v);
+katherine_str_phase_correction(katherine_tpx3_phase_correction_t v);
 
 /**
  * One acquisition: the device it runs on, what was asked of it, the buffers it
@@ -233,7 +233,7 @@ typedef struct katherine_acquisition {
     uint8_t toa_coarse_tick_to_fine_shift;
 
     /** What the phase request resolved to, decided by katherine_acquisition_begin(). */
-    katherine_phase_correction_t phase_correction;
+    katherine_tpx3_phase_correction_t phase_correction;
 
     /**
      * Pixel-clock phases this configuration actually yields, which the clock

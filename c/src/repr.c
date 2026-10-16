@@ -193,13 +193,13 @@ katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_dev
  * \return Static string, "(unknown)" for a value outside the enumeration.
  */
 const char *
-katherine_str_phase_correction(katherine_phase_correction_t v)
+katherine_str_phase_correction(katherine_tpx3_phase_correction_t v)
 {
     switch (v) {
-    case KATHERINE_PHASE_CORRECTION_NONE:     return "none";
-    case KATHERINE_PHASE_CORRECTION_SOFTWARE: return "software";
-    case KATHERINE_PHASE_CORRECTION_HARDWARE: return "hardware";
-    default:                                  return "(unknown)";
+    case KATHERINE_TPX3_PHASE_CORRECTION_NONE:     return "none";
+    case KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE: return "software";
+    case KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE: return "hardware";
+    default:                                       return "(unknown)";
     }
 }
 

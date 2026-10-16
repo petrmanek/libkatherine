@@ -49,7 +49,7 @@ test_actual_phases_table(void)
 
     for (int f = KATHERINE_TPX3_FREQ_20_MHZ; f <= KATHERINE_TPX3_FREQ_160_MHZ; ++f) {
         for (int p = KATHERINE_TPX3_PHASE_1; p <= KATHERINE_TPX3_PHASE_16; ++p) {
-            KT_CHECK_EQ(katherine_actual_phases((katherine_tpx3_freq_t) f, (katherine_tpx3_phase_t) p), expected[f][p]);
+            KT_CHECK_EQ(katherine_tpx3_actual_phases((katherine_tpx3_freq_t) f, (katherine_tpx3_phase_t) p), expected[f][p]);
         }
     }
 }
@@ -59,13 +59,13 @@ test_actual_phases_clamping_is_real(void)
 {
     // The three cells the naming would get wrong, called out on their own so a
     // regression names the case rather than an index.
-    KT_CHECK_EQ(katherine_actual_phases(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_16), 4);
-    KT_CHECK_EQ(katherine_actual_phases(KATHERINE_TPX3_FREQ_80_MHZ, KATHERINE_TPX3_PHASE_16), 8);
-    KT_CHECK_EQ(katherine_actual_phases(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2), 1);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_16), 4);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases(KATHERINE_TPX3_FREQ_80_MHZ, KATHERINE_TPX3_PHASE_16), 8);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2), 1);
 
     // And the one where the name does hold, so the test is not merely
     // asserting that everything is clamped.
-    KT_CHECK_EQ(katherine_actual_phases(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16), 16);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases(KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16), 16);
 }
 
 static void
@@ -73,19 +73,19 @@ test_actual_phases_rejects_out_of_range(void)
 {
     // 0 means "no answer", which is distinguishable from every real count:
     // the table's smallest entry is 1.
-    KT_CHECK_EQ(katherine_actual_phases((katherine_tpx3_freq_t) (KATHERINE_TPX3_FREQ_160_MHZ + 1), KATHERINE_TPX3_PHASE_1), 0);
-    KT_CHECK_EQ(katherine_actual_phases(KATHERINE_TPX3_FREQ_40_MHZ, (katherine_tpx3_phase_t) (KATHERINE_TPX3_PHASE_16 + 1)), 0);
-    KT_CHECK_EQ(katherine_actual_phases((katherine_tpx3_freq_t) -1, KATHERINE_TPX3_PHASE_1), 0);
-    KT_CHECK_EQ(katherine_actual_phases(KATHERINE_TPX3_FREQ_40_MHZ, (katherine_tpx3_phase_t) -1), 0);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases((katherine_tpx3_freq_t) (KATHERINE_TPX3_FREQ_160_MHZ + 1), KATHERINE_TPX3_PHASE_1), 0);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases(KATHERINE_TPX3_FREQ_40_MHZ, (katherine_tpx3_phase_t) (KATHERINE_TPX3_PHASE_16 + 1)), 0);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases((katherine_tpx3_freq_t) -1, KATHERINE_TPX3_PHASE_1), 0);
+    KT_CHECK_EQ(katherine_tpx3_actual_phases(KATHERINE_TPX3_FREQ_40_MHZ, (katherine_tpx3_phase_t) -1), 0);
 }
 
 static void
 test_fast_vco_supported_only_at_40(void)
 {
-    KT_CHECK(!katherine_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_20_MHZ));
-    KT_CHECK(katherine_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_40_MHZ));
-    KT_CHECK(!katherine_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_80_MHZ));
-    KT_CHECK(!katherine_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_160_MHZ));
+    KT_CHECK(!katherine_tpx3_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_20_MHZ));
+    KT_CHECK(katherine_tpx3_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_40_MHZ));
+    KT_CHECK(!katherine_tpx3_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_80_MHZ));
+    KT_CHECK(!katherine_tpx3_freq_is_fast_vco_supported(KATHERINE_TPX3_FREQ_160_MHZ));
 }
 
 int

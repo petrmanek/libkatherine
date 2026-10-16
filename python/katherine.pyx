@@ -923,9 +923,9 @@ class AcquisitionState(_Enum):
 
 @_unique
 class Tpx3PhaseCorrection(_Enum):
-    NONE     = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_NONE
-    SOFTWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_SOFTWARE
-    HARDWARE = cacquisition.katherine_phase_correction_t.KATHERINE_PHASE_CORRECTION_HARDWARE
+    NONE     = cacquisition.katherine_tpx3_phase_correction_t.KATHERINE_TPX3_PHASE_CORRECTION_NONE
+    SOFTWARE = cacquisition.katherine_tpx3_phase_correction_t.KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE
+    HARDWARE = cacquisition.katherine_tpx3_phase_correction_t.KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE
 
     def __str__(self):
         """Render as the C library does, e.g. 'hardware'."""
