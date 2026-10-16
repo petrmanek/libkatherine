@@ -30,11 +30,12 @@
 #include <katherine/toa.h>
 #include <katherine/udp.h>
 
+#include "kports.h"
 #include "ktest.h"
 
 #define MD_SIZE     6
-#define PORT_DATA   42620
-#define PORT_SENDER 42621
+#define PORT_DATA   (KPORTS_GEN2_DECODE + 0)
+#define PORT_SENDER (KPORTS_GEN2_DECODE + 1)
 
 static void
 make_md(unsigned char *dst, unsigned header, uint64_t payload)
@@ -55,7 +56,7 @@ struct stats {
 static void
 pixels_received(void *ctx, const void *px, size_t count)
 {
-    struct stats *s                 = ctx;
+    struct stats *s                      = ctx;
     const katherine_tpx3_px_toa_tot_t *p = px;
 
     s->pixels += count;

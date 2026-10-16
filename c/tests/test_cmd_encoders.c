@@ -55,6 +55,7 @@
 
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
+#include "kports.h"
 #include "ktest.h"
 
 // ------------------------------------------------------------------
@@ -66,8 +67,8 @@
 // registered in this tree (test_udp_pinning.c's 42555-42557, bench_udp.c's
 // 47301/47302/47311/47312, the ksim daemon's 1555/1556): this fixture claims
 // no global resource, so the test needs no exclusive slot among the others.
-#define PORT_SENDER        42600
-#define PORT_CAPTURE       42601
+#define PORT_SENDER        (KPORTS_CMD_ENCODERS + 0)
+#define PORT_CAPTURE       (KPORTS_CMD_ENCODERS + 1)
 
 // Receive timeout of the capture endpoint. It serves two purposes: bounding
 // the wait for the datagram a case just sent (always already queued by the
@@ -454,8 +455,8 @@ test_general_config_word(void)
 // initialized and finalized, not duplicated). The capture peer never
 // acknowledges, so the call is expected to come back with the receive
 // timeout after its datagram -- the datagram is what is under test.
-#define PORT_SETUP_CAPTURE 42604
-#define PORT_SETUP_SENDER  42605
+#define PORT_SETUP_CAPTURE (KPORTS_CMD_ENCODERS + 2)
+#define PORT_SETUP_SENDER  (KPORTS_CMD_ENCODERS + 3)
 
 static void
 check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const katherine_trigger_t *start,

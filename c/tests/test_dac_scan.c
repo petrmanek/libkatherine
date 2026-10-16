@@ -31,6 +31,7 @@
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
 #include "kthread.h"
+#include "kports.h"
 #include "ktest.h"
 
 #define HW_TYPE_GEN1      0x01
@@ -43,10 +44,10 @@
 
 // Loopback endpoints of the mock readout; see test_bias.c for the other
 // fixed sets in this tree.
-#define PORT_DEVICE       42630
-#define PORT_MOCK         42631
-#define PORT_DEVICE_QUIET 42632
-#define PORT_MOCK_QUIET   42633
+#define PORT_DEVICE       (KPORTS_DAC_SCAN + 0)
+#define PORT_MOCK         (KPORTS_DAC_SCAN + 1)
+#define PORT_DEVICE_QUIET (KPORTS_DAC_SCAN + 2)
+#define PORT_MOCK_QUIET   (KPORTS_DAC_SCAN + 3)
 
 #define MOCK_TIMEOUT_MS   5000
 #define QUIET_TIMEOUT_MS  100

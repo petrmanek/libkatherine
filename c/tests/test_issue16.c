@@ -15,6 +15,7 @@
 #include <katherine/error.h>
 #include <katherine/udp.h>
 
+#include "kports.h"
 #include "ktest.h"
 
 #define MD_SIZE     6
@@ -25,8 +26,8 @@
 // 47301/47302/47311/47312, the ksim daemon's 1555/1556): this fixture
 // claims no global resource, so the test needs no exclusive slot among the
 // others.
-#define PORT_DATA   42610
-#define PORT_SENDER 42611
+#define PORT_DATA   (KPORTS_ISSUE16 + 0)
+#define PORT_SENDER (KPORTS_ISSUE16 + 1)
 
 static void
 make_md(unsigned char *dst, unsigned header, uint64_t payload)

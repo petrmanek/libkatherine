@@ -45,6 +45,7 @@
 #include <katherine/error.h>
 #include <katherine/udp.h>
 
+#include "kports.h"
 #include "ktest.h"
 
 // ------------------------------------------------------------------
@@ -52,9 +53,9 @@
 // no global resource the way the fixed 1555/1556 of a device session are
 // one, so it needs no exclusive slot among the registered tests.
 
-#define PORT_A          42555
-#define PORT_B          42556
-#define PORT_C          42557
+#define PORT_A          (KPORTS_UDP_PINNING + 0)
+#define PORT_B          (KPORTS_UDP_PINNING + 1)
+#define PORT_C          (KPORTS_UDP_PINNING + 2)
 
 // The primary loopback address, and a second local one for the endpoints
 // that must appear as another host. All of 127.0.0.0/8 is local on Linux,

@@ -29,15 +29,16 @@
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
 #include "kthread.h"
+#include "kports.h"
 #include "ktest.h"
 
 #define HW_TYPE_GEN1      0x01
 #define HW_TYPE_GEN2      0x03
 
-#define PORT_DEVICE       42650
-#define PORT_MOCK         42651
-#define PORT_DEVICE_QUIET 42652
-#define PORT_MOCK_QUIET   42653
+#define PORT_DEVICE       (KPORTS_TDC + 0)
+#define PORT_MOCK         (KPORTS_TDC + 1)
+#define PORT_DEVICE_QUIET (KPORTS_TDC + 2)
+#define PORT_MOCK_QUIET   (KPORTS_TDC + 3)
 
 #define MOCK_TIMEOUT_MS   5000
 #define QUIET_TIMEOUT_MS  100

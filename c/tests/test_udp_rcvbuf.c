@@ -35,19 +35,20 @@
 #include <katherine/error.h>
 #include <katherine/udp.h>
 
+#include "kports.h"
 #include "ktest.h"
 
 // Uncommon and high on purpose: this test claims no global resource the way
 // the fixed 1555/1556 of a device session are one, so it needs no exclusive
 // slot among the registered tests.
-#define PORT_A            42630
-#define PORT_B            42631
+#define PORT_A             (KPORTS_UDP_RCVBUF + 0)
+#define PORT_B             (KPORTS_UDP_RCVBUF + 1)
 
-#define HOST_LOCAL        "127.0.0.1"
+#define HOST_LOCAL         "127.0.0.1"
 
 // The largest datagram a Gen2 readout was measured sending, on 2026-09-17.
 // The queue has to hold at least one of these to be worth anything at all.
-#define GEN2_DATAGRAM_MAX 64932
+#define GEN2_DATAGRAM_MAX  64932
 
 static katherine_error_t
 open_session(katherine_udp_t *u, uint16_t local_port, uint16_t remote_port)

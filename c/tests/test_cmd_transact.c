@@ -64,6 +64,7 @@
 #include "protocol/cmd_interface.h"
 #include "kthread.h"
 #include "msleep.h"
+#include "kports.h"
 #include "ktest.h"
 
 // ------------------------------------------------------------------
@@ -73,10 +74,10 @@
 // 1555/1556): nothing here claims a global resource, so the test needs no
 // exclusive slot among the others.
 
-#define PORT_CLIENT       42610
-#define PORT_MOCK         42611
-#define PORT_SLOW_CLIENT  42612
-#define PORT_SLOW_MOCK    42613
+#define PORT_CLIENT       (KPORTS_CMD_TRANSACT + 0)
+#define PORT_MOCK         (KPORTS_CMD_TRANSACT + 1)
+#define PORT_SLOW_CLIENT  (KPORTS_CMD_TRANSACT + 2)
+#define PORT_SLOW_MOCK    (KPORTS_CMD_TRANSACT + 3)
 
 // Receive timeout of the session under test. Every datagram a case expects
 // is already queued by the time the call under test runs -- loopback

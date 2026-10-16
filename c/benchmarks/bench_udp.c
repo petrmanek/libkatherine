@@ -42,15 +42,16 @@
 
 // Internal header, provided by the katherine_private interface target:
 // wraps the platform monotonic clock.
+#include "kports.h"
 #include "monoclock.h"
 
 // High, uncommon ports of their own -- distinct from c/tests/test_udp_pinning
 // (42555-42557) and the ksim daemon (1555/1556) -- so this benchmark claims
 // no port anything else registered in this tree might be using.
-#define PORT_MD_TX        47301
-#define PORT_MD_RX        47302
-#define PORT_CMD_A        47311
-#define PORT_CMD_B        47312
+#define PORT_MD_TX        (KPORTS_BENCH_UDP + 0)
+#define PORT_MD_RX        (KPORTS_BENCH_UDP + 1)
+#define PORT_CMD_A        (KPORTS_BENCH_UDP + 2)
+#define PORT_CMD_B        (KPORTS_BENCH_UDP + 3)
 
 #define LOOPBACK_ADDR     "127.0.0.1"
 #define UDP_TIMEOUT_MS    1000

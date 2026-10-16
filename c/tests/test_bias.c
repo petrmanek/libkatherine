@@ -38,6 +38,7 @@
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
 #include "kthread.h"
+#include "kports.h"
 #include "ktest.h"
 
 // Hardware types of the two generations, as c/src/device/hw_info.c maps them.
@@ -61,10 +62,10 @@
 // every other fixed set in this tree (test_cmd_transact.c's 4261x,
 // test_udp_pinning.c's 42555-42557, test_cmd_encoders.c's 42600/42601, the
 // ksim daemon's 1555/1556).
-#define PORT_DEVICE       42620
-#define PORT_MOCK         42621
-#define PORT_DEVICE_QUIET 42622
-#define PORT_MOCK_QUIET   42623
+#define PORT_DEVICE       (KPORTS_BIAS + 0)
+#define PORT_MOCK         (KPORTS_BIAS + 1)
+#define PORT_DEVICE_QUIET (KPORTS_BIAS + 2)
+#define PORT_MOCK_QUIET   (KPORTS_BIAS + 3)
 
 // Headroom against scheduling jitter on the case that answers: the command
 // reaches the mock within microseconds of the thread starting.

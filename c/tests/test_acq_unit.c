@@ -30,6 +30,7 @@
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
 #include "kthread.h"
+#include "kports.h"
 #include "ktest.h"
 
 // The readout multiplexes a mapping onto an output channel by its value
@@ -55,10 +56,10 @@ _Static_assert(KATHERINE_GPIO_HIGH == 32, "the mapping enumeration must end at t
 // part worth pinning; what a real unit does with those words is the
 // emulator's business, and is checked against it below.
 
-#define PORT_DEVICE       42640
-#define PORT_MOCK         42641
-#define PORT_DEVICE_QUIET 42642
-#define PORT_MOCK_QUIET   42643
+#define PORT_DEVICE       (KPORTS_ACQ_UNIT + 0)
+#define PORT_MOCK         (KPORTS_ACQ_UNIT + 1)
+#define PORT_DEVICE_QUIET (KPORTS_ACQ_UNIT + 2)
+#define PORT_MOCK_QUIET   (KPORTS_ACQ_UNIT + 3)
 
 #define MOCK_TIMEOUT_MS   5000
 #define QUIET_TIMEOUT_MS  100

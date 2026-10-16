@@ -35,6 +35,7 @@
 // so its declaration has to precede them.
 #include "protocol/md.h"
 
+#include "kports.h"
 #include "ktest.h"
 
 // Measurement data headers, as dispatched by the read loop.
@@ -49,8 +50,8 @@
 // bench_udp.c's 47301/47302/47311/47312, the ksim daemon's 1555/1556): this
 // fixture claims no global resource, so the test needs no exclusive slot
 // among the others.
-#define PORT_DATA             42620
-#define PORT_SENDER           42621
+#define PORT_DATA             (KPORTS_MD_DECODE + 0)
+#define PORT_SENDER           (KPORTS_MD_DECODE + 1)
 
 // The timestamp offset counts whole coarse time-of-arrival windows, i.e.
 // multiples of the 1 << 14 ticks the coarse field holds.
