@@ -177,6 +177,10 @@ kt_double_within_ulps(double a, double b, unsigned ulps)
         } else { \
             printf("ok %d - %s\n", kt_g_test_count, kt_g_cur_name); \
         } \
+        /* Flushed per case, not left to exit: a test the harness kills on a \
+           timeout never reaches exit, and a block-buffered stdout would take \
+           the record of how far it got with it. */ \
+        fflush(stdout); \
     } while (0)
 
 static inline int
