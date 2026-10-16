@@ -135,7 +135,7 @@ configure(katherine_config_t *config)
     }
 
     // Test pulses are disabled unless requested above.
-    config->test_pulse_config = (katherine_test_pulse_config_t) {0};
+    config->test_pulse_config = (katherine_tpx3_test_pulse_config_t) {0};
 
     if (test_pulse) {
         // Pulse the analog front-end with amplitude given by the difference

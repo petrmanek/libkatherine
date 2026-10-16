@@ -61,7 +61,7 @@ katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
 
 # Test-pulse validation. Its byte-exact datagram check drives a mock readout
 # through the public katherine_udp_* API, on its own thread (kthread.h) since
-# katherine_set_test_pulses() sends and waits for the acknowledgement inside
+# katherine_tpx3_set_test_pulses() sends and waits for the acknowledgement inside
 # one opaque, blocking library call -- see test_tp.c for why that rules out
 # the inline, lockstep ping-pong bench_udp.c uses instead.
 katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)

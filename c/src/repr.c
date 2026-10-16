@@ -367,7 +367,7 @@ katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 
 /** \copydoc katherine_tpx3_coord_snprint */
 int
-katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v)
+katherine_tpx3_test_pulse_config_snprint(char *buf, size_t cap, const katherine_tpx3_test_pulse_config_t *v)
 {
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "test_pulse_config{enabled: %s, digital_only: %s, external: %s, count: %u, period: %u, phase: %u}",
@@ -491,7 +491,7 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
         katherine_str_freq(v->freq));
     REPR_NEST(buf, cap, off, katherine_tpx3_dacs_snprint, &v->dacs);
     REPR_APPENDF(buf, cap, off, ", test_pulse_config: ");
-    REPR_NEST(buf, cap, off, katherine_test_pulse_config_snprint, &v->test_pulse_config);
+    REPR_NEST(buf, cap, off, katherine_tpx3_test_pulse_config_snprint, &v->test_pulse_config);
     REPR_APPENDF(buf, cap, off, "}");
 
     return (int) off;

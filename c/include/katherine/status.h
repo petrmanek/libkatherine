@@ -80,7 +80,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_get_sensor_temperature(katherine_device_t *device, float *temperature);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_perform_digital_test(katherine_device_t *device);
+katherine_tpx3_perform_digital_test(katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage);

@@ -35,7 +35,7 @@ static constexpr trigger no_trigger{
 };
 
 
-using test_pulse_config = katherine_test_pulse_config_t;
+using test_pulse_config = katherine_tpx3_test_pulse_config_t;
 
 /**
  * Charge carriers the sensor collects, and therefore the bias polarity the

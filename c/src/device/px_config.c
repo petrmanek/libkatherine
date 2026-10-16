@@ -324,7 +324,7 @@ _px_config_set_byte(katherine_tpx3_px_config_t *px_config, katherine_tpx3_coord_
 /**
  * Set the test bit of a single pixel.
  * Pixels with the test bit set receive test pulses during acquisition
- * (see katherine_set_test_pulses).
+ * (see katherine_tpx3_set_test_pulses).
  * \param px_config Configuration matrix to modify.
  * \param coord Pixel coordinates.
  * \param enabled New value of the test bit.

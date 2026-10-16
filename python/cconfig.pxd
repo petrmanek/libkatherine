@@ -24,7 +24,7 @@ cdef extern from 'katherine/config.h':
 
     int katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 
-    ctypedef struct katherine_test_pulse_config_t:
+    ctypedef struct katherine_tpx3_test_pulse_config_t:
         bool enabled
         bool digital_only
         bool external
@@ -32,7 +32,7 @@ cdef extern from 'katherine/config.h':
         uint16_t period
         uint8_t phase
 
-    int katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v)
+    int katherine_tpx3_test_pulse_config_snprint(char *buf, size_t cap, const katherine_tpx3_test_pulse_config_t *v)
 
     ctypedef struct katherine_tpx3_dacs_named_t:
         uint16_t Ibias_Preamp_ON
@@ -104,7 +104,7 @@ cdef extern from 'katherine/config.h':
         katherine_tpx3_freq_t freq
         katherine_tpx3_dacs_t dacs
 
-        katherine_test_pulse_config_t test_pulse_config
+        katherine_tpx3_test_pulse_config_t test_pulse_config
 
     int katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 
@@ -125,14 +125,14 @@ cdef extern from 'katherine/config.h':
     int katherine_configure(katherine_device_t *device, const katherine_config_t *config)
     int katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config)
     int katherine_set_acq_time(katherine_device_t *device, double ns)
-    int katherine_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
+    int katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
     int katherine_set_no_frames(katherine_device_t *device, int no_frames)
     int katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
-    int katherine_set_seq_readout_start(katherine_device_t *device, int arg)
+    int katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
     int katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
-    int katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
-    int katherine_update_sensor_registers(katherine_device_t *device)
-    int katherine_output_block_config_update(katherine_device_t *device)
-    int katherine_timer_set(katherine_device_t *device)
-    int katherine_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
-    int katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *test_pulse_config)
+    int katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
+    int katherine_tpx3_update_sensor_registers(katherine_device_t *device)
+    int katherine_tpx3_output_block_config_update(katherine_device_t *device)
+    int katherine_tpx3_timer_set(katherine_device_t *device)
+    int katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
+    int katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *test_pulse_config)

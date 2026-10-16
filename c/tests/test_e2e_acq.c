@@ -305,7 +305,7 @@ test_slow_control(void)
 
     // The emulated readout reports all matrix patterns passing, which is
     // what the library requires to accept the result.
-    KT_CHECK_EQ(katherine_perform_digital_test(&g_device), 0);
+    KT_CHECK_EQ(katherine_tpx3_perform_digital_test(&g_device), 0);
 }
 
 // ------------------------------------------------------------------

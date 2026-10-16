@@ -406,7 +406,7 @@ err_busy:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_perform_digital_test(katherine_device_t *device)
+katherine_tpx3_perform_digital_test(katherine_device_t *device)
 {
     katherine_error_t res;
 

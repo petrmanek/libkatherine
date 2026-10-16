@@ -155,7 +155,7 @@ cdef class Device:
          return temp
 
     def perform_digital_test(self):
-         res = cstatus.katherine_perform_digital_test(self._c_device)
+         res = cstatus.katherine_tpx3_perform_digital_test(self._c_device)
          check_return_code(res)
 
     def get_adc_voltage(self, unsigned char channel_id):
@@ -165,7 +165,7 @@ cdef class Device:
          return voltage
 
     def set_test_pulses(self, Tpx3TestPulseConfig test_pulse_config):
-         res = cconfig.katherine_set_test_pulses(self._c_device, &test_pulse_config._c_test_pulse_config)
+         res = cconfig.katherine_tpx3_set_test_pulses(self._c_device, &test_pulse_config._c_test_pulse_config)
          check_return_code(res)
 
     def configure(self, Config config):
@@ -181,7 +181,7 @@ cdef class Device:
          check_return_code(res)
 
     def set_acq_mode(self, px_mode, bool fast_vco_enabled):
-         res = cconfig.katherine_set_acq_mode(self._c_device, px_mode.value, fast_vco_enabled)
+         res = cconfig.katherine_tpx3_set_acq_mode(self._c_device, px_mode.value, fast_vco_enabled)
          check_return_code(res)
 
     def set_no_frames(self, int no_frames):
@@ -193,7 +193,7 @@ cdef class Device:
          check_return_code(res)
 
     def set_seq_readout_start(self, int arg):
-         res = cconfig.katherine_set_seq_readout_start(self._c_device, arg)
+         res = cconfig.katherine_tpx3_set_seq_readout_start(self._c_device, arg)
          check_return_code(res)
 
     def set_acquisition_triggers(self, Trigger start_trigger, bool delayed_start, Trigger end_trigger):
@@ -201,23 +201,23 @@ cdef class Device:
          check_return_code(res)
 
     def set_sensor_register(self, reg_idx, int32_t reg_value):
-         res = cconfig.katherine_set_sensor_register(self._c_device, reg_idx.value, reg_value)
+         res = cconfig.katherine_tpx3_set_sensor_register(self._c_device, reg_idx.value, reg_value)
          check_return_code(res)
 
     def update_sensor_registers(self):
-         res = cconfig.katherine_update_sensor_registers(self._c_device)
+         res = cconfig.katherine_tpx3_update_sensor_registers(self._c_device)
          check_return_code(res)
 
     def output_block_config_update(self):
-         res = cconfig.katherine_output_block_config_update(self._c_device)
+         res = cconfig.katherine_tpx3_output_block_config_update(self._c_device)
          check_return_code(res)
 
     def timer_set(self):
-         res = cconfig.katherine_timer_set(self._c_device)
+         res = cconfig.katherine_tpx3_timer_set(self._c_device)
          check_return_code(res)
 
     def set_dacs(self, Tpx3Dacs dacs):
-         res = cconfig.katherine_set_dacs(self._c_device, &dacs._c_dacs)
+         res = cconfig.katherine_tpx3_set_dacs(self._c_device, &dacs._c_dacs)
          check_return_code(res)
 
 
@@ -378,7 +378,7 @@ cdef class Trigger:
 
 
 cdef class Tpx3TestPulseConfig:
-    cdef cconfig.katherine_test_pulse_config_t _c_test_pulse_config
+    cdef cconfig.katherine_tpx3_test_pulse_config_t _c_test_pulse_config
 
     def __init__(self, enabled=False, digital_only=False, external=False, count=0, period=0, phase=0, cdata=None):
          if cdata is None:
@@ -392,7 +392,7 @@ cdef class Tpx3TestPulseConfig:
              self._c_test_pulse_config = cdata
 
     def __repr__(self):
-         return _snprint_repr(<snprint_fn_t> cconfig.katherine_test_pulse_config_snprint, &self._c_test_pulse_config)
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_tpx3_test_pulse_config_snprint, &self._c_test_pulse_config)
 
     @property
     def enabled(self):

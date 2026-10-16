@@ -50,7 +50,7 @@
 // each command reaches the mock within microseconds.
 #define MOCK_TIMEOUT_MS    5000
 
-/** Number of datagrams one katherine_set_acq_mode() call is expected to send. */
+/** Number of datagrams one katherine_tpx3_set_acq_mode() call is expected to send. */
 #define EXPECTED_DATAGRAMS 2
 
 static katherine_udp_t mock_endpoint;
@@ -95,7 +95,7 @@ set_and_capture(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bo
     mock_count = 0;
     KT_REQUIRE(kthread_start(&thread, mock_readout, NULL) == 0);
 
-    KT_CHECK(katherine_set_acq_mode(device, px_mode, fast_vco_enabled) == 0);
+    KT_CHECK(katherine_tpx3_set_acq_mode(device, px_mode, fast_vco_enabled) == 0);
     KT_CHECK(kthread_join(&thread) == 0);
 
     KT_CHECK(mock_count == EXPECTED_DATAGRAMS);

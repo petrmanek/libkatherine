@@ -132,11 +132,11 @@ operator<<(std::ostream& os, const katherine_trigger_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_trigger_snprint);
 }
 
-/** Renders a katherine_test_pulse_config_t (via katherine_test_pulse_config_snprint()). */
+/** Renders a katherine_tpx3_test_pulse_config_t (via katherine_tpx3_test_pulse_config_snprint()). */
 inline std::ostream&
-operator<<(std::ostream& os, const katherine_test_pulse_config_t& v)
+operator<<(std::ostream& os, const katherine_tpx3_test_pulse_config_t& v)
 {
-    return katherine::detail::stream_snprint(os, &v, katherine_test_pulse_config_snprint);
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_test_pulse_config_snprint);
 }
 
 /** Renders a katherine_tpx3_dacs_t (via katherine_tpx3_dacs_snprint()). */

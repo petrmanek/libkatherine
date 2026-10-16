@@ -920,10 +920,10 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     res = katherine_configure(acq->device, config);
     if (res) goto err;
 
-    res = katherine_set_seq_readout_start(acq->device, readout_mode);
+    res = katherine_tpx3_set_seq_readout_start(acq->device, readout_mode);
     if (res) goto err;
 
-    res = katherine_set_acq_mode(acq->device, px_mode, fast_vco_enabled);
+    res = katherine_tpx3_set_acq_mode(acq->device, px_mode, fast_vco_enabled);
     if (res) goto err;
 
     acq->state = KATHERINE_ACQUISITION_STATE_RUNNING;

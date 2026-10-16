@@ -323,7 +323,7 @@ katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
  * clear: the test-pulse command carries the enable, and hardware A/B runs
  * confirm both analog and digital pulses fire regardless of this bit. fast_lo_en, the superpixel oscillator behind fast time
  * stamping, is set here only so the register starts in a defined state:
- * katherine_set_acq_mode() rewrites it, together with Op_mode, on every
+ * katherine_tpx3_set_acq_mode() rewrites it, together with Op_mode, on every
  * acquisition.
  *
  * \param config Configuration to read the polarity, gray-coding and

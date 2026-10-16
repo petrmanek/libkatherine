@@ -41,14 +41,14 @@
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   configuration commands within the control session's receive timeout; the
  *   pixel-matrix upload and the test-pulse command wait longer than that, see
- *   katherine_tpx3_set_all_pixel_config() and katherine_set_test_pulses().
+ *   katherine_tpx3_set_all_pixel_config() and katherine_tpx3_set_test_pulses().
  * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
  *   not that of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_INVAL if the test-pulse settings are out of range --
  *   which is checked only when test pulses are enabled, see
- *   katherine_set_test_pulses() -- or if a socket call rejected its
+ *   katherine_tpx3_set_test_pulses() -- or if a socket call rejected its
  *   arguments.
  * \retval KATHERINE_E_IO if a command could not be sent, or a response could
  *   not be received, for a reason none of the other codes cover; see
@@ -82,10 +82,10 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_acquisition_triggers(device, &config->start_trigger, config->delayed_start, &config->stop_trigger);
     if (res) goto err;
 
-    res = katherine_set_sensor_register(device, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
+    res = katherine_tpx3_set_sensor_register(device, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
     if (res) goto err;
 
-    res = katherine_set_sensor_register(device, KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
+    res = katherine_tpx3_set_sensor_register(device, KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
     if (res) goto err;
 
     // Commits the output block's own configuration, which this library never
@@ -94,18 +94,18 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     // status. So this is a commit for a register nobody here sets, kept
     // because the sensor still needs the trigger to latch what the firmware
     // put there.
-    res = katherine_output_block_config_update(device);
+    res = katherine_tpx3_output_block_config_update(device);
     if (res) goto err;
 
     // Carries the register writes above to the sensor. Without it they sit in
     // the readout's register image and never reach the chip.
-    res = katherine_update_sensor_registers(device);
+    res = katherine_tpx3_update_sensor_registers(device);
     if (res) goto err;
 
-    res = katherine_timer_set(device);
+    res = katherine_tpx3_timer_set(device);
     if (res) goto err;
 
-    res = katherine_set_dacs(device, &config->dacs);
+    res = katherine_tpx3_set_dacs(device, &config->dacs);
     if (res) goto err;
 
     // The test-pulse command carries the enable flag as well as the pulse
@@ -118,7 +118,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     // skipped when pulses are disabled, keeping the wire traffic identical
     // to configurations that predate test pulse support.
     if (config->test_pulse_config.enabled) {
-        res = katherine_set_test_pulses(device, &config->test_pulse_config);
+        res = katherine_tpx3_set_test_pulses(device, &config->test_pulse_config);
         if (res) goto err;
     }
 
@@ -597,7 +597,7 @@ err:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
+katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
 {
     katherine_error_t res;
 
@@ -770,7 +770,7 @@ err:
  *   katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_seq_readout_start(katherine_device_t *device, int arg)
+katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
 {
     katherine_error_t res;
 
@@ -921,7 +921,7 @@ err_enumerated:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config)
+katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *tp_config)
 {
     katherine_error_t res;
 
@@ -983,7 +983,7 @@ err:
  * Set value of a sensor register.
  *
  * The write lands in a register image held by the readout, not in the sensor.
- * It reaches the chip only once katherine_update_sensor_registers() flushes
+ * It reaches the chip only once katherine_tpx3_update_sensor_registers() flushes
  * that image, and a caller who omits the flush gets no error and no effect --
  * the sensor simply goes on using whatever a previous flush left there.
  * Several registers may be written before one flush commits them together.
@@ -1012,10 +1012,10 @@ err:
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  *
- * \see katherine_update_sensor_registers
+ * \see katherine_tpx3_update_sensor_registers
  */
 katherine_error_t
-katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
+katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
 {
     katherine_error_t res;
 
@@ -1043,8 +1043,8 @@ err:
  * Carry the readout's sensor register image to the sensor.
  *
  * This is the commit half of every sensor register write: values set by
- * katherine_set_sensor_register(), and the pixel mode and fast-oscillator
- * flag set by katherine_set_acq_mode(), all sit in the readout's image until
+ * katherine_tpx3_set_sensor_register(), and the pixel mode and fast-oscillator
+ * flag set by katherine_tpx3_set_acq_mode(), all sit in the readout's image until
  * this flushes them. Registers written and never flushed have no effect
  * whatsoever, silently, so treat the pairing as mandatory.
  *
@@ -1069,10 +1069,10 @@ err:
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  *
- * \see katherine_set_sensor_register
+ * \see katherine_tpx3_set_sensor_register
  */
 katherine_error_t
-katherine_update_sensor_registers(katherine_device_t *device)
+katherine_tpx3_update_sensor_registers(katherine_device_t *device)
 {
     katherine_error_t res;
 
@@ -1119,7 +1119,7 @@ err:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_output_block_config_update(katherine_device_t *device)
+katherine_tpx3_output_block_config_update(katherine_device_t *device)
 {
     katherine_error_t res;
 
@@ -1166,7 +1166,7 @@ err:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_timer_set(katherine_device_t *device)
+katherine_tpx3_timer_set(katherine_device_t *device)
 {
     katherine_error_t res;
 
@@ -1227,7 +1227,7 @@ err:
  *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
  */
 katherine_error_t
-katherine_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
+katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
 {
     katherine_error_t res;
 
@@ -1399,10 +1399,10 @@ katherine_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
  * Validate DAC register values against the chip's per-DAC bit widths
  * (Tpx3 manual Table 11: each of the 18 DACs is 4, 8 or 9 bits wide).
  *
- * This check is opt-in: katherine_set_dacs() transmits every value unchecked,
+ * This check is opt-in: katherine_tpx3_set_dacs() transmits every value unchecked,
  * and a value wider than its DAC's field is silently truncated by the chip
  * rather than rejected there. Calling this function first is a caller's
- * choice; it does not change katherine_set_dacs()'s own behavior.
+ * choice; it does not change katherine_tpx3_set_dacs()'s own behavior.
  *
  * \param v DAC register values to validate.
  *

@@ -3,7 +3,7 @@
  * \brief Validation tests for the libkatherine test pulse feature.
  *
  * 1. Pixel test-bit helpers vs. the proven BMC/BPC loader packing.
- * 2. KATHERINE_E_INVAL validation rules of katherine_set_test_pulses.
+ * 2. KATHERINE_E_INVAL validation rules of katherine_tpx3_set_test_pulses.
  * 3. Byte-exact 0x26 datagram check against the vendor C# reference,
  *    using a mock readout on a localhost UDP socket.
  *
@@ -182,7 +182,7 @@ test_px_helpers(void)
 static void
 test_validation(void)
 {
-    katherine_test_pulse_config_t tp = {
+    katherine_tpx3_test_pulse_config_t tp = {
         .enabled      = true,
         .digital_only = false,
         .external     = false,
@@ -191,29 +191,29 @@ test_validation(void)
         .phase        = 0,
     };
 
-    katherine_test_pulse_config_t bad;
+    katherine_tpx3_test_pulse_config_t bad;
 
     bad       = tp;
     bad.count = 0;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
+    KT_CHECK(katherine_tpx3_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 
     bad        = tp;
     bad.period = 64;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
+    KT_CHECK(katherine_tpx3_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 
     bad        = tp;
     bad.period = 16322;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
+    KT_CHECK(katherine_tpx3_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 
     bad       = tp;
     bad.phase = 16;
-    KT_CHECK(katherine_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
+    KT_CHECK(katherine_tpx3_set_test_pulses(NULL, &bad) == KATHERINE_E_INVAL);
 }
 
 // ------------------------------------------------------------------
 // Test 3: byte-exact datagram check against a mock readout
 
-// katherine_set_test_pulses() sends the command and then blocks in a
+// katherine_tpx3_set_test_pulses() sends the command and then blocks in a
 // retrying wait for its acknowledgement (config.c), all inside one opaque
 // library call: the test cannot step in between the send and the receive
 // the way the inline ping-pong of bench_udp's run_cmd_roundtrips() does, so
@@ -222,7 +222,7 @@ test_validation(void)
 // this one.
 
 // MOCK_TIMEOUT_MS bounds how long the mock readout waits for the command: on
-// the happy path it arrives within microseconds of katherine_set_test_pulses
+// the happy path it arrives within microseconds of katherine_tpx3_set_test_pulses
 // sending it, so this is pure headroom against scheduling jitter, not a
 // value the test ever expects to actually wait out.
 #define MOCK_TIMEOUT_MS 5000
@@ -254,14 +254,14 @@ mock_readout(void *arg)
 }
 
 static void
-send_and_capture(katherine_device_t *device, const katherine_test_pulse_config_t *tp,
+send_and_capture(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *tp,
     const unsigned char expected[8])
 {
     kthread_t thread;
     memset(mock_captured, 0xAA, sizeof(mock_captured));
     KT_REQUIRE(kthread_start(&thread, mock_readout, NULL) == 0);
 
-    KT_CHECK(katherine_set_test_pulses(device, tp) == 0);
+    KT_CHECK(katherine_tpx3_set_test_pulses(device, tp) == 0);
     KT_CHECK(kthread_join(&thread) == 0);
 
     KT_CHECK_MEM_EQ(mock_captured, expected, 8);
@@ -293,7 +293,7 @@ test_datagram(void)
     // Reference case from the vendor C# TPSetting implementation:
     // 100 pulses, period 65 cycles (register 1), phase 0, enabled,
     // analog, internal -> {100, 0, 1, 0, 4, 0, 0x26, 0}.
-    katherine_test_pulse_config_t tp = {
+    katherine_tpx3_test_pulse_config_t tp = {
         .enabled      = true,
         .digital_only = false,
         .external     = false,

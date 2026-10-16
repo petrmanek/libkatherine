@@ -133,7 +133,7 @@ public:
     void
     perform_digital_test()
     {
-        int res = katherine_perform_digital_test(&dev_);
+        int res = katherine_tpx3_perform_digital_test(&dev_);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -143,7 +143,7 @@ public:
     void
     set_test_pulses(const katherine::test_pulse_config& tp)
     {
-        int res = katherine_set_test_pulses(&dev_, &tp);
+        int res = katherine_tpx3_set_test_pulses(&dev_, &tp);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -204,7 +204,7 @@ public:
     void
     set_acq_mode(katherine::tpx3::px_mode mode, bool fast_vco_enabled)
     {
-        int res = katherine_set_acq_mode(&dev_, (katherine_tpx3_px_mode_t) mode, fast_vco_enabled);
+        int res = katherine_tpx3_set_acq_mode(&dev_, (katherine_tpx3_px_mode_t) mode, fast_vco_enabled);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -234,7 +234,7 @@ public:
     void
     set_seq_readout_start(int arg)
     {
-        int res = katherine_set_seq_readout_start(&dev_, arg);
+        int res = katherine_tpx3_set_seq_readout_start(&dev_, arg);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -254,7 +254,7 @@ public:
     void
     set_sensor_register(katherine_tpx3_reg_t reg_idx, std::int32_t reg_value)
     {
-        int res = katherine_set_sensor_register(&dev_, (char) reg_idx, reg_value);
+        int res = katherine_tpx3_set_sensor_register(&dev_, (char) reg_idx, reg_value);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -264,7 +264,7 @@ public:
     void
     update_sensor_registers()
     {
-        int res = katherine_update_sensor_registers(&dev_);
+        int res = katherine_tpx3_update_sensor_registers(&dev_);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -274,7 +274,7 @@ public:
     void
     output_block_config_update()
     {
-        int res = katherine_output_block_config_update(&dev_);
+        int res = katherine_tpx3_output_block_config_update(&dev_);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -284,7 +284,7 @@ public:
     void
     timer_set()
     {
-        int res = katherine_timer_set(&dev_);
+        int res = katherine_tpx3_timer_set(&dev_);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -294,7 +294,7 @@ public:
     void
     set_dacs(const katherine::tpx3::dacs& dacs)
     {
-        int res = katherine_set_dacs(&dev_, &dacs);
+        int res = katherine_tpx3_set_dacs(&dev_, &dacs);
 
         if (res != 0) {
             throw katherine::system_error{res};

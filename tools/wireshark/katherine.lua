@@ -18,7 +18,7 @@ shipped in this repository -- they are the source of truth:
                                   (katherine_tpx3_reg_t), acquisition setup
                                   and test pulse byte layouts (see
                                   katherine_set_acquisition_triggers() and
-                                  katherine_set_test_pulses() in
+                                  katherine_tpx3_set_test_pulses() in
                                   c/src/config.c)
   * c/src/crd.h                - control response bitfields (readout
                                   status, communication status)
@@ -403,7 +403,7 @@ local function dissect_control(buffer, pinfo, tree)
 
     elseif opcode == 0x09 then
         -- Acquisition mode setting: byte[0] packs the mode (bits 0-6) and
-        -- the fast-VCO flag (bit 7). See katherine_set_acq_mode() in
+        -- the fast-VCO flag (bit 7). See katherine_tpx3_set_acq_mode() in
         -- c/src/config.c.
         root:add(f_acq_mode, buffer(0, 1))
         root:add(f_fast_vco, buffer(0, 1))
@@ -465,7 +465,7 @@ local function dissect_control(buffer, pinfo, tree)
 
     elseif opcode == 0x20 then
         -- Digital test: response byte[0] == 64 signals success
-        -- (c/src/status.c: katherine_perform_digital_test()).
+        -- (c/src/status.c: katherine_tpx3_perform_digital_test()).
         if is_request then
             generic_payload()
         else
@@ -486,7 +486,7 @@ local function dissect_control(buffer, pinfo, tree)
         root:add(f_end_trig_fall, buffer(1, 1))
 
     elseif opcode == 0x26 then
-        -- Test pulse setting (katherine_set_test_pulses(), c/src/config.c):
+        -- Test pulse setting (katherine_tpx3_set_test_pulses(), c/src/config.c):
         -- byte[0..1] count, byte[2] period (raw = (period-1)/64),
         -- byte[3] phase, byte[4] flags.
         root:add_le(f_tp_count, buffer(0, 2))

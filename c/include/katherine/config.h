@@ -64,17 +64,17 @@ katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v);
 
 
 /** Injected test pulses, which exercise the pixel chain with no radiation present. */
-typedef struct katherine_test_pulse_config {
+typedef struct katherine_tpx3_test_pulse_config {
     bool enabled;      ///< true if test pulses should be injected during acquisition
     bool digital_only; ///< false: pulse the analog frontend (amplitude = VTP_coarse - VTP_fine, DAC LSBs 5 mV / 2.5 mV), true: pulse the digital discriminator input
     bool external;     ///< set true to bypass internal pulse generator with signal from the ExtTPulse pad (in such case count/period/phase do not apply)
     uint16_t count;    ///< number of pulses per shutter opening, 1 to 65535
     uint16_t period;   ///< pulse period in pixel-clock cycles (25 ns at 40 MHz), 65 to 16321 (1.625 us to 408.025 us), rounded down to the nearest 64k + 1
     uint8_t phase;     ///< pulse edge clock phase, selects Clk_ph_shift[0..15]; keep 0 unless a multi-phase pixel clock is configured
-} katherine_test_pulse_config_t;
+} katherine_tpx3_test_pulse_config_t;
 
 KATHERINE_EXPORTED int
-katherine_test_pulse_config_snprint(char *buf, size_t cap, const katherine_test_pulse_config_t *v);
+katherine_tpx3_test_pulse_config_snprint(char *buf, size_t cap, const katherine_tpx3_test_pulse_config_t *v);
 
 
 /** Number of DACs a Timepix3 carries. */
@@ -104,7 +104,7 @@ typedef struct katherine_tpx3_dacs_named {
     uint16_t Ibias_PixelDAC;    ///< Bias of the per-pixel trim DAC, which scales the four-bit local threshold of katherine_tpx3_px_config_set_loc_thl().
     uint16_t Ibias_TPbufferIn;  ///< Test-pulse buffer input bias.
     uint16_t Ibias_TPbufferOut; ///< Test-pulse buffer output bias.
-    uint16_t VTP_coarse;        ///< Test-pulse amplitude, coarse part. The injected amplitude is VTP_coarse - VTP_fine; see katherine_test_pulse_config_t.
+    uint16_t VTP_coarse;        ///< Test-pulse amplitude, coarse part. The injected amplitude is VTP_coarse - VTP_fine; see katherine_tpx3_test_pulse_config_t.
     uint16_t VTP_fine;          ///< Test-pulse amplitude, fine part.
     uint16_t Ibias_CP_PLL;      ///< PLL charge-pump bias.
     uint16_t PLL_Vcntrl;        ///< PLL control voltage.
@@ -311,7 +311,7 @@ typedef struct katherine_config {
     katherine_tpx3_freq_t freq; ///< Pixel clock frequency, which sets the timestamp resolution.
     katherine_tpx3_dacs_t dacs; ///< The chip's DACs, including the threshold.
 
-    katherine_test_pulse_config_t test_pulse_config; ///< Test pulses, injected only while katherine_test_pulse_config_t::enabled is set.
+    katherine_tpx3_test_pulse_config_t test_pulse_config; ///< Test pulses, injected only while katherine_tpx3_test_pulse_config_t::enabled is set.
 } katherine_config_t;
 
 KATHERINE_EXPORTED int
@@ -328,7 +328,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled);
+katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_no_frames(katherine_device_t *device, int no_frames);
@@ -340,7 +340,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_seq_readout_start(katherine_device_t *device, int arg);
+katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg);
 
 // Declared here, with the rest of the configuration calls, but documented
 // with the acquisition it sets up. The enclosing group has to be closed and
@@ -367,7 +367,7 @@ katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, d
  * \{
  */
 
-/** Sensor registers reachable through katherine_set_sensor_register(). */
+/** Sensor registers reachable through katherine_tpx3_set_sensor_register(). */
 typedef enum katherine_tpx3_reg {
     KATHERINE_TPX3_REG_TEST_PULSE_METHOD = 0,
     /**
@@ -391,22 +391,22 @@ typedef enum katherine_tpx3_reg {
 } katherine_tpx3_reg_t;
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value);
+katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_update_sensor_registers(katherine_device_t *device);
+katherine_tpx3_update_sensor_registers(katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_output_block_config_update(katherine_device_t *device);
+katherine_tpx3_output_block_config_update(katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_timer_set(katherine_device_t *device);
+katherine_tpx3_timer_set(katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs);
+katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_test_pulses(katherine_device_t *device, const katherine_test_pulse_config_t *tp_config);
+katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *tp_config);
 
 #ifdef __cplusplus
 }

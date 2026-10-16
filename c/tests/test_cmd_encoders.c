@@ -197,7 +197,7 @@ test_primitive_cmd64_i64(void)
     // value = 0: the payload store only ever writes cmd[0..3], so cmd[4]
     // keeps the sub-index that katherine_cmd_send64_i64 had already written
     // before calling into it. This is correct behavior worth freezing on
-    // its own: it is exactly what katherine_set_dacs() (config.c) relies
+    // its own: it is exactly what katherine_tpx3_set_dacs() (config.c) relies
     // on when a caller configures a DAC to value 0 -- the sub-index must
     // survive so the datagram still addresses the right DAC instead of
     // silently reading as DAC 0.

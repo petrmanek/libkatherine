@@ -2,7 +2,7 @@
  * \file
  * \brief Range validation of DAC register values against Tpx3 manual Table 11.
  *
- * katherine_tpx3_dacs_validate() is opt-in: katherine_set_dacs() (config.c) sends
+ * katherine_tpx3_dacs_validate() is opt-in: katherine_tpx3_set_dacs() (config.c) sends
  * every register unchecked and lets the chip truncate an out-of-range value
  * silently instead of rejecting it (Tpx3 manual Table 11: each of the 18
  * DACs is 4, 8 or 9 bits wide). This freezes the per-DAC maxima the

@@ -122,13 +122,13 @@ test_trigger(void)
 
 // The approved example from the design: exact format, str_bool in place of
 // the ternaries the pre-repr dump_config() used.
-static katherine_test_pulse_config_t g_tp_config = {true, false, false, 100, 65, 0};
+static katherine_tpx3_test_pulse_config_t g_tp_config = {true, false, false, 100, 65, 0};
 
 static void
 test_test_pulse_config(void)
 {
     char buf[160];
-    int n = katherine_test_pulse_config_snprint(buf, sizeof(buf), &g_tp_config);
+    int n = katherine_tpx3_test_pulse_config_snprint(buf, sizeof(buf), &g_tp_config);
     CHECK_GOLDEN(n, buf, "test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}");
 }
 
@@ -518,7 +518,7 @@ static void
 test_truncation(void)
 {
     char clipped[10];
-    int n = katherine_test_pulse_config_snprint(clipped, sizeof(clipped), &g_tp_config);
+    int n = katherine_tpx3_test_pulse_config_snprint(clipped, sizeof(clipped), &g_tp_config);
 
     const char *full = "test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}";
     KT_CHECK_EQ(n, (long long) strlen(full));            /* would-be length, not the truncated one */
@@ -529,7 +529,7 @@ test_truncation(void)
 static void
 test_null_sizing_call(void)
 {
-    int n = katherine_test_pulse_config_snprint(NULL, 0, &g_tp_config);
+    int n = katherine_tpx3_test_pulse_config_snprint(NULL, 0, &g_tp_config);
 
     const char *full = "test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}";
     KT_CHECK_EQ(n, (long long) strlen(full));

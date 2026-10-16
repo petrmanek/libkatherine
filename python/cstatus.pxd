@@ -33,5 +33,5 @@ cdef extern from 'katherine/status.h':
     int katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     int katherine_get_readout_temperature(katherine_device_t *device, float *temperature)
     int katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
-    int katherine_perform_digital_test(katherine_device_t *device)
+    int katherine_tpx3_perform_digital_test(katherine_device_t *device)
     int katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
