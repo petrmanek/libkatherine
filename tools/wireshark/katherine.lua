@@ -12,19 +12,19 @@ Katherine exposes two independent UDP services:
 All field layouts below were taken from the reference implementation
 shipped in this repository -- they are the source of truth:
 
-  * c/src/command_interface.h  - control opcodes, HW sub-commands, DAC
+  * c/src/protocol/cmd_interface.h  - control opcodes, HW sub-commands, DAC
                                   sub-indices (CMD_TYPE_INTERNAL_DAC_SETTINGS)
   * c/include/katherine/config.h - sensor register sub-indices
                                   (katherine_tpx3_reg_t), acquisition setup
                                   and test pulse byte layouts (see
                                   katherine_set_acquisition_triggers() and
                                   katherine_tpx3_set_test_pulses() in
-                                  c/src/config.c)
+                                  c/src/device/config.c)
   * c/src/crd.h                - control response bitfields (readout
                                   status, communication status)
-  * c/src/md.h                 - measurement data word bitfields, including
+  * c/src/protocol/md.h                 - measurement data word bitfields, including
                                   the six per-acquisition-mode pixel layouts
-  * c/src/acquisition.c        - MD header dispatch (which header nibble
+  * c/src/acq/acquisition.c        - MD header dispatch (which header nibble
                                   means what)
   * c/src/status.c             - control response payload semantics
                                   (floats for temperature/ADC/bias, chip ID
@@ -61,7 +61,7 @@ end
 -- Control plane: opcode / sub-index / value_string lookup tables
 ----------------------------------------------------------------------
 
--- katherine_cmd_type_t, c/src/command_interface.h
+-- katherine_cmd_type_t, c/src/protocol/cmd_interface.h
 local OPCODE_NAMES = {
     [0x01] = "Acquisition time settings (LSB)",
     [0x02] = "Bias settings",
@@ -79,7 +79,7 @@ local OPCODE_NAMES = {
     [0x0E] = "Get back-read register",
     [0x0F] = "Internal DAC scan",
     [0x10] = "Set pixel config",
-    [0x11] = "Get pixel config",
+    [0x11] = "Verify chip config",
     [0x12] = "Set all pixel config",
     [0x13] = "Number of frames",
     [0x14] = "Get all DAC scan",
@@ -89,20 +89,22 @@ local OPCODE_NAMES = {
     [0x18] = "Get communication status",
     [0x19] = "Get sensor temperature",
     [0x20] = "Digital test",
-    [0x21] = "Acquisition setup",
-    [0x22] = "Get acquisition unit data",
-    [0x23] = "Internal trigger generator",
+    [0x21] = "Acquisition unit register write",
+    [0x22] = "Acquisition unit register read",
+    [0x23] = "Trigger generator register write",
+    [0x24] = "Trigger generator register read",
     [0x26] = "Test pulse setting",
     [0x28] = "ToA calibration setup",
     [0x29] = "Number of tokens setting",
-    [0x30] = "Get bias current",
+    [0x30] = "Get bias sense voltage",
     [0x32] = "Internal TDC settings",
     [0x33] = "Internal TDC read counts",
     [0x50] = "Interface selection",
+    [0x98] = "USB redriver setting",
     [0xF0] = "Change ports",
 }
 
--- katherine_hw_cmd_type_t, c/src/command_interface.h (opcode 0x07, byte[0])
+-- katherine_hw_cmd_type_t, c/src/protocol/cmd_interface.h (opcode 0x07, byte[0])
 local HW_SUBCMD_NAMES = {
     [0]  = "Sensor config registers update",
     [1]  = "Internal DAC update",
@@ -123,7 +125,7 @@ local HW_SUBCMD_NAMES = {
 }
 
 -- katherine_tpx3_dacs_named_t / CMD_TYPE_INTERNAL_DAC_SETTINGS sub-index,
--- c/include/katherine/config.h + c/src/command_interface.h
+-- c/include/katherine/config.h + c/src/protocol/cmd_interface.h
 local DAC_NAMES = {
     [0]  = "Ibias_Preamp_ON",
     [1]  = "Ibias_Preamp_OFF",
@@ -171,10 +173,12 @@ local ACQ_MODE_NAMES = {
 local YES_NO = { [0] = "No", [1] = "Yes" }
 
 ----------------------------------------------------------------------
--- Data plane: MD header nibble names, c/src/acquisition.c dispatch
+-- Data plane: MD header nibble names, c/src/acq/acquisition.c dispatch
 ----------------------------------------------------------------------
 
-local MD_HEADER_NAMES = {
+-- The first generation: one pixel header, and the trigger info under 0x2
+-- and 0x3.
+local MD_HEADER_NAMES_GEN1 = {
     [0x2] = "Trigger info",
     [0x3] = "Trigger info",
     [0x4] = "Pixel hit",
@@ -189,9 +193,72 @@ local MD_HEADER_NAMES = {
     [0xE] = "Acquisition aborted",
 }
 
+-- The second generation moves the pixel to a header per chip, 0x0 through
+-- 0x3, and puts the trigger event's two halves where the first generation
+-- keeps its pixel and one of its trigger words. Nothing in a datagram says
+-- which map is in force, which is why it is a preference: read with the wrong
+-- one, a second-generation capture shows every trigger as a pixel with
+-- nonsense coordinates and every pixel as unknown.
+local MD_HEADER_NAMES_GEN2 = {
+    [0x0] = "Pixel hit (chip 0)",
+    [0x1] = "Pixel hit (chip 1)",
+    [0x2] = "Pixel hit (chip 2)",
+    [0x3] = "Pixel hit (chip 3)",
+    [0x4] = "Trigger event (LSB)",
+    [0x5] = "Timestamp offset (data-driven mode)",
+    [0x6] = "Trigger event (MSB)",
+    [0x7] = "New frame",
+    [0x8] = "Frame start time (LSB)",
+    [0x9] = "Frame start time (MSB)",
+    [0xA] = "Frame end time (LSB)",
+    [0xB] = "Frame end time (MSB)",
+    [0xC] = "Frame finished",
+    [0xD] = "Lost pixel count",
+    [0xE] = "Acquisition aborted",
+}
+
+local GENERATIONS = {
+    { "gen1", "First generation: pixels under header 0x4, trigger info under 0x2 and 0x3", 1 },
+    { "gen2", "Second generation: pixels under headers 0x0 to 0x3, one per chip, trigger event under 0x4 and 0x6", 2 },
+}
+
+katherine_proto.prefs.generation = Pref.enum(
+    "Readout generation",
+    1,
+    "Which measurement-data header map to decode with. Mirrors ACQ_HDR_IS_PIXEL_GEN1 and " ..
+    "ACQ_HDR_IS_PIXEL_GEN2 in c/src/acq/hdr.h, and cannot be inferred from the wire format: " ..
+    "the two maps disagree about header 0x4, which is a pixel on one and half a trigger event " ..
+    "on the other.",
+    GENERATIONS,
+    false)
+
+-- Which map, and which headers carry a pixel under it.
+local function md_map()
+    if katherine_proto.prefs.generation == 2 then
+        return MD_HEADER_NAMES_GEN2
+    end
+    return MD_HEADER_NAMES_GEN1
+end
+
+local function md_is_pixel(header)
+    if katherine_proto.prefs.generation == 2 then
+        return header <= 0x3
+    end
+    return header == 0x4
+end
+
+-- The chip a pixel came from, which the second generation's header carries
+-- and the first generation's does not.
+local function md_chip(header)
+    if katherine_proto.prefs.generation == 2 then
+        return header
+    end
+    return 0
+end
+
 ----------------------------------------------------------------------
 -- Preference: pixel MD layout (mirrors the DEFINE_PMD_MAP variants in
--- c/src/md.h). This cannot be determined from the wire format itself --
+-- c/src/protocol/md.h). This cannot be determined from the wire format itself --
 -- it must match the acquisition mode / fast-VCO setting that was active
 -- when the capture was made.
 ----------------------------------------------------------------------
@@ -209,7 +276,7 @@ katherine_proto.prefs.mode = Pref.enum(
     "Pixel data layout",
     1,
     "Acquisition-mode pixel field layout used to decode header-0x4 (pixel hit) MD words; " ..
-    "mirrors the six DEFINE_PMD_MAP layouts in c/src/md.h. Must match the acquisition/fast-VCO " ..
+    "mirrors the six DEFINE_PMD_MAP layouts in c/src/protocol/md.h. Must match the acquisition/fast-VCO " ..
     "mode the capture was taken under -- this cannot be inferred from the wire format.",
     PIXEL_LAYOUTS,
     false)
@@ -270,7 +337,7 @@ local f_chip_id            = ProtoField.string("katherine.chip_id", "Decoded chi
 local f_digital_test_ok    = ProtoField.uint8("katherine.digital_test.result_byte", "Digital test result byte (64 = OK)", base.DEC)
 
 -- Bulk pixel-matrix upload on the control port, triggered by opcode 0x12
--- (katherine_tpx3_set_all_pixel_config() in c/src/config.c streams the 64 KiB
+-- (katherine_tpx3_set_all_pixel_config() in c/src/device/config.c streams the 64 KiB
 -- configuration matrix as 64 raw 1024-byte writes, outside the normal
 -- 8-byte command framing). The same function's error-recovery path
 -- (recover_from_incomplete_set_all_pixel_config()) floods 3*64 further
@@ -280,7 +347,10 @@ local f_digital_test_ok    = ProtoField.uint8("katherine.digital_test.result_byt
 local f_pixel_chunk_data   = ProtoField.bytes("katherine.pixel_config_chunk", "Pixel configuration data")
 
 -- Data plane (MD words)
-local f_md_header          = ProtoField.uint8("katherine.md.header", "MD header", base.HEX, MD_HEADER_NAMES, 0xF0)
+local f_md_header          = ProtoField.uint8("katherine.md.header", "MD header", base.HEX, nil, 0xF0)
+-- The chip is the header nibble itself on the second generation, so the
+-- field is that nibble read as a number rather than a value of its own.
+local f_md_chip            = ProtoField.uint8("katherine.md.chip", "Chip", base.DEC, nil, 0xF0)
 local f_md_coord_x         = ProtoField.uint16("katherine.md.coord_x", "Pixel X", base.DEC, nil, 0x0FF0)
 local f_md_coord_y         = ProtoField.uint16("katherine.md.coord_y", "Pixel Y", base.DEC, nil, 0x0FF0)
 
@@ -312,7 +382,7 @@ katherine_proto.fields = {
     f_hw_type, f_hw_revision, f_hw_serial, f_fw_version,
     f_comm_lines_mask, f_comm_rate_raw, f_comm_rate_mbps, f_comm_chip_detected,
     f_chip_id, f_digital_test_ok, f_pixel_chunk_data,
-    f_md_header, f_md_coord_x, f_md_coord_y,
+    f_md_header, f_md_chip, f_md_coord_x, f_md_coord_y,
     f_md_ftoa, f_md_hit_count, f_md_tot, f_md_event_count, f_md_toa, f_md_integral_tot,
     f_md_n_sent, f_md_n_lost, f_md_trigger_raw,
     f_md_time_lsb, f_md_time_msb, f_md_time_offset, f_md_new_frame_extra,
@@ -387,7 +457,7 @@ local function dissect_control(buffer, pinfo, tree)
 
     elseif opcode == 0x04 then
         -- Internal DAC settings: byte[4] selects the DAC, byte[0..3] carries
-        -- its new value (c/src/command_interface.h: CMD_TYPE_INTERNAL_DAC_SETTINGS).
+        -- its new value (c/src/protocol/cmd_interface.h: CMD_TYPE_INTERNAL_DAC_SETTINGS).
         root:add(f_dac_index, buffer(4, 1))
         root:add_le(f_payload_uint, buffer(0, 4)):append_text(" (DAC value)")
 
@@ -404,7 +474,7 @@ local function dissect_control(buffer, pinfo, tree)
     elseif opcode == 0x09 then
         -- Acquisition mode setting: byte[0] packs the mode (bits 0-6) and
         -- the fast-VCO flag (bit 7). See katherine_tpx3_set_acq_mode() in
-        -- c/src/config.c.
+        -- c/src/device/config.c.
         root:add(f_acq_mode, buffer(0, 1))
         root:add(f_fast_vco, buffer(0, 1))
 
@@ -475,7 +545,7 @@ local function dissect_control(buffer, pinfo, tree)
     elseif opcode == 0x21 then
         -- Acquisition setup: byte[4] is a fixed sub-address (0x05 in the
         -- reference implementation), byte[0]/byte[1] pack the start/end
-        -- trigger configuration (katherine_set_acquisition_triggers(), c/src/config.c).
+        -- trigger configuration (katherine_set_acquisition_triggers(), c/src/device/config.c).
         root:add(f_sub_address, buffer(4, 1))
         root:add(f_start_trig_en, buffer(0, 1))
         root:add(f_start_trig_ch, buffer(0, 1))
@@ -486,7 +556,7 @@ local function dissect_control(buffer, pinfo, tree)
         root:add(f_end_trig_fall, buffer(1, 1))
 
     elseif opcode == 0x26 then
-        -- Test pulse setting (katherine_tpx3_set_test_pulses(), c/src/config.c):
+        -- Test pulse setting (katherine_tpx3_set_test_pulses(), c/src/device/config.c):
         -- byte[0..1] count, byte[2] period (raw = (period-1)/64),
         -- byte[3] phase, byte[4] flags.
         root:add_le(f_tp_count, buffer(0, 2))
@@ -545,7 +615,7 @@ local function add_pixel_fields(item, word)
 
     -- coord_x (bits 28-35) straddles byte[3]/byte[4]; coord_y (bits 36-43)
     -- straddles byte[4]/byte[5]. Both are read as 2-byte little-endian
-    -- windows with a mask, per c/src/md.h.
+    -- windows with a mask, per c/src/protocol/md.h.
     item:add_le(f_md_coord_x, word(3, 2))
     item:add_le(f_md_coord_y, word(4, 2))
 end
@@ -560,8 +630,10 @@ local function dissect_data(buffer, pinfo, tree)
     local root = tree:add(katherine_proto, buffer, string.format("Katherine measurement data (%d word%s)", n_words, n_words == 1 and "" or "s"))
 
     local pixel_count = 0
-    local seen = {} -- header nibble -> count
+    local seen = {}        -- header nibble -> count
+    local chip_counts = {} -- chip index -> pixel count
     local last_n_sent, last_n_lost
+    local names = md_map()
 
     for i = 0, n_words - 1 do
         local offset = i * 6
@@ -570,14 +642,25 @@ local function dissect_data(buffer, pinfo, tree)
         local header = bits(val, 44, 4)
         seen[header] = (seen[header] or 0) + 1
 
-        local hname = MD_HEADER_NAMES[header] or "Unknown/reserved"
+        local hname = names[header] or "Unknown/reserved"
         local item = root:add(katherine_proto, word, string.format("MD[%d]: %s (0x%X)", i, hname, header))
         item:add(f_md_header, word(5, 1))
 
-        if header == 0x4 then
+        if md_is_pixel(header) then
             pixel_count = pixel_count + 1
+            local chip = md_chip(header)
+            chip_counts[chip] = (chip_counts[chip] or 0) + 1
+            -- Only where the header carries it: the first generation's pixel
+            -- header says nothing about a chip, and a field claiming zero
+            -- would read as information.
+            if katherine_proto.prefs.generation == 2 then item:add(f_md_chip, word(5, 1)) end
             add_pixel_fields(item, word)
-        elseif header == 0x2 or header == 0x3 then
+        elseif header == 0x2 or header == 0x3 or header == 0x6 then
+            -- Trigger words: the first generation's pair under 0x2 and 0x3,
+            -- the second's under 0x4 and 0x6. Only those the map above did not
+            -- already claim as a pixel reach here.
+            item:add_le(f_md_trigger_raw, word)
+        elseif header == 0x4 then
             item:add_le(f_md_trigger_raw, word)
         elseif header == 0x5 then
             item:add_le(f_md_time_offset, word(0, 4))
@@ -610,17 +693,32 @@ local function dissect_data(buffer, pinfo, tree)
         table.insert(parts, last_n_lost and string.format("lost=%d", last_n_lost) or "lost pixels")
     end
     if seen[0xE] then table.insert(parts, "aborted") end
-    if seen[0x2] or seen[0x3] then table.insert(parts, "trigger info") end
+    if md_is_pixel(0x2) then
+        -- Those two are pixels under this map, so a trigger is 0x4 and 0x6.
+        if seen[0x4] or seen[0x6] then table.insert(parts, "trigger event") end
+    elseif seen[0x2] or seen[0x3] then
+        table.insert(parts, "trigger info")
+    end
     if seen[0x5] then table.insert(parts, "timestamp offset") end
     local unknown = 0
     for h, c in pairs(seen) do
-        if MD_HEADER_NAMES[h] == nil and h ~= 0x4 then
+        if names[h] == nil then
             unknown = unknown + c
         end
     end
     if unknown > 0 then table.insert(parts, string.format("unknown=%d", unknown)) end
 
     local summary = string.format("%d MDs: %d pixel%s", n_words, pixel_count, pixel_count == 1 and "" or "s")
+
+    -- Per chip, where more than one reported: a capture off a multi-chip
+    -- readout is the case this breakdown exists for.
+    local chips = {}
+    for chip = 0, 3 do
+        if chip_counts[chip] then table.insert(chips, string.format("%d:%d", chip, chip_counts[chip])) end
+    end
+    if #chips > 1 then
+        summary = summary .. " (chip " .. table.concat(chips, ", ") .. ")"
+    end
     if #parts > 0 then
         summary = summary .. ", " .. table.concat(parts, ", ")
     end
