@@ -429,6 +429,12 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     // Set remote socket address.
     u->addr_remote.sin_family = AF_INET;
     u->addr_remote.sin_port   = htons(remote_port);
+    if (remote_addr == NULL) {
+        u->last_os_error = 0;
+        res              = KATHERINE_E_ADDR;
+        goto err_remote;
+    }
+
     if (inet_pton(AF_INET, remote_addr, &u->addr_remote.sin_addr) <= 0) {
         res = KATHERINE_E_ADDR;
         goto err_remote;
@@ -712,6 +718,11 @@ katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
 katherine_error_t
 katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
 {
+    if (remote_addr == NULL) {
+        u->last_os_error = 0;
+        return KATHERINE_E_ADDR;
+    }
+
     SOCKADDR_IN addr_remote;
     addr_remote.sin_family = AF_INET;
     addr_remote.sin_port   = htons(remote_port);

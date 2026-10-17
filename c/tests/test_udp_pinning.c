@@ -348,6 +348,24 @@ test_pinned_discard_bound(void)
 // like any other.
 
 static void
+test_null_remote_address_is_refused(void)
+{
+    katherine_udp_t u;
+
+    KT_REQUIRE(katherine_udp_init_bound(&u, HOST_LOCAL, PORT_A, HOST_LOCAL, PORT_B, TIMEOUT_MS) == 0);
+    KT_CHECK_EQ(katherine_udp_set_remote(&u, NULL, PORT_C), KATHERINE_E_ADDR);
+    KT_CHECK_EQ(katherine_udp_last_os_error(&u), 0);
+    katherine_udp_fini(&u);
+
+    KT_CHECK_EQ(katherine_udp_init_bound(&u, HOST_LOCAL, PORT_A, NULL, PORT_B, TIMEOUT_MS),
+        KATHERINE_E_ADDR);
+
+    // A null local address keeps its meaning: the wildcard.
+    KT_REQUIRE(katherine_udp_init_bound(&u, NULL, PORT_A, HOST_LOCAL, PORT_B, TIMEOUT_MS) == 0);
+    katherine_udp_fini(&u);
+}
+
+static void
 test_set_remote_moves_pin(void)
 {
     endpoints_t e;
@@ -375,6 +393,7 @@ main(void)
 {
     KT_RUN(test_pinned_keeps_send_target);
     KT_RUN(test_unpinned_follows_sender);
+    KT_RUN(test_null_remote_address_is_refused);
 
     // The remaining cases need to speak from a second local address. Where
     // the host offers none, they are skipped rather than failed: the two
