@@ -1004,4 +1004,82 @@ katherine_udp_get_dropped_datagrams(const katherine_udp_t *u)
     return 0;
 }
 
+/**
+ * Allow this session to send to a broadcast address.
+ *
+ * Off by default, as the OS has it: a socket that has not asked refuses a
+ * send to a broadcast address rather than delivering it to one host. Asked
+ * for by katherine_udp_discover(), which is the only thing in this library
+ * needs it.
+ *
+ * \param u UDP session
+ * \param enabled True to allow broadcast sends, false to refuse them again
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the option or its size was rejected; see
+ *   setsockopt(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the request failed at the OS level for a reason
+ *   none of the other codes cover, or the handle is not an open socket; see
+ *   setsockopt(2) and katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   which reach this list only through the shared error map; setsockopt(2)
+ *   documents neither.
+ */
+katherine_error_t
+katherine_udp_set_broadcast(katherine_udp_t *u, bool enabled)
+{
+    katherine_error_t res;
+    const int on = enabled ? 1 : 0;
+
+    if (setsockopt(u->sock, SOL_SOCKET, SO_BROADCAST, (const char *) &on, sizeof(on)) == SOCKET_ERROR) {
+        u->last_os_error = WSAGetLastError();
+        res              = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
+        goto err_setsockopt;
+    }
+
+    return KATHERINE_E_OK;
+
+err_setsockopt:
+    return res;
+}
+
+/**
+ * The address this session currently sends to, as a dotted quad.
+ *
+ * On an unpinned session that is whoever answered last, which is what makes
+ * it worth reading: a receive adopts the sender, so this says where the
+ * datagram just taken came from. A pinned session reports the address it was
+ * pinned to and nothing else.
+ *
+ * \param u UDP session
+ * \param addr Destination for the address, KATHERINE_ADDR_STR_SIZE bytes or more
+ * \param addr_size Size of that destination
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the buffer is too small for an address, or if
+ *   the conversion rejected its arguments; see InetNtop.
+ */
+katherine_error_t
+katherine_udp_get_remote_address(const katherine_udp_t *u, char *addr, size_t addr_size)
+{
+    katherine_error_t res;
+
+    if (addr_size < KATHERINE_ADDR_STR_SIZE) {
+        res = KATHERINE_E_INVAL;
+        goto err_addr_size;
+    }
+
+    if (InetNtopA(AF_INET, &u->addr_remote.sin_addr, addr, addr_size) == NULL) {
+        res = KATHERINE_E_INVAL;
+        goto err_convert;
+    }
+
+    return KATHERINE_E_OK;
+
+err_convert:
+err_addr_size:
+    return res;
+}
+
 #endif /* KATHERINE_WIN */

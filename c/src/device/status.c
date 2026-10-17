@@ -147,6 +147,26 @@ err:
 }
 
 /**
+ * Render a readout's chip-identifier word in the notation this library
+ * prints: a letter and a digit for the position on the wafer, then the wafer
+ * number. The letter is encoded one-based, which is what makes a zero word
+ * recognizable as no identifier at all.
+ *
+ * \param s_chip_id Destination for the rendered identifier
+ * \param chip_id The word as the readout sent it
+ */
+static void
+katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t chip_id)
+{
+    const uint32_t x = chip_id & 0xFu;
+    const uint32_t y = (chip_id >> 4) & 0xFu;
+    const uint32_t w = (chip_id >> 8) & 0xFFFu;
+
+    memset(s_chip_id, '\0', KATHERINE_CHIP_ID_STR_SIZE);
+    snprintf(s_chip_id, KATHERINE_CHIP_ID_STR_SIZE, "%c%u-W%04u", (char) ('A' + x - 1), y, w);
+}
+
+/**
  * Retrieve Timepix3 chip identifier.
  * \param device Katherine device
  * \param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`
@@ -196,7 +216,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_ECHO_CHIP_ID, crd);
     if (res) goto err;
 
-    int chip_id;
+    uint32_t chip_id;
     memcpy(&chip_id, crd, sizeof(chip_id));
 
     // A response whose identifier fields are all zero cannot come from a
@@ -216,12 +236,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
         goto err;
     }
 
-    int x = (chip_id & 0xF) - 1;
-    int y = (chip_id >> 4) & 0xF;
-    int w = (chip_id >> 8) & 0xFFF;
-
-    memset(s_chip_id, '\0', KATHERINE_CHIP_ID_STR_SIZE);
-    snprintf(s_chip_id, KATHERINE_CHIP_ID_STR_SIZE, "%c%d-W%04d", 65 + x, y, w);
+    katherine_chip_id_format(s_chip_id, chip_id);
 
     (void) katherine_udp_mutex_unlock(&device->control_socket);
     return KATHERINE_E_OK;

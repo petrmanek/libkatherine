@@ -86,6 +86,12 @@ katherine_add_test(NAME test_acq_unit SOURCES test_acq_unit.c LABELS unit
     PROPERTIES SKIP_RETURN_CODE 77)
 katherine_add_test(NAME test_tdc SOURCES test_tdc.c LABELS unit
     PROPERTIES SKIP_RETURN_CODE 77)
+
+# The discovery test's mock readouts bind the readout's own control port,
+# 1555, which is a global resource and the same one the emulator tests claim
+# -- so it must not run beside them.
+katherine_add_test(NAME test_discover SOURCES test_discover.c LABELS unit
+    PROPERTIES RUN_SERIAL TRUE)
 # One further case drives the protocol emulator in memory, to check that the
 # emulated readout answers the two commands the firmware answers under a
 # substituted identifier the same way it does. It needs the emulator in the

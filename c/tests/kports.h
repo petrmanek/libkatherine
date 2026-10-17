@@ -45,6 +45,7 @@
 #define KPORTS_UDP_RCVBUF    KPORTS_BLOCK(9)
 #define KPORTS_UDP_PINNING   KPORTS_BLOCK(10)
 #define KPORTS_BENCH_UDP     KPORTS_BLOCK(11)
+#define KPORTS_DISCOVER      KPORTS_BLOCK(12)
 
 // The blocks must not overlap, which for blocks handed out in order is the
 // same as each starting where the last ends. Stated rather than trusted: the
@@ -61,3 +62,4 @@ _Static_assert(KPORTS_TDC >= KPORTS_ACQ_UNIT + KPORTS_BLOCK_SIZE, "port blocks o
 _Static_assert(KPORTS_UDP_RCVBUF >= KPORTS_TDC + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_UDP_PINNING >= KPORTS_UDP_RCVBUF + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_BENCH_UDP >= KPORTS_UDP_PINNING + KPORTS_BLOCK_SIZE, "port blocks overlap");
+_Static_assert(KPORTS_DISCOVER >= KPORTS_BENCH_UDP + KPORTS_BLOCK_SIZE, "port blocks overlap");

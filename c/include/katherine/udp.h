@@ -100,6 +100,15 @@ katherine_udp_set_drop_counting(katherine_udp_t *u, bool enabled);
 KATHERINE_EXPORTED uint64_t
 katherine_udp_get_dropped_datagrams(const katherine_udp_t *u);
 
+/** Buffer katherine_udp_get_remote_address() needs, counting the terminator. */
+#define KATHERINE_ADDR_STR_SIZE 16
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_udp_set_broadcast(katherine_udp_t *u, bool enabled);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_udp_get_remote_address(const katherine_udp_t *u, char *addr, size_t addr_size);
+
 #ifdef __cplusplus
 }
 #endif
