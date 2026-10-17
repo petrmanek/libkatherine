@@ -99,6 +99,9 @@ typedef struct katherine_emu_profile {
      */
     uint32_t tdc_counts[KATHERINE_MAX_TDC_CHANNEL_COUNT];
 
+    bool matrix_ok; ///< True to answer katherine_tpx3_verify_config() that the pixel matrix read back cleanly.
+    bool dacs_ok;   ///< True to answer it that every DAC read back as written.
+
     float bias_sense_zero;     ///< Sense voltage the bias supply reads at no current; see katherine_get_bias_leakage()
     float readout_temperature; ///< Temperature reported for the readout board, in Celsius
     float sensor_temperature;  ///< Temperature the chip's own sensor reports, in Celsius

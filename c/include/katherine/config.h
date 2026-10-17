@@ -321,6 +321,21 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v);
 KATHERINE_EXPORTED katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config);
 
+/**
+ * Result of the readout's verification of the configuration held by the chip.
+ * Both flags are reported by the chip rather than this library.
+ */
+typedef struct katherine_tpx3_config_check {
+    bool matrix_ok; ///< True if the pixel matrix was read back without a parity error.
+    bool dacs_ok;   ///< True if every DAC was read back as written.
+} katherine_tpx3_config_check_t;
+
+KATHERINE_EXPORTED int
+katherine_tpx3_config_check_snprint(char *buf, size_t cap, const katherine_tpx3_config_check_t *v);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_config_check_t *check);
+
 KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config);
 

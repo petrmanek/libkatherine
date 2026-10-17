@@ -163,9 +163,9 @@ if(KATHERINE_BUILD_EMULATOR)
     katherine_add_test(NAME test_bias SOURCES test_bias.c LABELS emu
         PROPERTIES SKIP_RETURN_CODE 77)
 
-    # The DAC monitors: the monitor index on the wire, and the emulated
-    # chip's answer per monitor. Ports of its own, so no serial slot either.
-    katherine_add_test(NAME test_dac_scan SOURCES test_dac_scan.c LABELS emu
+    # What a chip reports about itself: its DAC monitors and the
+    # configuration check. Ports of its own, so no serial slot either.
+    katherine_add_test(NAME test_chip_readback SOURCES test_chip_readback.c LABELS emu
         PROPERTIES SKIP_RETURN_CODE 77)
 
     # Telling a second-generation readout which transport drives it. Opens a
@@ -189,4 +189,4 @@ endif()
 # are registered only when the emulator feature is on, so they are named as
 # such rather than looking like omissions.
 katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c test_bias.c
-    test_dac_scan.c test_interface_select.c)
+    test_chip_readback.c test_interface_select.c)

@@ -459,6 +459,19 @@ katherine_gpio_monitor_snprint(char *buf, size_t cap, const katherine_gpio_monit
 }
 
 /**
+ * Render the readout's report on the configuration held by the chip.
+ * \copydetails katherine_tpx3_coord_snprint
+ */
+int
+katherine_tpx3_config_check_snprint(char *buf, size_t cap, const katherine_tpx3_config_check_t *v)
+{
+    size_t off = 0;
+    REPR_APPENDF(buf, cap, off, "config_check{matrix_ok: %s, dacs_ok: %s}",
+        katherine_str_bool(v->matrix_ok), katherine_str_bool(v->dacs_ok));
+    return (int) off;
+}
+
+/**
  * Render a digest of the pixel configuration matrix (word count and a
  * 64-bit XOR fold, never the 16384 words themselves -- see px_config_xor64()
  * above for how the fold is computed).

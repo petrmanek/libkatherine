@@ -1590,3 +1590,90 @@ err_range:
 err_enumerated:
     return res;
 }
+
+/**
+ * Ask the readout whether the chip is still holding the configuration it was
+ * given.
+ *
+ * Two flags, both the chip's own answer rather than a comparison this library
+ * makes: whether the pixel matrix read back without a parity error, and
+ * whether every DAC read back as written.
+ *
+ * A flag is only as current as the answer it came from. Anything that writes
+ * the configuration after this call invalidates both, and a call that fails
+ * leaves them untouched.
+ *
+ * \see katherine_configure(), katherine_tpx3_set_all_pixel_config(),
+ *   katherine_tpx3_set_dacs()
+ *
+ * \param device Katherine device
+ * \param chip_index Index of the chip to ask about
+ * \param check Where the two flags are written, or NULL to discard them
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_UNSUPPORTED if the readout is of the first generation,
+ *   whose firmware has no such operation.
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, so how many chips it can address is unknown.
+ * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout
+ *   can address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
+ *   control session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
+ * \retval KATHERINE_E_STRAY if another command's responses kept arriving
+ *   until the discard budget ran out.
+ * \retval KATHERINE_E_INVAL if a socket call or the lock rejected an
+ *   argument; see sendto(2), recvfrom(2) and pthread_mutex_lock(3).
+ * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
+ *   reason none of the other codes cover.
+ * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3).
+ */
+katherine_error_t
+katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_config_check_t *check)
+{
+    katherine_error_t res;
+
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
+    if (device->derived_info.gen < 2) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_generation;
+    }
+    if (chip_index >= device->derived_info.max_chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
+
+    res = katherine_udp_mutex_lock(&device->control_socket);
+    if (res) goto err_lock;
+
+    katherine_cmd_drain(&device->control_socket);
+
+    res = katherine_cmd_send60(&device->control_socket, CMD_TYPE_VERIFY_CHIP_CONFIG, chip_index);
+    if (res) goto err_send;
+
+    char crd[KATHERINE_CMD_CRD_SIZE];
+    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_VERIFY_CHIP_CONFIG, crd);
+    if (res) goto err_recv;
+
+    if (check != NULL) {
+        check->matrix_ok = crd[0] != 0;
+        check->dacs_ok   = crd[1] != 0;
+    }
+
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    return KATHERINE_E_OK;
+
+err_recv:
+err_send:
+    (void) katherine_udp_mutex_unlock(&device->control_socket);
+err_lock:
+err_chip:
+err_generation:
+err_enumerated:
+    return res;
+}

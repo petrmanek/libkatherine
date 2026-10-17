@@ -449,11 +449,13 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 
-    case CMD_TYPE_GET_PIXEL_CONFIG: {
-        // Matrix and DAC back-read both compare equal.
+    case CMD_TYPE_VERIFY_CHIP_CONFIG: {
+        // Two flags, whatever the profile says they are: the emulator models
+        // no matrix and no DAC read-back, so a corrupted one is something a
+        // caller asks for rather than something that happens.
         uint8_t crd[KATHERINE_EMU_CRD_SIZE] = {0};
-        crd[0]                              = 1;
-        crd[1]                              = 1;
+        crd[0]                              = emu->profile.matrix_ok ? 1 : 0;
+        crd[1]                              = emu->profile.dacs_ok ? 1 : 0;
         crd[6]                              = (uint8_t) opcode;
         queue_crd(emu, crd, 0);
         break;
@@ -611,6 +613,8 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
 
     memcpy(profile->chip_id, "A1-W0001", sizeof("A1-W0001"));
 
+    profile->matrix_ok           = true;
+    profile->dacs_ok             = true;
     profile->bias_sense_zero     = 2.024f;
     profile->readout_temperature = 30.0f;
     profile->sensor_temperature  = 40.0f;

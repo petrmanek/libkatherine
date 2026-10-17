@@ -466,7 +466,7 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_INTERNAL_DAC_SCAN = 0x0F,
 
     CMD_TYPE_SET_PIXEL_CONFIG           = 0x10,
-    CMD_TYPE_GET_PIXEL_CONFIG           = 0x11,
+    CMD_TYPE_VERIFY_CHIP_CONFIG         = 0x11,
     CMD_TYPE_SET_ALL_PIXEL_CONFIG       = 0x12,
     CMD_TYPE_NUMBER_OF_FRAMES           = 0x13,
     CMD_TYPE_GET_ALL_DAC_SCAN           = 0x14, ///< Same 1-based DAC indexing as 0x0F above

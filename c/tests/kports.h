@@ -28,23 +28,23 @@
 #pragma once
 
 /** Ports per block: enough for two client/mock pairs, which is the most any test uses. */
-#define KPORTS_BLOCK_SIZE   8
+#define KPORTS_BLOCK_SIZE    8
 
 /** First port of block n. High and uncommon, and well clear of the ephemeral range. */
-#define KPORTS_BLOCK(n)     (42600 + KPORTS_BLOCK_SIZE * (n))
+#define KPORTS_BLOCK(n)      (42600 + KPORTS_BLOCK_SIZE * (n))
 
-#define KPORTS_CMD_ENCODERS KPORTS_BLOCK(0)
-#define KPORTS_CMD_TRANSACT KPORTS_BLOCK(1)
-#define KPORTS_ISSUE16      KPORTS_BLOCK(2)
-#define KPORTS_MD_DECODE    KPORTS_BLOCK(3)
-#define KPORTS_GEN2_DECODE  KPORTS_BLOCK(4)
-#define KPORTS_BIAS         KPORTS_BLOCK(5)
-#define KPORTS_DAC_SCAN     KPORTS_BLOCK(6)
-#define KPORTS_ACQ_UNIT     KPORTS_BLOCK(7)
-#define KPORTS_TDC          KPORTS_BLOCK(8)
-#define KPORTS_UDP_RCVBUF   KPORTS_BLOCK(9)
-#define KPORTS_UDP_PINNING  KPORTS_BLOCK(10)
-#define KPORTS_BENCH_UDP    KPORTS_BLOCK(11)
+#define KPORTS_CMD_ENCODERS  KPORTS_BLOCK(0)
+#define KPORTS_CMD_TRANSACT  KPORTS_BLOCK(1)
+#define KPORTS_ISSUE16       KPORTS_BLOCK(2)
+#define KPORTS_MD_DECODE     KPORTS_BLOCK(3)
+#define KPORTS_GEN2_DECODE   KPORTS_BLOCK(4)
+#define KPORTS_BIAS          KPORTS_BLOCK(5)
+#define KPORTS_CHIP_READBACK KPORTS_BLOCK(6)
+#define KPORTS_ACQ_UNIT      KPORTS_BLOCK(7)
+#define KPORTS_TDC           KPORTS_BLOCK(8)
+#define KPORTS_UDP_RCVBUF    KPORTS_BLOCK(9)
+#define KPORTS_UDP_PINNING   KPORTS_BLOCK(10)
+#define KPORTS_BENCH_UDP     KPORTS_BLOCK(11)
 
 // The blocks must not overlap, which for blocks handed out in order is the
 // same as each starting where the last ends. Stated rather than trusted: the
@@ -55,8 +55,8 @@ _Static_assert(KPORTS_ISSUE16 >= KPORTS_CMD_TRANSACT + KPORTS_BLOCK_SIZE, "port 
 _Static_assert(KPORTS_MD_DECODE >= KPORTS_ISSUE16 + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_GEN2_DECODE >= KPORTS_MD_DECODE + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_BIAS >= KPORTS_GEN2_DECODE + KPORTS_BLOCK_SIZE, "port blocks overlap");
-_Static_assert(KPORTS_DAC_SCAN >= KPORTS_BIAS + KPORTS_BLOCK_SIZE, "port blocks overlap");
-_Static_assert(KPORTS_ACQ_UNIT >= KPORTS_DAC_SCAN + KPORTS_BLOCK_SIZE, "port blocks overlap");
+_Static_assert(KPORTS_CHIP_READBACK >= KPORTS_BIAS + KPORTS_BLOCK_SIZE, "port blocks overlap");
+_Static_assert(KPORTS_ACQ_UNIT >= KPORTS_CHIP_READBACK + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_TDC >= KPORTS_ACQ_UNIT + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_UDP_RCVBUF >= KPORTS_TDC + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_UDP_PINNING >= KPORTS_UDP_RCVBUF + KPORTS_BLOCK_SIZE, "port blocks overlap");

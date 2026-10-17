@@ -44,10 +44,10 @@
 
 // Loopback endpoints of the mock readout; see test_bias.c for the other
 // fixed sets in this tree.
-#define PORT_DEVICE       (KPORTS_DAC_SCAN + 0)
-#define PORT_MOCK         (KPORTS_DAC_SCAN + 1)
-#define PORT_DEVICE_QUIET (KPORTS_DAC_SCAN + 2)
-#define PORT_MOCK_QUIET   (KPORTS_DAC_SCAN + 3)
+#define PORT_DEVICE       (KPORTS_CHIP_READBACK + 0)
+#define PORT_MOCK         (KPORTS_CHIP_READBACK + 1)
+#define PORT_DEVICE_QUIET (KPORTS_CHIP_READBACK + 2)
+#define PORT_MOCK_QUIET   (KPORTS_CHIP_READBACK + 3)
 
 #define MOCK_TIMEOUT_MS   5000
 #define QUIET_TIMEOUT_MS  100
@@ -116,6 +116,29 @@ static float
 mock_answer(unsigned i)
 {
     return MOCK_ANSWER_V + MOCK_STEP_V * (float) i;
+}
+
+// The configuration check's two flags, which the case chooses.
+static uint8_t g_check_matrix;
+static uint8_t g_check_dacs;
+
+// Receives one command and answers it with those two flags in bytes 0 and 1,
+// as the readout does.
+static void *
+mock_check(void *arg)
+{
+    uint8_t crd[KATHERINE_CMD_CRD_SIZE] = {0};
+
+    (void) arg;
+
+    if (katherine_udp_recv_exact(&g_mock, g_captured, KATHERINE_CMD_CRD_SIZE) != 0) return NULL;
+
+    crd[0]                         = g_check_matrix;
+    crd[1]                         = g_check_dacs;
+    crd[KATHERINE_CMD_OPCODE_BYTE] = (uint8_t) CMD_TYPE_VERIFY_CHIP_CONFIG;
+    (void) katherine_udp_send_exact(&g_mock, crd, sizeof(crd));
+
+    return NULL;
 }
 
 // Receives one command, records it whole, and answers it g_reply_count times
@@ -387,6 +410,102 @@ test_f_a_null_destination_is_still_read_off_the_wire(void)
         KATHERINE_E_OK);
     KT_CHECK_EQ(kthread_join(&thread), 0);
     KT_CHECK_EQ(g_captured[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_INTERNAL_DAC_SCAN);
+    katherine_udp_fini(&device.control_socket);
+}
+
+// g) The configuration check carries only a chip index, and answers two flags
+// -- the chip's own answer about its matrix and its DACs, not a comparison
+// this library makes. All four combinations, so neither flag can be read out
+// of the other's byte.
+static void
+test_g_the_configuration_check_answers_two_flags(void)
+{
+    const struct {
+        uint8_t matrix;
+        uint8_t dacs;
+    } cases[] = {
+        {1, 1},
+        {0, 1},
+        {1, 0},
+        {0, 0},
+    };
+
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        katherine_device_t device;
+        katherine_tpx3_config_check_t check;
+        kthread_t thread;
+
+        KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+
+        g_check_matrix = cases[i].matrix;
+        g_check_dacs   = cases[i].dacs;
+        memset(g_captured, 0xAA, sizeof(g_captured));
+        KT_REQUIRE(kthread_start(&thread, mock_check, NULL) == 0);
+
+        KT_CHECK_EQ(katherine_tpx3_verify_config(&device, 3, &check), 0);
+        KT_CHECK_EQ(kthread_join(&thread), 0);
+
+        KT_CHECK_EQ(g_captured[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_VERIFY_CHIP_CONFIG);
+        KT_CHECK_EQ(g_captured[0], 3);
+
+        // The chip index is the whole payload: no sub-index, unlike the
+        // single-monitor read above.
+        KT_CHECK_EQ(g_captured[1], 0);
+        KT_CHECK_EQ(g_captured[KATHERINE_CMD_SUBIDX_BYTE], 0);
+
+        KT_CHECK_EQ(check.matrix_ok, cases[i].matrix != 0);
+        KT_CHECK_EQ(check.dacs_ok, cases[i].dacs != 0);
+
+        katherine_udp_fini(&device.control_socket);
+    }
+}
+
+// h) And it refuses the same arguments the monitor read does, before sending.
+static void
+test_h_the_configuration_check_refuses_the_same_arguments(void)
+{
+    katherine_device_t device;
+    katherine_tpx3_config_check_t check;
+
+    KT_REQUIRE(device_init(&device, 0, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&device, 0, &check), KATHERINE_E_STATE);
+    expect_nothing_sent();
+    katherine_udp_fini(&device.control_socket);
+
+    // The first generation has no such operation, and is refused for that
+    // before the chip index is looked at -- so nothing goes on the wire and
+    // nothing waits out a receive timeout.
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&device, 0, &check), KATHERINE_E_UNSUPPORTED);
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&device, GEN1_CHIPS, &check), KATHERINE_E_UNSUPPORTED);
+    expect_nothing_sent();
+    katherine_udp_fini(&device.control_socket);
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&device, GEN2_CHIPS, &check), KATHERINE_E_BAD_CHIP);
+    expect_nothing_sent();
+
+    katherine_udp_fini(&device.control_socket);
+}
+
+// A caller that only wants to know the call succeeded passes NULL: the answer
+// is still read off the wire, so the session is left with nothing queued
+// behind it, and the flags are discarded.
+static void
+test_i_the_configuration_check_discards_a_null_destination(void)
+{
+    katherine_device_t device;
+    kthread_t thread;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+
+    g_check_matrix = 1;
+    g_check_dacs   = 1;
+    memset(g_captured, 0xAA, sizeof(g_captured));
+    KT_REQUIRE(kthread_start(&thread, mock_check, NULL) == 0);
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&device, 0, NULL), KATHERINE_E_OK);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_CHECK_EQ(g_captured[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_VERIFY_CHIP_CONFIG);
 
     katherine_udp_fini(&device.control_socket);
 }
@@ -406,6 +525,9 @@ main(void)
     KT_RUN(test_d_the_all_monitor_read_fills_every_monitor_in_order);
     KT_RUN(test_e_a_short_sequence_leaves_the_rest_not_a_number);
     KT_RUN(test_f_a_null_destination_is_still_read_off_the_wire);
+    KT_RUN(test_g_the_configuration_check_answers_two_flags);
+    KT_RUN(test_h_the_configuration_check_refuses_the_same_arguments);
+    KT_RUN(test_i_the_configuration_check_discards_a_null_destination);
 
     mocks_fini();
     return kt_summary();
