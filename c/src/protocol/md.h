@@ -120,16 +120,26 @@
 // than a shift costs a multiply; both measured, both material at the rates this
 // loop is built for. The four dividers are the only ones the chip offers, so
 // the set is closed.
-#define DEFINE_PMD_MAP_S(SUFFIX, SHIFT) \
+#define DEFINE_PMD_MAP_S(SUFFIX, TAG) \
     static inline void \
-    pmd_##SUFFIX##_s##SHIFT##_map(katherine_tpx3_px_##SUFFIX##_t *dst, const uint64_t *src, \
+    pmd_##SUFFIX##_s##TAG##_map(katherine_tpx3_px_##SUFFIX##_t *dst, const uint64_t *src, \
         const katherine_acquisition_t *acq, uint8_t chip)
 
+// The name carries a tag rather than the shift itself, so that a variant
+// whose shift is an expression can be named too -- which is what
+// DEFINE_PMD_MAP_RUNTIME_SHIFT below is for.
 #define DEFINE_PMD_MAP_EVERY_SHIFT(M) \
-    M(2) \
-    M(3) \
-    M(4) \
-    M(5)
+    M(2, 2) \
+    M(3, 3) \
+    M(4, 4) \
+    M(5, 5)
+
+// One more instantiation per mode, reading the shift out of the acquisition
+// instead of having it folded in. Not reached by the dispatcher: it exists so
+// the cost of the four specializations can be measured rather than argued,
+// which is what c/benchmarks/bench_decode.c does with it. An unused static
+// inline costs nothing in a build that does not call it.
+#define DEFINE_PMD_MAP_RUNTIME_SHIFT(M) M(r, acq->toa_coarse_tick_to_fine_shift)
 
 #define DEFINE_PMD_PAIR(NAME, TYPE, BASE_TYPE) \
     dst->NAME = (TYPE) EXTRACT(*src, BASE_TYPE, NAME)
@@ -205,8 +215,8 @@
 #define _BITS_pmd_f_toa_tot_coord_y_mask  MASK(8)
 #define _BITS_pmd_f_toa_tot_coord_y_type  uint16_t
 
-#define DEFINE_PMD_MAP_F_TOA_TOT(SHIFT) \
-    DEFINE_PMD_MAP_S(f_toa_tot, SHIFT) \
+#define DEFINE_PMD_MAP_F_TOA_TOT(TAG, SHIFT) \
+    DEFINE_PMD_MAP_S(f_toa_tot, TAG) \
     { \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_f_toa_tot); \
@@ -214,6 +224,7 @@
         DEFINE_PMD_PAIR(tot, uint16_t, pmd_f_toa_tot); \
     }
 DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_TOT)
+DEFINE_PMD_MAP_RUNTIME_SHIFT(DEFINE_PMD_MAP_F_TOA_TOT)
 
 #define _BITS_pmd_toa_tot_hit_count_start 0
 #define _BITS_pmd_toa_tot_hit_count_mask  MASK(4)
@@ -235,8 +246,8 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_TOT)
 #define _BITS_pmd_toa_tot_coord_y_mask    MASK(8)
 #define _BITS_pmd_toa_tot_coord_y_type    uint16_t
 
-#define DEFINE_PMD_MAP_TOA_TOT(SHIFT) \
-    DEFINE_PMD_MAP_S(toa_tot, SHIFT) \
+#define DEFINE_PMD_MAP_TOA_TOT(TAG, SHIFT) \
+    DEFINE_PMD_MAP_S(toa_tot, TAG) \
     { \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_toa_tot); \
@@ -245,6 +256,7 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_TOT)
         DEFINE_PMD_PAIR(tot, uint16_t, pmd_toa_tot); \
     }
 DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_TOA_TOT)
+DEFINE_PMD_MAP_RUNTIME_SHIFT(DEFINE_PMD_MAP_TOA_TOT)
 
 #define _BITS_pmd_f_toa_only_ftoa_start    0
 #define _BITS_pmd_f_toa_only_ftoa_mask     MASK(4)
@@ -262,14 +274,15 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_TOA_TOT)
 #define _BITS_pmd_f_toa_only_coord_y_mask  MASK(8)
 #define _BITS_pmd_f_toa_only_coord_y_type  uint16_t
 
-#define DEFINE_PMD_MAP_F_TOA_ONLY(SHIFT) \
-    DEFINE_PMD_MAP_S(f_toa_only, SHIFT) \
+#define DEFINE_PMD_MAP_F_TOA_ONLY(TAG, SHIFT) \
+    DEFINE_PMD_MAP_S(f_toa_only, TAG) \
     { \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_f_toa_only); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_f_toa_only, SHIFT, EXTRACT(*src, pmd_f_toa_only, ftoa)); \
     }
 DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
+DEFINE_PMD_MAP_RUNTIME_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
 
 #define _BITS_pmd_toa_only_hit_count_start 0
 #define _BITS_pmd_toa_only_hit_count_mask  MASK(4)
@@ -287,8 +300,8 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
 #define _BITS_pmd_toa_only_coord_y_mask    MASK(8)
 #define _BITS_pmd_toa_only_coord_y_type    uint16_t
 
-#define DEFINE_PMD_MAP_TOA_ONLY(SHIFT) \
-    DEFINE_PMD_MAP_S(toa_only, SHIFT) \
+#define DEFINE_PMD_MAP_TOA_ONLY(TAG, SHIFT) \
+    DEFINE_PMD_MAP_S(toa_only, TAG) \
     { \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_toa_only); \
@@ -296,6 +309,7 @@ DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
         DEFINE_PMD_PAIR(hit_count, uint8_t, pmd_toa_only); \
     }
 DEFINE_PMD_MAP_EVERY_SHIFT(DEFINE_PMD_MAP_TOA_ONLY)
+DEFINE_PMD_MAP_RUNTIME_SHIFT(DEFINE_PMD_MAP_TOA_ONLY)
 
 #define _BITS_pmd_f_event_count_itot_event_count_start  4
 #define _BITS_pmd_f_event_count_itot_event_count_mask   MASK(10)

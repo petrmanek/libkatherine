@@ -193,6 +193,17 @@ DEFINE_BENCH_DECODE(event_count_itot, , pmd_event_count_itot_map,   (uint64_t) d
 // One figure, because that dispatch is what differs -- the field extraction is
 // already covered by every row above.
 DEFINE_BENCH_DECODE(toa_tot, _gen2, pmd_toa_tot_s4_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot, GEN2)
+
+// The same four timestamp-bearing modes again, decoding with the coarse-to-fine
+// shift read out of the acquisition rather than folded in. This is the
+// measurement WP22 wants: the shift is why each of those modes is instantiated
+// four times, and the difference between each pair of rows below is what that
+// specialization buys. The two Event+iToT modes carry no timestamp and so have
+// no pair.
+DEFINE_BENCH_DECODE(f_toa_tot, _rs, pmd_f_toa_tot_sr_map,    (uint64_t) dst->coord.x + dst->coord.y + dst->tot + dst->timestamp, GEN1)
+DEFINE_BENCH_DECODE(toa_tot, _rs, pmd_toa_tot_sr_map,      (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count + dst->tot, GEN1)
+DEFINE_BENCH_DECODE(f_toa_only, _rs, pmd_f_toa_only_sr_map,   (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp, GEN1)
+DEFINE_BENCH_DECODE(toa_only, _rs, pmd_toa_only_sr_map,     (uint64_t) dst->coord.x + dst->coord.y + dst->timestamp + dst->hit_count, GEN1)
 // clang-format on
 
 #undef DEFINE_BENCH_DECODE
@@ -284,6 +295,16 @@ main(void)
     run_bench("event_count_itot", bench_decode_event_count_itot, buf, words);
     build_canned_buffer(buf, words, true);
     run_bench("toa_tot_gen2", bench_decode_toa_tot_gen2, buf, words);
+    build_canned_buffer(buf, words, false);
+
+    // The same four modes with the shift read out of the acquisition instead
+    // of folded in. Each is directly comparable with its row above, the only
+    // difference being where the shift comes from.
+    run_bench("f_toa_tot_rs", bench_decode_f_toa_tot_rs, buf, words);
+    run_bench("toa_tot_rs", bench_decode_toa_tot_rs, buf, words);
+    run_bench("f_toa_only_rs", bench_decode_f_toa_only_rs, buf, words);
+    run_bench("toa_only_rs", bench_decode_toa_only_rs, buf, words);
+
     run_bench("memcpy", bench_decode_memcpy, buf, words);
 
     free(g_memcpy_scratch);
