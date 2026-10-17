@@ -99,6 +99,8 @@ typedef struct katherine_emu_profile {
      */
     uint32_t tdc_counts[KATHERINE_MAX_TDC_CHANNEL_COUNT];
 
+    uint8_t chip_count; ///< Chips the emulated readout reports hits from, bounded by what its hardware type can address. Zero means one.
+
     bool matrix_ok; ///< True to answer katherine_tpx3_verify_config() that the pixel matrix read back cleanly.
     bool dacs_ok;   ///< True to answer it that every DAC read back as written.
 
@@ -232,10 +234,12 @@ typedef struct katherine_emu_stream {
     bool frame_active;           ///< Internal: a frame has been opened and not yet finished
     katherine_emu_stage_t stage; ///< Internal
 
-    uint8_t readout_mode; ///< Internal: sampled from the acquisition start command
-    uint8_t px_mode;      ///< Internal: sampled from the register file when armed
-    bool fast_vco;        ///< Internal
-    uint8_t pixel_header; ///< Internal: the header a pixel carries
+    uint8_t readout_mode;  ///< Internal: sampled from the acquisition start command
+    uint8_t px_mode;       ///< Internal: sampled from the register file when armed
+    bool fast_vco;         ///< Internal
+    uint8_t pixel_header;  ///< Internal: the header a pixel carries
+    bool per_chip_headers; ///< Internal: whether that header carries the chip index
+    uint8_t chip_count;    ///< Internal: chips the stream draws hits from
 
     uint32_t frames_total;  ///< Internal
     uint32_t frame_index;   ///< Internal

@@ -120,6 +120,7 @@ enum {
     OPT_SEED,
     OPT_RATE,
     OPT_HITS_PER_FRAME,
+    OPT_CHIPS,
     OPT_LOST_PER_FRAME,
     OPT_PATTERN,
     OPT_ACK_LATENCY_US,
@@ -138,6 +139,7 @@ static const ksim_opt_t OPTS[] = {
     {"seed", '\0', true, OPT_SEED},
     {"rate", '\0', true, OPT_RATE},
     {"hits-per-frame", '\0', true, OPT_HITS_PER_FRAME},
+    {"chips", '\0', true, OPT_CHIPS},
     {"lost-per-frame", '\0', true, OPT_LOST_PER_FRAME},
     {"pattern", '\0', true, OPT_PATTERN},
     {"ack-latency-us", '\0', true, OPT_ACK_LATENCY_US},
@@ -164,7 +166,9 @@ typedef struct daemon_options {
     bool rate_set;
 
     uint32_t hits_per_frame;
+    uint8_t chips;
     bool hits_set;
+    bool chips_set;
 
     uint32_t lost_per_frame;
     bool lost_set;
@@ -204,6 +208,8 @@ print_usage(FILE *out, const char *prog)
         "  --seed <n>                   seed of the pseudo-random generators\n"
         "  --rate <bytes/s>             measurement data rate limit, 0 to disable\n"
         "  --hits-per-frame <n>         pixel measurement data emitted per frame\n"
+        "  --chips <n>                  chips to report hits from, bounded by what the\n"
+        "                               profile's hardware type can address\n"
         "  --lost-per-frame <n>         lost hits reported per frame\n"
         "  --pattern <name>             uniform | hot-column | gradient\n"
         "  --ack-latency-us <n>         virtual latency of command responses\n"
@@ -349,6 +355,17 @@ parse_options(int argc, char *argv[], daemon_options_t *options)
             }
             options->hits_set = true;
             break;
+
+        case OPT_CHIPS: {
+            uint32_t chips;
+            if (!parse_u32(value, &chips) || chips == 0 || chips > 255) {
+                fprintf(stderr, "ksim: invalid --chips '%s'\n", value);
+                return EXIT_FAILURE;
+            }
+            options->chips     = (uint8_t) chips;
+            options->chips_set = true;
+            break;
+        }
 
         case OPT_LOST_PER_FRAME:
             if (!parse_u32(value, &options->lost_per_frame)) {
@@ -544,6 +561,7 @@ main(int argc, char *argv[])
     if (options.seed_set) profile.seed = options.seed;
     if (options.rate_set) profile.shape_bytes_per_s = options.rate;
     if (options.hits_set) profile.hits_per_frame = options.hits_per_frame;
+    if (options.chips_set) profile.chip_count = options.chips;
     if (options.lost_set) profile.lost_per_frame = options.lost_per_frame;
     if (options.pattern_set) profile.pattern = options.pattern;
     if (options.ack_latency_set) profile.ack_latency_ns = options.ack_latency_us * 1000ull;

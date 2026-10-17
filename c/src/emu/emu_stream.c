@@ -16,6 +16,7 @@
 // The pixel mapping functions of md.h are written against the acquisition,
 // so its declaration has to precede them.
 #include <katherine/acquisition.h>
+#include <katherine/device.h>
 #include "protocol/md.h"
 #include "emu.h"
 
@@ -41,6 +42,7 @@ typedef struct emu_hit {
     uint16_t tot;
     uint16_t event_count;
     uint16_t integral_tot;
+    uint8_t chip;
 } emu_hit_t;
 
 static inline bool
@@ -77,6 +79,11 @@ static void
 draw_hit(katherine_emu_stream_t *stream, uint64_t due_ns, emu_hit_t *hit)
 {
     memset(hit, 0, sizeof(*hit));
+
+    // Round robin across the chips the readout carries, so a stream from
+    // more than one is spread evenly rather than arriving in blocks -- which
+    // is the harder case for a decoder that keeps per-chip state.
+    hit->chip = (uint8_t) (stream->px_index % (stream->chip_count ? stream->chip_count : 1));
 
     switch (stream->pattern) {
     case KATHERINE_EMU_PATTERN_HOT_COLUMN:
@@ -115,7 +122,11 @@ draw_hit(katherine_emu_stream_t *stream, uint64_t due_ns, emu_hit_t *hit)
 static uint64_t
 build_hit_md(const katherine_emu_stream_t *stream, const emu_hit_t *hit)
 {
-    uint64_t md = EMU_MD_NEW(stream->pixel_header);
+    // The header carries the chip from the second generation on; the first
+    // has one pixel header for every chip, so a multi-chip stream there is
+    // indistinguishable from a single-chip one and every hit decodes as chip
+    // zero. That is the wire format, not a gap in the model.
+    uint64_t md = EMU_MD_NEW(stream->pixel_header + (stream->per_chip_headers ? hit->chip : 0));
 
     switch (stream->px_mode) {
     case KATHERINE_TPX3_PX_TOA_TOT:
@@ -329,10 +340,21 @@ katherine_emu_stream_arm(katherine_emu_t *emu, uint8_t readout_mode)
     stream->buf_len = 0;
     stream->buf_pos = 0;
 
-    stream->readout_mode = readout_mode;
-    stream->px_mode      = emu->regs.px_mode;
-    stream->fast_vco     = emu->regs.fast_vco;
-    stream->pixel_header = katherine_emu_pixel_header(&emu->profile, 0);
+    stream->readout_mode     = readout_mode;
+    stream->px_mode          = emu->regs.px_mode;
+    stream->fast_vco         = emu->regs.fast_vco;
+    stream->pixel_header     = katherine_emu_pixel_header(&emu->profile, 0);
+    stream->per_chip_headers = katherine_emu_pixel_header(&emu->profile, 1) != stream->pixel_header;
+
+    // Bounded by what the readout can address, so a profile asking for more
+    // chips than its hardware type carries emits what that type can.
+    {
+        const katherine_device_derived_info_t derived = katherine_device_derived_info_recognize(emu->profile.hw_type);
+        const uint8_t asked                           = emu->profile.chip_count ? emu->profile.chip_count : 1;
+
+        stream->chip_count = (asked <= derived.max_chip_count) ? asked : derived.max_chip_count;
+        if (stream->chip_count == 0) stream->chip_count = 1;
+    }
 
     // The acquisition time is set as a pair of halves counting ten
     // nanosecond units.

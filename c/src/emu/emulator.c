@@ -613,6 +613,7 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
 
     memcpy(profile->chip_id, "A1-W0001", sizeof("A1-W0001"));
 
+    profile->chip_count          = 1;
     profile->matrix_ok           = true;
     profile->dacs_ok             = true;
     profile->bias_sense_zero     = 2.024f;

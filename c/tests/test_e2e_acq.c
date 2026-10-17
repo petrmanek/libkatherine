@@ -81,69 +81,73 @@
 // daemon's command line) and as integers (for the expectations), so they are
 // spelled once and stringified where a string is wanted.
 
-#define E2E_STR_(x)          #x
-#define E2E_STR(x)           E2E_STR_(x)
+#define E2E_STR_(x)             #x
+#define E2E_STR(x)              E2E_STR_(x)
 
-#define KSIM_LISTEN_ADDR     "127.0.0.2"
-#define KSIM_SEED            12345
-#define HITS_PER_FRAME       40
-#define LOST_PER_FRAME       3
+#define KSIM_LISTEN_ADDR        "127.0.0.2"
+#define KSIM_SEED               12345
+#define HITS_PER_FRAME          40
+#define LOST_PER_FRAME          3
 
 // Readiness polling: the device's control timeout is 100 ms, so one failed
 // attempt costs that much plus the sleep below -- 80 attempts bound the wait
 // at roughly ten seconds.
-#define READY_ATTEMPTS       80
-#define READY_SLEEP_MS       25
+#define READY_ATTEMPTS          80
+#define READY_SLEEP_MS          25
 
 // Emulated readout profile defaults, from katherine_emu_profile_defaults()
 // in c/src/emu/emulator.c.
-#define EXPECTED_CHIP_ID     "A1-W0001"
-#define EXPECTED_HW_TYPE     0x01
-#define EXPECTED_HW_REVISION 0x01
-#define EXPECTED_SERIAL      1
-#define EXPECTED_FW_VERSION  1
-#define EXPECTED_READOUT_T   30.0f
-#define EXPECTED_SENSOR_T    40.0f
+#define EXPECTED_CHIP_ID        "A1-W0001"
+#define EXPECTED_HW_TYPE        0x01
+#define EXPECTED_HW_REVISION    0x01
+#define EXPECTED_SERIAL         1
+#define EXPECTED_FW_VERSION     1
+#define EXPECTED_READOUT_T      30.0f
+#define EXPECTED_SENSOR_T       40.0f
 
 // Communication status of the emulated readout: all eight data lines up, one
 // chip attached, and a reported data rate of zero because the daemon
 // is started without --rate and therefore does not shape its stream
 // (queue_comm_status() in c/src/emu/emulator.c).
-#define EXPECTED_COMM_LINES  0xFF
-#define EXPECTED_DATA_RATE   0
+#define EXPECTED_COMM_LINES     0xFF
+#define EXPECTED_DATA_RATE      0
 
 // The ADC channels answer a synthetic ramp of 0.125 V per channel, so a
 // caller can tell them apart (CMD_TYPE_GET_ADC_VOLTAGE in emulator.c).
-#define ADC_CHANNEL          3
-#define EXPECTED_ADC_VOLTAGE 0.5f
+#define ADC_CHANNEL             3
+#define EXPECTED_ADC_VOLTAGE    0.5f
 
 // Period of the emulated readout timer, i.e. the unit of every timestamp in
 // the measurement data stream (KATHERINE_EMU_TICK_NS in c/src/emu/emu.h).
-#define TICK_NS              25
+#define TICK_NS                 25
 
 // Width of the coarse time-of-arrival field, in the emulator and in the
 // pixel layouts of c/src/md.h alike.
-#define TOA_LIMIT            (1u << 14)
+#define TOA_LIMIT               (1u << 14)
 
 // Timestamps arrive in fine-oscillator ticks, so the chip's coarse field maps
 // onto TOA_LIMIT * FINE_TICKS of them. Pinned rather than derived per hit; the
 // test asserts it against the library's own ratio before relying on it.
-#define FINE_TICKS           16u
+#define FINE_TICKS              16u
 
 // Shutter short enough that the coarse ToA cannot wrap within a frame: 0.4 ms
 // is 16000 readout ticks, just inside the 16384 the field holds. That keeps
 // the arrival times of a frame strictly increasing and leaves the timestamp
 // offset the data-driven chain interleaves at zero, so the two chains under
 // test below deliver the same ToA values.
-#define SHORT_ACQ_TIME_NS    400000.0
+#define SHORT_ACQ_TIME_NS       400000.0
 
 // Long enough that the daemon keeps trickling hits out while the abort is
 // issued and takes effect.
-#define LONG_ACQ_TIME_NS     200000000.0
+#define LONG_ACQ_TIME_NS        200000000.0
 
 // Frames requested by the sequential-readout case. Data-driven acquisitions
 // are limited to one frame by katherine_acquisition_begin() itself.
-#define SEQ_FRAMES           3
+// Chips a second-generation readout can address, and so the width of the
+// per-chip counters below. From the table in c/src/device/device.c.
+#define KATHERINE_E2E_MAX_CHIPS 8
+
+#define SEQ_FRAMES              3
 
 // Deliberately not a local address: it must black-hole the datagram rather
 // than have it delivered back to the sender. Every 127.0.0.0/8 address is
@@ -151,27 +155,27 @@
 // the library's own wildcard-bound control socket and read back as if it
 // were the readout's acknowledgement. 192.0.2.1 is TEST-NET-1 (RFC 5737),
 // reserved for documentation and never assigned, so nothing answers.
-#define DEAD_ADDR            "192.0.2.1"
+#define DEAD_ADDR               "192.0.2.1"
 
 // Deliberately the opposite of DEAD_ADDR: a local address nobody is bound
 // to, so that a command sent there comes straight back to the sender (all
 // of 127.0.0.0/8 is local) and exercises the faux-echo rejection.
-#define SILENT_LOOPBACK_ADDR "127.0.0.9"
+#define SILENT_LOOPBACK_ADDR    "127.0.0.9"
 
 // Bounds the timeout case: the control timeout is 100 ms, and time(NULL) has
 // one-second granularity, so anything at or under two seconds of difference
 // proves the call did not hang.
-#define TIMEOUT_BUDGET_S     2.0
+#define TIMEOUT_BUDGET_S        2.0
 
 // Acquisition buffers. ksim's own datagrams are far smaller than this (at
 // most 226 data at a time), but katherine_acquisition_init() documents 65536
 // bytes as the minimum for real hardware -- the readout sends one datagram
 // per SDRAM slot, up to about 65 kB -- so the test models that contract
 // instead of the daemon's actual traffic.
-#define MD_BUFFER_SIZE       65536
-#define PIXEL_BUFFER_HITS    1024
-#define REPORT_TIMEOUT_MS    500
-#define FAIL_TIMEOUT_MS      10000
+#define MD_BUFFER_SIZE          65536
+#define PIXEL_BUFFER_HITS       1024
+#define REPORT_TIMEOUT_MS       500
+#define FAIL_TIMEOUT_MS         10000
 
 // The acquisition mode under test, and the pixel layout it delivers.
 typedef katherine_tpx3_px_f_toa_tot_t px_t;
@@ -201,7 +205,7 @@ static char g_skip_reason[256];
 // on the same device would recover); recreating the device between attempts
 // still sheds anything else a failed attempt may have left queued.
 static const char *
-fixture_init(const char *ksim_path, const char *profile)
+fixture_init_chips(const char *ksim_path, const char *profile, const char *chips)
 {
     char *argv[] = {
         (char *) "ksim",
@@ -217,6 +221,8 @@ fixture_init(const char *ksim_path, const char *profile)
         (char *) E2E_STR(LOST_PER_FRAME),
         (char *) "--pattern",
         (char *) "hot-column",
+        (char *) "--chips",
+        (char *) chips,
         (char *) "--quiet",
         NULL,
     };
@@ -264,6 +270,13 @@ fixture_init(const char *ksim_path, const char *profile)
         "unsupported here (unproven on Windows)",
         READY_ATTEMPTS);
     return g_skip_reason;
+}
+
+// One chip, which is what every case but the multi-chip one wants.
+static const char *
+fixture_init(const char *ksim_path, const char *profile)
+{
+    return fixture_init_chips(ksim_path, profile, "1");
 }
 
 // ------------------------------------------------------------------
@@ -343,6 +356,9 @@ typedef struct acq_probe {
     uint32_t bad_fold;
     uint64_t prev_toa;
 
+    uint64_t hits_per_chip[KATHERINE_E2E_MAX_CHIPS]; /* one counter per chip the readout can address */
+    uint32_t bad_chip;                               /* hits claiming a chip past that */
+
     uint32_t data_callbacks; /* undecoded mode only */
     uint64_t data_bytes;
     bool abort_enabled; /* whether the abort cases below drive this run */
@@ -406,6 +422,12 @@ on_pixels_received(void *ctx, const void *px, size_t count)
         if (probe->hits_in_frame > 0 && hits[i].timestamp <= probe->prev_toa) ++probe->bad_toa;
 
         if (hits[i].tot > 1023) ++probe->bad_tot;
+
+        if (hits[i].chip < KATHERINE_E2E_MAX_CHIPS) {
+            ++probe->hits_per_chip[hits[i].chip];
+        } else {
+            ++probe->bad_chip;
+        }
 
         // Combining is invertible, so the chip's own counters come back out of
         // the timestamp by division and both must land inside their fields.
@@ -847,6 +869,68 @@ test_phase_request_resolution(void)
 
 // ------------------------------------------------------------------
 
+// ------------------------------------------------------------------
+// h) Hits from more than one chip.
+//
+// The chip field is filled from the measurement-data header, which only the
+// second generation carries per chip -- so this case runs there, with the
+// daemon told to draw hits round robin across four chips. Every other case
+// in this file sees one chip and would pass against a decoder that hard-wired
+// the field to zero.
+//
+// The first generation is checked too, and for the opposite claim: its wire
+// format has one pixel header for every chip, so a multi-chip stream there is
+// indistinguishable and every hit must decode as chip zero rather than as
+// something invented.
+
+#define MULTI_CHIPS     4
+#define MULTI_CHIPS_STR "4"
+
+static void
+test_hits_carry_their_chip(void)
+{
+    katherine_acquisition_t acq;
+    acq_probe_t probe;
+
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
+
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
+    KT_CHECK_EQ(probe.hits_delivered, HITS_PER_FRAME);
+    KT_CHECK_EQ(probe.bad_chip, 0);
+
+    // Round robin over a hit count that divides by four, so each chip carries
+    // exactly a quarter -- an even split rather than merely a nonzero one,
+    // which a decoder reading the wrong header bits could still produce.
+    for (unsigned chip = 0; chip < MULTI_CHIPS; ++chip) {
+        printf("# chip %u: %llu hits\n", chip, (unsigned long long) probe.hits_per_chip[chip]);
+        KT_CHECK_EQ(probe.hits_per_chip[chip], HITS_PER_FRAME / MULTI_CHIPS);
+    }
+    for (unsigned chip = MULTI_CHIPS; chip < KATHERINE_E2E_MAX_CHIPS; ++chip) {
+        KT_CHECK_EQ(probe.hits_per_chip[chip], 0);
+    }
+
+    katherine_acquisition_fini(&acq);
+}
+
+static void
+test_one_header_means_one_chip(void)
+{
+    katherine_acquisition_t acq;
+    acq_probe_t probe;
+
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
+
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
+    KT_CHECK_EQ(probe.hits_delivered, HITS_PER_FRAME);
+    KT_CHECK_EQ(probe.bad_chip, 0);
+
+    // Every hit on chip zero, whatever the daemon was asked to emit.
+    KT_CHECK_EQ(probe.hits_per_chip[0], HITS_PER_FRAME);
+
+    katherine_acquisition_fini(&acq);
+}
+
+
 int
 main(int argc, char *argv[])
 {
@@ -889,6 +973,31 @@ main(int argc, char *argv[])
         printf("# second generation\n");
         KT_RUN(test_data_driven_frame);
         KT_RUN(test_sequential_frames);
+
+        katherine_device_fini(&g_device);
+    }
+    kspawn_stop(&g_ksim);
+
+    /* Four chips, which only the second generation's headers can express. */
+    skip = fixture_init_chips(argv[1], "gen2-tpx3", MULTI_CHIPS_STR);
+    if (skip != NULL) {
+        printf("# SKIP the multi-chip phase: %s\n", skip);
+    } else {
+        printf("# second generation, %s chips\n", MULTI_CHIPS_STR);
+        KT_RUN(test_hits_carry_their_chip);
+
+        katherine_device_fini(&g_device);
+    }
+    kspawn_stop(&g_ksim);
+
+    /* And the same request of a first-generation readout, whose wire format
+     * cannot carry a chip index at all. */
+    skip = fixture_init_chips(argv[1], "gen1-tpx3", MULTI_CHIPS_STR);
+    if (skip != NULL) {
+        printf("# SKIP the single-header phase: %s\n", skip);
+    } else {
+        printf("# first generation, %s chips asked for\n", MULTI_CHIPS_STR);
+        KT_RUN(test_one_header_means_one_chip);
 
         katherine_device_fini(&g_device);
     }
