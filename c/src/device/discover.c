@@ -10,9 +10,13 @@
  * SPDX-License-Identifier: MIT
  */
 
+// monoclock.h first, and before any libc header: it sets _POSIX_C_SOURCE,
+// which glibc resolves once at the first <features.h> and does not revisit.
+// Included later, clock_gettime() is invisible under a strict standard.
+#include "monoclock.h"
+
 #include <string.h>
 #include <katherine/discover.h>
-#include "monoclock.h"
 #include "msleep.h"
 #include "protocol/cmd_interface.h"
 
