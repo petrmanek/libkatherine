@@ -18,14 +18,15 @@
 // present shape of the table and breaks when an operation is added, split or
 // given a default.
 //
-// Each checks the transport before calling through it, because a zeroed
-// katherine_transport_t -- which is what a device carries until a link is
-// opened on it -- has a null table, and dereferencing it is the one mistake
-// this layer exists to make impossible.
+// Each is the call and nothing else. The transport is the caller's to have
+// opened, exactly as katherine_udp_send_exact() takes a session the caller
+// opened, and this layer does not re-check what the rest of the library
+// leaves unchecked either.
 //
-// Past that check each forwards whatever the transport reports, so the codes
-// documented below are only the ones this layer raises itself; the rest are
-// the opened transport's, and katherine_transport_udp() documents those.
+// The \retval lists below give only what this layer can say. Which codes a
+// call actually produces belongs to the transport behind it, and gathering
+// those from udp_transport.c -- and from usb_transport.c once it exists --
+// into these blocks is work still to do.
 
 /**
  * Send one command.
@@ -34,26 +35,13 @@
  * \param count Length of \p data in bytes.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport was given, or it is not open.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count)
 {
-    katherine_error_t res;
-
-    if (transport == NULL || transport->ops == NULL) {
-        res = KATHERINE_E_INVAL;
-        goto err_transport;
-    }
-
-    res = transport->ops->send_cmd(transport->ctx, data, count);
-    if (res) goto err_send;
-
-    return KATHERINE_E_OK;
-
-err_send:
-err_transport:
-    return res;
+    return transport->ops->send_cmd(transport->ctx, data, count);
 }
 
 /**
@@ -63,26 +51,13 @@ err_transport:
  * \param count Bytes to receive, which the response must match exactly.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport was given, or it is not open.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t count)
 {
-    katherine_error_t res;
-
-    if (transport == NULL || transport->ops == NULL) {
-        res = KATHERINE_E_INVAL;
-        goto err_transport;
-    }
-
-    res = transport->ops->recv_crd(transport->ctx, crd, count);
-    if (res) goto err_recv;
-
-    return KATHERINE_E_OK;
-
-err_recv:
-err_transport:
-    return res;
+    return transport->ops->recv_crd(transport->ctx, crd, count);
 }
 
 /**
@@ -90,26 +65,13 @@ err_transport:
  * \param transport Transport to discard on.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport was given, or it is not open.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_flush_incoming(katherine_transport_t *transport)
 {
-    katherine_error_t res;
-
-    if (transport == NULL || transport->ops == NULL) {
-        res = KATHERINE_E_INVAL;
-        goto err_transport;
-    }
-
-    res = transport->ops->flush_incoming(transport->ctx);
-    if (res) goto err_flush;
-
-    return KATHERINE_E_OK;
-
-err_flush:
-err_transport:
-    return res;
+    return transport->ops->flush_incoming(transport->ctx);
 }
 
 /**
@@ -122,26 +84,13 @@ err_transport:
  * \param len Storage for its filled length in bytes.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport was given, or it is not open.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **buf, size_t *len)
 {
-    katherine_error_t res;
-
-    if (transport == NULL || transport->ops == NULL) {
-        res = KATHERINE_E_INVAL;
-        goto err_transport;
-    }
-
-    res = transport->ops->acquire_data_buf(transport->ctx, buf, len);
-    if (res) goto err_acquire;
-
-    return KATHERINE_E_OK;
-
-err_acquire:
-err_transport:
-    return res;
+    return transport->ops->acquire_data_buf(transport->ctx, buf, len);
 }
 
 /**
@@ -150,27 +99,13 @@ err_transport:
  * \param buf Buffer katherine_transport_acquire_data_buf() reported.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport was given, it is not open, or the
- *   buffer is not one this transport lent.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf)
 {
-    katherine_error_t res;
-
-    if (transport == NULL || transport->ops == NULL) {
-        res = KATHERINE_E_INVAL;
-        goto err_transport;
-    }
-
-    res = transport->ops->release_data_buf(transport->ctx, buf);
-    if (res) goto err_release;
-
-    return KATHERINE_E_OK;
-
-err_release:
-err_transport:
-    return res;
+    return transport->ops->release_data_buf(transport->ctx, buf);
 }
 
 /**
@@ -179,42 +114,21 @@ err_transport:
  * \param timeout_ms Limit on one receive, in milliseconds.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport was given, or it is not open.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms)
 {
-    katherine_error_t res;
-
-    if (transport == NULL || transport->ops == NULL) {
-        res = KATHERINE_E_INVAL;
-        goto err_transport;
-    }
-
-    res = transport->ops->set_timeout(transport->ctx, timeout_ms);
-    if (res) goto err_timeout;
-
-    return KATHERINE_E_OK;
-
-err_timeout:
-err_transport:
-    return res;
+    return transport->ops->set_timeout(transport->ctx, timeout_ms);
 }
 
 /**
- * Release everything held by the transport, leaving it closed.
- * \param transport Transport to close, which may be closed already.
+ * Release everything held by the transport.
+ * \param transport Transport to release.
  */
 void
-katherine_transport_close(katherine_transport_t *transport)
+katherine_transport_fini(katherine_transport_t *transport)
 {
-    if (transport == NULL || transport->ops == NULL) return;
-
-    transport->ops->close(transport->ctx);
-
-    // Left closed rather than merely emptied: a second close is then the
-    // no-op above instead of a second free, and a device that reopens a link
-    // writes over a table that no longer points at a released context.
-    transport->ops = NULL;
-    transport->ctx = NULL;
+    transport->ops->fini(transport->ctx);
 }

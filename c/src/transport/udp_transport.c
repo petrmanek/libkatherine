@@ -104,7 +104,7 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 }
 
 static void
-udp_t_close(void *ctx)
+udp_t_fini(void *ctx)
 {
     struct udp_transport *t = ctx;
     if (t == NULL) return;
@@ -120,7 +120,7 @@ static const katherine_transport_ops_t udp_ops = {
     .acquire_data_buf = udp_t_acquire_data_buf,
     .release_data_buf = udp_t_release_data_buf,
     .set_timeout      = udp_t_set_timeout,
-    .close            = udp_t_close,
+    .fini             = udp_t_fini,
 };
 
 /**
@@ -136,7 +136,7 @@ static const katherine_transport_ops_t udp_ops = {
  *   allocated.
  */
 katherine_error_t
-katherine_transport_udp(katherine_transport_t *transport, katherine_udp_t *udp, size_t buffer_size)
+katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *udp, size_t buffer_size)
 {
     katherine_error_t res;
 

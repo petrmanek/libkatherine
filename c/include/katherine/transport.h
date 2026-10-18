@@ -49,38 +49,26 @@ typedef enum katherine_transport_kind {
  * transport owns them, hands over a filled one and takes it back, which is
  * what lets an implementation keep several reads outstanding while the
  * caller decodes.
+ *
+ * Each member is documented on the katherine_transport_* function that
+ * calls it, which is also how the rest of the library reaches it.
  */
 typedef struct katherine_transport_ops {
-    /** Send one command. */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     katherine_error_t (*send_cmd)(void *ctx, const void *data, size_t count);
-
-    /** Receive one command's response (CRD), of exactly \a count bytes. */
     katherine_error_t (*recv_crd)(void *ctx, void *crd, size_t count);
-
-    /** Discard whatever has already arrived. Returns at once, never waits. */
     katherine_error_t (*flush_incoming)(void *ctx);
-
-    /**
-     * Lend the caller the next filled measurement-data buffer, waiting up to
-     * the timeout set by set_timeout(). The buffer stays the transport's and
-     * is valid until release_data_buf() takes it back.
-     */
     katherine_error_t (*acquire_data_buf)(void *ctx, void **buf, size_t *len);
-
-    /** Return a lent buffer, freeing the transport to fill it again. */
     katherine_error_t (*release_data_buf)(void *ctx, void *buf);
-
-    /** Set how long a receive waits before reporting KATHERINE_E_TIMEOUT. */
     katherine_error_t (*set_timeout)(void *ctx, uint32_t timeout_ms);
-
-    /** Release everything held by the transport. */
-    void (*close)(void *ctx);
+    void (*fini)(void *ctx);
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 } katherine_transport_ops_t;
 
 /** A single communications link, and the operations driving it. */
 typedef struct katherine_transport {
     const katherine_transport_ops_t *ops; ///< Low-level operations implementing this transport, essentially a vtable of functions.
-    katherine_transport_kind_t kind;      ///< Kind of link this transport drives.
+    katherine_transport_kind_t kind;      ///< Kind of link behind this transport.
     void *ctx;                            ///< The implementation's own state, passed to every operation.
 } katherine_transport_t;
 
@@ -89,7 +77,7 @@ typedef struct katherine_udp katherine_udp_t;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_transport_udp(katherine_transport_t *transport, katherine_udp_t *udp, size_t buffer_size);
+katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *udp, size_t buffer_size);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count);
@@ -110,7 +98,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms);
 
 KATHERINE_EXPORTED void
-katherine_transport_close(katherine_transport_t *transport);
+katherine_transport_fini(katherine_transport_t *transport);
 
 #ifdef __cplusplus
 }
