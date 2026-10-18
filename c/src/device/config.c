@@ -223,7 +223,7 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     // This upload is the one exchange whose data travels between the command
@@ -316,11 +316,11 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -357,7 +357,7 @@ katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -380,11 +380,11 @@ katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -423,7 +423,7 @@ katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -434,11 +434,11 @@ katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -552,7 +552,7 @@ katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -563,11 +563,11 @@ katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_NUMBER_OF_TOKENS_SETTING);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -601,7 +601,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     char cmd[8] = {0};
@@ -629,11 +629,11 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -673,7 +673,7 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
 
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     // TODO use bias_id
@@ -686,11 +686,11 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_BIAS_SETTINGS);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -724,7 +724,7 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -735,11 +735,11 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_NUMBER_OF_FRAMES);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -774,7 +774,7 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     res = katherine_cmd_set_seq_readout_start(&device->control_socket, arg);
@@ -782,11 +782,11 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
 
     // Note: this command does _not_ produce an acknowledgement.
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -859,7 +859,7 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     // and the end trigger in the next.
     const uint32_t word = (end << 8) | start;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -867,11 +867,11 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_TRIGGER_SETUP, word);
     if (res) goto err_write;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_write:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_enumerated:
     return res;
@@ -947,7 +947,7 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
         cmd[4] |= 1 << 2;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     // Sent and awaited by hand rather than through katherine_cmd_transact(),
@@ -971,11 +971,11 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
     } while (res == KATHERINE_E_TIMEOUT && attempts > 0);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -1019,7 +1019,7 @@ katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -1031,11 +1031,11 @@ katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_SENSOR_REGISTER_SETTING);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -1076,7 +1076,7 @@ katherine_tpx3_update_sensor_registers(katherine_device_t *device)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -1087,11 +1087,11 @@ katherine_tpx3_update_sensor_registers(katherine_device_t *device)
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -1123,7 +1123,7 @@ katherine_tpx3_output_block_config_update(katherine_device_t *device)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -1134,11 +1134,11 @@ katherine_tpx3_output_block_config_update(katherine_device_t *device)
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -1170,7 +1170,7 @@ katherine_tpx3_timer_set(katherine_device_t *device)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -1181,11 +1181,11 @@ katherine_tpx3_timer_set(katherine_device_t *device)
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -1231,7 +1231,7 @@ katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t 
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     // Nineteen exchanges under one lock, flushed once: each of them
@@ -1254,11 +1254,11 @@ katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t 
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -1565,7 +1565,7 @@ katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, d
     const uint32_t start_ticks = (uint32_t) (start_f + 0.5);
     const uint32_t stop_ticks  = (uint32_t) (stop_f + 0.5);
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -1579,12 +1579,12 @@ katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, d
     res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY, stop_ticks);
     if (res) goto err_stop;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_stop:
 err_start:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_range:
 err_enumerated:
@@ -1648,7 +1648,7 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
         goto err_chip;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -1665,12 +1665,12 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
         check->dacs_ok   = crd[1] != 0;
     }
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_chip:
 err_generation:

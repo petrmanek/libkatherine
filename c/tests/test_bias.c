@@ -33,6 +33,7 @@
 // katherine/katherine.h must precede kthread.h on Windows; see
 // test_cmd_transact.c, which documents the include order.
 #include <katherine/katherine.h>
+#include <katherine/transport.h>
 #include <katherine/emulator.h>
 
 #include "protocol/cmd_builder.h"
@@ -199,8 +200,13 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
         if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;
     }
 
-    return katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port, "127.0.0.1",
-        remote_port, DEVICE_TIMEOUT_MS);
+    katherine_error_t res = katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port,
+        "127.0.0.1", remote_port, DEVICE_TIMEOUT_MS);
+    if (res != KATHERINE_E_OK) return res;
+
+    // The command layer takes the control lock through the device's
+    // transport, so a device assembled here needs one of its own.
+    return katherine_transport_init_udp(&device->control_transport, &device->control_socket);
 }
 
 // Requires the mock to have been sent nothing, which costs its whole receive
@@ -366,6 +372,7 @@ test_e_the_supply_index_goes_in_both_bytes(void)
         KT_CHECK_EQ(g_captured[5], 0);
         KT_CHECK_EQ(g_captured[7], 0);
 
+        katherine_transport_fini(&device.control_transport);
         katherine_udp_fini(&device.control_socket);
     }
 }
@@ -384,6 +391,7 @@ test_f_sense_refuses_the_first_generation_without_asking(void)
     KT_CHECK_EQ(katherine_get_bias_leakage(&device, BIAS_ID_GEN1, &volts), KATHERINE_E_UNSUPPORTED);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -401,6 +409,7 @@ test_g_sense_refuses_an_undeclared_readout(void)
     KT_CHECK_EQ(katherine_get_bias_leakage(&device, BIAS_ID_GEN1, &volts), KATHERINE_E_STATE);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 

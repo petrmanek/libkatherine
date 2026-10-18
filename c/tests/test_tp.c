@@ -22,6 +22,7 @@
 // kthread.h includes, and the reverse order does not compile under the
 // Windows SDK. Same reasoning as test_e2e_acq.c's ordering of kspawn.h.
 #include <katherine/katherine.h>
+#include <katherine/transport.h>
 
 #include "kthread.h"
 #include "ktest.h"
@@ -289,6 +290,9 @@ test_datagram(void)
     // katherine_device_fini() acts on.
     memset(&device, 0, sizeof(device));
     KT_REQUIRE(katherine_udp_init(&device.control_socket, LOCAL_PORT, "127.0.0.1", MOCK_PORT, 2000) == 0);
+    // The command layer takes the control lock through the device's
+    // transport, so a device assembled here needs one of its own.
+    KT_REQUIRE(katherine_transport_init_udp(&device.control_transport, &device.control_socket) == 0);
 
     // Reference case from the vendor C# TPSetting implementation:
     // 100 pulses, period 65 cycles (register 1), phase 0, enabled,
@@ -328,6 +332,7 @@ test_datagram(void)
     tp.enabled = false;
     send_and_capture(&device, &tp, (const unsigned char[8]) {0, 0, 0, 0, 0, 0, 0x26, 0});
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
     katherine_udp_fini(&mock_endpoint);
 }

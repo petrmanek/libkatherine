@@ -23,6 +23,7 @@
 // katherine/katherine.h must precede kthread.h on Windows; see
 // test_cmd_transact.c, which documents the include order.
 #include <katherine/katherine.h>
+#include <katherine/transport.h>
 #ifdef KATHERINE_TEST_EMULATOR
 #include <katherine/emulator.h>
 #endif
@@ -152,8 +153,13 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
         if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;
     }
 
-    return katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port, "127.0.0.1",
-        remote_port, DEVICE_TIMEOUT_MS);
+    katherine_error_t res = katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port,
+        "127.0.0.1", remote_port, DEVICE_TIMEOUT_MS);
+    if (res != KATHERINE_E_OK) return res;
+
+    // The command layer takes the control lock through the device's
+    // transport, so a device assembled here needs one of its own.
+    return katherine_transport_init_udp(&device->control_transport, &device->control_socket);
 }
 
 // Arms the mock for `commands` exchanges and starts it.
@@ -280,6 +286,7 @@ test_c_a_setup_composes_three_register_words(void)
     KT_CHECK_EQ(g_captured[2][KATHERINE_CMD_SUBIDX_BYTE], 0x16);
     KT_CHECK_EQ(load_word(g_captured[2]), 0x00000001u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // A channel the readout does not have takes its default, whatever the
@@ -304,6 +311,7 @@ test_c_a_setup_composes_three_register_words(void)
     KT_CHECK_EQ(load_word(g_captured[1]), 0x00000000u);
     KT_CHECK_EQ(load_word(g_captured[2]), 0x00000000u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -334,6 +342,7 @@ test_d_the_ready_signal_is_one_word_of_two_masks(void)
     KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x13);
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000881u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // The channels a first-generation readout does not have take no part.
@@ -349,6 +358,7 @@ test_d_the_ready_signal_is_one_word_of_two_masks(void)
     KT_REQUIRE(g_captured_count == 1);
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000001u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // And a termination katherine_set_gpio_config() would refuse -- channel
@@ -366,6 +376,7 @@ test_d_the_ready_signal_is_one_word_of_two_masks(void)
     KT_REQUIRE(g_captured_count == 1);
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000001u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -397,8 +408,10 @@ test_e_settings_the_readout_cannot_carry_are_refused(void)
     KT_CHECK_EQ(katherine_set_composed_ready_signal(&device, &config), KATHERINE_E_INVAL);
     expect_nothing_sent();
 
-    // And an undeclared readout is refused for not knowing how many it has.
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
+
+    // And an undeclared readout is refused for not knowing how many it has.
     KT_REQUIRE(device_init(&device, 0, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
 
     memset(&config, 0, sizeof(config));
@@ -407,6 +420,7 @@ test_e_settings_the_readout_cannot_carry_are_refused(void)
     KT_CHECK_EQ(katherine_probe_gpio(&device, &(katherine_gpio_monitor_t) {0}), KATHERINE_E_STATE);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -460,6 +474,7 @@ test_f_a_probe_reads_levels_and_only_the_valid_counters(void)
     KT_CHECK_EQ(state.channel[4].signal, KATHERINE_GPIO_MONITOR_SIGNAL_UNKNOWN);
     KT_CHECK_EQ(state.channel[7].signal, KATHERINE_GPIO_MONITOR_SIGNAL_UNKNOWN);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -528,6 +543,7 @@ test_h_the_shutter_delays_are_two_registers(void)
     KT_CHECK_EQ(g_captured[1][KATHERINE_CMD_SUBIDX_BYTE], 0x07);
     KT_CHECK_EQ(load_word(g_captured[1]), 250000);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // Rounding is to the nearest count, not towards zero: four nanoseconds
@@ -540,6 +556,7 @@ test_h_the_shutter_delays_are_two_registers(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 100);
     KT_CHECK_EQ(load_word(g_captured[1]), 101);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // A delay the register cannot hold is refused before anything is sent,
@@ -556,6 +573,7 @@ test_h_the_shutter_delays_are_two_registers(void)
     KT_CHECK_EQ(katherine_set_shutter_delays(&device, 0.0, (double) NAN), KATHERINE_E_INVAL);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -609,6 +627,7 @@ test_i_the_generator_is_enabled_last(void)
     KT_CHECK_EQ(g_captured[10][KATHERINE_CMD_SUBIDX_BYTE], 0x00);
     KT_CHECK_EQ(load_word(g_captured[10]), 0xC0000002u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -647,6 +666,7 @@ test_i2_channels_the_generator_lacks_take_their_defaults(void)
     KT_CHECK_EQ(g_captured[6][KATHERINE_CMD_SUBIDX_BYTE], 0x00);
     KT_CHECK_EQ(load_word(g_captured[6]), 0x80000000u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -685,6 +705,7 @@ test_j_the_generator_refuses_what_it_cannot_carry(void)
     KT_CHECK_EQ(katherine_set_pulse_generator(&device, &config), KATHERINE_E_INVAL);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
@@ -694,6 +715,7 @@ test_j_the_generator_refuses_what_it_cannot_carry(void)
     KT_CHECK_EQ(katherine_reset_pulse_generator_counts(&device), KATHERINE_E_UNSUPPORTED);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -730,6 +752,7 @@ test_k_the_generator_reports_its_own_clock(void)
     // says the same resolution the conversion above assumed.
     KT_CHECK_EQ(state.clock_mhz, 100);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -751,6 +774,7 @@ test_l_the_edge_counter_is_reset_by_writing_zero(void)
     KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x0C);
     KT_CHECK_EQ(load_word(g_captured[0]), 0);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 

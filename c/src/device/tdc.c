@@ -139,7 +139,7 @@ katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_
         }
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -150,12 +150,12 @@ katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_
     res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_INTERNAL_TDC_SETTINGS);
     if (res) goto err_recv;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_check:
 err_enumerated:
@@ -212,7 +212,7 @@ katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_M
         }
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -233,12 +233,12 @@ katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_M
         counts[i]              = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
     }
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_enumerated:
     return res;

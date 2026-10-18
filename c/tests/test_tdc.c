@@ -22,6 +22,7 @@
 // katherine/katherine.h must precede kthread.h on Windows; see
 // test_cmd_transact.c, which documents the include order.
 #include <katherine/katherine.h>
+#include <katherine/transport.h>
 #ifdef KATHERINE_TEST_EMULATOR
 #include <katherine/emulator.h>
 #endif
@@ -130,8 +131,13 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
         if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;
     }
 
-    return katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port, "127.0.0.1",
-        remote_port, DEVICE_TIMEOUT_MS);
+    katherine_error_t res = katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port,
+        "127.0.0.1", remote_port, DEVICE_TIMEOUT_MS);
+    if (res != KATHERINE_E_OK) return res;
+
+    // The command layer takes the control lock through the device's
+    // transport, so a device assembled here needs one of its own.
+    return katherine_transport_init_udp(&device->control_transport, &device->control_socket);
 }
 
 static void
@@ -201,6 +207,7 @@ test_a_the_second_generation_word(void)
     KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], 0x32);
     KT_CHECK_EQ(load_word(g_captured[0]), 0x03070935u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -228,6 +235,7 @@ test_b_the_first_generation_word(void)
     // trace of either source.
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000105u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -256,6 +264,7 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     KT_REQUIRE(g_captured_count == 1);
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000105u);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // A source outside the enumeration on a channel the unit does have is
@@ -267,6 +276,7 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     KT_CHECK_EQ(katherine_set_tdc_config(&device, &config), KATHERINE_E_INVAL);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // And an undeclared readout is refused for not knowing how many it has.
@@ -276,6 +286,7 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     KT_CHECK_EQ(katherine_get_tdc_counts(&device, counts), KATHERINE_E_STATE);
     expect_nothing_sent();
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -300,6 +311,7 @@ test_d_five_counts_complete_the_sequence(void)
         KT_CHECK_EQ(counts[i], expected_count(i));
     }
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 
     // A readout with fewer counters than the array holds leaves no stale
@@ -322,6 +334,7 @@ test_d_five_counts_complete_the_sequence(void)
         KT_CHECK_EQ(counts[i], 0u);
     }
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -349,6 +362,7 @@ test_e_a_short_sequence_times_out(void)
     }
     KT_CHECK_EQ(counts[KATHERINE_MAX_TDC_CHANNEL_COUNT - 1], 0xFFFFFFFFu);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 
@@ -426,6 +440,7 @@ test_h_a_null_array_discards_the_counts(void)
     size_t count = sizeof(leftover);
     KT_CHECK_EQ(katherine_udp_recv(&device.control_socket, leftover, &count), KATHERINE_E_TIMEOUT);
 
+    katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&device.control_socket);
 }
 

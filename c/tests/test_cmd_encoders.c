@@ -49,6 +49,7 @@
 #include <string.h>
 
 #include <katherine/config.h>
+#include <katherine/transport.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
 #include <katherine/udp.h>
@@ -538,6 +539,10 @@ test_acquisition_setup_word(void)
         KT_REQUIRE(false);
     }
 
+    // The command layer takes the control lock through the device's
+    // transport, so a device assembled here needs one of its own.
+    KT_REQUIRE(katherine_transport_init_udp(&dev.control_transport, &dev.control_socket) == 0);
+
     // Declared rather than enumerated, because the layout follows the
     // generation and this case checks both of them.
     const katherine_device_info_t gen1 = {.hw_type = 0x01};
@@ -574,6 +579,7 @@ test_acquisition_setup_word(void)
     memset(&dev.derived_info, 0, sizeof(dev.derived_info));
     KT_CHECK_EQ(katherine_set_acquisition_triggers(&dev, &start, false, &end), KATHERINE_E_STATE);
 
+    katherine_transport_fini(&dev.control_transport);
     katherine_udp_fini(&dev.control_socket);
     katherine_udp_fini(&capture);
 }

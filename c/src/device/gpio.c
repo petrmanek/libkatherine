@@ -225,7 +225,7 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
         high |= mux[i] << ((i - 2) * KATHERINE_ACQ_UNIT_GPIO_MUX_BITS);
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -239,13 +239,13 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
     res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_GPIO_TERMINATION_EN, terminations);
     if (res) goto err_termination;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_termination:
 err_mux:
 err_direction:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_check:
 err_enumerated:
@@ -314,7 +314,7 @@ katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_
         }
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -322,11 +322,11 @@ katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_
     res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_READY_COMPLETE_SETUP, word);
     if (res) goto err_write;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_write:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_check:
 err_enumerated:
@@ -383,7 +383,7 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
 
     memset(state, 0, sizeof(*state));
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -416,12 +416,12 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
         if (res) goto err_ticks;
     }
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_ticks:
 err_levels:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_enumerated:
     return res;

@@ -117,6 +117,14 @@ typedef struct katherine_device {
     katherine_udp_t control_socket;
 
     /**
+     * The control socket above, driven through the transport operations.
+     * What commands and their acknowledgements travel on, and what the lock
+     * excluding two callers on one link is taken through. Opened with this
+     * device and released with it.
+     */
+    katherine_transport_t control_transport;
+
+    /**
      * Measurement data (MD) communication channel, only used during
      * acquisition (half duplex towards this system).
      */

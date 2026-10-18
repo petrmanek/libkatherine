@@ -52,7 +52,7 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     // Every inquiry below opens the same way: the session is flushed before
@@ -75,11 +75,11 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     status->hw_serial_number   = EXTRACT(*status_crd, readout_status_crd, hw_serial_number);
     status->fw_version         = EXTRACT(*status_crd, readout_status_crd, fw_version);
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -115,7 +115,7 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -138,11 +138,11 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     status->data_rate  = 8u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
     status->chip_count = EXTRACT(*status_crd, comm_status_crd, chip_count);
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -204,7 +204,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -238,11 +238,11 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
 
     katherine_chip_id_format(s_chip_id, chip_id);
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -283,7 +283,7 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -297,11 +297,11 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
 
     memcpy(temperature, crd, sizeof(*temperature));
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -360,7 +360,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
         goto err_busy;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -374,11 +374,11 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 
     memcpy(temperature, crd, sizeof(*temperature));
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_busy:
     return res;
 }
@@ -425,7 +425,7 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -451,11 +451,11 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device)
         goto err;
     }
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -493,7 +493,7 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
     katherine_cmd_drain(&device->control_socket);
@@ -507,11 +507,11 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
 
     memcpy(voltage, crd, sizeof(*voltage));
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return res;
 }
 
@@ -557,7 +557,7 @@ katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
         goto err_bias_id;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -573,12 +573,12 @@ katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
 
     if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_bias_id:
 err_enumerated:
@@ -638,7 +638,7 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *c
         goto err_bias_id;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -669,12 +669,12 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *c
     memcpy(&sense, crd, sizeof(sense));
     if (current != NULL) *current = 1e6f * (gen2_sense_zero_v - sense) / gen2_sense_ohms;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_bias_id:
 err_generation:
@@ -742,7 +742,7 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
         goto err_monitor;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -756,12 +756,12 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
 
     if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_monitor:
 err_chip_index:
@@ -831,7 +831,7 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
         }
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -847,12 +847,12 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
         if (voltages != NULL) memcpy(&voltages->array[i], crd, sizeof(voltages->array[i]));
     }
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_chip_index:
 err_unsupported:

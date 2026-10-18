@@ -961,7 +961,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq);
     acq->frame_active    = false;
 
-    res = katherine_udp_mutex_lock(&acq->device->control_socket);
+    res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) goto err;
 
     acq->acq_start_time = time(NULL);
@@ -969,14 +969,14 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     res = katherine_cmd_start_acquisition(&acq->device->control_socket, readout_mode);
     if (res) goto err_cmd;
 
-    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
 
     // This creates user obligation to either stop or read the data.
     acq->device->acquisition = acq;
     return KATHERINE_E_OK;
 
 err_cmd:
-    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
 err:
     return res;
 }
@@ -1019,17 +1019,17 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&acq->device->control_socket);
+    res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) return res;
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
     return res;
 }
 
@@ -1094,19 +1094,19 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
 
-    res = katherine_udp_mutex_lock(&acq->device->control_socket);
+    res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) return res;
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
     if (res) goto err;
 
-    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
 
     acq->aborted = true;
     return KATHERINE_E_OK;
 
 err:
-    (void) katherine_udp_mutex_unlock(&acq->device->control_socket);
+    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
     return res;
 }
 

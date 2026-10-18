@@ -165,18 +165,18 @@ katherine_device_select_interface(katherine_device_t *device, katherine_interfac
         goto err_iface;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     // Unacknowledged, so nothing waits for a reply.
     res = katherine_cmd_send60(&device->control_socket, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[iface]);
     if (res) goto err_send;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_send:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_iface:
     return res;
@@ -239,6 +239,12 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     // as they were.
     katherine_udp_pin_remote(&device->control_socket);
 
+    // Before katherine_device_enumerate() below, which is the first thing
+    // here that takes the control lock.
+    if ((res = katherine_transport_init_udp(&device->control_transport, &device->control_socket)) != 0) {
+        goto err_control_transport;
+    }
+
     if ((res = katherine_udp_init(&device->data_socket, DATA_PORT, addr, REMOTE_PORT, DATA_TIMEOUT)) != 0) {
         goto err_data;
     }
@@ -283,6 +289,8 @@ err_select:
 err_transport:
     katherine_udp_fini(&device->data_socket);
 err_data:
+    katherine_transport_fini(&device->control_transport);
+err_control_transport:
     katherine_udp_fini(&device->control_socket);
 err_control:
     return res;
@@ -334,6 +342,7 @@ katherine_device_fini(katherine_device_t *device)
     // device opened one is the device's own bookkeeping rather than
     // something the transport layer should be asked to tolerate.
     if (device->data_transport.ops != NULL) katherine_transport_fini(&device->data_transport);
+    if (device->control_transport.ops != NULL) katherine_transport_fini(&device->control_transport);
 
     katherine_udp_fini(&device->data_socket);
     katherine_udp_fini(&device->control_socket);

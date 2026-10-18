@@ -188,7 +188,7 @@ katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_
         enable |= UINT32_C(1) << bit_oscillator;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -212,7 +212,7 @@ katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_
     res = katherine_cmd_pulse_generator_write(&device->control_socket, KATHERINE_PULSE_REG_ENABLE, enable);
     if (res) goto err_enable;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_enable:
@@ -220,7 +220,7 @@ err_divisor:
 err_delay:
 err_length:
 err_setup:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_oscillator:
 err_channel:
@@ -286,7 +286,7 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
 
     memset(counts, 0, sizeof(*counts));
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -301,11 +301,11 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
     counts->rising_edges = raw[2];
     counts->clock_mhz    = raw[3];
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_read:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_generation:
 err_enumerated:
@@ -353,7 +353,7 @@ katherine_reset_pulse_generator_counts(katherine_device_t *device)
         goto err_generation;
     }
 
-    res = katherine_udp_mutex_lock(&device->control_socket);
+    res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_cmd_drain(&device->control_socket);
@@ -361,11 +361,11 @@ katherine_reset_pulse_generator_counts(katherine_device_t *device)
     res = katherine_cmd_pulse_generator_write(&device->control_socket, KATHERINE_PULSE_REG_EDGE_COUNT, 0);
     if (res) goto err_write;
 
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
 err_write:
-    (void) katherine_udp_mutex_unlock(&device->control_socket);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_generation:
 err_enumerated:
