@@ -16,6 +16,7 @@ set(KATHERINE_SOURCES
     "src/error.c"
     "src/repr.c"
     "src/device/status.c"
+    "src/transport/transport.c"
     "src/transport/udp_nix.c"
     "src/transport/udp_transport.c"
     "src/transport/udp_win.c"

@@ -91,6 +91,27 @@ typedef struct katherine_udp katherine_udp_t;
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_udp(katherine_transport_t *transport, katherine_udp_t *udp, size_t buffer_size);
 
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t count);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_flush_incoming(katherine_transport_t *transport);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **buf, size_t *len);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms);
+
+KATHERINE_EXPORTED void
+katherine_transport_close(katherine_transport_t *transport);
+
 #ifdef __cplusplus
 }
 #endif

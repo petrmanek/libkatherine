@@ -57,13 +57,13 @@ test_a_lent_buffer_holds_what_arrived(void)
 
     void *buf  = NULL;
     size_t len = 0;
-    KT_CHECK_EQ(t.ops->acquire_data_buf(t.ctx, &buf, &len), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
     KT_CHECK_EQ(len, sizeof(payload));
     KT_CHECK_MEM_EQ(buf, payload, sizeof(payload));
 
-    KT_CHECK_EQ(t.ops->release_data_buf(t.ctx, buf), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
 
-    t.ops->close(t.ctx);
+    katherine_transport_close(&t);
     katherine_udp_fini(&receiver);
     katherine_udp_fini(&sender);
 }
@@ -81,9 +81,9 @@ test_returning_a_foreign_buffer_is_refused(void)
     KT_REQUIRE(katherine_transport_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
 
     char elsewhere[8];
-    KT_CHECK_EQ(t.ops->release_data_buf(t.ctx, elsewhere), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, elsewhere), KATHERINE_E_INVAL);
 
-    t.ops->close(t.ctx);
+    katherine_transport_close(&t);
     katherine_udp_fini(&receiver);
 }
 
@@ -116,9 +116,9 @@ test_silence_times_out(void)
 
     void *buf  = NULL;
     size_t len = 0;
-    KT_CHECK_EQ(t.ops->acquire_data_buf(t.ctx, &buf, &len), KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_TIMEOUT);
 
-    t.ops->close(t.ctx);
+    katherine_transport_close(&t);
     katherine_udp_fini(&receiver);
 }
 
@@ -135,7 +135,55 @@ test_a_udp_transport_says_so(void)
     KT_CHECK(t.ops != NULL);
     KT_CHECK(t.ctx != NULL);
 
-    t.ops->close(t.ctx);
+    katherine_transport_close(&t);
+    katherine_udp_fini(&receiver);
+}
+
+/* Every entry point survives a transport that is not open. A device carries
+ * a zeroed one until a link is opened on it, so a null operation table is an
+ * ordinary state rather than a programming error -- which is the whole reason
+ * these functions exist in place of reaching through t.ops. */
+static void
+test_an_unopened_transport_is_refused(void)
+{
+    katherine_transport_t t;
+    memset(&t, 0, sizeof(t));
+
+    char scratch[8] = {0};
+    void *buf       = NULL;
+    size_t len      = 0;
+
+    KT_CHECK_EQ(katherine_transport_send_cmd(&t, scratch, sizeof(scratch)), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_recv_crd(&t, scratch, sizeof(scratch)), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_flush_incoming(&t), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, scratch), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_set_timeout(&t, 10), KATHERINE_E_INVAL);
+
+    /* Closing one is a no-op, as is closing nothing at all. */
+    katherine_transport_close(&t);
+    katherine_transport_close(NULL);
+
+    KT_CHECK_EQ(katherine_transport_send_cmd(NULL, scratch, sizeof(scratch)), KATHERINE_E_INVAL);
+}
+
+/* Closing leaves the transport closed rather than merely emptied, so a second
+ * close is the no-op above instead of a second free. */
+static void
+test_closing_twice_is_safe(void)
+{
+    katherine_udp_t receiver;
+    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+
+    katherine_transport_close(&t);
+    KT_CHECK(t.ops == NULL);
+    KT_CHECK(t.ctx == NULL);
+
+    katherine_transport_close(&t);
+
     katherine_udp_fini(&receiver);
 }
 
@@ -149,6 +197,8 @@ main(void)
     KT_RUN(test_a_transport_over_nothing_is_refused);
     KT_RUN(test_silence_times_out);
     KT_RUN(test_a_udp_transport_says_so);
+    KT_RUN(test_an_unopened_transport_is_refused);
+    KT_RUN(test_closing_twice_is_safe);
 
 
     return kt_summary();
