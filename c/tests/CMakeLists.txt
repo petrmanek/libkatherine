@@ -117,6 +117,10 @@ katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit)
 # own, like test_udp_pinning.c above.
 katherine_add_test(NAME test_udp_rcvbuf SOURCES test_udp_rcvbuf.c LABELS unit)
 
+# The transport operations, over a loopback session and -- where the USB
+# backend is built -- over the arguments it rejects before it looks for a bus.
+katherine_add_test(NAME test_transport SOURCES test_transport.c LABELS unit)
+
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
 # call sites unchanged and drives one real failure through each target of
 # its errno mapping, plus a success path. Sockets, but only through the
