@@ -59,7 +59,6 @@ cdef extern from 'katherine/acquisition.h':
         katherine_tpx3_px_mode_t px_mode
         bool fast_vco_enabled
 
-        char *md_buffer
         size_t md_buffer_size
 
         bool decode_data

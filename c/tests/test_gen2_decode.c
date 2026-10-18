@@ -25,6 +25,7 @@
 #include <time.h>
 
 #include <katherine/acquisition.h>
+#include <katherine/transport.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
 #include <katherine/toa.h>
@@ -110,6 +111,16 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     KT_CHECK_EQ(dev.derived_info.gen, gen);
 
     katherine_error_t res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, 100);
+
+    // The read loop reaches the session through the device's transport, so a
+    // device assembled here rather than by katherine_device_init() has to
+    // open one of its own.
+    res = katherine_transport_init_udp(&dev.data_transport, &dev.data_socket);
+    KT_CHECK(res == 0);
+    if (res != 0) {
+        katherine_udp_fini(&dev.data_socket);
+        return res;
+    }
     KT_CHECK(res == KATHERINE_E_OK);
     if (res != KATHERINE_E_OK) return res;
 
@@ -118,6 +129,7 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     res = katherine_acquisition_init(&acq, &dev, s, 1024 * MD_SIZE, 65536, 0, 1);
     KT_CHECK(res == KATHERINE_E_OK);
     if (res != KATHERINE_E_OK) {
+        katherine_transport_fini(&dev.data_transport);
         katherine_udp_fini(&dev.data_socket);
         return res;
     }
@@ -146,6 +158,7 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
 
     const size_t dropped = acq.dropped_measurement_data;
     katherine_acquisition_fini(&acq);
+    katherine_transport_fini(&dev.data_transport);
     katherine_udp_fini(&dev.data_socket);
 
     // Folded into chips_seen's spare high bit rather than widening the struct:

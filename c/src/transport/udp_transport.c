@@ -29,9 +29,14 @@
 #define DEFAULT_BUFFER_SIZE 4096
 
 // One buffer is enough here, which is the whole difference from the USB
-// transport: a socket keeps filling SO_RCVBUF whether or not the application is
-// inside recv(), so the kernel already does what a ring of outstanding reads
-// does there. Lending a second buffer would buy nothing.
+// transport: a socket keeps filling SO_RCVBUF whether or not the application
+// is inside recv(), so the kernel already does what a ring of outstanding
+// reads does there. Lending a second buffer would buy nothing.
+//
+// It is allocated a whole word past its capacity. A caller decoding 6-byte
+// measurement data reads the last one through an 8-byte load, which reaches
+// up to 2 bytes past what arrived; the slack keeps that read inside the
+// allocation for any capacity, multiples of 8 included.
 struct udp_transport {
     katherine_udp_t *udp;
     char *buffer;

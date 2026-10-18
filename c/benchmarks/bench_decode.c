@@ -275,8 +275,8 @@ main(void)
     // One extra word past the last whole one: the loop above reads each word
     // through an 8-byte memcpy() (matching the unaligned uint64_t load the
     // real read loop performs), so the last word's load reaches 2 bytes past
-    // the canned data -- exactly the margin katherine_acquisition_init()
-    // reserves on the real md_buffer for the same reason.
+    // the canned data -- exactly the margin the UDP transport reserves past
+    // the buffer it lends, for the same reason.
     uint8_t *buf = (uint8_t *) malloc(bytes + sizeof(uint64_t));
     if (buf == NULL) return 1;
     build_canned_buffer(buf, words, false);

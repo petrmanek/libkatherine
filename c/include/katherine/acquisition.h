@@ -169,8 +169,16 @@ typedef struct katherine_acquisition {
     katherine_tpx3_px_mode_t px_mode;           ///< Pixel mode in force, which decides the hit type the handlers receive.
     bool fast_vco_enabled;                      ///< Whether the fast oscillator is on, which decides the fast hit variant.
 
-    char *md_buffer;       ///< Buffer for a single incoming datagram containing MD, allocated by katherine_acquisition_init().
-    size_t md_buffer_size; ///< Capacity of md_buffer in bytes. Must exceed the largest datagram a readout can send.
+    /**
+     * Capacity in bytes of the buffer measurement data is read into. Must
+     * exceed the largest datagram a readout can send.
+     *
+     * The buffer itself belongs to the device's transport, which
+     * katherine_acquisition_init() resizes to exactly this. Kept here
+     * because it is what katherine_acquisition_t::truncated_measurement_data
+     * is counted against.
+     */
+    size_t md_buffer_size;
 
     /**
      * Whether measurement data is decoded into pixels, chosen at

@@ -54,6 +54,7 @@
 #define PORT_BADADDR    43703 // bound only long enough to fail resolving its remote
 #define PORT_A          43701 // the round-trip pair
 #define PORT_B          43702
+#define PORT_NOMEM      43704 // the device the ENOMEM case reads through
 #define TIMEOUT_MS      100
 
 #define ROUND_TRIP_TEXT "compat1"
@@ -119,16 +120,23 @@ test_udp_bad_remote_address_maps_to_einval(void)
 }
 
 // ------------------------------------------------------------------
-// ENOMEM: an md_buffer_size no allocator can satisfy. The device pointer is
-// never dereferenced by katherine_acquisition_init() -- only stored -- so
-// NULL is safe here; the allocation fails before anything else runs.
+// ENOMEM: an md_buffer_size no allocator can satisfy. The size reaches the
+// device's transport, which is asked to resize its lent buffer to it, so a
+// device with an open link is needed rather than a null one.
 
 static void
 test_acquisition_init_huge_buffer_maps_to_enomem(void)
 {
+    katherine_device_t dev = {0};
+    KT_REQUIRE(katherine_udp_init_bound(&dev.data_socket, HOST, PORT_NOMEM, HOST, PORT_NOMEM + 1, TIMEOUT_MS) == 0);
+    KT_REQUIRE(katherine_transport_init_udp(&dev.data_transport, &dev.data_socket) == 0);
+
     katherine_acquisition_t acq;
     size_t huge = SIZE_MAX - 4096; // leaves room for the buffer's +sizeof(uint64_t) headroom to not wrap
-    KT_CHECK_EQ(katherine_acquisition_init(&acq, NULL, NULL, huge, 1, 0, 0), ENOMEM);
+    KT_CHECK_EQ(katherine_acquisition_init(&acq, &dev, NULL, huge, 1, 0, 0), ENOMEM);
+
+    katherine_transport_fini(&dev.data_transport);
+    katherine_udp_fini(&dev.data_socket);
 }
 
 // ------------------------------------------------------------------

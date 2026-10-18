@@ -27,6 +27,7 @@
 #include <time.h>
 
 #include <katherine/acquisition.h>
+#include <katherine/transport.h>
 #include <katherine/device.h>
 #include <katherine/toa.h>
 #include <katherine/udp.h>
@@ -207,12 +208,23 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
         return res;
     }
 
+    // The read loop reaches the session through the device's transport, so a
+    // device assembled here rather than by katherine_device_init() has to
+    // open one of its own.
+    res = katherine_transport_init_udp(&dev.data_transport, &dev.data_socket);
+    KT_CHECK(res == 0);
+    if (res != 0) {
+        katherine_udp_fini(&dev.data_socket);
+        return res;
+    }
+
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
     res = katherine_acquisition_init(&acq, &dev, probe, MD_BUFFER_MDS * KATHERINE_MD_SIZE,
         PIXEL_BUFFER_HITS * sizeof(px_t), 0 /* report_timeout disabled */, FAIL_TIMEOUT_MS);
     KT_CHECK(res == 0);
     if (res != 0) {
+        katherine_transport_fini(&dev.data_transport);
         katherine_udp_fini(&dev.data_socket);
         return -1;
     }
@@ -254,6 +266,7 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     probe->truncated        = acq.truncated_measurement_data;
 
     katherine_acquisition_fini(&acq);
+    katherine_transport_fini(&dev.data_transport);
     katherine_udp_fini(&dev.data_socket);
     return res;
 }

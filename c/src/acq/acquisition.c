@@ -270,10 +270,13 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
  * \param fail_timeout Timeout for any device communication (ms). Set zero to disable.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_NOMEM if the measurement-data buffer or the pixel
- *   buffer could not be allocated; see malloc(3). Nothing else here can
- *   fail: the device is not contacted at all, and a failed second
- *   allocation frees the first, so no allocation is leaked.
+ * \retval KATHERINE_E_STATE if the device has no open link, so there is
+ *   nothing for this acquisition to read from.
+ * \retval KATHERINE_E_NOMEM if the device's transport could not resize its
+ *   buffer to \p md_buffer_size, or the pixel buffer could not be
+ *   allocated; see malloc(3). The device is not contacted either way, and a
+ *   failed pixel buffer leaves the resize in place rather than leaking it --
+ *   the buffer is the device's, and the next acquisition resizes it again.
  */
 katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
@@ -287,7 +290,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->toa_coarse_tick_to_fine_shift = 0;
     memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
 
-    katherine_error_t res = 0;
+    katherine_error_t res;
 
     acq->device       = device;
     acq->user_ctx     = ctx;
@@ -301,17 +304,22 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // some of them does not leave the rest pointing at indeterminate values.
     acq->handlers = (katherine_acquisition_handlers_t) {0};
 
+    // The device is where the link lives, and an acquisition is a reader of
+    // it: without one there is nothing to read from. Said here rather than
+    // discovered as a null table at the first read.
+    if (device->data_transport.ops == NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_no_transport;
+    }
+
     acq->md_buffer_size = md_buffer_size;
 
-    // The read loop accesses 6-byte MD's as uint64_t's, so the last MD of a
-    // full buffer is read up to 2 bytes beyond the received data. Allocate a
-    // whole extra word so that this stays within the allocation for any
-    // requested size, including multiples of 8.
-    acq->md_buffer = (char *) malloc(md_buffer_size + sizeof(uint64_t));
-    if (acq->md_buffer == NULL) {
-        res = KATHERINE_E_NOMEM;
-        goto err_datagram_buffer;
-    }
+    // The buffer the loop decodes belongs to the device's transport, so the
+    // size asked for here is a request made of that rather than an
+    // allocation of this acquisition's own. Exact, which is what lets
+    // truncated_measurement_data keep comparing against md_buffer_size.
+    res = katherine_transport_set_buffer_size(&device->data_transport, md_buffer_size);
+    if (res) goto err_buffer_size;
 
     acq->pixel_buffer_size  = pixel_buffer_size;
     acq->pixel_buffer       = (char *) malloc(acq->pixel_buffer_size);
@@ -324,11 +332,11 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->report_timeout = report_timeout;
     acq->fail_timeout   = fail_timeout;
 
-    return res;
+    return KATHERINE_E_OK;
 
 err_pixel_buffer:
-    free(acq->md_buffer);
-err_datagram_buffer:
+err_buffer_size:
+err_no_transport:
     return res;
 }
 
@@ -342,7 +350,6 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     // Prevent a dangling pointer to invalid memory.
     acq->device->acquisition = NULL;
 
-    free(acq->md_buffer);
     free(acq->pixel_buffer);
 }
 
@@ -450,8 +457,8 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         acq->pixel_buffer_max_valid = acq->pixel_buffer_size / PIXEL_SIZE; \
 \
         while (acq->state == KATHERINE_ACQUISITION_STATE_RUNNING) { \
-            received = acq->md_buffer_size; \
-            res      = katherine_udp_recv(&acq->device->data_socket, acq->md_buffer, &received); \
+            void *lent = NULL; \
+            res        = katherine_transport_acquire_data_buf(&acq->device->data_transport, &lent, &received); \
 \
             if (res) { \
                 duration = 1000 * difftime(time(NULL), last_data_received); \
@@ -486,7 +493,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             if (received == acq->md_buffer_size) ++acq->truncated_measurement_data; \
 \
             if (acq->decode_data) { \
-                const char *it = acq->md_buffer; \
+                const char *it = (const char *) lent; \
                 /* Whole data only: the trailing fragment of a datagram cut \
                    short is not a datum, and decoding it would decode the \
                    bytes that happen to follow it in the buffer. */ \
@@ -498,8 +505,10 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                     handle_measurement_data_##SUFFIX##TAG##_##GEN(acq, &word); \
                 } \
             } else if (acq->handlers.data_received != NULL) { \
-                acq->handlers.data_received(acq->user_ctx, acq->md_buffer, received); \
+                acq->handlers.data_received(acq->user_ctx, (const char *) lent, received); \
             } \
+\
+            (void) katherine_transport_release_data_buf(&acq->device->data_transport, lent); \
         } \
 \
         if (acq->frame_active) { \

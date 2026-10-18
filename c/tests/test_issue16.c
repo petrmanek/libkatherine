@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include <katherine/acquisition.h>
+#include <katherine/transport.h>
 #include <katherine/toa.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
@@ -96,6 +97,16 @@ run_case(bool send_frame_finished, struct stats *s)
     // Bound to a fixed port on loopback, so the sender below can be pointed
     // at it directly instead of discovering an OS-picked one.
     int res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, 100);
+
+    // The read loop reaches the session through the device's transport, so a
+    // device assembled here rather than by katherine_device_init() has to
+    // open one of its own.
+    res = katherine_transport_init_udp(&dev.data_transport, &dev.data_socket);
+    KT_CHECK(res == 0);
+    if (res != 0) {
+        katherine_udp_fini(&dev.data_socket);
+        return res;
+    }
     KT_CHECK(res == 0);
     if (res != 0) {
         return res;
@@ -111,6 +122,7 @@ run_case(bool send_frame_finished, struct stats *s)
     KT_CHECK(res == 0);
     if (res != 0) {
         katherine_acquisition_fini(&acq);
+        katherine_transport_fini(&dev.data_transport);
         katherine_udp_fini(&dev.data_socket);
         return -1;
     }
@@ -151,6 +163,7 @@ run_case(bool send_frame_finished, struct stats *s)
     res = katherine_acquisition_read(&acq);
 
     katherine_acquisition_fini(&acq);
+    katherine_transport_fini(&dev.data_transport);
     katherine_udp_fini(&dev.data_socket);
     return res;
 }
