@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,6 +27,7 @@ struct udp_transport {
     katherine_udp_t *udp;
     char *buffer;
     size_t capacity;
+    bool lent; ///< True if the one buffer is in the caller's hands.
 };
 
 static katherine_error_t
@@ -67,8 +69,9 @@ udp_t_acquire_data_buf(void *ctx, void **buf, size_t *len)
     res = katherine_udp_recv(t->udp, t->buffer, &received);
     if (res) goto err_recv;
 
-    *buf = t->buffer;
-    *len = received;
+    t->lent = true;
+    *buf    = t->buffer;
+    *len    = received;
 
     return KATHERINE_E_OK;
 
@@ -87,6 +90,8 @@ udp_t_release_data_buf(void *ctx, void *buf)
         goto err_foreign;
     }
 
+    t->lent = false;
+
     return KATHERINE_E_OK;
 
 err_foreign:
@@ -101,6 +106,42 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 
     // The session carries its own timeout, set when it was opened.
     return KATHERINE_E_OK;
+}
+
+static katherine_error_t
+udp_t_set_buffer_size(void *ctx, size_t size)
+{
+    katherine_error_t res;
+    struct udp_transport *t = ctx;
+
+    if (size == 0) {
+        res = KATHERINE_E_INVAL;
+        goto err_size;
+    }
+    // The one buffer is the one that would move, so resizing under a caller
+    // holding it would hand them a pointer into freed memory.
+    if (t->lent) {
+        res = KATHERINE_E_STATE;
+        goto err_lent;
+    }
+
+    // Into a separate pointer, because realloc() leaves the original intact
+    // when it fails and the transport then keeps reading at the size it had.
+    char *resized = realloc(t->buffer, size + sizeof(uint64_t));
+    if (resized == NULL) {
+        res = KATHERINE_E_NOMEM;
+        goto err_alloc;
+    }
+
+    t->buffer   = resized;
+    t->capacity = size;
+
+    return KATHERINE_E_OK;
+
+err_alloc:
+err_lent:
+err_size:
+    return res;
 }
 
 static void
@@ -120,6 +161,7 @@ static const katherine_transport_ops_t udp_ops = {
     .acquire_data_buf = udp_t_acquire_data_buf,
     .release_data_buf = udp_t_release_data_buf,
     .set_timeout      = udp_t_set_timeout,
+    .set_buffer_size  = udp_t_set_buffer_size,
     .fini             = udp_t_fini,
 };
 

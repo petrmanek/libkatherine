@@ -124,6 +124,28 @@ katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeo
 }
 
 /**
+ * Make one lent buffer carry exactly \p size bytes, or fail.
+ *
+ * Exact rather than advisory, so that a caller which sized something else to
+ * match still knows the capacity afterwards. A transport whose buffers the
+ * link fixes refuses outright rather than settling on another size.
+ * \param transport Transport to resize.
+ * \param size Bytes one lent buffer is to carry, at least one.
+ *
+ * \retval KATHERINE_E_OK on success, the capacity now being exactly \p size.
+ * \retval KATHERINE_E_UNSUPPORTED if this transport's buffers are fixed.
+ * \retval KATHERINE_E_STATE if a buffer is lent out, which resizing would
+ *   leave dangling in the caller's hands.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
+ */
+katherine_error_t
+katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t size)
+{
+    return transport->ops->set_buffer_size(transport->ctx, size);
+}
+
+/**
  * Release everything held by the transport.
  * \param transport Transport to release.
  */

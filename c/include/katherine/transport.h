@@ -61,6 +61,7 @@ typedef struct katherine_transport_ops {
     katherine_error_t (*acquire_data_buf)(void *ctx, void **buf, size_t *len);
     katherine_error_t (*release_data_buf)(void *ctx, void *buf);
     katherine_error_t (*set_timeout)(void *ctx, uint32_t timeout_ms);
+    katherine_error_t (*set_buffer_size)(void *ctx, size_t size);
     void (*fini)(void *ctx);
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 } katherine_transport_ops_t;
@@ -96,6 +97,9 @@ katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t size);
 
 KATHERINE_EXPORTED void
 katherine_transport_fini(katherine_transport_t *transport);

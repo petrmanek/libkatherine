@@ -19,6 +19,7 @@
  */
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <katherine/error.h>
@@ -139,6 +140,76 @@ test_a_udp_transport_says_so(void)
     katherine_udp_fini(&receiver);
 }
 
+/* Resizing is exact, so a caller that sized something else to match still
+ * knows the capacity afterwards -- which is what lets an acquisition keep its
+ * own buffer size as the truth about the buffer it reads from. */
+static void
+test_a_transport_resizes_exactly(void)
+{
+    katherine_udp_t sender, receiver;
+    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+
+    /* Grown, then shrunk: a datagram filling the new size comes back whole at
+     * each, which is the capacity the caller was promised. */
+    const size_t sizes[2] = {BUF_BYTES * 4, BUF_BYTES / 2};
+    for (size_t i = 0; i < 2; ++i) {
+        KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, sizes[i]), KATHERINE_E_OK);
+
+        uint8_t *probe = (uint8_t *) malloc(sizes[i]);
+        KT_REQUIRE(probe != NULL);
+        memset(probe, 0x5A, sizes[i]);
+        KT_REQUIRE(katherine_udp_send_exact(&sender, probe, sizes[i]) == KATHERINE_E_OK);
+
+        void *buf  = NULL;
+        size_t len = 0;
+        KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
+        KT_CHECK_EQ(len, sizes[i]);
+        KT_CHECK(memcmp(buf, probe, sizes[i]) == 0);
+        KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
+        free(probe);
+    }
+
+    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, 0), KATHERINE_E_INVAL);
+
+    katherine_transport_fini(&t);
+    katherine_udp_fini(&sender);
+    katherine_udp_fini(&receiver);
+}
+
+/* Resizing under a caller still holding the buffer would hand them a pointer
+ * into freed memory, so it is refused rather than done. */
+static void
+test_resizing_while_lent_is_refused(void)
+{
+    katherine_udp_t sender, receiver;
+    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+
+    const uint8_t payload[4] = {1, 2, 3, 4};
+    KT_REQUIRE(katherine_udp_send_exact(&sender, payload, sizeof(payload)) == KATHERINE_E_OK);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_REQUIRE(katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, BUF_BYTES * 2), KATHERINE_E_STATE);
+
+    /* Given back, it resizes. */
+    KT_REQUIRE(katherine_transport_release_data_buf(&t, buf) == KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, BUF_BYTES * 2), KATHERINE_E_OK);
+
+    katherine_transport_fini(&t);
+    katherine_udp_fini(&sender);
+    katherine_udp_fini(&receiver);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -149,6 +220,8 @@ main(void)
     KT_RUN(test_a_transport_over_nothing_is_refused);
     KT_RUN(test_silence_times_out);
     KT_RUN(test_a_udp_transport_says_so);
+    KT_RUN(test_a_transport_resizes_exactly);
+    KT_RUN(test_resizing_while_lent_is_refused);
 
 
     return kt_summary();
