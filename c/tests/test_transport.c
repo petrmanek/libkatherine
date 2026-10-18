@@ -233,6 +233,39 @@ test_the_lock_round_trips(void)
     katherine_udp_fini(&receiver);
 }
 
+/* The OS error behind a failure is reachable through the transport, and is
+ * the session's own number rather than something kept beside it.
+ *
+ * Provoked with a datagram larger than any UDP payload, because most
+ * failures record nothing: a receive timeout leaves it at zero, so a test
+ * written around one would pass whether or not anything was wired up.
+ * sendto() refuses an oversized datagram outright and the session keeps
+ * that errno. */
+static void
+test_the_os_error_comes_through(void)
+{
+    katherine_udp_t receiver;
+    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(katherine_transport_last_os_error(&t), 0);
+
+    const size_t oversized = 200000;
+    char *payload          = (char *) calloc(1, oversized);
+    KT_REQUIRE(payload != NULL);
+    KT_CHECK(katherine_transport_send_cmd(&t, payload, oversized) != KATHERINE_E_OK);
+    free(payload);
+
+    const int err = katherine_transport_last_os_error(&t);
+    KT_CHECK(err != 0);
+    KT_CHECK_EQ(err, katherine_udp_last_os_error(&receiver));
+
+    katherine_transport_fini(&t);
+    katherine_udp_fini(&receiver);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -246,6 +279,7 @@ main(void)
     KT_RUN(test_a_transport_resizes_exactly);
     KT_RUN(test_resizing_while_lent_is_refused);
     KT_RUN(test_the_lock_round_trips);
+    KT_RUN(test_the_os_error_comes_through);
 
 
     return kt_summary();

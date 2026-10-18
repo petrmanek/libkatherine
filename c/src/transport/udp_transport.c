@@ -141,6 +141,14 @@ udp_t_mutex_unlock(void *ctx)
     return katherine_udp_mutex_unlock(t->udp);
 }
 
+static int
+udp_t_last_os_error(void *ctx)
+{
+    struct udp_transport *t = ctx;
+
+    return katherine_udp_last_os_error(t->udp);
+}
+
 static katherine_error_t
 udp_t_set_buffer_size(void *ctx, size_t size)
 {
@@ -197,6 +205,7 @@ static const katherine_transport_ops_t udp_ops = {
     .set_buffer_size  = udp_t_set_buffer_size,
     .mutex_lock       = udp_t_mutex_lock,
     .mutex_unlock     = udp_t_mutex_unlock,
+    .last_os_error    = udp_t_last_os_error,
     .fini             = udp_t_fini,
 };
 

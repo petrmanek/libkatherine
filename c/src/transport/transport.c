@@ -177,6 +177,22 @@ katherine_transport_mutex_unlock(katherine_transport_t *transport)
 }
 
 /**
+ * The OS-level error behind the last failure, or 0.
+ *
+ * What a KATHERINE_E_IO, KATHERINE_E_NOMEM or KATHERINE_E_SYSTEM was
+ * underneath. The number is the link's own -- an errno on a socket, a
+ * libusb code on a bus -- so it is read with the transport's kind in hand.
+ * \param transport Transport to ask.
+ *
+ * \return The code, or 0 where the transport has recorded none.
+ */
+int
+katherine_transport_last_os_error(const katherine_transport_t *transport)
+{
+    return transport->ops->last_os_error(transport->ctx);
+}
+
+/**
  * Release everything held by the transport.
  * \param transport Transport to release.
  */

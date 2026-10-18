@@ -64,6 +64,7 @@ typedef struct katherine_transport_ops {
     katherine_error_t (*set_buffer_size)(void *ctx, size_t size);
     katherine_error_t (*mutex_lock)(void *ctx);
     katherine_error_t (*mutex_unlock)(void *ctx);
+    int (*last_os_error)(void *ctx);
     void (*fini)(void *ctx);
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 } katherine_transport_ops_t;
@@ -108,6 +109,9 @@ katherine_transport_mutex_lock(katherine_transport_t *transport);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_mutex_unlock(katherine_transport_t *transport);
+
+KATHERINE_EXPORTED int
+katherine_transport_last_os_error(const katherine_transport_t *transport);
 
 KATHERINE_EXPORTED void
 katherine_transport_fini(katherine_transport_t *transport);
