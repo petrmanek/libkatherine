@@ -17,7 +17,7 @@
 
 #include <katherine/katherine.h>
 
-static const char *remote_address = "192.168.1.145";
+static const char *remote_address = "udp://192.168.1.145";
 typedef katherine_tpx3_px_f_toa_tot_t px_t;
 
 // Set the following flag to inject test pulses into a small subset of

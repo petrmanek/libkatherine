@@ -17,7 +17,7 @@
 #include <katherine/katherine.h>
 
 static bool have_address = true;
-static char address[16];
+static char address[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
 static int cur[] = {0, 0, 0, 0};
 static int min[] = {192, 168, 1, 100};
 static int max[] = {192, 168, 1, 200};
@@ -148,7 +148,7 @@ next_address(void)
     }
 
     if (have_address) {
-        snprintf(address, sizeof(address), "%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
+        snprintf(address, sizeof(address), "udp://%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
     }
 }
 
@@ -166,7 +166,7 @@ main(int argc, char *argv[])
         min[0], min[1], min[2], min[3], max[0], max[1], max[2], max[3]);
 
     memcpy(cur, min, sizeof(int) * 4);
-    snprintf(address, sizeof(address), "%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
+    snprintf(address, sizeof(address), "udp://%d.%d.%d.%d", cur[0], cur[1], cur[2], cur[3]);
 
     while (have_address) {
         test_ip_address();

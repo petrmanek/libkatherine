@@ -10,11 +10,11 @@ from functools import reduce
 from katherine import Device
 
 def format_ip(a, b=None, c=None, d=None):        
-    return '%d.%d.%d.%d' % (tuple(a) if isinstance(a, list) else (a, b, c, d)) 
+    return '%d.%d.%d.%d' % (tuple(a) if isinstance(a, list) else (a, b, c, d))
 
 
 def check_address(a0, a1, a2, a3):
-    address = format_ip(a0, a1, a2, a3)
+    address = 'udp://' + format_ip(a0, a1, a2, a3)
     chip_id = None
 
     try:

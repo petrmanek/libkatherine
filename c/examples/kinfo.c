@@ -89,6 +89,7 @@ main(int argc, char *argv[])
     kinfo_args_t args;
     if (!parse_args(argc, argv, &args)) {
         fprintf(stderr, "Usage: kinfo <address>\n");
+        fprintf(stderr, "  e.g. kinfo udp://192.168.1.42\n");
         return 1;
     }
 

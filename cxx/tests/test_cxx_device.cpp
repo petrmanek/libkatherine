@@ -58,7 +58,7 @@
 // immediate error on a platform that rejects the destination outright -- a
 // katherine::error is raised, which is all this file asserts. No datagram
 // leaves the host either way.
-#define DEAD_ADDRESS "127.0.0.3"
+#define DEAD_ADDRESS "udp://127.0.0.3"
 
 // Renders v through its operator<< and returns what came out.
 template<typename T>

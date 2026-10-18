@@ -165,7 +165,7 @@ def run_acquisition(dev, c):
 
 
 if __name__ == '__main__':
-    remote_address = '192.168.1.145'
+    remote_address = 'udp://192.168.1.145'
 
     config = configure()
 

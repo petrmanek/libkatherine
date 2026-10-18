@@ -458,14 +458,14 @@ test_readout_peripherals(void)
 static void
 test_discovery(void)
 {
-    const auto found = katherine::discover("127.0.0.1", 42701, std::chrono::milliseconds{50}, 8);
+    const auto found = katherine::discover("udp://127.0.0.1", 42701, std::chrono::milliseconds{50}, 8);
     KT_CHECK(found.empty());
 
     // A millisecond is the shortest limit the C function takes, so a
     // duration under one is refused rather than becoming no limit at all.
     bool too_short = false;
     try {
-        (void) katherine::discover("127.0.0.1", 42701, std::chrono::microseconds{500}, 8);
+        (void) katherine::discover("udp://127.0.0.1", 42701, std::chrono::microseconds{500}, 8);
     } catch (const katherine::system_error&) {
         too_short = true;
     }
@@ -475,7 +475,7 @@ test_discovery(void)
     // turns that into an exception like every other failure.
     bool threw = false;
     try {
-        (void) katherine::discover("127.0.0.1", KATHERINE_DISCOVER_MIN_PORT - 1,
+        (void) katherine::discover("udp://127.0.0.1", KATHERINE_DISCOVER_MIN_PORT - 1,
             std::chrono::milliseconds{50});
     } catch (const katherine::system_error&) {
         threw = true;

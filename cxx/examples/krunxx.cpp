@@ -16,7 +16,7 @@
 
 #include <katherinexx/katherinexx.hpp>
 
-static const std::string remote_address{"192.168.1.145"};
+static const std::string remote_address{"udp://192.168.1.145"};
 using mode = katherine::acq::f_toa_tot;
 
 // Set the following flag to inject test pulses into a small subset of

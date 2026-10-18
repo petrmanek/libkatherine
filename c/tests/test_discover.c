@@ -48,20 +48,20 @@
 
 // The readouts answer on this port, which must be at least
 // KATHERINE_DISCOVER_MIN_PORT for the firmware to honour it.
-#define REPLY_PORT      (KPORTS_DISCOVER + 0)
+#define REPLY_PORT       (KPORTS_DISCOVER + 0)
 
 // Where the mock readouts listen. The discovery sends to the readout's
 // standard control port, so each mock binds that port on an address of its
 // own -- which is what loopback's whole 127/8 is for.
-#define READOUT_PORT    1555
+#define READOUT_PORT     1555
 
-#define MOCK_TIMEOUT_MS 5000
-#define DISCOVER_MS     300
+#define MOCK_TIMEOUT_MS  5000
+#define DISCOVER_MS      300
 
 // How long the unsolicited answer waits for the discovery to bind its reply
 // port. Generous against scheduling jitter and well inside the collection
 // window above.
-#define LATE_ANSWER_MS  30
+#define LATE_ANSWER_MS   30
 
 // Two readouts on two addresses, and the identifier words they report -- which
 // the wire carries and nothing decodes any more. Every
@@ -70,16 +70,16 @@
 // The discovery runs on the host address and binds the standard port there
 // to catch a legacy answer, so no mock may hold it: the readouts live on
 // addresses of their own, which is what loopback's whole 127/8 is for.
-#define HOST_ADDRESS    "127.0.0.1"
-#define ADDRESS_A       "127.0.0.2"
-#define ADDRESS_B       "127.0.0.3"
+#define HOST_ADDRESS     "127.0.0.1"
+#define ADDRESS_A        "127.0.0.2"
+#define ADDRESS_B        "127.0.0.3"
 
 /* What a discovery reports: the address names the link as well as the
  * readout, which is the form katherine_device_init() takes back. */
-#define FOUND_A         "udp://" ADDRESS_A
-#define FOUND_B         "udp://" ADDRESS_B
-#define CHIP_A          0x00001231 /* A3-W0018: letter 1, digit 3, wafer 0x012 */
-#define CHIP_B          0x00002342 /* B4-W0035 */
+#define DEVICE_ADDRESS_A "udp://" ADDRESS_A
+#define DEVICE_ADDRESS_B "udp://" ADDRESS_B
+#define CHIP_A           0x00001231 /* A3-W0018: letter 1, digit 3, wafer 0x012 */
+#define CHIP_B           0x00002342 /* B4-W0035 */
 
 typedef struct mock {
     const char *address;
@@ -201,7 +201,7 @@ test_a_one_readout_is_recorded_under_its_address(void)
     KT_REQUIRE(kthread_start(&thread, mock_readout, &g_mocks[0]) == 0);
 
     count = 1;
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, &count), 0);
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, &count), 0);
     KT_CHECK_EQ(kthread_join(&thread), 0);
 
     KT_CHECK(g_mocks[0].got_request);
@@ -213,7 +213,7 @@ test_a_one_readout_is_recorded_under_its_address(void)
     KT_CHECK_EQ(g_mocks[0].captured[1], (REPLY_PORT >> 8) & 0xFF);
 
     KT_REQUIRE(count == 1);
-    KT_CHECK_STR_EQ(found[0].address, FOUND_A);
+    KT_CHECK_STR_EQ(found[0].address, DEVICE_ADDRESS_A);
 
     // It answered on the port the request named, so it read the request.
     KT_CHECK(!found[0].legacy);
@@ -255,7 +255,7 @@ test_b_several_answers_are_told_apart(void)
     KT_REQUIRE(kthread_start(&late, mock_late_answer, &g_mocks[1]) == 0);
 
     count = 4;
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, &count), 0);
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, &count), 0);
     KT_CHECK_EQ(kthread_join(&thread), 0);
     KT_CHECK_EQ(kthread_join(&late), 0);
 
@@ -268,8 +268,8 @@ test_b_several_answers_are_told_apart(void)
 
     // Either order: one answer was queued before the request went out and
     // the other arrives after it.
-    const bool forward = strcmp(found[0].address, FOUND_A) == 0;
-    KT_CHECK_STR_EQ(found[forward ? 0 : 1].address, FOUND_A);
+    const bool forward = strcmp(found[0].address, DEVICE_ADDRESS_A) == 0;
+    KT_CHECK_STR_EQ(found[forward ? 0 : 1].address, DEVICE_ADDRESS_A);
 
     // The two readouts differ in the one thing a discovery can tell about a
     // firmware: the first answered on the port the request named, the second
@@ -277,7 +277,7 @@ test_b_several_answers_are_told_apart(void)
     KT_CHECK(!found[forward ? 0 : 1].legacy);
     KT_CHECK(found[forward ? 1 : 0].legacy);
 
-    KT_CHECK_STR_EQ(found[forward ? 1 : 0].address, FOUND_B);
+    KT_CHECK_STR_EQ(found[forward ? 1 : 0].address, DEVICE_ADDRESS_B);
 
     mocks_fini(2);
 }
@@ -291,7 +291,7 @@ test_c_finding_nothing_is_not_a_failure(void)
     size_t count = 7; /* poisoned, so a call that forgets to set it fails */
 
     count = 2;
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, 50, found, &count), 0);
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, REPLY_PORT, 50, found, &count), 0);
     KT_CHECK_EQ(count, 0);
 }
 
@@ -305,28 +305,28 @@ test_d_impossible_requests_are_refused(void)
     size_t count = 7;
 
     count = 2;
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, KATHERINE_DISCOVER_MIN_PORT - 1, DISCOVER_MS, found, &count),
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, KATHERINE_DISCOVER_MIN_PORT - 1, DISCOVER_MS, found, &count),
         KATHERINE_E_INVAL);
     KT_CHECK_EQ(count, 0);
 
     // The standard port is the discovery's own legacy socket, so naming it
     // as the reply port would bind it twice.
     count = 2;
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, READOUT_PORT, DISCOVER_MS, found, &count),
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, READOUT_PORT, DISCOVER_MS, found, &count),
         KATHERINE_E_INVAL);
     KT_CHECK_EQ(count, 0);
 
     // A capacity of zero is the one the in-out parameter cannot distinguish
     // from a result, so it is refused rather than returned as "none found".
     count = 0;
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, &count),
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, &count),
         KATHERINE_E_INVAL);
     KT_CHECK_EQ(count, 0);
 
     // A zero timeout would leave the sessions with no receive timeout at
     // all, so the call would block instead of returning early.
     count = 2;
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, 0, found, &count),
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, REPLY_PORT, 0, found, &count),
         KATHERINE_E_INVAL);
     KT_CHECK_EQ(count, 0);
 }
@@ -343,7 +343,7 @@ test_e_the_request_coming_back_is_not_a_readout(void)
     katherine_discovered_t found[2];
     size_t count = 2;
 
-    KT_CHECK_EQ(katherine_device_discover_udp(HOST_ADDRESS, REPLY_PORT, 50, found, &count), 0);
+    KT_CHECK_EQ(katherine_device_discover_udp("udp://" HOST_ADDRESS, REPLY_PORT, 50, found, &count), 0);
     KT_CHECK_EQ(count, 0);
 }
 
@@ -355,19 +355,19 @@ test_f_null_outputs_are_refused(void)
     katherine_discovered_t found[2];
     size_t count = 7;
 
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, DISCOVER_MS, NULL, &count),
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, REPLY_PORT, DISCOVER_MS, NULL, &count),
         KATHERINE_E_INVAL);
     KT_CHECK_EQ(count, 7);
 
-    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, NULL),
+    KT_CHECK_EQ(katherine_device_discover_udp(DEVICE_ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, NULL),
         KATHERINE_E_INVAL);
 }
 
-// g) The address asked may name its link, and what comes back is the same
-// readout under the same name -- which is what lets a caller feed a discovered
-// address straight back to katherine_device_init().
+// g) An address with no scheme still reaches a readout, which is what every
+// address written before 2.0 looks like. What comes back names its link
+// either way, so asking the old way and opening the new way compose.
 static void
-test_g_the_address_asked_may_name_its_link(void)
+test_g_an_address_without_a_scheme_still_works(void)
 {
     katherine_discovered_t found[4];
     size_t count = 0;
@@ -381,12 +381,14 @@ test_g_the_address_asked_may_name_its_link(void)
     KT_REQUIRE(kthread_start(&thread, mock_readout, &g_mocks[0]) == 0);
 
     count = 1;
-    KT_CHECK_EQ(katherine_device_discover_udp(FOUND_A, REPLY_PORT, DISCOVER_MS, found, &count), 0);
+    KT_CHECK_EQ(katherine_device_discover_udp(ADDRESS_A, REPLY_PORT, DISCOVER_MS, found, &count), 0);
     KT_CHECK_EQ(kthread_join(&thread), 0);
 
     KT_CHECK(g_mocks[0].got_request);
     KT_REQUIRE(count == 1);
-    KT_CHECK_STR_EQ(found[0].address, FOUND_A);
+
+    // Asked bare, reported with the scheme.
+    KT_CHECK_STR_EQ(found[0].address, DEVICE_ADDRESS_A);
 
     mocks_fini(1);
 }
@@ -425,7 +427,7 @@ main(void)
     KT_RUN(test_d_impossible_requests_are_refused);
     KT_RUN(test_e_the_request_coming_back_is_not_a_readout);
     KT_RUN(test_f_null_outputs_are_refused);
-    KT_RUN(test_g_the_address_asked_may_name_its_link);
+    KT_RUN(test_g_an_address_without_a_scheme_still_works);
     KT_RUN(test_h_an_address_for_another_link_is_refused);
     return kt_summary();
 }

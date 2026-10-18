@@ -23,7 +23,7 @@ macOS and Windows.
 
 The following simple code snippets in C, C++ and Python, respectively,
 show the intended usage of the library. The code prints the chip ID of
-a read-out at a given IP address.
+a read-out at a given address.
 
 ```c
 // C example
@@ -31,14 +31,14 @@ a read-out at a given IP address.
 #include <katherine/katherine.h>
 
 int main() {
-  const char *ip_address = "192.168.1.142";
+  const char *address = "udp://192.168.1.142";
 
   katherine_device_t dev;
-  katherine_device_init(&dev, ip_address);   // Ignoring return code.
+  katherine_device_init(&dev, address, 0);   // Ignoring return code.
 
   char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
   katherine_get_chip_id(&dev, chip_id);   // Ignoring return code.
-  printf("Device %s has chip id: %s\n", ip_address, chip_id);
+  printf("Device %s has chip id: %s\n", address, chip_id);
 
   katherine_device_fini(&dev);
 }
@@ -50,9 +50,9 @@ int main() {
 #include <katherinexx/katherinexx.hpp>
 
 int main() {
-  const std::string ip_address{"192.168.1.142"};
+  const std::string address{"udp://192.168.1.142"};
 
-  katherine::device dev{ip_address};
+  katherine::device dev{address};
   const std::string chip_id = dev.chip_id();   // Exception can be thrown here.
   std::cout << "Device " << address << " has chip id: " << chip_id << std::endl;
 }
@@ -62,11 +62,11 @@ int main() {
 # Python example
 from katherine import Device
 
-ip_address = '192.168.1.142'
+address = 'udp://192.168.1.142'
 
-dev = Device(ip_address)
+dev = Device(address)
 chip_id = dev.get_chip_id()   # OSError can be raised here.
-print('Device %s has chip id: %s' % (ip_address, chip_id))
+print('Device %s has chip id: %s' % (address, chip_id))
 ```
 
 ### More Examples

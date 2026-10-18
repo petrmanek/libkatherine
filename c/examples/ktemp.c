@@ -137,6 +137,7 @@ main(int argc, char *argv[])
     ktemp_args_t args;
     if (!parse_args(argc, argv, &args)) {
         fprintf(stderr, "Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>\n");
+        fprintf(stderr, "  e.g. ktemp --chip udp://192.168.1.42\n");
         return 1;
     }
 

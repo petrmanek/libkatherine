@@ -44,17 +44,19 @@
 
 // The readout the device talks to. Its own ports are the ones device.c
 // insists on, on an address of its own.
-#define MOCK_ADDRESS    "127.0.0.2"
-#define MOCK_CMD_PORT   1555
+#define MOCK_ADDRESS        "127.0.0.2"
+/* The same readout as a device address, which is what the public API takes. */
+#define MOCK_DEVICE_ADDRESS "udp://" MOCK_ADDRESS
+#define MOCK_CMD_PORT       1555
 
 // Long enough that the mock outlives an open, short enough that its thread
 // ends promptly once the open is done: the serve loop below exits on the
 // first receive that times out.
-#define MOCK_TIMEOUT_MS 300
+#define MOCK_TIMEOUT_MS     300
 
 // Hardware types from the recognition table in c/src/device/device.c.
-#define HW_TYPE_GEN1    0x01
-#define HW_TYPE_GEN2    0x03
+#define HW_TYPE_GEN1        0x01
+#define HW_TYPE_GEN2        0x03
 
 static katherine_emu_t g_emu;
 static katherine_udp_t g_mock;
@@ -120,7 +122,7 @@ selections_during_session(uint8_t hw_type, uint32_t flags, uint32_t *payload,
         return -1;
     }
 
-    const katherine_error_t res = katherine_device_init(&device, MOCK_ADDRESS, flags);
+    const katherine_error_t res = katherine_device_init(&device, MOCK_DEVICE_ADDRESS, flags);
     if (res == KATHERINE_E_OK) {
         if (after_open != NULL) {
             const katherine_error_t sub = after_open(&device);

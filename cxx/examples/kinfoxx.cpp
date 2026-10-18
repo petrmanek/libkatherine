@@ -88,6 +88,7 @@ main(int argc, char *argv[])
     std::string address;
     if (!parse_args(argc, argv, address)) {
         std::cerr << "Usage: kinfo <address>" << std::endl;
+        std::cerr << "  e.g. kinfo udp://192.168.1.42" << std::endl;
         return 1;
     }
 

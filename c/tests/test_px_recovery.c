@@ -80,6 +80,8 @@
 #define KPX_STR(x)          KPX_STR_(x)
 
 #define KSIM_LISTEN_ADDRESS "127.0.0.2"
+/* The same readout as a device address, which is what the public API takes. */
+#define KSIM_DEVICE_ADDRESS "udp://" KSIM_LISTEN_ADDRESS
 #define KSIM_SEED           12345
 #define HITS_PER_FRAME      40
 #define LOST_PER_FRAME      3
@@ -197,7 +199,7 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     for (int attempt = 0; attempt < READY_ATTEMPTS; ++attempt) {
-        res = katherine_device_init(&g_device, KSIM_LISTEN_ADDRESS, 0);
+        res = katherine_device_init(&g_device, KSIM_DEVICE_ADDRESS, 0);
         if (res != 0) {
             snprintf(g_error, sizeof(g_error), "cannot bind the local control/data ports 1555/1556: %s",
                 katherine_strerror(res));

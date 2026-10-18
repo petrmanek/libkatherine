@@ -105,6 +105,7 @@ main(int argc, char *argv[])
     ktemp_args args;
     if (!parse_args(argc, argv, args)) {
         std::cerr << "Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>" << std::endl;
+        std::cerr << "  e.g. ktemp --chip udp://192.168.1.42" << std::endl;
         return 1;
     }
 

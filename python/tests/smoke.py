@@ -34,6 +34,8 @@ import sys
 import time
 
 KSIM_LISTEN_ADDRESS = '127.0.0.2'
+# The same readout as a device address, which is what the public API takes.
+KSIM_DEVICE_ADDRESS = 'udp://' + KSIM_LISTEN_ADDRESS
 KSIM_SEED = 12345
 HITS_PER_FRAME = 40
 LOST_PER_FRAME = 3
@@ -162,7 +164,7 @@ def wait_ready(ksim, katherine):
     """
     for _ in range(READY_ATTEMPTS):
         try:
-            device = katherine.Device(KSIM_LISTEN_ADDRESS)
+            device = katherine.Device(KSIM_DEVICE_ADDRESS)
         except KATHERINE_ERRORS as e:
             return None, 'cannot bind the local control/data ports 1555/1556: %s' % e
 
@@ -541,7 +543,7 @@ def check_discovery(tap, katherine):
     tap.check_eq('DISCOVER_MIN_PORT is the firmware\'s floor',
                  katherine.DISCOVER_MIN_PORT, 32)
 
-    found = katherine.discover('127.0.0.1', 42700, 50)
+    found = katherine.discover('udp://127.0.0.1', 42700, 50)
     tap.check_eq('discovering nothing returns nothing', found, [])
 
     tap.check_raises('discovery rejects no room for an answer', ValueError,

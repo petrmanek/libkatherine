@@ -143,6 +143,25 @@ test_f_opening_accepts_the_scheme(void)
     katherine_device_fini(&device);
 }
 
+/* And the form with no scheme reaches both entry points, which is what every
+ * address written before 2.0 is. Asserted here rather than left to the places
+ * that happen to still use one, because those are a liability: the next
+ * sweep over the tests would quietly take the last of them away. */
+static void
+test_g_the_bare_form_still_opens_a_device(void)
+{
+    katherine_device_t device;
+
+    const katherine_error_t res = katherine_device_init(&device, QUIET_HOST, KATHERINE_DEVICE_DONT_ENUMERATE);
+    if (res == KATHERINE_E_ADDRESS) {
+        printf("# SKIP cannot bind the readout's control and data ports\n");
+        return;
+    }
+
+    KT_REQUIRE(res == KATHERINE_E_OK);
+    katherine_device_fini(&device);
+}
+
 int
 main(void)
 {
@@ -152,5 +171,6 @@ main(void)
     KT_RUN(test_d_an_address_survives_the_round_trip);
     KT_RUN(test_e_opening_reads_the_scheme);
     KT_RUN(test_f_opening_accepts_the_scheme);
+    KT_RUN(test_g_the_bare_form_still_opens_a_device);
     return kt_summary();
 }
