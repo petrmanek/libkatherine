@@ -17,11 +17,11 @@ cdef extern from 'katherine/udp.h':
 
     int katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
 
-    int katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
+    int katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms)
     void katherine_udp_fini(katherine_udp_t *u)
     int katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
     int katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
     int katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
     int katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
-    int katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
+    int katherine_udp_set_remote(katherine_udp_t *u, const char *remote_address, uint16_t remote_port)
     void katherine_udp_pin_remote(katherine_udp_t *u)

@@ -353,12 +353,12 @@ test_null_remote_address_is_refused(void)
     katherine_udp_t u;
 
     KT_REQUIRE(katherine_udp_init_bound(&u, HOST_LOCAL, PORT_A, HOST_LOCAL, PORT_B, TIMEOUT_MS) == 0);
-    KT_CHECK_EQ(katherine_udp_set_remote(&u, NULL, PORT_C), KATHERINE_E_ADDR);
+    KT_CHECK_EQ(katherine_udp_set_remote(&u, NULL, PORT_C), KATHERINE_E_ADDRESS);
     KT_CHECK_EQ(katherine_udp_last_os_error(&u), 0);
     katherine_udp_fini(&u);
 
     KT_CHECK_EQ(katherine_udp_init_bound(&u, HOST_LOCAL, PORT_A, NULL, PORT_B, TIMEOUT_MS),
-        KATHERINE_E_ADDR);
+        KATHERINE_E_ADDRESS);
 
     // A null local address keeps its meaning: the wildcard.
     KT_REQUIRE(katherine_udp_init_bound(&u, NULL, PORT_A, HOST_LOCAL, PORT_B, TIMEOUT_MS) == 0);

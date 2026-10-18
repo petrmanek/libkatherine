@@ -12,7 +12,7 @@ cdef extern from 'katherine/discover.h':
     cdef int KATHERINE_DISCOVER_MIN_PORT
 
     ctypedef struct katherine_discovered_t:
-        char *addr
+        char *address
         bint legacy
 
-    int katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
+    int katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)

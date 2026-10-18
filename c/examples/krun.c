@@ -17,7 +17,7 @@
 
 #include <katherine/katherine.h>
 
-static const char *remote_addr = "192.168.1.145";
+static const char *remote_address = "192.168.1.145";
 typedef katherine_tpx3_px_f_toa_tot_t px_t;
 
 // Set the following flag to inject test pulses into a small subset of
@@ -337,9 +337,9 @@ int
 main(int argc, char *argv[])
 {
     if (argc > 1) {
-        remote_addr = argv[1];
+        remote_address = argv[1];
     }
-    printf("Using remote address: %s\n", remote_addr);
+    printf("Using remote address: %s\n", remote_address);
 
     katherine_config_t c;
     configure(&c);
@@ -347,7 +347,7 @@ main(int argc, char *argv[])
     int res;
     katherine_device_t device;
 
-    res = katherine_device_init(&device, remote_addr, 0);
+    res = katherine_device_init(&device, remote_address, 0);
     if (res != 0) {
         printf("Cannot initialize device. Is the address correct?\n");
         printf("Reason: %s\n", katherine_strerror(res));

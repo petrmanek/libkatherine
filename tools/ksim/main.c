@@ -45,7 +45,7 @@
 
 /* struct in_addr comes in transitively via katherine/udp.h (through
    udp_nix.h's <arpa/inet.h> or udp_win.h's <winsock2.h>, depending on
-   platform), which is also where katherine_udp_t's own addr_remote field
+   platform), which is also where katherine_udp_t's own address_remote field
    gets its struct sockaddr_in / SOCKADDR_IN type from. Nothing else here
    needs a directly-included sockets header: the client's address is
    formatted by hand instead of via inet_ntop(), which Windows only
@@ -198,7 +198,7 @@ print_usage(FILE *out, const char *prog)
         "it as if it were a readout.\n"
         "\n"
         "Options:\n"
-        "  --listen <addr>              local address to bind (default %s)\n"
+        "  --listen <address>              local address to bind (default %s)\n"
         "  --ctl-port <port>            control port to bind (default %d)\n"
         "  --data-port <port>           data port to bind, i.e. this daemon's own\n"
         "                               source port for measurement data (default %d)\n"
@@ -447,15 +447,15 @@ parse_options(int argc, char *argv[], daemon_options_t *options)
    order, with no dependency on <arpa/inet.h> (POSIX) vs. <ws2tcpip.h>
    (Windows). */
 static void
-format_ipv4(struct in_addr addr, char *out, size_t out_size)
+format_ipv4(struct in_addr address, char *out, size_t out_size)
 {
     unsigned char b[4];
-    memcpy(b, &addr.s_addr, sizeof(b));
+    memcpy(b, &address.s_addr, sizeof(b));
     snprintf(out, out_size, "%u.%u.%u.%u", b[0], b[1], b[2], b[3]);
 }
 
 /* Repoints the data socket to the client's current address whenever the
-   client's IP -- learned from the control socket's addr_remote, which
+   client's IP -- learned from the control socket's address_remote, which
    katherine_udp_recv() keeps pointed at whoever sent last -- has changed.
    The client's data port is fixed by --client-data-port; only the host
    address can move. */
@@ -463,7 +463,7 @@ static void
 track_client(katherine_udp_t *data_udp, const katherine_udp_t *ctl_udp, uint16_t client_data_port, bool *data_remote_set,
     struct in_addr *data_remote_ip, bool quiet)
 {
-    struct in_addr ip = ctl_udp->addr_remote.sin_addr;
+    struct in_addr ip = ctl_udp->address_remote.sin_addr;
 
     if (*data_remote_set && ip.s_addr == data_remote_ip->s_addr) return;
 
@@ -526,7 +526,7 @@ drain_log(FILE *log_fp, katherine_emu_t *emu)
 /* ---------------------------------------------------------------------- */
 /* Main loop.                                                              */
 
-/* Sends the stray CRD to whoever the control socket's addr_remote currently
+/* Sends the stray CRD to whoever the control socket's address_remote currently
    names -- i.e. the sender of the datagram that was just received, since
    katherine_udp_recv() keeps that field pointed at the last peer. */
 static void
@@ -686,8 +686,8 @@ main(int argc, char *argv[])
             // Nothing ever truly sends to itself, so such a source proves
             // the peer sits on the same host behind a wildcard bind, which
             // the primary loopback address reaches; reply there instead.
-            if (ctl_udp.addr_remote.sin_addr.s_addr == ctl_udp.addr_local.sin_addr.s_addr
-                && ctl_udp.addr_remote.sin_port == ctl_udp.addr_local.sin_port) {
+            if (ctl_udp.address_remote.sin_addr.s_addr == ctl_udp.address_local.sin_addr.s_addr
+                && ctl_udp.address_remote.sin_port == ctl_udp.address_local.sin_port) {
                 (void) katherine_udp_set_remote(&ctl_udp, "127.0.0.1", options.ctl_port);
                 if (!options.quiet && self_sourced_seen == 0) {
                     fprintf(stderr, "ksim: commands arrive from this daemon's own address, replying to 127.0.0.1\n");

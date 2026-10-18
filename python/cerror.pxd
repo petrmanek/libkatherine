@@ -12,7 +12,7 @@ cdef extern from 'katherine/error.h':
         KATHERINE_E_TIMEOUT
         KATHERINE_E_IO
         KATHERINE_E_CLOSED
-        KATHERINE_E_ADDR
+        KATHERINE_E_ADDRESS
         KATHERINE_E_BAD_CRD
         KATHERINE_E_STRAY
         KATHERINE_E_PROTO

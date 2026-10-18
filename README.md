@@ -31,14 +31,14 @@ a read-out at a given IP address.
 #include <katherine/katherine.h>
 
 int main() {
-  const char *ip_addr = "192.168.1.142";
+  const char *ip_address = "192.168.1.142";
 
   katherine_device_t dev;
-  katherine_device_init(&dev, ip_addr);   // Ignoring return code.
+  katherine_device_init(&dev, ip_address);   // Ignoring return code.
 
   char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
   katherine_get_chip_id(&dev, chip_id);   // Ignoring return code.
-  printf("Device %s has chip id: %s\n", ip_addr, chip_id);
+  printf("Device %s has chip id: %s\n", ip_address, chip_id);
 
   katherine_device_fini(&dev);
 }
@@ -50,9 +50,9 @@ int main() {
 #include <katherinexx/katherinexx.hpp>
 
 int main() {
-  const std::string ip_addr{"192.168.1.142"};
+  const std::string ip_address{"192.168.1.142"};
 
-  katherine::device dev{ip_addr};
+  katherine::device dev{ip_address};
   const std::string chip_id = dev.chip_id();   // Exception can be thrown here.
   std::cout << "Device " << address << " has chip id: " << chip_id << std::endl;
 }
@@ -62,11 +62,11 @@ int main() {
 # Python example
 from katherine import Device
 
-ip_addr = '192.168.1.142'
+ip_address = '192.168.1.142'
 
-dev = Device(ip_addr)
+dev = Device(ip_address)
 chip_id = dev.get_chip_id()   # OSError can be raised here.
-print('Device %s has chip id: %s' % (ip_addr, chip_id))
+print('Device %s has chip id: %s' % (ip_address, chip_id))
 ```
 
 ### More Examples

@@ -57,8 +57,8 @@ finally:
 _SCRATCH_CAP = _kat.SCRATCH_CAP
 
 
-def _call_snprint(fn_name, addr):
-    """Renders *addr by calling fn_name(buf, cap, addr) in the live
+def _call_snprint(fn_name, address):
+    """Renders *address by calling fn_name(buf, cap, address) in the live
     inferior: malloc() a scratch buffer, call the snprint function into it,
     read back its own would-be-length return value's worth of bytes, then
     free() the buffer. Returns the decoded string, or None if any step
@@ -77,7 +77,7 @@ def _call_snprint(fn_name, addr):
 
     try:
         try:
-            call = '(int) %s((char *) %d, (unsigned long) %d, %s)' % (fn_name, int(buf), _SCRATCH_CAP, addr)
+            call = '(int) %s((char *) %d, (unsigned long) %d, %s)' % (fn_name, int(buf), _SCRATCH_CAP, address)
             n = int(gdb.parse_and_eval(call))
         except gdb.error:
             return None
@@ -130,13 +130,13 @@ def _lookup_katherine_printer(val):
         return None
     fn_name = _kat.snprint_name(tag)
 
-    addr = val.address
-    if addr is None:
+    address = val.address
+    if address is None:
         # A value with no address (e.g. optimized into a register) has
         # nothing a pointer-taking snprint function could be called on.
         return None
 
-    rendered = _call_snprint(fn_name, '(const void *) %d' % int(addr))
+    rendered = _call_snprint(fn_name, '(const void *) %d' % int(address))
     if rendered is None:
         return None  # gdb falls back to its own default struct display
 

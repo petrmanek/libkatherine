@@ -53,7 +53,7 @@
 #define PORT_CMD_A        (KPORTS_BENCH_UDP + 2)
 #define PORT_CMD_B        (KPORTS_BENCH_UDP + 3)
 
-#define LOOPBACK_ADDR     "127.0.0.1"
+#define LOOPBACK_ADDRESS  "127.0.0.1"
 #define UDP_TIMEOUT_MS    1000
 
 #define MD_DGRAM_BYTES    1356
@@ -88,10 +88,10 @@ run_md_throughput(void)
     uint64_t dgrams = 0;
     double t0, dt;
 
-    if (katherine_udp_init_bound(&tx, LOOPBACK_ADDR, PORT_MD_TX, LOOPBACK_ADDR, PORT_MD_RX, UDP_TIMEOUT_MS)) {
+    if (katherine_udp_init_bound(&tx, LOOPBACK_ADDRESS, PORT_MD_TX, LOOPBACK_ADDRESS, PORT_MD_RX, UDP_TIMEOUT_MS)) {
         return 1;
     }
-    if (katherine_udp_init_bound(&rx, LOOPBACK_ADDR, PORT_MD_RX, LOOPBACK_ADDR, PORT_MD_TX, UDP_TIMEOUT_MS)) {
+    if (katherine_udp_init_bound(&rx, LOOPBACK_ADDRESS, PORT_MD_RX, LOOPBACK_ADDRESS, PORT_MD_TX, UDP_TIMEOUT_MS)) {
         katherine_udp_fini(&tx);
         return 1;
     }
@@ -147,10 +147,10 @@ run_cmd_roundtrips(void)
     double t0, dt = 0;
     int failed = 0;
 
-    if (katherine_udp_init_bound(&a, LOOPBACK_ADDR, PORT_CMD_A, LOOPBACK_ADDR, PORT_CMD_B, UDP_TIMEOUT_MS)) {
+    if (katherine_udp_init_bound(&a, LOOPBACK_ADDRESS, PORT_CMD_A, LOOPBACK_ADDRESS, PORT_CMD_B, UDP_TIMEOUT_MS)) {
         return 1;
     }
-    if (katherine_udp_init_bound(&b, LOOPBACK_ADDR, PORT_CMD_B, LOOPBACK_ADDR, PORT_CMD_A, UDP_TIMEOUT_MS)) {
+    if (katherine_udp_init_bound(&b, LOOPBACK_ADDRESS, PORT_CMD_B, LOOPBACK_ADDRESS, PORT_CMD_A, UDP_TIMEOUT_MS)) {
         katherine_udp_fini(&a);
         return 1;
     }

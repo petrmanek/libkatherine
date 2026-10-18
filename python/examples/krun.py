@@ -165,10 +165,10 @@ def run_acquisition(dev, c):
 
 
 if __name__ == '__main__':
-    remote_addr = '192.168.1.145'
+    remote_address = '192.168.1.145'
 
     config = configure()
 
-    device = k.Device(remote_addr)
+    device = k.Device(remote_address)
     print_chip_id(device)
     run_acquisition(device, config)

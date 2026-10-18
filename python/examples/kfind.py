@@ -14,16 +14,16 @@ def format_ip(a, b=None, c=None, d=None):
 
 
 def check_address(a0, a1, a2, a3):
-    addr = format_ip(a0, a1, a2, a3)
+    address = format_ip(a0, a1, a2, a3)
     chip_id = None
 
     try:
-        dev = Device(addr)
+        dev = Device(address)
         chip_id = dev.get_chip_id()
     except:
         return False
 
-    print('Found device: %s,\t chip id: %s' % (addr, chip_id))
+    print('Found device: %s,\t chip id: %s' % (address, chip_id))
     return True
 
 

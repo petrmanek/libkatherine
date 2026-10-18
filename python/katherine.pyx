@@ -89,7 +89,7 @@ __version__ = cversion.katherine_version_string().decode('UTF-8')
 DISCOVER_MIN_PORT = cdiscover.KATHERINE_DISCOVER_MIN_PORT
 
 
-def discover(addr, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
+def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
     """Ask every readout reachable at an address to identify itself.
 
     One echo-chip-id command, then whatever answers arrive until the
@@ -103,7 +103,7 @@ def discover(addr, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32)
     passed straight to Device(). The address asked may name its link too;
     one without a scheme is a UDP address.
     """
-    cdef bytes addr_b = addr.encode('UTF-8')
+    cdef bytes address_b = address.encode('UTF-8')
     cdef cdiscover.katherine_discovered_t *out
     cdef size_t count = capacity
 
@@ -116,9 +116,9 @@ def discover(addr, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32)
         raise MemoryError()
 
     try:
-        res = cdiscover.katherine_device_discover_udp(addr_b, reply_port, timeout_ms, out, &count)
+        res = cdiscover.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
         check_return_code(res)
-        return [(out[i].addr.decode('UTF-8'), out[i].legacy) for i in range(count)]
+        return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
     finally:
         PyMem_Free(out)
 
@@ -423,12 +423,12 @@ cdef class Tpx3DacVoltages:
 
 cdef class Device:
     cdef cdevice.katherine_device_t* _c_device
-    def __cinit__(self, addr):
+    def __cinit__(self, address):
          self._c_device = <cdevice.katherine_device_t*> PyMem_Malloc(sizeof(cdevice.katherine_device_t))
          if self._c_device is NULL:
              raise MemoryError()
 
-         res = cdevice.katherine_device_init(self._c_device, addr.encode(), 0)
+         res = cdevice.katherine_device_init(self._c_device, address.encode(), 0)
          check_return_code(res)
 
     def __dealloc__(self):
@@ -645,18 +645,18 @@ cdef class Device:
 cdef class Udp:
     cdef cudp.katherine_udp_t* _c_udp
 
-    def __cinit__(self, local_addr, uint16_t local_port, remote_addr, uint16_t remote_port, uint32_t timeout_ms):
+    def __cinit__(self, local_address, uint16_t local_port, remote_address, uint16_t remote_port, uint32_t timeout_ms):
          self._c_udp = <cudp.katherine_udp_t*> PyMem_Malloc(sizeof(cudp.katherine_udp_t))
          if self._c_udp is NULL:
              raise MemoryError()
 
-         cdef char *c_local_addr = NULL
-         cdef bytes local_addr_b
-         if local_addr is not None:
-             local_addr_b = local_addr.encode()
-             c_local_addr = local_addr_b
+         cdef char *c_local_address = NULL
+         cdef bytes local_address_b
+         if local_address is not None:
+             local_address_b = local_address.encode()
+             c_local_address = local_address_b
 
-         res = cudp.katherine_udp_init_bound(self._c_udp, c_local_addr, local_port, remote_addr.encode(), remote_port, timeout_ms)
+         res = cudp.katherine_udp_init_bound(self._c_udp, c_local_address, local_port, remote_address.encode(), remote_port, timeout_ms)
          check_return_code(res)
 
     def __dealloc__(self):
@@ -702,8 +702,8 @@ cdef class Udp:
          check_return_code(res)
          return data[:count]
 
-    def set_remote(self, remote_addr, uint16_t remote_port):
-         res = cudp.katherine_udp_set_remote(self._c_udp, remote_addr.encode(), remote_port)
+    def set_remote(self, remote_address, uint16_t remote_port):
+         res = cudp.katherine_udp_set_remote(self._c_udp, remote_address.encode(), remote_port)
          check_return_code(res)
 
     def pin_remote(self):

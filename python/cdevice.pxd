@@ -17,7 +17,7 @@ cdef extern from 'katherine/device.h':
 
     int katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
 
-    int katherine_device_init(katherine_device_t *device, const char *addr, uint32_t flags)
+    int katherine_device_init(katherine_device_t *device, const char *address, uint32_t flags)
     void katherine_device_fini(katherine_device_t *device)
     int katherine_device_enumerate(katherine_device_t *device)
     bool katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)

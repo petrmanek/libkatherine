@@ -44,7 +44,7 @@
 
 // The readout the device talks to. Its own ports are the ones device.c
 // insists on, on an address of its own.
-#define MOCK_ADDR       "127.0.0.2"
+#define MOCK_ADDRESS    "127.0.0.2"
 #define MOCK_CMD_PORT   1555
 
 // Long enough that the mock outlives an open, short enough that its thread
@@ -77,13 +77,13 @@ mock_serve(void *arg)
 {
     (void) arg;
 
-    const struct sockaddr_in reply_to = g_mock.addr_remote;
+    const struct sockaddr_in reply_to = g_mock.address_remote;
 
     for (;;) {
         katherine_cmd_t cmd;
         if (katherine_udp_recv_exact(&g_mock, cmd.b, sizeof(cmd.b)) != 0) break;
 
-        g_mock.addr_remote = reply_to;
+        g_mock.address_remote = reply_to;
 
         if (katherine_emu_cmd_in(&g_emu, cmd.b, sizeof(cmd.b)) != 0) continue;
 
@@ -120,7 +120,7 @@ selections_during_session(uint8_t hw_type, uint32_t flags, uint32_t *payload,
         return -1;
     }
 
-    const katherine_error_t res = katherine_device_init(&device, MOCK_ADDR, flags);
+    const katherine_error_t res = katherine_device_init(&device, MOCK_ADDRESS, flags);
     if (res == KATHERINE_E_OK) {
         if (after_open != NULL) {
             const katherine_error_t sub = after_open(&device);
@@ -233,10 +233,10 @@ test_f_an_unknown_interface_is_refused(void)
 int
 main(void)
 {
-    if (katherine_udp_init_bound(&g_mock, MOCK_ADDR, MOCK_CMD_PORT, "127.0.0.1", MOCK_CMD_PORT,
+    if (katherine_udp_init_bound(&g_mock, MOCK_ADDRESS, MOCK_CMD_PORT, "127.0.0.1", MOCK_CMD_PORT,
             MOCK_TIMEOUT_MS)
         != 0) {
-        printf("1..0 # SKIP cannot bind %s:%d, which this host may not alias\n", MOCK_ADDR, MOCK_CMD_PORT);
+        printf("1..0 # SKIP cannot bind %s:%d, which this host may not alias\n", MOCK_ADDRESS, MOCK_CMD_PORT);
         return 77;
     }
 

@@ -40,7 +40,7 @@ extern "C" {
  * longest form a transport writes: a scheme, "://", a bus number and a chain
  * of up to seven USB port numbers.
  */
-#define KATHERINE_ADDR_STR_SIZE 64
+#define KATHERINE_DEVICE_ADDRESS_STR_SIZE 64
 
 /** Kind of link carrying a readout's traffic. */
 typedef enum katherine_transport_kind {

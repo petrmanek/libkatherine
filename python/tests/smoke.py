@@ -33,7 +33,7 @@ import subprocess
 import sys
 import time
 
-KSIM_LISTEN_ADDR = '127.0.0.2'
+KSIM_LISTEN_ADDRESS = '127.0.0.2'
 KSIM_SEED = 12345
 HITS_PER_FRAME = 40
 LOST_PER_FRAME = 3
@@ -162,7 +162,7 @@ def wait_ready(ksim, katherine):
     """
     for _ in range(READY_ATTEMPTS):
         try:
-            device = katherine.Device(KSIM_LISTEN_ADDR)
+            device = katherine.Device(KSIM_LISTEN_ADDRESS)
         except KATHERINE_ERRORS as e:
             return None, 'cannot bind the local control/data ports 1555/1556: %s' % e
 
@@ -188,13 +188,13 @@ def wait_ready(ksim, katherine):
 
         if ksim.poll() is not None:
             return None, ('ksim exited during startup: it could not bind %s (not aliased by default on macOS), '
-                           'or could not be executed at all' % KSIM_LISTEN_ADDR)
+                           'or could not be executed at all' % KSIM_LISTEN_ADDRESS)
 
         time.sleep(READY_SLEEP_S)
 
     return None, ('no answer from ksim at %s:1555 within %d attempts: the local ports may be bound on the wildcard '
                   'address by another process, or the wildcard/specific same-port coexistence this needs may be '
-                  'unsupported here (unproven on Windows)' % (KSIM_LISTEN_ADDR, READY_ATTEMPTS))
+                  'unsupported here (unproven on Windows)' % (KSIM_LISTEN_ADDRESS, READY_ATTEMPTS))
 
 
 def find_project_version(script_path):
@@ -673,7 +673,7 @@ def check_udp(tap, katherine):
     tap.check_raises('a receive on an empty socket raises TimeoutError',
                      TimeoutError, u.recv_nowait, 16)
 
-    # KATHERINE_E_ADDR has no dedicated Python class and falls to the
+    # KATHERINE_E_ADDRESS has no dedicated Python class and falls to the
     # catch-all, which is itself worth pinning: it is the group every
     # unmapped code lands in, so a code that silently stops matching shows up
     # as one of these instead of as the specific class it should have been.
@@ -785,7 +785,7 @@ def main():
     try:
         ksim = subprocess.Popen([
             ksim_path,
-            '--listen', KSIM_LISTEN_ADDR,
+            '--listen', KSIM_LISTEN_ADDRESS,
             '--seed', str(KSIM_SEED),
             '--hits-per-frame', str(HITS_PER_FRAME),
             '--lost-per-frame', str(LOST_PER_FRAME),

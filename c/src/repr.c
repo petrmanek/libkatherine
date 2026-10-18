@@ -99,13 +99,13 @@ px_config_xor64(const katherine_tpx3_px_config_t *v)
 // needs. buf must be at least 22 bytes ("255.255.255.255:65535" plus the
 // NUL); the caller below sizes it generously.
 static void
-format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *addr)
+format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *address)
 {
-    uint32_t host_addr = ntohl(addr->sin_addr.s_addr);
-    uint16_t host_port = ntohs(addr->sin_port);
+    uint32_t host_address = ntohl(address->sin_addr.s_addr);
+    uint16_t host_port    = ntohs(address->sin_port);
 
-    snprintf(buf, cap, "%u.%u.%u.%u:%u", (unsigned) ((host_addr >> 24) & 0xFFu), (unsigned) ((host_addr >> 16) & 0xFFu),
-        (unsigned) ((host_addr >> 8) & 0xFFu), (unsigned) (host_addr & 0xFFu), (unsigned) host_port);
+    snprintf(buf, cap, "%u.%u.%u.%u:%u", (unsigned) ((host_address >> 24) & 0xFFu), (unsigned) ((host_address >> 16) & 0xFFu),
+        (unsigned) ((host_address >> 8) & 0xFFu), (unsigned) (host_address & 0xFFu), (unsigned) host_port);
 }
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
@@ -591,8 +591,8 @@ katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
     char remote[24];
     size_t off = 0;
 
-    format_ipv4_port(local, sizeof(local), &v->addr_local);
-    format_ipv4_port(remote, sizeof(remote), &v->addr_remote);
+    format_ipv4_port(local, sizeof(local), &v->address_local);
+    format_ipv4_port(remote, sizeof(remote), &v->address_remote);
 
     REPR_APPENDF(buf, cap, off, "udp{local: %s, remote: %s, pinned: %s, last_os_error: %d}", local, remote,
         katherine_str_bool(v->remote_pinned), v->last_os_error);

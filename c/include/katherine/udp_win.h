@@ -32,14 +32,14 @@ extern "C" {
 
 /** One UDP session: a bound socket, the endpoint it talks to, and the lock serializing it. */
 typedef struct katherine_udp {
-    SOCKET sock;             ///< The OS socket handle.
-    SOCKADDR_IN addr_local;  ///< Local endpoint this session is bound to.
-    SOCKADDR_IN addr_remote; ///< Remote endpoint it sends to; see katherine_udp_set_remote().
+    SOCKET sock;                ///< The OS socket handle.
+    SOCKADDR_IN address_local;  ///< Local endpoint this session is bound to.
+    SOCKADDR_IN address_remote; ///< Remote endpoint it sends to; see katherine_udp_set_remote().
 
     HANDLE mutex;     ///< Serializes use of the session between threads; taken through katherine_udp_mutex_lock().
     WSADATA wsa_data; ///< Winsock state this session initialized, released by katherine_udp_fini().
 
-    bool remote_pinned; ///< True to keep addr_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
+    bool remote_pinned; ///< True to keep address_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
 
 
     int last_os_error; ///< 0 unless the last transport operation failed with an OS-level error code; read through katherine_udp_last_os_error().

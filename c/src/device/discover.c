@@ -70,13 +70,13 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
 
     // Under an address that names the link as well as the readout, so that
     // what discovery reports is what katherine_device_init() takes.
-    char host[KATHERINE_ADDR_STR_SIZE];
+    char host[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
     if (katherine_udp_get_remote_address(udp, host, sizeof(host)) != KATHERINE_E_OK) {
         return COLLECT_DISCARD;
     }
 
-    const int written = katherine_address_format(entry->addr, sizeof(entry->addr), KATHERINE_TRANSPORT_UDP, host);
-    if (written < 0 || (size_t) written >= sizeof(entry->addr)) {
+    const int written = katherine_address_format(entry->address, sizeof(entry->address), KATHERINE_TRANSPORT_UDP, host);
+    if (written < 0 || (size_t) written >= sizeof(entry->address)) {
         return COLLECT_DISCARD;
     }
     entry->legacy = legacy;
@@ -111,7 +111,7 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
  *   answers twice, from both, and which of them a caller should talk to is
  *   not this function's to decide.
  *
- * \param addr Address to ask, broadcast or unicast, optionally naming the
+ * \param address Address to ask, broadcast or unicast, optionally naming the
  *   link it is on: "udp://192.168.1.255". An address with no scheme is a UDP
  *   address, and one naming another link is refused, this asking over UDP
  * \param reply_port Port a current firmware is to answer on; at least
@@ -126,7 +126,7 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
  *   gives is zero, the timeout is zero, the reply port is below
  *   KATHERINE_DISCOVER_MIN_PORT or is the standard port, or a socket call
  *   rejected an argument; see sendto(2) and socket(2).
- * \retval KATHERINE_E_ADDR if the address names a link that is not UDP or one
+ * \retval KATHERINE_E_ADDRESS if the address names a link that is not UDP or one
  *   this library does not know, is a scheme and nothing else, could not be
  *   parsed, or either local port could not be bound; see inet_pton(3) and
  *   bind(2).
@@ -139,7 +139,7 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
  * \retval KATHERINE_E_SYSTEM if a session's lock could not be created.
  */
 katherine_error_t
-katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
+katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
 {
     katherine_error_t res;
     katherine_transport_kind_t kind;
@@ -176,10 +176,10 @@ katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t ti
 
     // This asks over UDP whatever the address says, so a scheme naming
     // another link is an address for somebody else's discovery.
-    res = katherine_address_split(addr, &kind, &host);
-    if (res) goto err_addr;
+    res = katherine_address_split(address, &kind, &host);
+    if (res) goto err_address;
     if (kind != KATHERINE_TRANSPORT_UDP) {
-        res = KATHERINE_E_ADDR;
+        res = KATHERINE_E_ADDRESS;
         goto err_kind;
     }
 
@@ -253,7 +253,7 @@ err_modern:
     katherine_udp_fini(&legacy);
 err_legacy:
 err_kind:
-err_addr:
+err_address:
 err_timeout:
 err_port:
 err_capacity:

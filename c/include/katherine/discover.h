@@ -44,12 +44,12 @@ extern "C" {
 
 /** One readout that answered. */
 typedef struct katherine_discovered {
-    char addr[KATHERINE_ADDR_STR_SIZE]; ///< Address it answered from, naming the link too: "udp://192.168.1.42". Ready to hand to katherine_device_init().
-    bool legacy;                        ///< True if the firmware ignored the reply port and answered on the standard one.
+    char address[KATHERINE_DEVICE_ADDRESS_STR_SIZE]; ///< Address it answered from, naming the link too: "udp://192.168.1.42". Ready to hand to katherine_device_init().
+    bool legacy;                                     ///< True if the firmware ignored the reply port and answered on the standard one.
 } katherine_discovered_t;
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count);
+katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count);
 
 #ifdef __cplusplus
 }

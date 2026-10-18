@@ -34,8 +34,8 @@ finally:
     sys.path.pop(0)
 
 
-def _render(target, fn_name, addr):
-    """Renders the struct at addr by calling fn_name(buf, cap, addr) in the
+def _render(target, fn_name, address):
+    """Renders the struct at address by calling fn_name(buf, cap, address) in the
     live process: malloc() a scratch buffer, call the snprint function into
     it, read back its would-be-length return value's worth of bytes, then
     free() the buffer. Returns the decoded string, or None if any step
@@ -49,7 +49,7 @@ def _render(target, fn_name, addr):
 
     try:
         call = '(int) %s((char *) %dUL, (unsigned long) %d, (const void *) %dUL)' \
-            % (fn_name, buf_addr, _kat.SCRATCH_CAP, addr)
+            % (fn_name, buf_addr, _kat.SCRATCH_CAP, address)
         n_val = target.EvaluateExpression(call)
         if not n_val.IsValid() or n_val.GetError().Fail():
             return None
@@ -84,11 +84,11 @@ def katherine_summary(valobj, internal_dict):
     if not process.IsValid() or process.GetState() != lldb.eStateStopped:
         return ''
 
-    addr = valobj.GetLoadAddress()
-    if addr == lldb.LLDB_INVALID_ADDRESS:
+    address = valobj.GetLoadAddress()
+    if address == lldb.LLDB_INVALID_ADDRESS:
         return ''
 
-    rendered = _render(valobj.GetTarget(), _kat.snprint_name(tag), addr)
+    rendered = _render(valobj.GetTarget(), _kat.snprint_name(tag), address)
     return rendered if rendered is not None else ''
 
 

@@ -40,9 +40,9 @@ class udp {
     katherine_udp_t udp_;
 
 public:
-    udp(std::string local_addr, std::uint16_t local_port, std::string remote_addr, std::uint16_t remote_port, std::uint32_t timeout_ms)
+    udp(std::string local_address, std::uint16_t local_port, std::string remote_address, std::uint16_t remote_port, std::uint32_t timeout_ms)
     {
-        int res = katherine_udp_init_bound(&udp_, local_addr.empty() ? nullptr : local_addr.c_str(), local_port, remote_addr.c_str(), remote_port, timeout_ms);
+        int res = katherine_udp_init_bound(&udp_, local_address.empty() ? nullptr : local_address.c_str(), local_port, remote_address.c_str(), remote_port, timeout_ms);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -110,9 +110,9 @@ public:
     }
 
     void
-    set_remote(std::string remote_addr, std::uint16_t remote_port)
+    set_remote(std::string remote_address, std::uint16_t remote_port)
     {
-        int res = katherine_udp_set_remote(&udp_, remote_addr.c_str(), remote_port);
+        int res = katherine_udp_set_remote(&udp_, remote_address.c_str(), remote_port);
 
         if (res != 0) {
             throw katherine::system_error{res};

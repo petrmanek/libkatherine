@@ -32,13 +32,13 @@ extern "C" {
 
 /** One UDP session: a bound socket, the endpoint it talks to, and the lock serializing it. */
 typedef struct katherine_udp {
-    int sock;                       ///< The OS socket handle.
-    struct sockaddr_in addr_local;  ///< Local endpoint this session is bound to.
-    struct sockaddr_in addr_remote; ///< Remote endpoint it sends to; see katherine_udp_set_remote().
+    int sock;                          ///< The OS socket handle.
+    struct sockaddr_in address_local;  ///< Local endpoint this session is bound to.
+    struct sockaddr_in address_remote; ///< Remote endpoint it sends to; see katherine_udp_set_remote().
 
     pthread_mutex_t mutex; ///< Serializes use of the session between threads; taken through katherine_udp_mutex_lock().
 
-    bool remote_pinned; ///< True to keep addr_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
+    bool remote_pinned; ///< True to keep address_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
 
 
     bool count_drops;           ///< True to ask the kernel how many datagrams it dropped for want of queue space; set through katherine_udp_set_drop_counting().

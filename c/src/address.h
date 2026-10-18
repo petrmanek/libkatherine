@@ -37,17 +37,17 @@
 // a bus and a chain of port numbers.
 
 // Separates the scheme from the address the transport understands.
-#define KATHERINE_ADDR_SCHEME_SEP "://"
+#define KATHERINE_ADDRESS_SCHEME_SEP "://"
 
 /**
  * Split an address into the link it names and the rest, which is the named
- * transport's to parse. Points \p rest into \p addr rather than copying.
+ * transport's to parse. Points \p rest into \p address rather than copying.
  *
  * An address with no scheme is a UDP address: that is the only shape there
  * was before 2.0, and every one of them names a readout on a network.
  */
 static inline katherine_error_t
-katherine_address_split(const char *addr, katherine_transport_kind_t *kind, const char **rest)
+katherine_address_split(const char *address, katherine_transport_kind_t *kind, const char **rest)
 {
     // Every scheme an address may name. The tokens come from
     // katherine_str_transport_kind(), so only this list is kept in step.
@@ -55,22 +55,22 @@ katherine_address_split(const char *addr, katherine_transport_kind_t *kind, cons
 
     katherine_error_t res;
     katherine_transport_kind_t found = KATHERINE_TRANSPORT_UDP;
-    const char *body                 = addr;
+    const char *body                 = address;
 
-    if (addr == NULL) {
-        res = KATHERINE_E_ADDR;
+    if (address == NULL) {
+        res = KATHERINE_E_ADDRESS;
         goto err_null;
     }
 
-    const char *sep = strstr(addr, KATHERINE_ADDR_SCHEME_SEP);
+    const char *sep = strstr(address, KATHERINE_ADDRESS_SCHEME_SEP);
     if (sep != NULL) {
-        const size_t len = (size_t) (sep - addr);
+        const size_t len = (size_t) (sep - address);
         bool named       = false;
 
         for (size_t i = 0; i < sizeof(KINDS) / sizeof(KINDS[0]); ++i) {
             const char *token = katherine_str_transport_kind(KINDS[i]);
 
-            if (strlen(token) == len && memcmp(addr, token, len) == 0) {
+            if (strlen(token) == len && memcmp(address, token, len) == 0) {
                 found = KINDS[i];
                 named = true;
                 break;
@@ -78,16 +78,16 @@ katherine_address_split(const char *addr, katherine_transport_kind_t *kind, cons
         }
 
         if (!named) {
-            res = KATHERINE_E_ADDR;
+            res = KATHERINE_E_ADDRESS;
             goto err_scheme;
         }
 
-        body = sep + strlen(KATHERINE_ADDR_SCHEME_SEP);
+        body = sep + strlen(KATHERINE_ADDRESS_SCHEME_SEP);
     }
 
     // A scheme and nothing else names no readout.
     if (*body == '\0') {
-        res = KATHERINE_E_ADDR;
+        res = KATHERINE_E_ADDRESS;
         goto err_empty;
     }
 
@@ -112,7 +112,7 @@ err_null:
 static inline int
 katherine_address_format(char *buf, size_t cap, katherine_transport_kind_t kind, const char *rest)
 {
-    return snprintf(buf, cap, "%s" KATHERINE_ADDR_SCHEME_SEP "%s", katherine_str_transport_kind(kind), rest);
+    return snprintf(buf, cap, "%s" KATHERINE_ADDRESS_SCHEME_SEP "%s", katherine_str_transport_kind(kind), rest);
 }
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

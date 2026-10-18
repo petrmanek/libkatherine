@@ -17,7 +17,7 @@
  *   - EINVAL:    a DAC register value outside its chip field
  *                (katherine_dacs_validate(), KATHERINE_E_INVAL); and,
  *                because 1.x reported this the same way, an unparsable
- *                remote address (KATHERINE_E_ADDR, see katherine1.h for
+ *                remote address (KATHERINE_E_ADDRESS, see katherine1.h for
  *                where that is attested against the 1.1.0 sources).
  *   - ENOMEM:    an acquisition buffer too large for any allocator to satisfy.
  *   - EIO:       every katherine_error_t enumerator this shim does not name
@@ -51,7 +51,7 @@
 
 #define HOST            "127.0.0.1"
 #define PORT_SILENT     43700 // bound, never sent to: the timeout case
-#define PORT_BADADDR    43703 // bound only long enough to fail resolving its remote
+#define PORT_BADADDRESS 43703 // bound only long enough to fail resolving its remote
 #define PORT_A          43701 // the round-trip pair
 #define PORT_B          43702
 #define PORT_NOMEM      43704 // the device the ENOMEM case reads through
@@ -108,7 +108,7 @@ test_dacs_validate_out_of_range_maps_to_einval(void)
 // ------------------------------------------------------------------
 // EINVAL, cause 2: an address inet_pton() cannot parse. 1.x reported this
 // as EINVAL too (see katherine1.h for the 1.1.0 evidence); 2.0 names it
-// KATHERINE_E_ADDR, a separate enumerator this shim maps onto the same
+// KATHERINE_E_ADDRESS, a separate enumerator this shim maps onto the same
 // 1.x code, so this case is a distinct failure from the one above with
 // the same expected result.
 
@@ -116,7 +116,7 @@ static void
 test_udp_bad_remote_address_maps_to_einval(void)
 {
     katherine_udp_t u;
-    KT_CHECK_EQ(katherine_udp_init_bound(&u, NULL, PORT_BADADDR, "not-an-address", 0, TIMEOUT_MS), EINVAL);
+    KT_CHECK_EQ(katherine_udp_init_bound(&u, NULL, PORT_BADADDRESS, "not-an-address", 0, TIMEOUT_MS), EINVAL);
 }
 
 // ------------------------------------------------------------------

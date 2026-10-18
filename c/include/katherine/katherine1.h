@@ -98,7 +98,7 @@
 // dedicated code of its own (see katherine_udp_init_bound() as of the
 // 1.1.0 release, the last one before this convention changed): both its
 // local- and remote-address branches set `res = EINVAL` on an inet_pton()
-// failure. KATHERINE_E_ADDR is the 2.0 enumerator that condition now maps
+// failure. KATHERINE_E_ADDRESS is the 2.0 enumerator that condition now maps
 // to, hence the explicit case below rather than letting it fall to EIO.
 //
 // Every other katherine_error_t enumerator collapses onto EIO: 1.x had no
@@ -116,7 +116,7 @@ katherine1_map_result(int result)
     case KATHERINE_E_TIMEOUT: return ETIMEDOUT;
     case KATHERINE_E_NOMEM:   return ENOMEM;
     case KATHERINE_E_INVAL:   return EINVAL;
-    case KATHERINE_E_ADDR:    return EINVAL;
+    case KATHERINE_E_ADDRESS: return EINVAL;
     default:                  return EIO;
     }
 }
@@ -136,9 +136,9 @@ katherine1_map_result(int result)
  */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_device_init(katherine_device_t *device, const char *addr)
+katherine1_device_init(katherine_device_t *device, const char *address)
 {
-    return katherine1_map_result(katherine_device_init(device, addr,
+    return katherine1_map_result(katherine_device_init(device, address,
         KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS | KATHERINE_DEVICE_DONT_SELECT_INTERFACE));
 }
 
@@ -423,17 +423,17 @@ katherine1_acquisition_read(katherine_acquisition_t *acq)
 /** \legacy1{katherine_udp_init} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
+katherine1_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms)
 {
-    return katherine1_map_result(katherine_udp_init(u, local_port, remote_addr, remote_port, timeout_ms));
+    return katherine1_map_result(katherine_udp_init(u, local_port, remote_address, remote_port, timeout_ms));
 }
 
 /** \legacy1{katherine_udp_init_bound} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
+katherine1_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms)
 {
-    return katherine1_map_result(katherine_udp_init_bound(u, local_addr, local_port, remote_addr, remote_port, timeout_ms));
+    return katherine1_map_result(katherine_udp_init_bound(u, local_address, local_port, remote_address, remote_port, timeout_ms));
 }
 
 /** \legacy1{katherine_udp_send_exact} */
@@ -463,9 +463,9 @@ katherine1_udp_recv(katherine_udp_t *u, void *data, size_t *count)
 /** \legacy1{katherine_udp_set_remote} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
+katherine1_udp_set_remote(katherine_udp_t *u, const char *remote_address, uint16_t remote_port)
 {
-    return katherine1_map_result(katherine_udp_set_remote(u, remote_addr, remote_port));
+    return katherine1_map_result(katherine_udp_set_remote(u, remote_address, remote_port));
 }
 
 /** \legacy1{katherine_udp_mutex_lock} */

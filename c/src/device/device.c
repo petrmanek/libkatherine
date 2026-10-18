@@ -205,14 +205,14 @@ err_enumerated:
 /**
  * Initialize Katherine device.
  * \param device Katherine device
- * \param addr Address of the readout, naming the link as well as the readout
+ * \param address Address of the readout, naming the link as well as the readout
  *   on it: "udp://192.168.1.42". An address with no scheme is a UDP address,
  *   which is what every address written before 2.0 is.
  * \param flags Zero for the full open, or katherine_device_flags_t values
  *   suppressing individual steps of it
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_ADDR if the address names a link this library does not
+ * \retval KATHERINE_E_ADDRESS if the address names a link this library does not
  *   know, or is a scheme and nothing else, or its UDP part is not a valid
  *   IPv4 address, or the control or data socket's fixed local port could not
  *   be bound; see inet_pton(3) and bind(2).
@@ -244,7 +244,7 @@ err_enumerated:
  *   generation.
  */
 katherine_error_t
-katherine_device_init(katherine_device_t *device, const char *addr, uint32_t flags)
+katherine_device_init(katherine_device_t *device, const char *address, uint32_t flags)
 {
     katherine_error_t res;
 
@@ -260,8 +260,8 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     // after the scheme is the transport's to read.
     katherine_transport_kind_t kind;
     const char *host;
-    if ((res = katherine_address_split(addr, &kind, &host)) != KATHERINE_E_OK) {
-        goto err_addr;
+    if ((res = katherine_address_split(address, &kind, &host)) != KATHERINE_E_OK) {
+        goto err_address;
     }
     // TEMPORARY. This function is to become transport-agnostic, opening
     // whichever transport the scheme names -- UDP, USB, PCIe -- so that the
@@ -372,7 +372,7 @@ err_control_transport:
     katherine_udp_fini(&device->control_socket);
 err_control:
 err_kind:
-err_addr:
+err_address:
     return res;
 }
 

@@ -43,7 +43,7 @@ using discovered = katherine_discovered_t;
 /**
  * Ask every readout reachable at an address to identify itself.
  *
- * \param addr Address to ask, broadcast or unicast, optionally naming the
+ * \param address Address to ask, broadcast or unicast, optionally naming the
  *   link it is on: "udp://192.168.1.255". An address with no scheme is a UDP
  *   address.
  * \param reply_port Port the readouts are to answer on; at least
@@ -56,7 +56,7 @@ using discovered = katherine_discovered_t;
  */
 template<typename Rep, typename Period>
 inline std::vector<katherine::discovered>
-discover(const std::string& addr, uint16_t reply_port, std::chrono::duration<Rep, Period> timeout, std::size_t capacity = 32)
+discover(const std::string& address, uint16_t reply_port, std::chrono::duration<Rep, Period> timeout, std::size_t capacity = 32)
 {
     using namespace std::chrono;
 
@@ -72,7 +72,7 @@ discover(const std::string& addr, uint16_t reply_port, std::chrono::duration<Rep
     std::vector<katherine::discovered> out(capacity);
     std::size_t count = out.size();
 
-    int res = katherine_device_discover_udp(addr.c_str(), reply_port,
+    int res = katherine_device_discover_udp(address.c_str(), reply_port,
         (uint32_t) timeout_ms.count(), out.data(), &count);
 
     if (res != 0) {
@@ -87,9 +87,9 @@ class device {
     katherine_device_t dev_;
 
 public:
-    device(std::string addr)
+    device(std::string address)
     {
-        int res = katherine_device_init(&dev_, addr.c_str(), 0);
+        int res = katherine_device_init(&dev_, address.c_str(), 0);
         if (res != 0) {
             throw katherine::system_error{res};
         }

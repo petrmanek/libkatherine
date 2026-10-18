@@ -84,7 +84,7 @@
 #define E2E_STR_(x)             #x
 #define E2E_STR(x)              E2E_STR_(x)
 
-#define KSIM_LISTEN_ADDR        "127.0.0.2"
+#define KSIM_LISTEN_ADDRESS     "127.0.0.2"
 #define KSIM_SEED               12345
 #define HITS_PER_FRAME          40
 #define LOST_PER_FRAME          3
@@ -155,12 +155,12 @@
 // the library's own wildcard-bound control socket and read back as if it
 // were the readout's acknowledgement. 192.0.2.1 is TEST-NET-1 (RFC 5737),
 // reserved for documentation and never assigned, so nothing answers.
-#define DEAD_ADDR               "192.0.2.1"
+#define DEAD_ADDRESS            "192.0.2.1"
 
-// Deliberately the opposite of DEAD_ADDR: a local address nobody is bound
+// Deliberately the opposite of DEAD_ADDRESS: a local address nobody is bound
 // to, so that a command sent there comes straight back to the sender (all
 // of 127.0.0.0/8 is local) and exercises the faux-echo rejection.
-#define SILENT_LOOPBACK_ADDR    "127.0.0.9"
+#define SILENT_LOOPBACK_ADDRESS "127.0.0.9"
 
 // Bounds the timeout case: the control timeout is 100 ms, and time(NULL) has
 // one-second granularity, so anything at or under two seconds of difference
@@ -212,7 +212,7 @@ fixture_init_chips(const char *ksim_path, const char *profile, const char *chips
         (char *) "--profile",
         (char *) profile,
         (char *) "--listen",
-        (char *) KSIM_LISTEN_ADDR,
+        (char *) KSIM_LISTEN_ADDRESS,
         (char *) "--seed",
         (char *) E2E_STR(KSIM_SEED),
         (char *) "--hits-per-frame",
@@ -235,7 +235,7 @@ fixture_init_chips(const char *ksim_path, const char *profile, const char *chips
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     for (int attempt = 0; attempt < READY_ATTEMPTS; ++attempt) {
-        res = katherine_device_init(&g_device, KSIM_LISTEN_ADDR, 0);
+        res = katherine_device_init(&g_device, KSIM_LISTEN_ADDRESS, 0);
         if (res != 0) {
             snprintf(g_skip_reason, sizeof(g_skip_reason),
                 "cannot bind the local control/data ports 1555/1556: %s", katherine_strerror(res));
@@ -256,7 +256,7 @@ fixture_init_chips(const char *ksim_path, const char *profile, const char *chips
 
         if (!kspawn_alive(&g_ksim)) {
             snprintf(g_skip_reason, sizeof(g_skip_reason),
-                "ksim exited during startup: it could not bind " KSIM_LISTEN_ADDR
+                "ksim exited during startup: it could not bind " KSIM_LISTEN_ADDRESS
                 " (not aliased by default on macOS), or could not be executed at all");
             return g_skip_reason;
         }
@@ -265,7 +265,7 @@ fixture_init_chips(const char *ksim_path, const char *profile, const char *chips
     }
 
     snprintf(g_skip_reason, sizeof(g_skip_reason),
-        "no answer from ksim at " KSIM_LISTEN_ADDR ":1555 within %d attempts: the local ports may be bound on the "
+        "no answer from ksim at " KSIM_LISTEN_ADDRESS ":1555 within %d attempts: the local ports may be bound on the "
         "wildcard address by another process, or the wildcard/specific same-port coexistence this needs may be "
         "unsupported here (unproven on Windows)",
         READY_ATTEMPTS);
@@ -726,7 +726,7 @@ static void
 test_control_timeout(void)
 {
     katherine_device_t device;
-    KT_REQUIRE(katherine_device_init(&device, DEAD_ADDR, 0) == 0);
+    KT_REQUIRE(katherine_device_init(&device, DEAD_ADDRESS, 0) == 0);
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     time_t started = time(NULL);
@@ -757,7 +757,7 @@ static void
 test_faux_echo_rejected(void)
 {
     katherine_device_t device;
-    KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDR, 0) == 0);
+    KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDRESS, 0) == 0);
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     KT_CHECK(katherine_get_chip_id(&device, chip_id) != 0);

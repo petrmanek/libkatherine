@@ -53,7 +53,7 @@ dump_buffer(const char *msg, const unsigned char *buf, size_t count)
 }
 #endif /* KATHERINE_DEBUG_UDP */
 
-// True if a datagram received from addr counts as coming from the pinned
+// True if a datagram received from address counts as coming from the pinned
 // remote of session u.
 //
 // Only the host is compared, never the port: a readout answers commands from
@@ -63,9 +63,9 @@ dump_buffer(const char *msg, const unsigned char *buf, size_t count)
 // peer's stray datagram becoming the session's remote -- is a property of
 // the host.
 static bool
-from_pinned_remote(const katherine_udp_t *u, const SOCKADDR_IN *addr)
+from_pinned_remote(const katherine_udp_t *u, const SOCKADDR_IN *address)
 {
-    return addr->sin_addr.s_addr == u->addr_remote.sin_addr.s_addr;
+    return address->sin_addr.s_addr == u->address_remote.sin_addr.s_addr;
 }
 
 /**
@@ -148,7 +148,7 @@ recv_ready(katherine_udp_t *u)
 // recv_ready() above, so the call never blocks; that is how
 // katherine_udp_recv_nowait() reaches this loop.
 //
-// The pinned address is read from addr_remote itself rather than from a copy
+// The pinned address is read from address_remote itself rather than from a copy
 // taken when the pin was placed, which is what makes the pin follow
 // katherine_udp_set_remote().
 static katherine_error_t
@@ -157,15 +157,15 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, bool
     char *cdata = (char *) data;
 
     for (uint32_t discarded = 0; discarded < KATHERINE_UDP_PIN_MAX_DISCARDS; ++discarded) {
-        SOCKADDR_IN addr_from;
-        socklen_t addr_len = sizeof(addr_from);
+        SOCKADDR_IN address_from;
+        socklen_t address_len = sizeof(address_from);
 
         if (nowait) {
             katherine_error_t ready = recv_ready(u);
             if (ready != 0) return ready;
         }
 
-        int res = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &addr_from, &addr_len);
+        int res = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &address_from, &address_len);
         if (res == SOCKET_ERROR) {
             // A datagram larger than the buffer fails with WSAEMSGSIZE here,
             // after being consumed and with the source address filled in,
@@ -176,7 +176,7 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, bool
             // buffer to detect an overlong datagram -- as the command
             // response path does -- sees the same thing on both platforms.
             if (WSAGetLastError() == WSAEMSGSIZE) {
-                if (!from_pinned_remote(u, &addr_from)) continue;
+                if (!from_pinned_remote(u, &address_from)) continue;
 
                 *received = count;
                 return KATHERINE_E_OK;
@@ -185,7 +185,7 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, bool
             return recv_failure(u, WSAGetLastError());
         }
 
-        if (from_pinned_remote(u, &addr_from)) {
+        if (from_pinned_remote(u, &address_from)) {
             *received = (size_t) res;
             return KATHERINE_E_OK;
         }
@@ -199,7 +199,7 @@ recv_pinned(katherine_udp_t *u, void *data, size_t count, size_t *received, bool
 }
 
 // Receives one datagram into data, honoring the pin of session u: a pinned
-// session accepts only datagrams from its remote host and leaves addr_remote
+// session accepts only datagrams from its remote host and leaves address_remote
 // alone, an unpinned one accepts the next datagram from anybody and adopts
 // its sender as the remote -- the server behavior of replying to whoever
 // asked last.
@@ -217,8 +217,8 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
         if (ready != 0) return ready;
     }
 
-    socklen_t addr_len = sizeof(u->addr_remote);
-    int res            = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &u->addr_remote, &addr_len);
+    socklen_t address_len = sizeof(u->address_remote);
+    int res               = recvfrom(u->sock, cdata, (int) count, 0, (struct sockaddr *) &u->address_remote, &address_len);
     if (res == SOCKET_ERROR) {
         // Truncation is not a failure here either, for the same reason as in
         // recv_pinned() above: the datagram is consumed and the buffer full,
@@ -239,12 +239,12 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
  * Initialize new UDP session.
  * \param u UDP session to initialize
  * \param local_port Local port number
- * \param remote_addr Remote IP address
+ * \param remote_address Remote IP address
  * \param remote_port Remote port number
  * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_ADDR if remote_addr is not a valid dotted-quad IPv4
+ * \retval KATHERINE_E_ADDRESS if remote_address is not a valid dotted-quad IPv4
  *   address, or local_port could not be bound on the wildcard address --
  *   another socket already holds it, or it is excluded from use; see
  *   inet_pton() and bind(). Only the bind failure records an OS error for
@@ -269,9 +269,9 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
  *   katherine_udp_init_bound(), which this forwards to.
  */
 katherine_error_t
-katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
+katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms)
 {
-    return katherine_udp_init_bound(u, NULL, local_port, remote_addr, remote_port, timeout_ms);
+    return katherine_udp_init_bound(u, NULL, local_port, remote_address, remote_port, timeout_ms);
 }
 
 /**
@@ -283,14 +283,14 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  * the same port).
  *
  * \param u UDP session to initialize
- * \param local_addr Local IP address to bind to, or NULL for the wildcard address (INADDR_ANY)
+ * \param local_address Local IP address to bind to, or NULL for the wildcard address (INADDR_ANY)
  * \param local_port Local port number
- * \param remote_addr Remote IP address
+ * \param remote_address Remote IP address
  * \param remote_port Remote port number
  * \param timeout_ms Communication timeout in milliseconds (zero if disabled)
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_ADDR if local_addr (when not NULL) or remote_addr is
+ * \retval KATHERINE_E_ADDRESS if local_address (when not NULL) or remote_address is
  *   not a valid dotted-quad IPv4 address, or that local address and port
  *   could not be bound -- another socket already holds them, the address is
  *   not local to this host, or the port is excluded from use; see
@@ -320,7 +320,7 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  *   timeout.
  */
 katherine_error_t
-katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t local_port, const char *remote_addr, uint16_t remote_port, uint32_t timeout_ms)
+katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms)
 {
     katherine_error_t res = 0;
 
@@ -351,15 +351,15 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     }
 
     // Setup and bind the socket address.
-    u->addr_local.sin_family = AF_INET;
-    u->addr_local.sin_port   = htons(local_port);
-    if (local_addr == NULL) {
-        u->addr_local.sin_addr.s_addr = htonl(INADDR_ANY);
-    } else if (inet_pton(AF_INET, local_addr, &u->addr_local.sin_addr) <= 0) {
+    u->address_local.sin_family = AF_INET;
+    u->address_local.sin_port   = htons(local_port);
+    if (local_address == NULL) {
+        u->address_local.sin_addr.s_addr = htonl(INADDR_ANY);
+    } else if (inet_pton(AF_INET, local_address, &u->address_local.sin_addr) <= 0) {
         // inet_pton() rejecting the string is not an OS-level failure, so
         // last_os_error is left at the 0 it was reset to above.
-        res = KATHERINE_E_ADDR;
-        goto err_local_addr;
+        res = KATHERINE_E_ADDRESS;
+        goto err_local_address;
     }
 
     // No SO_REUSEADDR here, deliberately, where udp_nix.c sets it. Windows
@@ -376,9 +376,9 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     // can hold port 1555 here and split the readout's datagrams between them
     // with no error anywhere, which is a hazard for the port allocation #28
     // adds rather than for this bind.
-    if (bind(u->sock, (const struct sockaddr *) &u->addr_local, sizeof(u->addr_local)) == SOCKET_ERROR) {
+    if (bind(u->sock, (const struct sockaddr *) &u->address_local, sizeof(u->address_local)) == SOCKET_ERROR) {
         u->last_os_error = WSAGetLastError();
-        res              = KATHERINE_E_ADDR;
+        res              = KATHERINE_E_ADDRESS;
         goto err_bind;
     }
 
@@ -425,16 +425,16 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     }
 
     // Set remote socket address.
-    u->addr_remote.sin_family = AF_INET;
-    u->addr_remote.sin_port   = htons(remote_port);
-    if (remote_addr == NULL) {
+    u->address_remote.sin_family = AF_INET;
+    u->address_remote.sin_port   = htons(remote_port);
+    if (remote_address == NULL) {
         u->last_os_error = 0;
-        res              = KATHERINE_E_ADDR;
+        res              = KATHERINE_E_ADDRESS;
         goto err_remote;
     }
 
-    if (inet_pton(AF_INET, remote_addr, &u->addr_remote.sin_addr) <= 0) {
-        res = KATHERINE_E_ADDR;
+    if (inet_pton(AF_INET, remote_address, &u->address_remote.sin_addr) <= 0) {
+        res = KATHERINE_E_ADDRESS;
         goto err_remote;
     }
 
@@ -457,7 +457,7 @@ err_remote:
 err_rcvbuf:
 err_timeout:
 err_bind:
-err_local_addr:
+err_local_address:
     (void) closesocket(u->sock);
 err_socket:
     (void) WSACleanup();
@@ -508,7 +508,7 @@ katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
     const char *cdata = (const char *) data;
 
     do {
-        sent = sendto(u->sock, cdata + total, (int) (count - total), 0, (struct sockaddr *) &u->addr_remote, sizeof(u->addr_remote));
+        sent = sendto(u->sock, cdata + total, (int) (count - total), 0, (struct sockaddr *) &u->address_remote, sizeof(u->address_remote));
         if (sent == SOCKET_ERROR) {
             u->last_os_error = WSAGetLastError();
             return katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
@@ -704,34 +704,34 @@ katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count)
  * the newly named host is the one whose datagrams the session accepts.
  *
  * \param u UDP session
- * \param remote_addr Remote IP address
+ * \param remote_address Remote IP address
  * \param remote_port Remote port number
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_ADDR if remote_addr is not a valid dotted-quad IPv4
+ * \retval KATHERINE_E_ADDRESS if remote_address is not a valid dotted-quad IPv4
  *   address, in which case the session keeps the remote address it had; see
  *   inet_pton(). No system call fails here, so
  *   katherine_udp_last_os_error() is left reporting zero.
  */
 katherine_error_t
-katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t remote_port)
+katherine_udp_set_remote(katherine_udp_t *u, const char *remote_address, uint16_t remote_port)
 {
-    if (remote_addr == NULL) {
+    if (remote_address == NULL) {
         u->last_os_error = 0;
-        return KATHERINE_E_ADDR;
+        return KATHERINE_E_ADDRESS;
     }
 
-    SOCKADDR_IN addr_remote;
-    addr_remote.sin_family = AF_INET;
-    addr_remote.sin_port   = htons(remote_port);
-    if (inet_pton(AF_INET, remote_addr, &addr_remote.sin_addr) <= 0) {
+    SOCKADDR_IN address_remote;
+    address_remote.sin_family = AF_INET;
+    address_remote.sin_port   = htons(remote_port);
+    if (inet_pton(AF_INET, remote_address, &address_remote.sin_addr) <= 0) {
         // Same address-resolution failure as katherine_udp_init_bound(), and
         // not an OS-level one either.
         u->last_os_error = 0;
-        return KATHERINE_E_ADDR;
+        return KATHERINE_E_ADDRESS;
     }
 
-    u->addr_remote = addr_remote;
+    u->address_remote = address_remote;
     return KATHERINE_E_OK;
 }
 
@@ -1022,24 +1022,24 @@ err_setsockopt:
  * pinned to and nothing else.
  *
  * \param u UDP session
- * \param addr Destination for the address, KATHERINE_ADDR_STR_SIZE bytes or more
- * \param addr_size Size of that destination
+ * \param address Destination for the address, KATHERINE_DEVICE_ADDRESS_STR_SIZE bytes or more
+ * \param address_size Size of that destination
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if the buffer is too small for an address, or if
  *   the conversion rejected its arguments; see InetNtop.
  */
 katherine_error_t
-katherine_udp_get_remote_address(const katherine_udp_t *u, char *addr, size_t addr_size)
+katherine_udp_get_remote_address(const katherine_udp_t *u, char *address, size_t address_size)
 {
     katherine_error_t res;
 
-    if (addr_size < KATHERINE_ADDR_STR_SIZE) {
+    if (address_size < KATHERINE_DEVICE_ADDRESS_STR_SIZE) {
         res = KATHERINE_E_INVAL;
-        goto err_addr_size;
+        goto err_address_size;
     }
 
-    if (InetNtopA(AF_INET, &u->addr_remote.sin_addr, addr, addr_size) == NULL) {
+    if (InetNtopA(AF_INET, &u->address_remote.sin_addr, address, address_size) == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_convert;
     }
@@ -1047,7 +1047,7 @@ katherine_udp_get_remote_address(const katherine_udp_t *u, char *addr, size_t ad
     return KATHERINE_E_OK;
 
 err_convert:
-err_addr_size:
+err_address_size:
     return res;
 }
 

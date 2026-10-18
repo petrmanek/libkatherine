@@ -77,11 +77,11 @@ test_c_an_unreadable_address_is_refused(void)
     katherine_transport_kind_t kind;
     const char *rest;
 
-    KT_CHECK_EQ(katherine_address_split("http://192.168.1.42", &kind, &rest), KATHERINE_E_ADDR);
-    KT_CHECK_EQ(katherine_address_split("://192.168.1.42", &kind, &rest), KATHERINE_E_ADDR);
-    KT_CHECK_EQ(katherine_address_split("udp://", &kind, &rest), KATHERINE_E_ADDR);
-    KT_CHECK_EQ(katherine_address_split("", &kind, &rest), KATHERINE_E_ADDR);
-    KT_CHECK_EQ(katherine_address_split(NULL, &kind, &rest), KATHERINE_E_ADDR);
+    KT_CHECK_EQ(katherine_address_split("http://192.168.1.42", &kind, &rest), KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(katherine_address_split("://192.168.1.42", &kind, &rest), KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(katherine_address_split("udp://", &kind, &rest), KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(katherine_address_split("", &kind, &rest), KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(katherine_address_split(NULL, &kind, &rest), KATHERINE_E_ADDRESS);
 }
 
 /* Formatting is the inverse of the split, which is the property that lets a
@@ -89,7 +89,7 @@ test_c_an_unreadable_address_is_refused(void)
 static void
 test_d_an_address_survives_the_round_trip(void)
 {
-    char buf[KATHERINE_ADDR_STR_SIZE];
+    char buf[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
     katherine_transport_kind_t kind;
     const char *rest;
 
@@ -117,9 +117,9 @@ test_e_opening_reads_the_scheme(void)
     KT_CHECK_EQ(katherine_device_init(&device, "usb://2-3.7.1.1", KATHERINE_DEVICE_DONT_ENUMERATE),
         KATHERINE_E_UNSUPPORTED);
     KT_CHECK_EQ(katherine_device_init(&device, "http://" QUIET_HOST, KATHERINE_DEVICE_DONT_ENUMERATE),
-        KATHERINE_E_ADDR);
-    KT_CHECK_EQ(katherine_device_init(&device, "udp://", KATHERINE_DEVICE_DONT_ENUMERATE), KATHERINE_E_ADDR);
-    KT_CHECK_EQ(katherine_device_init(&device, NULL, KATHERINE_DEVICE_DONT_ENUMERATE), KATHERINE_E_ADDR);
+        KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(katherine_device_init(&device, "udp://", KATHERINE_DEVICE_DONT_ENUMERATE), KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(katherine_device_init(&device, NULL, KATHERINE_DEVICE_DONT_ENUMERATE), KATHERINE_E_ADDRESS);
 }
 
 /* And accepts the scheme-bearing form, which is the half the refusals cannot
@@ -134,7 +134,7 @@ test_f_opening_accepts_the_scheme(void)
 
     /* The address is known good, so this is the other thing that code means:
      * the fixed local port is already somebody's. */
-    if (res == KATHERINE_E_ADDR) {
+    if (res == KATHERINE_E_ADDRESS) {
         printf("# SKIP cannot bind the readout's control and data ports\n");
         return;
     }
