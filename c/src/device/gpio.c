@@ -97,9 +97,9 @@ katherine_str_gpio_monitor_signal(katherine_gpio_monitor_signal_t signal)
  * frequency only where the signal repeats.
  *
  * \param v Channel state, as katherine_probe_gpio() filled it
- * \return The frequency in Hertz, or zero where the readout measured no
- *   period -- a constant level, a channel it does not time, or a signal
- *   faster than one tick, which leaves both counters at zero.
+ * \return The frequency in Hertz, or zero where the readout measured no period
+ *   -- a constant level, a channel it does not time, or a signal faster than
+ *   one tick, which leaves both counters at zero.
  */
 double
 katherine_gpio_channel_frequency(const katherine_gpio_channel_monitor_t *v)
@@ -118,8 +118,8 @@ katherine_gpio_channel_frequency(const katherine_gpio_channel_monitor_t *v)
  * duty cycle only where the signal repeats.
  *
  * \param v Channel state, as katherine_probe_gpio() filled it
- * \return The fraction, between 0 and 1, or zero where the readout measured
- *   no period.
+ * \return The fraction, between 0 and 1, or zero where the readout measured no
+ *   period.
  */
 double
 katherine_gpio_channel_duty_cycle(const katherine_gpio_channel_monitor_t *v)
@@ -164,20 +164,20 @@ gpio_terminable(const katherine_device_t *device, unsigned channel)
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so its channel count is unknown.
  * \retval KATHERINE_E_INVAL if a mapping is outside the enumeration, or a
- *   channel without a connector is to be terminated, or a socket call
- *   rejected an argument; see sendto(2) and katherine_udp_last_os_error().
+ *   channel without a connector is to be terminated, or the control link
+ *   rejected an argument; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge a write
- *   within the control session's receive timeout, which is the answer while
- *   an acquisition is armed or running.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response.
+ *   within the control link's receive timeout, which is the answer while an
+ *   acquisition is armed or running.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while
  *   responses to other commands kept coming.
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_config_t *config)
@@ -271,21 +271,21 @@ err_enumerated:
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so its channel count is unknown.
- * \retval KATHERINE_E_INVAL if a role is outside the enumeration, or a
- *   socket call rejected an argument; see sendto(2) and
- *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if a role is outside the enumeration, or the
+ *   control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
- *   control session's receive timeout, which is the answer while an
- *   acquisition is armed or running.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response.
+ *   control link's receive timeout, which is the answer while an acquisition
+ *   is armed or running.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
  *   responses to other commands kept coming.
  * \retval KATHERINE_E_IO if the send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if the send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_gpio_config_t *config)
@@ -356,20 +356,20 @@ err_enumerated:
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so its channel count is unknown.
- * \retval KATHERINE_E_TIMEOUT if the readout did not answer a read within
- *   the control session's receive timeout, which is the answer while an
- *   acquisition is armed or running.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response, or answered for another register.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer a read within the
+ *   control link's receive timeout, which is the answer while an acquisition
+ *   is armed or running.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response, or answered for another register.
  * \retval KATHERINE_E_STRAY if an answer never arrived while responses to
  *   other commands kept coming.
- * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
- *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state)
