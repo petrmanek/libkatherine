@@ -273,10 +273,10 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
  * \retval KATHERINE_E_STATE if the device has no open link, so there is
  *   nothing for this acquisition to read from.
  * \retval KATHERINE_E_NOMEM if the device's transport could not resize its
- *   buffer to \p md_buffer_size, or the pixel buffer could not be
- *   allocated; see malloc(3). The device is not contacted either way, and a
- *   failed pixel buffer leaves the resize in place rather than leaking it --
- *   the buffer is the device's, and the next acquisition resizes it again.
+ *   buffer to \p md_buffer_size, or the pixel buffer could not be allocated;
+ *   see malloc(3). The device is not contacted either way, and a failed pixel
+ *   buffer leaves the resize in place rather than leaking it -- the buffer is
+ *   the device's, and the next acquisition resizes it again.
  */
 katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
@@ -780,8 +780,8 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  *   once the stream dried up. Everything decoded has reached the handlers.
  * \retval KATHERINE_E_TIMEOUT if the data stream fell silent and the whole
  *   requested measurement plus fail_timeout has elapsed since
- *   katherine_acquisition_begin(). The readout has gone quiet, which is not
- *   to say it stopped measuring; whatever was decoded up to that point has
+ *   katherine_acquisition_begin(). The readout has gone quiet, which is not to
+ *   say it stopped measuring; whatever was decoded up to that point has
  *   reached the handlers, and a frame still open was reported incomplete.
  * \retval KATHERINE_E_STATE if the acquisition was not running when the call
  *   was made, so the read loop never ran and nothing was read -- an
@@ -794,20 +794,20 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * \retval KATHERINE_E_INVAL if no decoder is instantiated for this
  *   acquisition's mode and pixel-clock divider -- an unknown px_mode, or a
  *   coarse-to-fine shift outside 2..5 in a timestamp-bearing mode. The shift
- *   is resolved in katherine_acquisition_begin(), so this is what a read on
- *   an acquisition that never got through it reports, rather than decoding
- *   every timestamp at a guessed scale.
- * \retval KATHERINE_E_SYSTEM if the data session's lock, which the read holds
- *   for its whole duration, could not be taken; see pthread_mutex_lock(3) and
- *   katherine_udp_last_os_error(). That same lock failing with an errno the
- *   transport maps specially is reported as KATHERINE_E_NOMEM,
+ *   is resolved in katherine_acquisition_begin(), so this is what a read on an
+ *   acquisition that never got through it reports, rather than decoding every
+ *   timestamp at a guessed scale.
+ * \retval KATHERINE_E_SYSTEM if the data link's lock, which the read holds for
+ *   its whole duration, could not be taken; see
+ *   katherine_transport_last_os_error(). That same lock failing with an errno
+ *   the transport maps specially is reported as KATHERINE_E_NOMEM,
  *   KATHERINE_E_INVAL or KATHERINE_E_TIMEOUT instead.
- * \retval KATHERINE_E_NOMEM if taking the data session's lock ran out of
- *   memory; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if taking the data link's lock ran out of memory;
+ *   see katherine_transport_last_os_error().
  *
- * \note The codes below are returned from the per-generation dispatch
- *   macros, which the error indexer cannot follow, so it reports them as
- *   unreachable: KATHERINE_E_INVAL, KATHERINE_E_NOMEM, KATHERINE_E_SYSTEM and
+ * \note The codes below are returned from the per-generation dispatch macros,
+ *   which the error indexer cannot follow, so it reports them as unreachable:
+ *   KATHERINE_E_INVAL, KATHERINE_E_NOMEM, KATHERINE_E_SYSTEM and
  *   KATHERINE_E_TIMEOUT.
  */
 katherine_error_t
@@ -866,35 +866,32 @@ err_unsupported:
  *
  * \retval KATHERINE_E_OK on success, with the readout armed and the
  *   acquisition running.
- * \retval KATHERINE_E_INVAL if the combination asked for is refused: a
- *   data-driven readout of more than one frame, fast VCO at a frequency
- *   where fine time stamping is not coherent, or a configuration value out
- *   of range, the test-pulse count, period and phase among them. Also
- *   reported if one of the configuration commands failed with an invalid
- *   argument at the OS level; see sendto(2), recvfrom(2),
- *   pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the combination asked for is refused: a data-
+ *   driven readout of more than one frame, fast VCO at a frequency where fine
+ *   time stamping is not coherent, or a configuration value out of range, the
+ *   test-pulse count, period and phase among them. Also reported if one of the
+ *   configuration commands failed with an invalid argument at the OS level;
+ *   see katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
- *   configuration commands within the control session's receive timeout.
- *   Sending stops at the first such failure, so the device is left partly
- *   configured and not measuring.
+ *   configuration commands within the control link's receive timeout. Sending
+ *   stops at the first such failure, so the device is left partly configured
+ *   and not measuring.
  * \retval KATHERINE_E_BAD_CRD if a configuration command was answered by a
- *   datagram that was not exactly the fixed response size the protocol
- *   defines.
- * \retval KATHERINE_E_STRAY if non-correlating datagrams kept arriving on
- *   the control session until the discard budget ran out before the
- *   acknowledgement of a configuration command did.
- * \retval KATHERINE_E_IO if any of the control-plane sends or receives
- *   failed at the OS level for a reason none of the other codes cover; see
- *   sendto(2), recvfrom(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if taking the control session's lock, or any of
- *   the control-plane sends and receives, ran out of memory; see
- *   pthread_mutex_lock(3), sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   response that was not exactly the fixed size the protocol defines.
+ * \retval KATHERINE_E_STRAY if non-correlating responses kept arriving on the
+ *   control link until the discard budget ran out before the acknowledgement
+ *   of a configuration command did.
+ * \retval KATHERINE_E_IO if any of the control-plane sends or receives failed
+ *   at the OS level for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if taking the control link's lock, or any of the
+ *   control-plane sends and receives, ran out of memory; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared, or is one this version cannot drive. Refused here rather than
- *   at the first katherine_acquisition_read(), so a caller learns before the
+ *   declared, or is one this version cannot drive. Refused here rather than at
+ *   the first katherine_acquisition_read(), so a caller learns before the
  *   detector is made sensitive; katherine_configure() would refuse it anyway,
  *   on the acquisition time.
  */
@@ -986,7 +983,7 @@ err:
  * readout signals the end of the current frame through the measurement
  * data stream instead.
  *
- * Sends the same datagram as katherine_acquisition_abort(), so the two are one
+ * Sends the same command as katherine_acquisition_abort(), so the two are one
  * command as far as the readout is concerned; what differs is local, and is
  * described there.
  *
@@ -998,21 +995,20 @@ err:
  *   Nothing is waited for, so this is not a report that the readout received
  *   it or that the measurement has ended.
  * \retval KATHERINE_E_IO if sending the stop command failed at the OS level
- *   for a reason none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_INVAL if taking the control session's lock, or sending
- *   the stop command, reported an invalid argument; see
- *   pthread_mutex_lock(3), sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if taking the control session's lock or sending
- *   the stop command ran out of memory; see pthread_mutex_lock(3), sendto(2)
- *   and katherine_udp_last_os_error().
- * \retval KATHERINE_E_TIMEOUT if the control session's lock could not be
- *   taken for lack of a non-memory system resource -- never because the
- *   readout stayed silent, since this command carries no acknowledgement to
- *   wait for; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken, for a reason none of the other codes cover; see
- *   pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if taking the control link's lock, or sending the
+ *   stop command, reported an invalid argument; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if taking the control link's lock or sending the
+ *   stop command ran out of memory; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if the control link's lock could not be taken
+ *   for lack of a non-memory system resource -- never because the readout
+ *   stayed silent, since this command carries no acknowledgement to wait for;
+ *   see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
+ *   for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_acquisition_stop(katherine_acquisition_t *acq)
@@ -1055,23 +1051,22 @@ err:
  *   flag is raised on this path only, so a call that failed leaves the read
  *   with nothing to end it and must be repeated.
  * \retval KATHERINE_E_IO if sending the stop command failed at the OS level
- *   for a reason none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_INVAL if taking the control session's lock, or sending
- *   the stop command, reported an invalid argument; see
- *   pthread_mutex_lock(3), sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if taking the control session's lock or sending
- *   the stop command ran out of memory; see pthread_mutex_lock(3), sendto(2)
- *   and katherine_udp_last_os_error().
- * \retval KATHERINE_E_TIMEOUT if the control session's lock could not be
- *   taken for lack of a non-memory system resource -- never because the
- *   readout stayed silent, since this command carries no acknowledgement to
- *   wait for; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken, for a reason none of the other codes cover; see
- *   pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if taking the control link's lock, or sending the
+ *   stop command, reported an invalid argument; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if taking the control link's lock or sending the
+ *   stop command ran out of memory; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if the control link's lock could not be taken
+ *   for lack of a non-memory system resource -- never because the readout
+ *   stayed silent, since this command carries no acknowledgement to wait for;
+ *   see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
+ *   for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
  *
- * Sends the same datagram as katherine_acquisition_stop() -- opcode 0x06 with
+ * Sends the same command as katherine_acquisition_stop() -- opcode 0x06 with
  * the read mode -- so neither is distinguishable from the other on the wire.
  * What this one adds is local: it raises katherine_acquisition_t::aborted, and
  * that flag is tested inside the receive-timeout branch of the read loop
