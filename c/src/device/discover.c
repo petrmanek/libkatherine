@@ -10,13 +10,18 @@
  * SPDX-License-Identifier: MIT
  */
 
-// monoclock.h first, and before any libc header: it sets _POSIX_C_SOURCE,
-// which glibc resolves once at the first <features.h> and does not revisit.
-// Included later, clock_gettime() is invisible under a strict standard.
-#include "monoclock.h"
+// Must be the very first thing in the file, before any #include: monoclock.h
+// guards its clock_gettime() behind _POSIX_C_SOURCE, and that only has an
+// effect the first time any libc header pulls in <features.h> -- glibc
+// resolves POSIX visibility once for the whole translation unit and does not
+// revisit it. Harmless on Windows, whose headers do not gate on it.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 
 #include <string.h>
 #include <katherine/discover.h>
+#include "monoclock.h"
 #include "msleep.h"
 #include "protocol/cmd_interface.h"
 
@@ -25,12 +30,12 @@
  * those answers have somewhere to land. */
 #define DISCOVER_DEFAULT_PORT 1555
 
-/** How long a round of the collection loop waits before polling again. */
+/** Pause between rounds of the collection loop. */
 #define DISCOVER_POLL_MS      1
 
 /** One socket's result from a single poll. */
 typedef enum {
-    COLLECT_EMPTY,   ///< Nothing was waiting.
+    COLLECT_EMPTY,   ///< An empty socket.
     COLLECT_DISCARD, ///< Something was waiting, but it is not an answer.
     COLLECT_TAKEN,   ///< An answer, written to the entry.
 } collect_result_t;
