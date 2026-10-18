@@ -107,16 +107,16 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
  * \param addr Address to ask, broadcast or unicast
  * \param reply_port Port a current firmware is to answer on; at least
  *   KATHERINE_DISCOVER_MIN_PORT, and not the standard port itself
- * \param timeout_ms Limit on the whole call, in milliseconds
+ * \param timeout_ms Limit on the whole call, in milliseconds; at least one
  * \param out Storage for the answers, of at least the entries \p count gives
  * \param count On entry the capacity of \p out, on return the number of
  *   entries written, which is zero on every error
  *
  * \retval KATHERINE_E_OK on success, including when nothing answered.
  * \retval KATHERINE_E_INVAL if out or count is NULL, the capacity count
- *   gives is zero, the reply port is below KATHERINE_DISCOVER_MIN_PORT or is
- *   the standard port, or a socket call rejected an argument; see sendto(2)
- *   and socket(2).
+ *   gives is zero, the timeout is zero, the reply port is below
+ *   KATHERINE_DISCOVER_MIN_PORT or is the standard port, or a socket call
+ *   rejected an argument; see sendto(2) and socket(2).
  * \retval KATHERINE_E_ADDR if the address could not be parsed or either
  *   local port could not be bound; see inet_pton(3) and bind(2).
  * \retval KATHERINE_E_TIMEOUT if the request could not be sent because the
@@ -151,6 +151,14 @@ katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t ti
     if (reply_port < KATHERINE_DISCOVER_MIN_PORT || reply_port == DISCOVER_DEFAULT_PORT) {
         res = KATHERINE_E_INVAL;
         goto err_port;
+    }
+    // Zero is the one value the sessions below read as no timeout at all:
+    // SO_RCVTIMEO is left unset and a receive then blocks past the deadline
+    // this call keeps for itself. A millisecond is the shortest limit the
+    // parameter can express, so anything under one is refused here.
+    if (timeout_ms == 0) {
+        res = KATHERINE_E_INVAL;
+        goto err_timeout;
     }
 
     // Both unpinned on purpose: a pinned session would discard every answer
@@ -219,6 +227,7 @@ err_broadcast:
 err_modern:
     katherine_udp_fini(&legacy);
 err_legacy:
+err_timeout:
 err_port:
 err_capacity:
 err_count:

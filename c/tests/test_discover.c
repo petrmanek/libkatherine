@@ -290,8 +290,9 @@ test_c_finding_nothing_is_not_a_failure(void)
     KT_CHECK_EQ(count, 0);
 }
 
-// d) And the two arguments that cannot work are refused rather than sent: a
-// reply port the firmware would ignore, and no room for an answer.
+// d) And the arguments that cannot work are refused rather than sent: a
+// reply port the firmware would ignore, no room for an answer, and a limit
+// shorter than the parameter can express.
 static void
 test_d_impossible_requests_are_refused(void)
 {
@@ -314,6 +315,13 @@ test_d_impossible_requests_are_refused(void)
     // from a result, so it is refused rather than returned as "none found".
     count = 0;
     KT_CHECK_EQ(katherine_device_discover_udp(ADDR_A, REPLY_PORT, DISCOVER_MS, found, &count),
+        KATHERINE_E_INVAL);
+    KT_CHECK_EQ(count, 0);
+
+    // A zero timeout would leave the sessions with no receive timeout at
+    // all, so the call would block instead of returning early.
+    count = 2;
+    KT_CHECK_EQ(katherine_device_discover_udp(ADDR_A, REPLY_PORT, 0, found, &count),
         KATHERINE_E_INVAL);
     KT_CHECK_EQ(count, 0);
 }
