@@ -163,6 +163,8 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
         (char *) "ksim",
         (char *) "--listen",
         (char *) KSIM_LISTEN_ADDR,
+        (char *) "--profile",
+        (char *) "gen2-tpx3",
         (char *) "--seed",
         (char *) KPX_STR(KSIM_SEED),
         (char *) "--hits-per-frame",
@@ -392,6 +394,25 @@ test_acquisition_after_lost_upload_ack(void)
     check_one_frame();
 }
 
+// The configuration check, asked after an upload that had to recover: the
+// readout re-reads the chip's matrix and its DACs and reports whether both
+// survived. This is the claim the upload's own acknowledgement cannot make --
+// it says the readout counted the words, not that the chip kept them -- and
+// so is the end of the sequence a lost acknowledgement puts at risk.
+//
+// The emulated readout models no matrix, so both flags come from its profile
+// and are true; what is under test is that the command reaches it and is
+// answered *after* a recovery, on a session that had to realign itself.
+static void
+test_configuration_survived_the_recovery(void)
+{
+    katherine_tpx3_config_check_t check = {false, false};
+
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&g_device, 0, &check), 0);
+    KT_CHECK(check.matrix_ok);
+    KT_CHECK(check.dacs_ok);
+}
+
 static void
 test_session_aligned_after_recovery(void)
 {
@@ -449,6 +470,7 @@ main(int argc, char *argv[])
     // current test at most -- so the daemon is stopped and reaped on every
     // path out of this function.
     KT_RUN(test_acquisition_after_lost_upload_ack);
+    KT_RUN(test_configuration_survived_the_recovery);
     KT_RUN(test_session_aligned_after_recovery);
     fixture_stop();
 
