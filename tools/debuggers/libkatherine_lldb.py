@@ -45,11 +45,11 @@ def _render(target, fn_name, address):
     buf = target.EvaluateExpression('(char *) malloc((unsigned long) %d)' % _kat.SCRATCH_CAP)
     if not buf.IsValid() or buf.GetValueAsUnsigned() == 0:
         return None
-    buf_addr = buf.GetValueAsUnsigned()
+    buf_address = buf.GetValueAsUnsigned()
 
     try:
         call = '(int) %s((char *) %dUL, (unsigned long) %d, (const void *) %dUL)' \
-            % (fn_name, buf_addr, _kat.SCRATCH_CAP, address)
+            % (fn_name, buf_address, _kat.SCRATCH_CAP, address)
         n_val = target.EvaluateExpression(call)
         if not n_val.IsValid() or n_val.GetError().Fail():
             return None
@@ -62,12 +62,12 @@ def _render(target, fn_name, address):
             return ''
 
         err = lldb.SBError()
-        data = target.GetProcess().ReadMemory(buf_addr, length, err)
+        data = target.GetProcess().ReadMemory(buf_address, length, err)
         if err.Fail() or data is None:
             return None
         return data.decode('utf-8', errors='replace')
     finally:
-        target.EvaluateExpression('(void) free((void *) %dUL)' % buf_addr)
+        target.EvaluateExpression('(void) free((void *) %dUL)' % buf_address)
 
 
 def katherine_summary(valobj, internal_dict):

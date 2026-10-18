@@ -16,7 +16,7 @@
 
 #include <katherinexx/katherinexx.hpp>
 
-static const std::string remote_addr{"192.168.1.145"};
+static const std::string remote_address{"192.168.1.145"};
 using mode = katherine::acq::f_toa_tot;
 
 // Set the following flag to inject test pulses into a small subset of
@@ -227,7 +227,7 @@ main(int argc, char *argv[])
     katherine::config c{};
     configure(c);
 
-    katherine::device device{remote_addr};
+    katherine::device device{remote_address};
     print_chip_id(device);
     run_acquisition(device, c);
 

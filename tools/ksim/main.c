@@ -68,7 +68,7 @@
 /* ---------------------------------------------------------------------- */
 /* Defaults and constants.                                                 */
 
-#define DEFAULT_LISTEN_ADDR      "0.0.0.0"
+#define DEFAULT_LISTEN_ADDRESS   "0.0.0.0"
 #define DEFAULT_CTL_PORT         1555
 #define DEFAULT_DATA_PORT        1556
 #define DEFAULT_CLIENT_DATA_PORT 1556
@@ -153,7 +153,7 @@ static const ksim_opt_t OPTS[] = {
 };
 
 typedef struct daemon_options {
-    const char *listen_addr;
+    const char *listen_address;
     uint16_t ctl_port;
     uint16_t data_port;
     uint16_t client_data_port;
@@ -224,7 +224,7 @@ print_usage(FILE *out, const char *prog)
         "  --log <file>                 append one line per received command to file\n"
         "  --quiet                      suppress the startup banner\n"
         "  --help                       print this message and exit\n",
-        prog, DEFAULT_LISTEN_ADDR, DEFAULT_CTL_PORT, DEFAULT_DATA_PORT, DEFAULT_CLIENT_DATA_PORT);
+        prog, DEFAULT_LISTEN_ADDRESS, DEFAULT_CTL_PORT, DEFAULT_DATA_PORT, DEFAULT_CLIENT_DATA_PORT);
 }
 
 static bool
@@ -294,7 +294,7 @@ parse_options(int argc, char *argv[], daemon_options_t *options)
     ksim_args_t args = {.index = 1};
 
     *options = (daemon_options_t) {
-        .listen_addr      = DEFAULT_LISTEN_ADDR,
+        .listen_address   = DEFAULT_LISTEN_ADDRESS,
         .ctl_port         = DEFAULT_CTL_PORT,
         .data_port        = DEFAULT_DATA_PORT,
         .client_data_port = DEFAULT_CLIENT_DATA_PORT,
@@ -304,7 +304,7 @@ parse_options(int argc, char *argv[], daemon_options_t *options)
     while ((opt = ksim_args_next(&args, argc, argv, OPTS, &value)) != -1) {
         switch (opt) {
         case OPT_LISTEN:
-            options->listen_addr = value;
+            options->listen_address = value;
             break;
 
         case OPT_CTL_PORT:
@@ -573,18 +573,18 @@ main(int argc, char *argv[])
     }
 
     katherine_udp_t ctl_udp;
-    int res = katherine_udp_init_bound(&ctl_udp, options.listen_addr, options.ctl_port, "0.0.0.0", 0, CTL_RECV_TIMEOUT_MS);
+    int res = katherine_udp_init_bound(&ctl_udp, options.listen_address, options.ctl_port, "0.0.0.0", 0, CTL_RECV_TIMEOUT_MS);
     if (res != 0) {
-        fprintf(stderr, "ksim: cannot bind control socket on %s:%u: %s\n", options.listen_addr,
+        fprintf(stderr, "ksim: cannot bind control socket on %s:%u: %s\n", options.listen_address,
             (unsigned) options.ctl_port, katherine_strerror(res));
         katherine_emu_fini(&emu);
         return EXIT_FAILURE;
     }
 
     katherine_udp_t data_udp;
-    res = katherine_udp_init_bound(&data_udp, options.listen_addr, options.data_port, "0.0.0.0", 0, 0);
+    res = katherine_udp_init_bound(&data_udp, options.listen_address, options.data_port, "0.0.0.0", 0, 0);
     if (res != 0) {
-        fprintf(stderr, "ksim: cannot bind data socket on %s:%u: %s\n", options.listen_addr,
+        fprintf(stderr, "ksim: cannot bind data socket on %s:%u: %s\n", options.listen_address,
             (unsigned) options.data_port, katherine_strerror(res));
         katherine_udp_fini(&ctl_udp);
         katherine_emu_fini(&emu);
@@ -604,8 +604,8 @@ main(int argc, char *argv[])
     }
 
     if (!options.quiet) {
-        fprintf(stderr, "ksim: control %s:%u, data %s:%u -> client data port %u\n", options.listen_addr,
-            (unsigned) options.ctl_port, options.listen_addr, (unsigned) options.data_port,
+        fprintf(stderr, "ksim: control %s:%u, data %s:%u -> client data port %u\n", options.listen_address,
+            (unsigned) options.ctl_port, options.listen_address, (unsigned) options.data_port,
             (unsigned) options.client_data_port);
         fprintf(stderr, "ksim: profile=%s seed=%" PRIu64 "\n", options.profile_name, profile.seed);
     }

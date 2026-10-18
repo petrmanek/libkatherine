@@ -14,7 +14,7 @@
  * same as in the smoke test: constructible, callable, and failing as a
  * katherine::error rather than as a crash, a hang or a C return code leaking
  * through. Which error is not asserted, since that depends on how the
- * platform treats an unassigned loopback address; see DEAD_ADDR below, whose
+ * platform treats an unassigned loopback address; see DEAD_ADDRESS below, whose
  * choice is less obvious than it looks.
  *
  * \author Petr Mánek
@@ -58,7 +58,7 @@
 // immediate error on a platform that rejects the destination outright -- a
 // katherine::error is raised, which is all this file asserts. No datagram
 // leaves the host either way.
-#define DEAD_ADDR "127.0.0.3"
+#define DEAD_ADDRESS "127.0.0.3"
 
 // Renders v through its operator<< and returns what came out.
 template<typename T>
@@ -76,7 +76,7 @@ streamed(const T& v)
 static void
 test_device_and_acquisition(void)
 {
-    katherine::device dev{DEAD_ADDR};
+    katherine::device dev{DEAD_ADDRESS};
 
     KT_CHECK(dev.c_dev() != nullptr);
     KT_CHECK(streamed(dev).size() > 0);

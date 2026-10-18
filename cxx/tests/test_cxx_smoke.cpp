@@ -347,14 +347,14 @@ test_udp(void)
     KT_CHECK(threw_timeout);
 
     // A malformed address is rejected before any socket work.
-    bool threw_addr = false;
+    bool threw_address = false;
     try {
         katherine::udp bad{"not-an-address", 0, "127.0.0.1", 1555, 50};
         (void) bad;
     } catch (const katherine::error&) {
-        threw_addr = true;
+        threw_address = true;
     }
-    KT_CHECK(threw_addr);
+    KT_CHECK(threw_address);
 }
 
 // ------------------------------------------------------------------
