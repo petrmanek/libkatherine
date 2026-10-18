@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <katherine/device.h>
+#include <katherine/discover.h>
 #include <katherine/acquisition.h>
 #include <katherine/status.h>
 #include "../protocol/cmd_interface.h"
@@ -249,6 +250,29 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     memset(&device->info, 0, sizeof(device->info));
     memset(&device->derived_info, 0, sizeof(device->derived_info));
 
+    // Before the main control and data channels are open, run a quick check that
+    // determines whether a readout is a legacy firmware or not. This requires the
+    // main control port to be 1555, which would clash with the default control
+    // socket.
+    bool legacy = false;
+    if (true /* TODO: run this only for UDP transport, all non-UDP transports are legacy = false */) {
+        // True where nothing answered, because the flag gates a port change the
+        // first generation cannot honour: guessing false there would issue it to a
+        // readout that drops it.
+        legacy = true;
+
+        if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
+            katherine_discovered_t found;
+            size_t count = 1;
+
+            if (katherine_device_discover_udp(addr, DATA_PORT, CONTROL_TIMEOUT, &found, &count) == KATHERINE_E_OK
+                && count == 1) {
+                legacy = found.legacy;
+            }
+        }
+    }
+
+
     if ((res = katherine_udp_init(&device->control_socket, CONTROL_PORT, addr, REMOTE_PORT, CONTROL_TIMEOUT)) != 0) {
         goto err_control;
     }
@@ -289,6 +313,9 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     // Optional initial setup
     if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
         (void) katherine_device_enumerate(device);
+
+        // Propagate the result of the legacy check into the device info.
+        device->info.legacy = legacy;
     }
 
     (void) (flags & KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS); // TODO
@@ -458,7 +485,8 @@ katherine_device_enumerate(katherine_device_t *device)
         .serial_number = (uint16_t) status.hw_serial_number,
         .fw_version    = (uint16_t) status.fw_version,
         .chip_count    = comm.chip_count,
-        .legacy        = false, // FIXME: hard-coded, need echo-port extension for this
+        // legacy is not in anything the readout answers; katherine_device_init()
+        // learns it from discovery and writes it after this call.
     };
 
     if ((res = katherine_device_declare(device, &info)) != 0) {
