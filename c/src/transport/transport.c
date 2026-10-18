@@ -35,8 +35,15 @@
  * \param count Length of \p data in bytes.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
+ * \retval KATHERINE_E_TIMEOUT if the link would have blocked rather than
+ *   carry the message within the timeout set by
+ *   katherine_transport_set_timeout().
+ * \retval KATHERINE_E_IO if the link failed at the OS level for a reason
+ *   none of the other codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the link rejected an argument of the
+ *   transfer; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
+ *   katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count)
@@ -54,8 +61,15 @@ katherine_transport_send_cmd(katherine_transport_t *transport, const void *data,
  * CRD is seen to be longer, rather than truncated to a plausible length.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
+ * \retval KATHERINE_E_TIMEOUT if the link would have blocked rather than
+ *   carry the message within the timeout set by
+ *   katherine_transport_set_timeout().
+ * \retval KATHERINE_E_IO if the link failed at the OS level for a reason
+ *   none of the other codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the link rejected an argument of the
+ *   transfer; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
+ *   katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t *len)
@@ -68,8 +82,6 @@ katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t
  * \param transport Transport to discard on.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_flush_incoming(katherine_transport_t *transport)
@@ -96,8 +108,15 @@ katherine_transport_flush_incoming(katherine_transport_t *transport)
  * \param len Storage for its filled length in bytes.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
+ * \retval KATHERINE_E_TIMEOUT if the link would have blocked rather than
+ *   carry the message within the timeout set by
+ *   katherine_transport_set_timeout().
+ * \retval KATHERINE_E_IO if the link failed at the OS level for a reason
+ *   none of the other codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the link rejected an argument of the
+ *   transfer; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
+ *   katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **buf, size_t *len)
@@ -111,8 +130,7 @@ katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **bu
  * \param buf Buffer katherine_transport_acquire_data_buf() reported.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
+ * \retval KATHERINE_E_INVAL if the buffer is not one this transport lent.
  */
 katherine_error_t
 katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf)
@@ -126,8 +144,6 @@ katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf
  * \param timeout_ms Limit on one receive, in milliseconds.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
  */
 katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms)
@@ -148,8 +164,12 @@ katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeo
  * \retval KATHERINE_E_UNSUPPORTED if this transport's buffers are fixed.
  * \retval KATHERINE_E_STATE if a buffer is lent out, which resizing would
  *   leave dangling in the caller's hands.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
+ * \retval KATHERINE_E_INVAL if the size is zero.
+ * \retval KATHERINE_E_NOMEM if the new buffer could not be allocated, the
+ *   transport keeping the one it had.
+ * \note No transport yet refuses outright, so KATHERINE_E_UNSUPPORTED is
+ *   documented ahead of the first whose buffers a link fixes. The index
+ *   reports it unreachable until then, which is the honest state.
  */
 katherine_error_t
 katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t size)
@@ -165,8 +185,15 @@ katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t siz
  * \param transport Transport to lock.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
+ * \retval KATHERINE_E_INVAL if the link's lock was not in a lockable
+ *   state, which on a session means one never opened or already
+ *   finalized; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason
+ *   none of the other codes cover; see katherine_transport_last_os_error().
+ * \note Unreachable through the UDP transport: KATHERINE_E_NOMEM and
+ *   KATHERINE_E_TIMEOUT. pthread_mutex_lock(3) documents EBUSY, EDEADLK,
+ *   EINVAL and EPERM and no more, so neither can arrive however the map
+ *   behind it is capable of producing them.
  */
 katherine_error_t
 katherine_transport_mutex_lock(katherine_transport_t *transport)
@@ -179,8 +206,15 @@ katherine_transport_mutex_lock(katherine_transport_t *transport)
  * \param transport Transport to unlock.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval ANY The transport's own codes, beyond those listed here; see the
- *   transport this one was opened as.
+ * \retval KATHERINE_E_INVAL if the link's lock was not in a releasable
+ *   state, which on a session means one never opened or already
+ *   finalized; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the lock could not be released for a reason
+ *   none of the other codes cover; see katherine_transport_last_os_error().
+ * \note Unreachable through the UDP transport: KATHERINE_E_NOMEM and
+ *   KATHERINE_E_TIMEOUT. pthread_mutex_unlock(3) documents EBUSY, EDEADLK,
+ *   EINVAL and EPERM and no more, so neither can arrive however the map
+ *   behind it is capable of producing them.
  */
 katherine_error_t
 katherine_transport_mutex_unlock(katherine_transport_t *transport)
