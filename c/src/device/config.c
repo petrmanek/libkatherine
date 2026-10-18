@@ -39,24 +39,25 @@
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
- *   configuration commands within the control session's receive timeout; the
+ *   configuration commands within the control link's receive timeout; the
  *   pixel-matrix upload and the test-pulse command wait longer than that, see
- *   katherine_tpx3_set_all_pixel_config() and katherine_tpx3_set_test_pulses().
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   katherine_tpx3_set_all_pixel_config() and
+ *   katherine_tpx3_set_test_pulses().
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_INVAL if the test-pulse settings are out of range --
  *   which is checked only when test pulses are enabled, see
- *   katherine_tpx3_set_test_pulses() -- or if a socket call rejected its
- *   arguments.
+ *   katherine_tpx3_set_test_pulses() -- or if the control link rejected an
+ *   argument of the exchange.
  * \retval KATHERINE_E_IO if a command could not be sent, or a response could
  *   not be received, for a reason none of the other codes cover; see
- *   sendto(2), recvfrom(2) and katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, or is one this version cannot drive: the acquisition time's
  *   encoding depends on the readout generation, which is then not known. See
@@ -202,21 +203,21 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  * \retval KATHERINE_E_TIMEOUT if the readout acknowledged none of the ten
  *   uploads, each of which waits about a second for it, or if it did not
  *   acknowledge one of the two matrix commands that follow within the control
- *   session's receive timeout -- those two are sent once and not retried.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   link's receive timeout -- those two are sent once and not retried.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
- * \retval KATHERINE_E_IO if the command, one of the 64 matrix chunks or one
- *   of the matrix commands could not be sent, or a response could not be
- *   received, for a reason none of the other codes cover; see sendto(2),
- *   recvfrom(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the command, one of the 64 matrix chunks or one of
+ *   the matrix commands could not be sent, or a response could not be
+ *   received, for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config)
@@ -336,21 +337,20 @@ err:
  *
  * \retval KATHERINE_E_OK on success, once both halves have been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
- *   two halves within the control session's receive timeout.
+ *   two halves within the control link's receive timeout.
  * \retval KATHERINE_E_IO if either half could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 static katherine_error_t
 katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
@@ -402,21 +402,20 @@ err:
  *
  * \retval KATHERINE_E_OK on success, once the command has been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
- *   within the control session's receive timeout.
+ *   within the control link's receive timeout.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 static katherine_error_t
 katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
@@ -460,24 +459,23 @@ err:
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
- *   control session's receive timeout.
+ *   control link's receive timeout.
  * \retval KATHERINE_E_IO if a command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared, or is one this version cannot drive: the encoding depends on
- *   the readout generation, which is then not known.
+ *   declared, or is one this version cannot drive: the encoding depends on the
+ *   readout generation, which is then not known.
  */
 katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns)
@@ -533,19 +531,20 @@ err_unsupported:
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
- *   within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
- * \retval KATHERINE_E_IO if the command could not be sent, or a response
- *   could not be received, for a reason none of the other codes cover; see
- *   sendto(2), recvfrom(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments.
+ * \retval KATHERINE_E_IO if the command could not be sent, or a response could
+ *   not be received, for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange.
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
@@ -580,21 +579,20 @@ err:
  * \retval KATHERINE_E_OK on success, once the mode has reached the sensor.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the mode
  *   command, or the sensor-register flush that carries it to the chip, within
- *   the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if one of the two commands could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
@@ -649,22 +647,21 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   bias setting.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the bias
- *   setting within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   setting within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error(). The bias value itself is not
- *   validated here.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error(). The bias value itself
+ *   is not validated here.
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
@@ -702,22 +699,21 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   frame count.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the frame
- *   count within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   count within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error(). The frame count itself is
- *   not validated here.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error(). The frame count itself
+ *   is not validated here.
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_no_frames(katherine_device_t *device, int no_frames)
@@ -747,27 +743,25 @@ err:
  * Signal start of sequential readout.
  *
  * The readout applies this command in silence, so nothing is waited for and
- * none of the acknowledgement codes can arise: success means the datagram was
- * handed to the socket, not that the readout acted on it.
+ * none of the acknowledgement codes can arise: success means the command was
+ * handed to the link, not that the readout acted on it.
  *
  * \param device Katherine device
  * \param arg Implementation-defined argument
  *
  * \retval KATHERINE_E_OK on success, once the command has been handed to the
  *   socket.
- * \retval KATHERINE_E_IO if the command could not be sent for a reason none
- *   of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send;
- *   see sendto(2).
+ * \retval KATHERINE_E_IO if the command could not be sent for a reason none of
+ *   the other codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send or the session lock rejected its
- *   arguments; see sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_TIMEOUT if taking the control session's lock reported
- *   EAGAIN or ETIMEDOUT; see pthread_mutex_lock(3). No receive timeout is
- *   involved, since this command is not acknowledged.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be taken
- *   for any other reason; see pthread_mutex_lock(3) and
- *   katherine_udp_last_os_error().
+ *   arguments; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if taking the control link's lock reported
+ *   EAGAIN or ETIMEDOUT; see katherine_transport_last_os_error(). No receive
+ *   timeout is involved, since this command is not acknowledged.
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken for
+ *   any other reason; see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
@@ -800,24 +794,23 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   trigger setup.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the trigger
- *   setup within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   setup within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error(). An out-of-range trigger
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error(). An out-of-range trigger
  *   channel is masked rather than rejected.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so its generation is unknown.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
@@ -900,25 +893,24 @@ err_enumerated:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   command, i.e. once it has applied it.
  * \retval KATHERINE_E_INVAL if the internal pulse generator was asked for a
- *   zero pulse count, a period outside 65..16321 pixel-clock cycles or a
- *   phase above 15 -- reported before anything is sent, so the readout is
- *   left untouched -- or if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
+ *   zero pulse count, a period outside 65..16321 pixel-clock cycles or a phase
+ *   above 15 -- reported before anything is sent, so the readout is left
+ *   untouched -- or if the control link rejected an argument of the exchange;
+ *   see katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
- *   within roughly five seconds -- fifty receives of the control session's
+ *   within roughly five seconds -- fifty receives of the control link's
  *   timeout, spent waiting out the second the readout takes to apply it.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *tp_config)
@@ -995,22 +987,21 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   write into its register image.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the write
- *   within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error(). Neither the register index
- *   nor the value is validated here.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error(). Neither the register
+ *   index nor the value is validated here.
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  *
  * \see katherine_tpx3_update_sensor_registers
  */
@@ -1053,21 +1044,20 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   flush.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the flush
- *   within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  *
  * \see katherine_tpx3_set_sensor_register
  */
@@ -1102,21 +1092,20 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   hardware command.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the hardware
- *   command within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   command within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_output_block_config_update(katherine_device_t *device)
@@ -1149,21 +1138,20 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   hardware command.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the hardware
- *   command within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   command within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
- *   the receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   the receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_timer_set(katherine_device_t *device)
@@ -1208,23 +1196,21 @@ err:
  * \retval KATHERINE_E_OK on success, once all eighteen writes and the update
  *   command have been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
- *   writes, or the update command, within the control session's receive
- *   timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
- *   not that of a command response.
+ *   writes, or the update command, within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
+ *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_IO if one of the commands could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
- *   codes cover; see sendto(2), recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
- *   receive; see sendto(2) and recvfrom(2).
- * \retval KATHERINE_E_INVAL if a socket call rejected its arguments; see
- *   sendto(2) and katherine_udp_last_os_error(). Out-of-range DAC values are
- *   not reported here, as described above.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   receive; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error(). Out-of-range DAC values
+ *   are not reported here, as described above.
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
@@ -1408,8 +1394,8 @@ katherine_tpx3_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
  *
  * \retval KATHERINE_E_OK if every value fits its DAC's range.
  * \retval KATHERINE_E_INVAL if any value is wider than its DAC's field, the
- *   array being in katherine_tpx3_dacs_named_t order. Which one is not reported:
- *   the caller holds the values and the widths are in the manual.
+ *   array being in katherine_tpx3_dacs_named_t order. Which one is not
+ *   reported: the caller holds the values and the widths are in the manual.
  */
 katherine_error_t
 katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v)
@@ -1439,8 +1425,8 @@ katherine_tpx3_dac_name(katherine_tpx3_dac_t dac)
  * Largest value a Timepix3 DAC accepts.
  * \param dac DAC to ask about
  * \return The maximum, inclusive: a setting equal to it is valid and
- *   katherine_tpx3_dacs_validate() accepts it, one above it is rejected. 0 for a
- *   value outside the enumeration.
+ *   katherine_tpx3_dacs_validate() accepts it, one above it is rejected. 0 for
+ *   a value outside the enumeration.
  */
 uint16_t
 katherine_tpx3_dac_max(katherine_tpx3_dac_t dac)
@@ -1523,19 +1509,19 @@ katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge a write
- *   within the control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response.
+ *   within the control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while
  *   responses to other commands kept coming.
  * \retval KATHERINE_E_INVAL if a delay is negative, not a number, or longer
- *   than this readout can hold, or a socket call rejected an argument; see
- *   sendto(2) and katherine_udp_last_os_error().
+ *   than this readout can hold, or the control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)
@@ -1615,20 +1601,20 @@ err_enumerated:
  *   whose firmware has no such operation.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so how many chips it can address is unknown.
- * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout
- *   can address; see katherine_device_derived_info_t::max_chip_count.
- * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
- *   control session's receive timeout.
+ * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout can
+ *   address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
+ *   link's receive timeout.
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
- * \retval KATHERINE_E_STRAY if another command's responses kept arriving
- *   until the discard budget ran out.
- * \retval KATHERINE_E_INVAL if a socket call or the lock rejected an
- *   argument; see sendto(2), recvfrom(2) and pthread_mutex_lock(3).
+ * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
+ *   the discard budget ran out.
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_config_check_t *check)
