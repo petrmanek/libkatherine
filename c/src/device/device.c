@@ -127,6 +127,10 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * katherine_device_init() does this at open, so there is normally nothing to
  * call: it is for a caller that suppressed that step.
  *
+ * Second generation only. The first generation's dispatcher has no such
+ * command and drops it without a reply, so the send would succeed and select
+ * nothing; it is refused here rather than reported as done.
+ *
  * \note The parameter is named `iface` because the Windows COM headers define
  *   `interface` as a macro.
  *
@@ -137,6 +141,10 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * \param iface Physical interface the readout should serve
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, so its generation is unknown.
+ * \retval KATHERINE_E_UNSUPPORTED if the readout is of the first generation,
+ *   which has no interface-selection command.
  * \retval KATHERINE_E_INVAL if \p iface is not an interface this library can
  *   select, or if the send or the lock rejected an argument; see
  *   katherine_transport_last_os_error().
@@ -159,6 +167,15 @@ katherine_device_select_interface(katherine_device_t *device, katherine_interfac
 
     katherine_error_t res;
 
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
+    // Not implemented on Gen1.
+    if (device->derived_info.gen < 2) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_generation;
+    }
     if (iface <= KATHERINE_INTERFACE_UNKNOWN || (size_t) iface >= n) {
         res = KATHERINE_E_INVAL;
         goto err_iface;
@@ -178,6 +195,8 @@ err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_iface:
+err_generation:
+err_enumerated:
     return res;
 }
 
@@ -212,6 +231,10 @@ err_iface:
  *   interface drives it would have blocked; see pthread_mutex_init(3) and
  *   katherine_udp_last_os_error() for the mutex, and
  *   katherine_transport_last_os_error() for the command.
+ * \note Unreachable here: KATHERINE_E_STATE and KATHERINE_E_UNSUPPORTED.
+ *   katherine_device_select_interface() returns them, but this call makes it
+ *   only on a readout already known to be supported and of the second
+ *   generation.
  */
 katherine_error_t
 katherine_device_init(katherine_device_t *device, const char *addr, uint32_t flags)
