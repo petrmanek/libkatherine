@@ -263,6 +263,13 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     if ((res = katherine_address_split(addr, &kind, &host)) != KATHERINE_E_OK) {
         goto err_addr;
     }
+    // TEMPORARY. This function is to become transport-agnostic, opening
+    // whichever transport the scheme names -- UDP, USB, PCIe -- so that the
+    // only thing an address decides is which one is instantiated. Two steps
+    // below stay UDP's and will be the only ones left under a test of the
+    // kind: the legacy-firmware probe, which measures how a firmware answered
+    // a discovery datagram, and the UDP port change. Everything else here is
+    // already link-independent.
     if (kind != KATHERINE_TRANSPORT_UDP) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_kind;
