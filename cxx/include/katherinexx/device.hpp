@@ -15,9 +15,11 @@
 #include <chrono>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include <katherine/device.h>
 #include <katherine/status.h>
+#include <katherine/discover.h>
 
 #include <katherinexx/config.hpp>
 #include <katherinexx/error.hpp>
@@ -31,6 +33,50 @@ namespace katherine {
  * \addtogroup katherine_cxx_api
  * \{
  */
+
+/**
+ * One readout that answered a discovery.
+ */
+using discovered = katherine_discovered_t;
+
+/**
+ * Ask every readout reachable at an address to identify itself.
+ *
+ * \param addr Address to ask, broadcast or unicast.
+ * \param reply_port Port the readouts are to answer on; at least
+ *   KATHERINE_DISCOVER_MIN_PORT.
+ * \param timeout Limit on the whole call; at least one millisecond.
+ * \param capacity Room to make for answers.
+ * \return The addresses that answered, in the order the answers arrived.
+ */
+template<typename Rep, typename Period>
+inline std::vector<katherine::discovered>
+discover(const std::string& addr, uint16_t reply_port, std::chrono::duration<Rep, Period> timeout, std::size_t capacity = 32)
+{
+    using namespace std::chrono;
+
+    // Truncated rather than rounded, so a duration under a millisecond
+    // arrives as the zero the C function refuses. A negative one is clamped
+    // to that same zero, the cast below turning it into seven weeks
+    // otherwise.
+    auto timeout_ms = duration_cast<milliseconds>(timeout);
+    if (timeout_ms < milliseconds::zero()) {
+        timeout_ms = milliseconds::zero();
+    }
+
+    std::vector<katherine::discovered> out(capacity);
+    std::size_t count = out.size();
+
+    int res = katherine_device_discover_udp(addr.c_str(), reply_port,
+        (uint32_t) timeout_ms.count(), out.data(), &count);
+
+    if (res != 0) {
+        throw katherine::system_error{res};
+    }
+
+    out.resize(count);
+    return out;
+}
 
 class device {
     katherine_device_t dev_;

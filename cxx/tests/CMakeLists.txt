@@ -8,12 +8,16 @@
 # compile at whatever that floor is rather than at a number repeated here.
 #
 # The whole C++ surface except the two types that need a socket on a fixed
-# port. Claims no global resource, so it stays a unit test and runs in the
-# standards legs of CI, which select on that label.
+# port. Stays a unit test, so it runs in the standards legs of CI, which
+# select on that label -- but it does claim one global resource:
+# katherine::discover() binds the readouts' own control port, 1555, to catch
+# an answer from a firmware that ignores the reply port. Hence RUN_SERIAL,
+# the same reason the device and emulator tests carry it.
 katherine_add_test(NAME test_cxx_smoke
     SOURCES test_cxx_smoke.cpp
     LABELS unit
     LIBRARIES katherinexx
+    PROPERTIES RUN_SERIAL TRUE
 )
 
 # katherine::device and katherine::acquisition. katherine_device_init() binds

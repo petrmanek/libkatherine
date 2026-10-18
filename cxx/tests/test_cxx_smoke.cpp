@@ -449,6 +449,42 @@ test_readout_peripherals(void)
     KT_CHECK(counts.size() == KATHERINE_MAX_TDC_CHANNEL_COUNT);
 }
 
+// ------------------------------------------------------------------
+// 10. Discovery, aimed at a loopback address with no readout on it.
+//
+// Finding nothing is not an error, so the call comes back with an empty
+// vector -- which is also the one thing worth checking about the wrapper:
+// that it resizes to what was found rather than handing back the capacity it
+// asked for.
+
+static void
+test_discovery(void)
+{
+    const auto found = katherine::discover("127.0.0.1", 42701, std::chrono::milliseconds{50}, 8);
+    KT_CHECK(found.empty());
+
+    // A millisecond is the shortest limit the C function takes, so a
+    // duration under one is refused rather than becoming no limit at all.
+    bool too_short = false;
+    try {
+        (void) katherine::discover("127.0.0.1", 42701, std::chrono::microseconds{500}, 8);
+    } catch (const katherine::system_error&) {
+        too_short = true;
+    }
+    KT_CHECK(too_short);
+
+    // A reply port the firmware would ignore is refused, and the wrapper
+    // turns that into an exception like every other failure.
+    bool threw = false;
+    try {
+        (void) katherine::discover("127.0.0.1", KATHERINE_DISCOVER_MIN_PORT - 1,
+            std::chrono::milliseconds{50});
+    } catch (const katherine::system_error&) {
+        threw = true;
+    }
+    KT_CHECK(threw);
+}
+
 int
 main(void)
 {
@@ -461,5 +497,6 @@ main(void)
     KT_RUN(test_udp);
     KT_RUN(test_struct_rendering);
     KT_RUN(test_readout_peripherals);
+    KT_RUN(test_discovery);
     return kt_summary();
 }
