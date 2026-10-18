@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
+#include <katherine/transport.h>
 #include <katherine/udp_nix.h>
 #include <katherine/udp_win.h>
 
@@ -96,9 +97,6 @@ katherine_udp_set_drop_counting(katherine_udp_t *u, bool enabled);
 
 KATHERINE_EXPORTED uint64_t
 katherine_udp_get_dropped_datagrams(const katherine_udp_t *u);
-
-/** Buffer katherine_udp_get_remote_address() needs, counting the terminator. */
-#define KATHERINE_ADDR_STR_SIZE 16
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_udp_set_broadcast(katherine_udp_t *u, bool enabled);

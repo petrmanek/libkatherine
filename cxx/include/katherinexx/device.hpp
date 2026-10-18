@@ -43,12 +43,16 @@ using discovered = katherine_discovered_t;
 /**
  * Ask every readout reachable at an address to identify itself.
  *
- * \param addr Address to ask, broadcast or unicast.
+ * \param addr Address to ask, broadcast or unicast, optionally naming the
+ *   link it is on: "udp://192.168.1.255". An address with no scheme is a UDP
+ *   address.
  * \param reply_port Port the readouts are to answer on; at least
  *   KATHERINE_DISCOVER_MIN_PORT.
  * \param timeout Limit on the whole call; at least one millisecond.
  * \param capacity Room to make for answers.
  * \return The addresses that answered, in the order the answers arrived.
+ *   Each names its link -- "udp://192.168.1.42" -- so one can be handed
+ *   straight to katherine::device.
  */
 template<typename Rep, typename Period>
 inline std::vector<katherine::discovered>

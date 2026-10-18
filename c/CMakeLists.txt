@@ -22,6 +22,7 @@ set(KATHERINE_SOURCES
     "src/transport/udp_win.c"
     "src/version.c"
     "src/protocol/crd.h"
+    "src/address.h"
     "src/bitfields.h"
     "src/protocol/cmd_builder.h"
     "src/protocol/cmd_interface.h"

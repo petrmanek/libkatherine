@@ -27,6 +27,13 @@ katherine_add_test(NAME test_phase_correction SOURCES test_phase_correction.c LA
 
 katherine_add_test(NAME test_device_info SOURCES test_device_info.c LABELS unit)
 
+# The scheme an address carries, and the two public calls that read one. Most
+# of it needs no readout, an address being read before any socket is opened;
+# the one case that opens a device binds the readout's own control port, 1555,
+# which is the global resource test_discover and the emulator tests claim too.
+katherine_add_test(NAME test_address SOURCES test_address.c LABELS unit
+    PROPERTIES RUN_SERIAL TRUE)
+
 # Both transports' socket-error tables. Pure translation, no socket: the test
 # reaches the mappers through the private header they share, so the platform
 # whose table is not live still has its rows compared against the live one.

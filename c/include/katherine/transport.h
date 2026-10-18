@@ -35,6 +35,13 @@
 extern "C" {
 #endif
 
+/**
+ * Buffer an address needs, counting the terminator. Long enough for the
+ * longest form a transport writes: a scheme, "://", a bus number and a chain
+ * of up to seven USB port numbers.
+ */
+#define KATHERINE_ADDR_STR_SIZE 64
+
 /** Kind of link carrying a readout's traffic. */
 typedef enum katherine_transport_kind {
     KATHERINE_TRANSPORT_UDP = 0, ///< UDP datagrams over an IP network, typically 1 Gbps Ethernet. May be lossy in high-flux conditions.

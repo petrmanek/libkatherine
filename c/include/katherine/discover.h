@@ -44,7 +44,7 @@ extern "C" {
 
 /** One readout that answered. */
 typedef struct katherine_discovered {
-    char addr[KATHERINE_ADDR_STR_SIZE]; ///< Address it answered from.
+    char addr[KATHERINE_ADDR_STR_SIZE]; ///< Address it answered from, naming the link too: "udp://192.168.1.42". Ready to hand to katherine_device_init().
     bool legacy;                        ///< True if the firmware ignored the reply port and answered on the standard one.
 } katherine_discovered_t;
 

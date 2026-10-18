@@ -73,6 +73,11 @@
 #define HOST_ADDR       "127.0.0.1"
 #define ADDR_A          "127.0.0.2"
 #define ADDR_B          "127.0.0.3"
+
+/* What a discovery reports: the address names the link as well as the
+ * readout, which is the form katherine_device_init() takes back. */
+#define FOUND_A         "udp://" ADDR_A
+#define FOUND_B         "udp://" ADDR_B
 #define CHIP_A          0x00001231 /* A3-W0018: letter 1, digit 3, wafer 0x012 */
 #define CHIP_B          0x00002342 /* B4-W0035 */
 
@@ -208,7 +213,7 @@ test_a_one_readout_is_recorded_under_its_address(void)
     KT_CHECK_EQ(g_mocks[0].captured[1], (REPLY_PORT >> 8) & 0xFF);
 
     KT_REQUIRE(count == 1);
-    KT_CHECK_STR_EQ(found[0].addr, ADDR_A);
+    KT_CHECK_STR_EQ(found[0].addr, FOUND_A);
 
     // It answered on the port the request named, so it read the request.
     KT_CHECK(!found[0].legacy);
@@ -263,8 +268,8 @@ test_b_several_answers_are_told_apart(void)
 
     // Either order: one answer was queued before the request went out and
     // the other arrives after it.
-    const bool forward = strcmp(found[0].addr, ADDR_A) == 0;
-    KT_CHECK_STR_EQ(found[forward ? 0 : 1].addr, ADDR_A);
+    const bool forward = strcmp(found[0].addr, FOUND_A) == 0;
+    KT_CHECK_STR_EQ(found[forward ? 0 : 1].addr, FOUND_A);
 
     // The two readouts differ in the one thing a discovery can tell about a
     // firmware: the first answered on the port the request named, the second
@@ -272,7 +277,7 @@ test_b_several_answers_are_told_apart(void)
     KT_CHECK(!found[forward ? 0 : 1].legacy);
     KT_CHECK(found[forward ? 1 : 0].legacy);
 
-    KT_CHECK_STR_EQ(found[forward ? 1 : 0].addr, ADDR_B);
+    KT_CHECK_STR_EQ(found[forward ? 1 : 0].addr, FOUND_B);
 
     mocks_fini(2);
 }
@@ -358,6 +363,59 @@ test_f_null_outputs_are_refused(void)
         KATHERINE_E_INVAL);
 }
 
+// g) The address asked may name its link, and what comes back is the same
+// readout under the same name -- which is what lets a caller feed a discovered
+// address straight back to katherine_device_init().
+static void
+test_g_the_address_asked_may_name_its_link(void)
+{
+    katherine_discovered_t found[4];
+    size_t count = 0;
+    kthread_t thread;
+
+    if (mocks_init(1) != 1) {
+        printf("# SKIP cannot bind %s:%d\n", ADDR_A, READOUT_PORT);
+        return;
+    }
+
+    KT_REQUIRE(kthread_start(&thread, mock_readout, &g_mocks[0]) == 0);
+
+    count = 1;
+    KT_CHECK_EQ(katherine_device_discover_udp(FOUND_A, REPLY_PORT, DISCOVER_MS, found, &count), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+
+    KT_CHECK(g_mocks[0].got_request);
+    KT_REQUIRE(count == 1);
+    KT_CHECK_STR_EQ(found[0].addr, FOUND_A);
+
+    mocks_fini(1);
+}
+
+// h) An address this call cannot ask over. Refused before anything is bound,
+// so these hold with nothing listening.
+static void
+test_h_an_address_for_another_link_is_refused(void)
+{
+    katherine_discovered_t found[4];
+    size_t count;
+
+    // A link that exists, asked of the wrong discovery.
+    count = 1;
+    KT_CHECK_EQ(katherine_device_discover_udp("usb://2-3.7.1", REPLY_PORT, DISCOVER_MS, found, &count), KATHERINE_E_ADDR);
+
+    // A scheme no transport answers to.
+    count = 1;
+    KT_CHECK_EQ(katherine_device_discover_udp("http://127.0.0.2", REPLY_PORT, DISCOVER_MS, found, &count), KATHERINE_E_ADDR);
+
+    // A scheme and no readout.
+    count = 1;
+    KT_CHECK_EQ(katherine_device_discover_udp("udp://", REPLY_PORT, DISCOVER_MS, found, &count), KATHERINE_E_ADDR);
+
+    // No address at all, which used to reach inet_pton(3).
+    count = 1;
+    KT_CHECK_EQ(katherine_device_discover_udp(NULL, REPLY_PORT, DISCOVER_MS, found, &count), KATHERINE_E_ADDR);
+}
+
 int
 main(void)
 {
@@ -367,5 +425,7 @@ main(void)
     KT_RUN(test_d_impossible_requests_are_refused);
     KT_RUN(test_e_the_request_coming_back_is_not_a_readout);
     KT_RUN(test_f_null_outputs_are_refused);
+    KT_RUN(test_g_the_address_asked_may_name_its_link);
+    KT_RUN(test_h_an_address_for_another_link_is_refused);
     return kt_summary();
 }

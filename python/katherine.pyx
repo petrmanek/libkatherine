@@ -98,6 +98,10 @@ def discover(addr, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32)
     answered on the standard one; an empty list means nothing answered,
     which is not an error. The reply port must be at least
     DISCOVER_MIN_PORT and may not be the standard port.
+
+    Each address names its link -- "udp://192.168.1.42" -- so one can be
+    passed straight to Device(). The address asked may name its link too;
+    one without a scheme is a UDP address.
     """
     cdef bytes addr_b = addr.encode('UTF-8')
     cdef cdiscover.katherine_discovered_t *out

@@ -16,6 +16,7 @@
 #include <katherine/discover.h>
 #include <katherine/acquisition.h>
 #include <katherine/status.h>
+#include "../address.h"
 #include "../protocol/cmd_interface.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -204,14 +205,19 @@ err_enumerated:
 /**
  * Initialize Katherine device.
  * \param device Katherine device
- * \param addr IP address
+ * \param addr Address of the readout, naming the link as well as the readout
+ *   on it: "udp://192.168.1.42". An address with no scheme is a UDP address,
+ *   which is what every address written before 2.0 is.
  * \param flags Zero for the full open, or katherine_device_flags_t values
  *   suppressing individual steps of it
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_ADDR if the given address is not a valid IPv4 address,
- *   or the control or data socket's fixed local port could not be bound; see
- *   inet_pton(3) and bind(2).
+ * \retval KATHERINE_E_ADDR if the address names a link this library does not
+ *   know, or is a scheme and nothing else, or its UDP part is not a valid
+ *   IPv4 address, or the control or data socket's fixed local port could not
+ *   be bound; see inet_pton(3) and bind(2).
+ * \retval KATHERINE_E_UNSUPPORTED if the address names a link this version
+ *   cannot open a device on. Only UDP can carry one so far.
  * \retval KATHERINE_E_IO if opening the control or data socket, setting its
  *   options, or telling the readout which interface drives it failed at the OS
  *   level for a reason none of the other codes cover; see socket(2),
@@ -232,8 +238,8 @@ err_enumerated:
  *   interface drives it would have blocked; see pthread_mutex_init(3) and
  *   katherine_udp_last_os_error() for the mutex, and
  *   katherine_transport_last_os_error() for the command.
- * \note Unreachable here: KATHERINE_E_STATE and KATHERINE_E_UNSUPPORTED.
- *   katherine_device_select_interface() returns them, but this call makes it
+ * \note Unreachable here: KATHERINE_E_STATE.
+ *   katherine_device_select_interface() returns it, but this call makes it
  *   only on a readout already known to be supported and of the second
  *   generation.
  */
@@ -250,30 +256,44 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     memset(&device->info, 0, sizeof(device->info));
     memset(&device->derived_info, 0, sizeof(device->derived_info));
 
+    // The address names the link as well as the readout, and only the part
+    // after the scheme is the transport's to read.
+    katherine_transport_kind_t kind;
+    const char *host;
+    if ((res = katherine_address_split(addr, &kind, &host)) != KATHERINE_E_OK) {
+        goto err_addr;
+    }
+    if (kind != KATHERINE_TRANSPORT_UDP) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_kind;
+    }
+
     // Before the main control and data channels are open, run a quick check that
     // determines whether a readout is a legacy firmware or not. This requires the
     // main control port to be 1555, which would clash with the default control
     // socket.
-    bool legacy = false;
-    if (true /* TODO: run this only for UDP transport, all non-UDP transports are legacy = false */) {
-        // True where nothing answered, because the flag gates a port change the
-        // first generation cannot honour: guessing false there would issue it to a
-        // readout that drops it.
-        legacy = true;
+    //
+    // UDP's alone: the flag records whether a firmware honoured the reply port
+    // of a discovery datagram, and a link that is not a shared network has no
+    // such thing. It moves under a test of the kind once a second transport
+    // can reach here.
+    //
+    // True where nothing answered, because the flag gates a port change the
+    // first generation cannot honour: guessing false there would issue it to a
+    // readout that drops it.
+    bool legacy = true;
 
-        if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
-            katherine_discovered_t found;
-            size_t count = 1;
+    if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
+        katherine_discovered_t found;
+        size_t count = 1;
 
-            if (katherine_device_discover_udp(addr, DATA_PORT, CONTROL_TIMEOUT, &found, &count) == KATHERINE_E_OK
-                && count == 1) {
-                legacy = found.legacy;
-            }
+        if (katherine_device_discover_udp(host, DATA_PORT, CONTROL_TIMEOUT, &found, &count) == KATHERINE_E_OK
+            && count == 1) {
+            legacy = found.legacy;
         }
     }
 
-
-    if ((res = katherine_udp_init(&device->control_socket, CONTROL_PORT, addr, REMOTE_PORT, CONTROL_TIMEOUT)) != 0) {
+    if ((res = katherine_udp_init(&device->control_socket, CONTROL_PORT, host, REMOTE_PORT, CONTROL_TIMEOUT)) != 0) {
         goto err_control;
     }
 
@@ -293,7 +313,7 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
         goto err_control_transport;
     }
 
-    if ((res = katherine_udp_init(&device->data_socket, DATA_PORT, addr, REMOTE_PORT, DATA_TIMEOUT)) != 0) {
+    if ((res = katherine_udp_init(&device->data_socket, DATA_PORT, host, REMOTE_PORT, DATA_TIMEOUT)) != 0) {
         goto err_data;
     }
 
@@ -344,6 +364,8 @@ err_data:
 err_control_transport:
     katherine_udp_fini(&device->control_socket);
 err_control:
+err_kind:
+err_addr:
     return res;
 }
 

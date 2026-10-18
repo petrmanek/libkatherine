@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include <katherine/discover.h>
+#include "address.h"
 #include "monoclock.h"
 #include "msleep.h"
 #include "protocol/cmd_interface.h"
@@ -67,9 +68,15 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
 
     memset(entry, 0, sizeof(*entry));
 
-    // TODO: once katherine_device_init() selects a transport from an address
-    // prefix, this has to yield "udp://<address>" rather than the bare one.
-    if (katherine_udp_get_remote_address(udp, entry->addr, sizeof(entry->addr)) != KATHERINE_E_OK) {
+    // Under an address that names the link as well as the readout, so that
+    // what discovery reports is what katherine_device_init() takes.
+    char host[KATHERINE_ADDR_STR_SIZE];
+    if (katherine_udp_get_remote_address(udp, host, sizeof(host)) != KATHERINE_E_OK) {
+        return COLLECT_DISCARD;
+    }
+
+    const int written = katherine_address_format(entry->addr, sizeof(entry->addr), KATHERINE_TRANSPORT_UDP, host);
+    if (written < 0 || (size_t) written >= sizeof(entry->addr)) {
         return COLLECT_DISCARD;
     }
     entry->legacy = legacy;
@@ -104,7 +111,9 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
  *   answers twice, from both, and which of them a caller should talk to is
  *   not this function's to decide.
  *
- * \param addr Address to ask, broadcast or unicast
+ * \param addr Address to ask, broadcast or unicast, optionally naming the
+ *   link it is on: "udp://192.168.1.255". An address with no scheme is a UDP
+ *   address, and one naming another link is refused, this asking over UDP
  * \param reply_port Port a current firmware is to answer on; at least
  *   KATHERINE_DISCOVER_MIN_PORT, and not the standard port itself
  * \param timeout_ms Limit on the whole call, in milliseconds; at least one
@@ -117,8 +126,10 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
  *   gives is zero, the timeout is zero, the reply port is below
  *   KATHERINE_DISCOVER_MIN_PORT or is the standard port, or a socket call
  *   rejected an argument; see sendto(2) and socket(2).
- * \retval KATHERINE_E_ADDR if the address could not be parsed or either
- *   local port could not be bound; see inet_pton(3) and bind(2).
+ * \retval KATHERINE_E_ADDR if the address names a link that is not UDP or one
+ *   this library does not know, is a scheme and nothing else, could not be
+ *   parsed, or either local port could not be bound; see inet_pton(3) and
+ *   bind(2).
  * \retval KATHERINE_E_TIMEOUT if the request could not be sent because the
  *   send would have blocked; see sendto(2). Not returned for want of an
  *   answer -- a discovery that hears nothing succeeds with none found.
@@ -131,6 +142,8 @@ katherine_error_t
 katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
 {
     katherine_error_t res;
+    katherine_transport_kind_t kind;
+    const char *host;
 
     if (out == NULL) {
         res = KATHERINE_E_INVAL;
@@ -161,6 +174,15 @@ katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t ti
         goto err_timeout;
     }
 
+    // This asks over UDP whatever the address says, so a scheme naming
+    // another link is an address for somebody else's discovery.
+    res = katherine_address_split(addr, &kind, &host);
+    if (res) goto err_addr;
+    if (kind != KATHERINE_TRANSPORT_UDP) {
+        res = KATHERINE_E_ADDR;
+        goto err_kind;
+    }
+
     // Both unpinned on purpose: a pinned session would discard every answer
     // but the first host's, and adopting each sender in turn is how the
     // address of each answer is read back.
@@ -170,11 +192,11 @@ katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t ti
     // default or to the port the request came from, and binding the one the
     // request leaves from makes both of those the same socket.
     katherine_udp_t legacy;
-    res = katherine_udp_init_bound(&legacy, NULL, DISCOVER_DEFAULT_PORT, addr, DISCOVER_DEFAULT_PORT, timeout_ms);
+    res = katherine_udp_init_bound(&legacy, NULL, DISCOVER_DEFAULT_PORT, host, DISCOVER_DEFAULT_PORT, timeout_ms);
     if (res) goto err_legacy;
 
     katherine_udp_t modern;
-    res = katherine_udp_init_bound(&modern, NULL, reply_port, addr, DISCOVER_DEFAULT_PORT, timeout_ms);
+    res = katherine_udp_init_bound(&modern, NULL, reply_port, host, DISCOVER_DEFAULT_PORT, timeout_ms);
     if (res) goto err_modern;
 
     res = katherine_udp_set_broadcast(&legacy, true);
@@ -230,6 +252,8 @@ err_broadcast:
 err_modern:
     katherine_udp_fini(&legacy);
 err_legacy:
+err_kind:
+err_addr:
 err_timeout:
 err_port:
 err_capacity:
