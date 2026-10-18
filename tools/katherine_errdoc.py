@@ -489,10 +489,12 @@ class Index:
         self.doc = {}                    # name -> (file, line, comment)
         self.is_err = set()              # names whose docstring claims a code
         self.defined = set()
+        self.vtable = defaultdict(set)      # ops slot -> {implementation}
 
     def scan(self, tu):
         self._macro_codes = macro_code_map(tu)
         self._macro_sites = macro_sites(tu)
+        self._scan_vtables(tu)
         for node in tu.cursor.walk_preorder():
             if node.kind != ci.CursorKind.FUNCTION_DECL:
                 continue
@@ -529,6 +531,29 @@ class Index:
                 if where not in self.sites[(name, callee)]:
                     self.sites[(name, callee)].append(where)
 
+    def _scan_vtables(self, tu):
+        """Which function fills which slot of an operation table.
+
+        A call through one of those slots is an indirect call, and libclang
+        resolves it no further than the FIELD_DECL naming the slot -- so
+        without this the chain stops at the vtable and every wrapper looks
+        like it returns nothing.
+
+        Read from the declaration's own tokens rather than its AST: the
+        Python bindings do not expose designated-initializer field names at
+        all, and several initializers hide behind UNEXPOSED_EXPR, so the AST
+        yields neither half of the pair reliably. The tokens carry
+        `.slot = function` exactly as written.
+        """
+        for node in tu.cursor.walk_preorder():
+            if node.kind != ci.CursorKind.VAR_DECL:
+                continue
+            if not node.type.spelling.replace("const ", "").endswith("_ops_t"):
+                continue
+            text = " ".join(t.spelling for t in node.get_tokens())
+            for slot, impl in re.findall(r"\.\s*(\w+)\s*=\s*(\w+)", text):
+                self.vtable[slot].add(impl)
+
     def _record_doc(self, node):
         raw = doc_above(node) or node.raw_comment
         if not raw:
@@ -544,6 +569,7 @@ class Index:
 
     def resolve(self):
         """Fixed point over the call graph."""
+        self._expand_vtable_calls()
         total = {k: set(v) for k, v in self.direct.items()}
         changed = True
         rounds = 0
@@ -566,6 +592,28 @@ class Index:
         self.total = total
         self.rounds = rounds
         return total
+
+    def _expand_vtable_calls(self):
+        """Replace a call through an operation slot with calls to its fillers.
+
+        A slot name is never a function here, so a callee that names one and
+        is not itself defined can only have come from `x->ops->slot(...)`.
+        Every registered implementation is credited, because the wrapper can
+        be holding any of them; the sites travel with it, so a chain still
+        names the line the indirect call was on.
+        """
+        for caller in list(self.calls):
+            for callee in sorted(self.calls[caller]):
+                if callee in self.defined or callee not in self.vtable:
+                    continue
+                self.calls[caller].discard(callee)
+                where = self.sites.pop((caller, callee), [])
+                for impl in sorted(self.vtable[callee]):
+                    self.calls[caller].add(impl)
+                    for w in where:
+                        tagged = "%s (through ops->%s)" % (w, callee)
+                        if tagged not in self.sites[(caller, impl)]:
+                            self.sites[(caller, impl)].append(tagged)
 
     def witness(self, name, code):
         """Shortest call chain from name to a function returning code directly.
@@ -728,6 +776,8 @@ def main():
     g.add_argument("--diff", action="store_true", help="propose docstring edits")
     g.add_argument("--paths", action="store_true",
                    help="print, for each code, the call chain that produces it")
+    g.add_argument("--vtables", action="store_true",
+                   help="print which function fills each operation-table slot")
     ap.add_argument("--platform", choices=sorted(TRANSPORTS), default="posix",
                     help="which UDP transport to index (default: posix)")
     args = ap.parse_args()
@@ -735,6 +785,18 @@ def main():
     index = build(sources(args.platform))
 
     names = sorted(n for n in index.total if index.total[n] and n in index.defined)
+
+    if args.vtables:
+        # Printed because an incomplete table is worse than none: a backend
+        # behind a disabled feature simply does not appear, and the union of
+        # codes it would have contributed goes missing without a word. A slot
+        # with fewer implementations than there are backends is the symptom.
+        if not index.vtable:
+            print("no operation tables found")
+        for slot in sorted(index.vtable):
+            impls = sorted(index.vtable[slot])
+            print("%-20s %s" % (slot, "  ".join(impls)))
+        return 0
 
     if args.paths:
         for n in names:
