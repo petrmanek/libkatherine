@@ -60,20 +60,20 @@ katherine_tdc_source_str(katherine_tdc_source_t source)
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so its channel count is unknown.
- * \retval KATHERINE_E_INVAL if a source is outside the enumeration, or a
- *   socket call rejected an argument; see sendto(2) and
- *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if a source is outside the enumeration, or the
+ *   control link rejected an argument of the send; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
- *   control session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response.
+ *   control link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
  *   responses to other commands kept coming.
  * \retval KATHERINE_E_IO if the send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if the send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be
+ *   taken; see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_t *config)
@@ -185,13 +185,13 @@ err_enumerated:
  * \retval KATHERINE_E_BAD_CRD if an answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving
  *   until the discard budget ran out.
- * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
- *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument of a
+ *   send; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be
+ *   taken; see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_MAX_TDC_CHANNEL_COUNT])
