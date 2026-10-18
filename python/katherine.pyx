@@ -28,6 +28,7 @@ cimport cconfig
 cimport cgpio
 cimport ctdc
 cimport cpulse
+cimport cdiscover
 cimport cpx
 cimport cpx_config
 cimport cacquisition
@@ -82,6 +83,39 @@ cdef str _snprint_repr(snprint_fn_t fn, const void *v):
 # katherine_version_string(), so it always names the library actually linked
 # in, not merely the one the bindings were compiled against.
 __version__ = cversion.katherine_version_string().decode('UTF-8')
+
+
+DISCOVER_MIN_PORT = cdiscover.KATHERINE_DISCOVER_MIN_PORT
+
+
+def discover(addr, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
+    """Ask every readout reachable at an address to identify itself.
+
+    One echo-chip-id command, then whatever answers arrive until the
+    timeout. Returns (address, legacy) pairs in the order they arrived,
+    where legacy is True for a firmware that ignored the reply port and
+    answered on the standard one; an empty list means nothing answered,
+    which is not an error. The reply port must be at least
+    DISCOVER_MIN_PORT and may not be the standard port.
+    """
+    cdef bytes addr_b = addr.encode('UTF-8')
+    cdef cdiscover.katherine_discovered_t *out
+    cdef size_t count = capacity
+
+    if capacity == 0:
+        raise ValueError('capacity must be positive')
+
+    out = <cdiscover.katherine_discovered_t *> PyMem_Malloc(
+        capacity * sizeof(cdiscover.katherine_discovered_t))
+    if out is NULL:
+        raise MemoryError()
+
+    try:
+        res = cdiscover.katherine_device_discover_udp(addr_b, reply_port, timeout_ms, out, &count)
+        check_return_code(res)
+        return [(out[i].addr.decode('UTF-8'), out[i].legacy) for i in range(count)]
+    finally:
+        PyMem_Free(out)
 
 
 def version():

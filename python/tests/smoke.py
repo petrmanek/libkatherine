@@ -531,6 +531,27 @@ def check_readout_peripherals(tap, katherine):
                  str(katherine.Tpx3DacMonitor.BANDGAP_OUTPUT), 'BandGap output')
 
 
+def check_discovery(tap, katherine):
+    """Discovery reaches Python, and finding nothing is not an error.
+
+    Aimed at a loopback address with no readout on it, so the call spends its
+    timeout and comes back empty -- which is the claim: an empty subnet and a
+    quiet one are indistinguishable, and neither is a failure.
+    """
+    tap.check_eq('DISCOVER_MIN_PORT is the firmware\'s floor',
+                 katherine.DISCOVER_MIN_PORT, 32)
+
+    found = katherine.discover('127.0.0.1', 42700, 50)
+    tap.check_eq('discovering nothing returns nothing', found, [])
+
+    tap.check_raises('discovery rejects no room for an answer', ValueError,
+                     katherine.discover, '127.0.0.1', 42700, 50, 0)
+    # ValueError rather than OSError: the library refuses the argument before
+    # a socket is involved, and check_return_code maps that to ValueError.
+    tap.check_raises('discovery rejects a reply port the firmware would ignore',
+                     ValueError, katherine.discover, '127.0.0.1', 31, 50)
+
+
 def check_module_surface(tap, katherine):
     """The module exports its own names and nothing borrowed.
 
@@ -681,6 +702,7 @@ def run_checks(tap, katherine, device):
     check_enums(tap, katherine)
     check_enum_rendering(tap, katherine)
     check_readout_peripherals(tap, katherine)
+    check_discovery(tap, katherine)
     check_module_surface(tap, katherine)
     check_timestamp_functions(tap, katherine)
     check_pixel_types(tap, katherine)
