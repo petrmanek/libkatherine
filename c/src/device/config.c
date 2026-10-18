@@ -1601,8 +1601,9 @@ err_enumerated:
  *   whose firmware has no such operation.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so how many chips it can address is unknown.
- * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout can
- *   address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
  *   link's receive timeout.
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
@@ -1629,7 +1630,7 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
-    if (chip_index >= device->derived_info.max_chip_count) {
+    if (chip_index >= device->info.chip_count) {
         res = KATHERINE_E_BAD_CHIP;
         goto err_chip;
     }

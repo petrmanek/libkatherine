@@ -313,6 +313,8 @@ err:
  * \param temperature Measured temperature in Celsius.
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no chip, the sensor
+ *   being the chip's; see katherine_device_info_t::chip_count.
  * \retval KATHERINE_E_STATE if an acquisition is currently started on this
  *   device. This is a precondition, not a communication failure: it is checked
  *   before the session lock is taken and before anything is sent, so the
@@ -344,9 +346,16 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 {
     katherine_error_t res;
 
+    // Asking for temperature during an ongoing acquisition crashes the super-pixel
+    // oscillator, which freezes fToA of hits to a constant value. Guard against that.
     if (device->acquisition != NULL) {
         res = KATHERINE_E_STATE;
         goto err_busy;
+    }
+
+    if (device->info.chip_count == 0) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_no_chip;
     }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
@@ -368,6 +377,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 
 err:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_no_chip:
 err_busy:
     return res;
 }
@@ -684,8 +694,9 @@ err_enumerated:
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so how many chips it can address is unknown.
- * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout can
- *   address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold.
  * \retval KATHERINE_E_INVAL if the monitor is outside the enumeration, or if
  *   the control link rejected an argument; see
  *   katherine_transport_last_os_error().
@@ -716,7 +727,7 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
         goto err_unsupported;
     }
 
-    if (chip_index >= device->derived_info.max_chip_count) {
+    if (chip_index >= device->info.chip_count) {
         res = KATHERINE_E_BAD_CHIP;
         goto err_chip_index;
     }
@@ -778,8 +789,9 @@ err_unsupported:
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so how many chips it can address is unknown.
- * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout can
- *   address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold.
  * \retval KATHERINE_E_TIMEOUT if the readout stopped answering partway through
  *   the sequence, or did not start.
  * \retval KATHERINE_E_BAD_CRD if an answer was not a command response.
@@ -805,7 +817,7 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
         goto err_unsupported;
     }
 
-    if (chip_index >= device->derived_info.max_chip_count) {
+    if (chip_index >= device->info.chip_count) {
         res = KATHERINE_E_BAD_CHIP;
         goto err_chip_index;
     }

@@ -170,7 +170,13 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
     memset(device, 0, sizeof(*device));
 
     if (hw_type != 0) {
-        const katherine_device_info_t info = {.hw_type = hw_type};
+        // Declared fully populated, because a chip-addressed call is gated on
+        // the chips the readout says it carries and these cases address every
+        // one this hardware type can hold.
+        const katherine_device_info_t info = {
+            .hw_type    = hw_type,
+            .chip_count = katherine_device_derived_info_recognize(hw_type).max_chip_count,
+        };
         if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;
     }
 
