@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
+#include <katherine/transport.h>
 #include <katherine/udp.h>
 
 /**
@@ -120,6 +121,14 @@ typedef struct katherine_device {
      * acquisition (half duplex towards this system).
      */
     katherine_udp_t data_socket;
+
+    /**
+     * The data socket above, driven through the transport operations. What an
+     * acquisition reads measurement data from, so that a readout reached over
+     * another link is read by the same loop. Opened with this device and
+     * released with it.
+     */
+    katherine_transport_t data_transport;
 
     /**
      * The acquisition measuring on this device, or NULL when none is. Opaque

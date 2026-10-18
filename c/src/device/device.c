@@ -245,6 +245,17 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
 
     katherine_udp_pin_remote(&device->data_socket);
 
+    // Opened here rather than by whoever reads from it, which is also why no
+    // buffer size is given: an acquisition is set up long after this and asks
+    // the transport to resize when it knows its own. Opening it with the device is also what keeps the
+    // member from ever being read before it is written -- a device lives on
+    // the caller's stack in both README.md and krun.c, and an acquisition
+    // choosing its read path out of whatever the stack held segfaults in the
+    // decode loop on the first read. Measured on a real Gen2.
+    if ((res = katherine_transport_init_udp(&device->data_transport, &device->data_socket)) != 0) {
+        goto err_transport;
+    }
+
     // Optional initial setup
     if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
         (void) katherine_device_enumerate(device);
@@ -268,6 +279,8 @@ katherine_device_init(katherine_device_t *device, const char *addr, uint32_t fla
     return KATHERINE_E_OK;
 
 err_select:
+    katherine_transport_fini(&device->data_transport);
+err_transport:
     katherine_udp_fini(&device->data_socket);
 err_data:
     katherine_udp_fini(&device->control_socket);
@@ -314,6 +327,13 @@ katherine_device_fini(katherine_device_t *device)
         (void) katherine_acquisition_abort(acq);
         device->acquisition = NULL;
     }
+
+    // Before the session it drives, which is the order it was opened in, and
+    // only where there is one: a device assembled by hand rather than by
+    // katherine_device_init() carries a zeroed transport, and whether this
+    // device opened one is the device's own bookkeeping rather than
+    // something the transport layer should be asked to tolerate.
+    if (device->data_transport.ops != NULL) katherine_transport_fini(&device->data_transport);
 
     katherine_udp_fini(&device->data_socket);
     katherine_udp_fini(&device->control_socket);

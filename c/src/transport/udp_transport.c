@@ -19,6 +19,15 @@
 
 #include "protocol/cmd_interface.h"
 
+/**
+ * What a session is opened at, before a reader names a size of its own with
+ * katherine_transport_set_buffer_size(). Small on purpose: nothing reads
+ * measurement data between a link being opened and an acquisition being set
+ * up on it, so this is allocated and then replaced. Its job is to put an
+ * allocation failure at open time rather than halfway through a measurement.
+ */
+#define DEFAULT_BUFFER_SIZE 4096
+
 // One buffer is enough here, which is the whole difference from the USB
 // transport: a socket keeps filling SO_RCVBUF whether or not the application is
 // inside recv(), so the kernel already does what a ring of outstanding reads
@@ -169,20 +178,22 @@ static const katherine_transport_ops_t udp_ops = {
  * Drive an open UDP session through the transport operations.
  * \param transport Transport to fill in.
  * \param udp Session to drive, which stays the caller's to close.
- * \param buffer_size Bytes one lent measurement-data buffer can carry.
+ *
+ * The lent buffer starts at a small size of this backend's choosing. A
+ * reader that needs a particular one asks for it with
+ * katherine_transport_set_buffer_size().
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport or no session was given, or the
- *   buffer is empty.
+ * \retval KATHERINE_E_INVAL if no transport or no session was given.
  * \retval KATHERINE_E_NOMEM if the transport or its buffer could not be
  *   allocated.
  */
 katherine_error_t
-katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *udp, size_t buffer_size)
+katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *udp)
 {
     katherine_error_t res;
 
-    if (transport == NULL || udp == NULL || buffer_size == 0) {
+    if (transport == NULL || udp == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_args;
     }
@@ -193,14 +204,14 @@ katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *
         goto err_alloc;
     }
 
-    t->buffer = malloc(buffer_size + sizeof(uint64_t));
+    t->buffer = malloc(DEFAULT_BUFFER_SIZE + sizeof(uint64_t));
     if (t->buffer == NULL) {
         res = KATHERINE_E_NOMEM;
         goto err_buffer;
     }
 
     t->udp      = udp;
-    t->capacity = buffer_size;
+    t->capacity = DEFAULT_BUFFER_SIZE;
 
     transport->ops  = &udp_ops;
     transport->kind = KATHERINE_TRANSPORT_UDP;

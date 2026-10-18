@@ -51,7 +51,7 @@ test_a_lent_buffer_holds_what_arrived(void)
     KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
 
     katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
     static const char payload[] = "measurement data";
     KT_CHECK_EQ(katherine_udp_send_exact(&sender, payload, sizeof(payload)), KATHERINE_E_OK);
@@ -79,7 +79,7 @@ test_returning_a_foreign_buffer_is_refused(void)
     KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
 
     katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
     char elsewhere[8];
     KT_CHECK_EQ(katherine_transport_release_data_buf(&t, elsewhere), KATHERINE_E_INVAL);
@@ -97,9 +97,8 @@ test_a_transport_over_nothing_is_refused(void)
     KT_REQUIRE(open_session(&u, PORT_A, PORT_B) == KATHERINE_E_OK);
 
     katherine_transport_t t;
-    KT_CHECK_EQ(katherine_transport_init_udp(&t, &u, 0), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_init_udp(&t, NULL, BUF_BYTES), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_init_udp(NULL, &u, BUF_BYTES), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_udp(&t, NULL), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_udp(NULL, &u), KATHERINE_E_INVAL);
 
     katherine_udp_fini(&u);
 }
@@ -113,7 +112,7 @@ test_silence_times_out(void)
     KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
 
     katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
     void *buf  = NULL;
     size_t len = 0;
@@ -131,7 +130,7 @@ test_a_udp_transport_says_so(void)
     KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
 
     katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
     KT_CHECK_EQ(t.kind, KATHERINE_TRANSPORT_UDP);
     KT_CHECK(t.ops != NULL);
     KT_CHECK(t.ctx != NULL);
@@ -151,7 +150,7 @@ test_a_transport_resizes_exactly(void)
     KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
 
     katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
     /* Grown, then shrunk: a datagram filling the new size comes back whole at
      * each, which is the capacity the caller was promised. */
@@ -190,7 +189,7 @@ test_resizing_while_lent_is_refused(void)
     KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
 
     katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver, BUF_BYTES) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
     const uint8_t payload[4] = {1, 2, 3, 4};
     KT_REQUIRE(katherine_udp_send_exact(&sender, payload, sizeof(payload)) == KATHERINE_E_OK);
