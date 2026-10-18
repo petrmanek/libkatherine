@@ -31,10 +31,10 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 /**
- * Length of a command response datagram. The readout answers an
+ * Length of a command response. The readout answers an
  * acknowledged command with exactly this many bytes, all zero but for the
  * operation-code byte, and fills in the leading bytes when the response
- * carries data. Nothing else ever reaches the command socket, so a datagram
+ * carries data. Nothing else ever reaches the command link, so a response
  * of any other length is the peer violating the wire format.
  */
 #define KATHERINE_CMD_CRD_SIZE           8
@@ -55,10 +55,10 @@
 #define KATHERINE_CMD_SUBIDX_BYTE        4
 
 /**
- * Non-correlating response datagrams one katherine_cmd_wait_ack_crd() call
+ * Non-correlating responses one katherine_cmd_wait_ack_crd() call
  * discards before it gives up with KATHERINE_E_STRAY.
  *
- * Every discard is a datagram that really arrived, so spending the budget
+ * Every discard is a response that really arrived, so spending the budget
  * costs no receive timeout and a quiet peer never reaches it; the bound is
  * there so that a chatty or confused one cannot hold the caller forever.
  * Kept above the longest answer the readout is documented to send for a
@@ -69,11 +69,11 @@
 #define KATHERINE_CMD_MAX_STRAY_DISCARDS 32
 
 /**
- * Stale datagrams katherine_transport_flush_incoming() discards before it gives up.
+ * Stale responses katherine_transport_flush_incoming() discards before it gives up.
  *
  * Generous because the drain never blocks: it stops at the first receive
- * that finds the socket empty, so the bound only caps the work a peer
- * flooding the socket can impose on one flush.
+ * that finds the link empty, so the bound only caps the work a peer
+ * flooding the link can impose on one flush.
  */
 #define KATHERINE_CMD_MAX_DRAIN          64
 
@@ -84,16 +84,15 @@
  * \param count Number of bytes to send.
  *
  * \retval KATHERINE_E_OK on success, once every byte has been handed to the
- *   socket.
+ *   link.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send(katherine_transport_t *transport, const void *buffer, size_t count)
@@ -112,21 +111,20 @@ err:
 /**
  * Send a command that carries nothing but its opcode.
  *
- * Composing the datagram cannot fail, so every code below is the send's.
+ * Composing the command cannot fail, so every code below is the send's.
  *
  * \param transport Transport to send on.
  * \param val6 Command opcode.
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send6(katherine_transport_t *transport, uint8_t val6)
@@ -139,7 +137,7 @@ katherine_cmd_send6(katherine_transport_t *transport, uint8_t val6)
  * Send a command whose only argument occupies the lowest payload byte, as
  * the hardware-command dispatch does with its sub-command number.
  *
- * Composing the datagram cannot fail, so every code below is the send's.
+ * Composing the command cannot fail, so every code below is the send's.
  *
  * \param transport Transport to send on.
  * \param val6 Command opcode.
@@ -147,14 +145,13 @@ katherine_cmd_send6(katherine_transport_t *transport, uint8_t val6)
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send60(katherine_transport_t *transport, uint8_t val6, uint8_t val0)
@@ -168,7 +165,7 @@ katherine_cmd_send60(katherine_transport_t *transport, uint8_t val6, uint8_t val
  * Send a command whose two argument bytes are the lowest payload bytes, as
  * the single-monitor DAC scan does with its monitor index and chip index.
  *
- * Composing the datagram cannot fail, so every code below is the send's.
+ * Composing the command cannot fail, so every code below is the send's.
  *
  * \param transport Transport to send on.
  * \param val6 Command opcode.
@@ -177,14 +174,13 @@ katherine_cmd_send60(katherine_transport_t *transport, uint8_t val6, uint8_t val
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send601(katherine_transport_t *transport, uint8_t val6, uint8_t val0, uint8_t val1)
@@ -199,7 +195,7 @@ katherine_cmd_send601(katherine_transport_t *transport, uint8_t val6, uint8_t va
  * Send a command with both a sub-index and a payload word, as the DAC
  * setters and sensor-register writes use.
  *
- * Composing the datagram cannot fail -- a wider payload is truncated, never
+ * Composing the command cannot fail -- a wider payload is truncated, never
  * rejected -- so every code below is the send's.
  *
  * \param transport Transport to send on.
@@ -209,14 +205,13 @@ katherine_cmd_send601(katherine_transport_t *transport, uint8_t val6, uint8_t va
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send64_i64(katherine_transport_t *transport, uint8_t val6, uint8_t val4, int64_t value)
@@ -230,7 +225,7 @@ katherine_cmd_send64_i64(katherine_transport_t *transport, uint8_t val6, uint8_t
 /**
  * Send a command with a payload word and no sub-index.
  *
- * Composing the datagram cannot fail -- a wider payload is truncated, never
+ * Composing the command cannot fail -- a wider payload is truncated, never
  * rejected -- so every code below is the send's.
  *
  * \param transport Transport to send on.
@@ -239,14 +234,13 @@ katherine_cmd_send64_i64(katherine_transport_t *transport, uint8_t val6, uint8_t
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send6_i64(katherine_transport_t *transport, uint8_t val6, int64_t value)
@@ -259,7 +253,7 @@ katherine_cmd_send6_i64(katherine_transport_t *transport, uint8_t val6, int64_t 
 /**
  * Send a command whose payload is a float rather than an integer.
  *
- * Composing the datagram cannot fail, so every code below is the send's.
+ * Composing the command cannot fail, so every code below is the send's.
  *
  * \param transport Transport to send on.
  * \param val6 Command opcode.
@@ -267,14 +261,13 @@ katherine_cmd_send6_i64(katherine_transport_t *transport, uint8_t val6, int64_t 
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   sendto(2) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send ran out of memory; see sendto(2) and
- *   katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send6_f32(katherine_transport_t *transport, uint8_t val6, float value)
@@ -495,7 +488,7 @@ typedef enum katherine_cmd_type {
     CMD_TYPE_INTERNAL_TDC_SETTINGS = 0x32,
 
     /**
-     * The readout firmware sends five counter datagrams for this command.
+     * The readout firmware sends five counter responses for this command.
      */
     CMD_TYPE_INTERNAL_TDC_READ_COUNTS = 0x33,
 
@@ -578,11 +571,11 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
 /**
  * Receive the command response belonging to one request, keeping its contents.
  *
- * Reads response datagrams until one correlates with the given operation
+ * Reads responses until one correlates with the given operation
  * code, discarding and counting the rest. Correlation compares the
  * identifier in byte 6: the operation code itself always matches, and by
  * default so does the identifier the firmware substitutes for it
- * (katherine_cmd_reply_id()), unless the session is in strict mode
+ * (katherine_cmd_reply_id()), unless the link is in strict mode
  * (katherine_transport_set_strict_ack()).
  *
  * A command the readout never answers is refused outright rather than waited
@@ -595,30 +588,27 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
  *
  * \retval KATHERINE_E_OK on success, the correlating response then copied to
  *   crd unless that is NULL.
- * \retval KATHERINE_E_TIMEOUT if no datagram arrived before the session's
+ * \retval KATHERINE_E_TIMEOUT if no response arrived before the link's
  *   receive timeout expired, or a pinned session spent its
  *   KATHERINE_UDP_PIN_MAX_DISCARDS budget on datagrams from other hosts.
- *   Neither route records an OS error, and the
- *   retrying callers of the slow commands depend on seeing this code
- *   unchanged.
- * \retval KATHERINE_E_BAD_CRD if a datagram arrived whose length was not
+ *   Neither route records an OS error, and the retrying callers of the slow
+ *   commands depend on seeing this code unchanged.
+ * \retval KATHERINE_E_BAD_CRD if a response arrived whose length was not
  *   KATHERINE_CMD_CRD_SIZE, which is a length no command response has.
- *   Reported at the first such datagram, whatever identifier it carries, and
+ *   Reported at the first such response, whatever identifier it carries, and
  *   without spending the stray budget.
  * \retval KATHERINE_E_STRAY if KATHERINE_CMD_MAX_STRAY_DISCARDS correctly
  *   sized responses arrived whose identifier byte matched neither the
  *   operation code nor the substitute -- responses belonging to some other
  *   request -- and the awaited one never did. Each of them is counted in
  *   katherine_transport_t::stray_command_responses.
- * \retval KATHERINE_E_INVAL if the readout does not answer this operation
- *   code at all, refused before any datagram is waited for, or if the
- *   receive reported an invalid argument; see recvfrom(2) and
- *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the readout does not answer this operation code
+ *   at all, refused before any response is waited for, or if the receive
+ *   reported an invalid argument; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if the receive failed at the OS level for a reason
- *   none of the other codes cover; see recvfrom(2) and
- *   katherine_udp_last_os_error().
+ *   none of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the receive ran out of memory; see
- *   recvfrom(2) and katherine_udp_last_os_error().
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_wait_ack_crd(katherine_transport_t *transport, uint8_t opcode, char *crd)
@@ -664,21 +654,20 @@ katherine_cmd_wait_ack_crd(katherine_transport_t *transport, uint8_t opcode, cha
  *
  * \retval KATHERINE_E_OK on success: a response correlating with opcode
  *   arrived and was discarded.
- * \retval KATHERINE_E_TIMEOUT if no response arrived within the session's
+ * \retval KATHERINE_E_TIMEOUT if no response arrived within the link's
  *   receive timeout, or if a pinned session spent its discard budget on
  *   datagrams from other hosts.
- * \retval KATHERINE_E_BAD_CRD if a datagram arrived that was not the size a
+ * \retval KATHERINE_E_BAD_CRD if a response arrived that was not the size a
  *   command response has.
  * \retval KATHERINE_E_STRAY if well-formed responses kept arriving that
  *   belonged to other requests, until the discard budget ran out.
- * \retval KATHERINE_E_INVAL if the readout never answers this operation
- *   code, so waiting for it could only time out, or if the receive itself
- *   rejected its arguments; see recvfrom(2).
+ * \retval KATHERINE_E_INVAL if the readout never answers this operation code,
+ *   so waiting for it could only time out, or if the receive itself rejected
+ *   its arguments; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if the response could not be received for a reason
- *   none of the other codes cover; see recvfrom(2) and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the
- *   receive; see recvfrom(2).
+ *   none of the other codes cover; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the receive;
+ *   see katherine_transport_last_os_error().
  *
  * \see katherine_cmd_wait_ack_crd(), which this forwards to and which
  *   describes what separates a malformed response from a stray one.
@@ -694,7 +683,7 @@ katherine_cmd_wait_ack(katherine_transport_t *transport, uint8_t opcode)
  * response that belongs to it.
  *
  * This is the whole of an acknowledged command whose request is a single
- * datagram. The stateful uploads, whose data travels between the command and
+ * message. The stateful uploads, whose data travels between the command and
  * its acknowledgement, compose the three steps themselves instead.
  *
  * The operation code is read out of the buffer rather than passed
@@ -702,32 +691,31 @@ katherine_cmd_wait_ack(katherine_transport_t *transport, uint8_t opcode)
  * request did not carry.
  *
  * \param transport Transport to exchange on.
- * \param buffer Command datagram to send.
+ * \param buffer Command to send.
  * \param count Its length; at least KATHERINE_CMD_CRD_SIZE, since a shorter
- *   datagram carries no operation code.
+ *   command carries no operation code.
  * \param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
  *   to discard them.
  *
  * \retval KATHERINE_E_OK on success, the response then copied to crd unless
  *   that is NULL.
  * \retval KATHERINE_E_INVAL for a command too short to carry an operation
- *   code, or one the readout never answers -- both reported before anything
- *   is sent, so the readout is left untouched -- or if the send or the
- *   receive reported an invalid argument; see sendto(2), recvfrom(2), and
- *   katherine_udp_last_os_error().
+ *   code, or one the readout never answers -- both reported before anything is
+ *   sent, so the readout is left untouched -- or if the send or the receive
+ *   reported an invalid argument; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
- *   session's receive timeout; see katherine_cmd_wait_ack_crd().
- * \retval KATHERINE_E_BAD_CRD if the response datagram was not
- *   KATHERINE_CMD_CRD_SIZE bytes long; see katherine_cmd_wait_ack_crd().
- * \retval KATHERINE_E_STRAY if responses to other requests kept arriving
- *   until the stray budget ran out, this command's own never among them; see
- *   katherine_cmd_wait_ack_crd(). The flush above makes this the peer's
- *   doing rather than a leftover of the previous exchange.
- * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
- *   for a reason none of the other codes cover; see sendto(2), recvfrom(2),
- *   and katherine_udp_last_os_error().
- * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory;
- *   see sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ *   link's receive timeout; see katherine_cmd_wait_ack_crd().
+ * \retval KATHERINE_E_BAD_CRD if the response was not KATHERINE_CMD_CRD_SIZE
+ *   bytes long; see katherine_cmd_wait_ack_crd().
+ * \retval KATHERINE_E_STRAY if responses to other requests kept arriving until
+ *   the stray budget ran out, this command's own never among them; see
+ *   katherine_cmd_wait_ack_crd(). The flush above makes this the peer's doing
+ *   rather than a leftover of the previous exchange.
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level for
+ *   a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory; see
+ *   katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_transact(katherine_transport_t *transport, const void *buffer, size_t count, char *crd)
@@ -871,7 +859,7 @@ typedef enum katherine_acq_unit_reg {
  * acknowledges, with every field layout above that being the FPGA's. Callers
  * therefore compose words, not commands.
  *
- * Requires the session's lock to be held, and the session to have been
+ * Requires the link's lock to be held, and the link to have been
  * drained: a sequence of these is one transaction, not several.
  *
  * \param transport Transport to send on.
@@ -880,16 +868,16 @@ typedef enum katherine_acq_unit_reg {
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
- *   session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response.
+ *   link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
  *   responses to other commands kept coming.
- * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
- *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
- *   and katherine_udp_last_os_error().
- * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
- *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level for
+ *   a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
@@ -909,7 +897,7 @@ katherine_cmd_acq_unit_write(katherine_transport_t *transport, katherine_acq_uni
  * or one answer of which was lost, is then an error rather than a word
  * attributed to the wrong register.
  *
- * Requires the session's lock to be held, and the session to have been
+ * Requires the link's lock to be held, and the link to have been
  * drained.
  *
  * \param transport Transport to send on.
@@ -918,16 +906,16 @@ katherine_cmd_acq_unit_write(katherine_transport_t *transport, katherine_acq_uni
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
- *   session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response, or answered for another register.
+ *   link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response, or answered for another register.
  * \retval KATHERINE_E_STRAY if the answer never arrived while responses to
  *   other commands kept coming.
- * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
- *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
- *   and katherine_udp_last_os_error().
- * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
- *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level for
+ *   a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
@@ -983,7 +971,7 @@ typedef enum katherine_pulse_reg {
  * A second register bank, addressed exactly as the acquisition unit's is:
  * the index in byte 4, the word in bytes 0 to 3.
  *
- * Requires the session's lock to be held, and the session to have been
+ * Requires the link's lock to be held, and the link to have been
  * drained.
  *
  * \param transport Transport to send on.
@@ -992,16 +980,16 @@ typedef enum katherine_pulse_reg {
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
- *   session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response.
+ *   link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
  *   responses to other commands kept coming.
- * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
- *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
- *   and katherine_udp_last_os_error().
- * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
- *   sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level for
+ *   a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
@@ -1020,7 +1008,7 @@ katherine_cmd_pulse_generator_write(katherine_transport_t *transport, katherine_
  * command's, which katherine_cmd_reply_id() knows about, with the register
  * index repeated in byte 4 as that command does.
  *
- * Requires the session's lock to be held, and the session to have been
+ * Requires the link's lock to be held, and the link to have been
  * drained.
  *
  * \param transport Transport to send on.
@@ -1029,16 +1017,16 @@ katherine_cmd_pulse_generator_write(katherine_transport_t *transport, katherine_
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
- *   session's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response datagram was not the length of a
- *   command response, or answered for another register.
- * \retval KATHERINE_E_STRAY if the answer never arrived while
- *   responses to other commands kept coming.
- * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
- *   for a reason none of the other codes cover; see sendto(2), recvfrom(2)
- *   and katherine_udp_last_os_error().
- * \retval KATHERINE_E_INVAL if a socket call rejected an argument; see
- *   sendto(2) and katherine_udp_last_os_error().
+ *   link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response, or answered for another register.
+ * \retval KATHERINE_E_STRAY if the answer never arrived while responses to
+ *   other commands kept coming.
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level for
+ *   a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
