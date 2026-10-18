@@ -18,7 +18,7 @@
 #include <katherine/config.h>
 #include <katherine/error.h>
 #include <katherine/global.h>
-#include <katherine/udp.h>
+#include <katherine/transport.h>
 #include "bitfields.h"
 #include "cmd_builder.h"
 
@@ -69,7 +69,7 @@
 #define KATHERINE_CMD_MAX_STRAY_DISCARDS 32
 
 /**
- * Stale datagrams katherine_cmd_drain() discards before it gives up.
+ * Stale datagrams katherine_transport_flush_incoming() discards before it gives up.
  *
  * Generous because the drain never blocks: it stops at the first receive
  * that finds the socket empty, so the bound only caps the work a peer
@@ -79,7 +79,7 @@
 
 /**
  * Send a command, or any other exact-length buffer, to the readout.
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param buffer Bytes to send.
  * \param count Number of bytes to send.
  *
@@ -96,11 +96,11 @@
  *   katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_send(katherine_udp_t *udp, const void *buffer, size_t count)
+katherine_cmd_send(katherine_transport_t *transport, const void *buffer, size_t count)
 {
     katherine_error_t res;
 
-    res = katherine_udp_send_exact(udp, buffer, count);
+    res = katherine_transport_send_cmd(transport, buffer, count);
     if (res) goto err;
 
     return KATHERINE_E_OK;
@@ -114,7 +114,7 @@ err:
  *
  * Composing the datagram cannot fail, so every code below is the send's.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param val6 Command opcode.
  *
  * \retval KATHERINE_E_OK on success.
@@ -129,10 +129,10 @@ err:
  *   katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
+katherine_cmd_send6(katherine_transport_t *transport, uint8_t val6)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
-    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -141,7 +141,7 @@ katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
  *
  * Composing the datagram cannot fail, so every code below is the send's.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param val6 Command opcode.
  * \param val0 Argument byte.
  *
@@ -157,11 +157,11 @@ katherine_cmd_send6(katherine_udp_t *udp, uint8_t val6)
  *   katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
+katherine_cmd_send60(katherine_transport_t *transport, uint8_t val6, uint8_t val0)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
     cmd.b[0]            = val0;
-    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -170,7 +170,7 @@ katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
  *
  * Composing the datagram cannot fail, so every code below is the send's.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param val6 Command opcode.
  * \param val0 First argument byte.
  * \param val1 Second argument byte.
@@ -187,12 +187,12 @@ katherine_cmd_send60(katherine_udp_t *udp, uint8_t val6, uint8_t val0)
  *   katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_send601(katherine_udp_t *udp, uint8_t val6, uint8_t val0, uint8_t val1)
+katherine_cmd_send601(katherine_transport_t *transport, uint8_t val6, uint8_t val0, uint8_t val1)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
     cmd.b[0]            = val0;
     cmd.b[1]            = val1;
-    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -202,7 +202,7 @@ katherine_cmd_send601(katherine_udp_t *udp, uint8_t val6, uint8_t val0, uint8_t 
  * Composing the datagram cannot fail -- a wider payload is truncated, never
  * rejected -- so every code below is the send's.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param val6 Command opcode.
  * \param val4 Sub-index.
  * \param value Payload; only its low 32 bits reach the wire.
@@ -219,12 +219,12 @@ katherine_cmd_send601(katherine_udp_t *udp, uint8_t val6, uint8_t val0, uint8_t 
  *   katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64_t value)
+katherine_cmd_send64_i64(katherine_transport_t *transport, uint8_t val6, uint8_t val4, int64_t value)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
     katherine_cmd_payload_set_subidx(&cmd, val4);
     katherine_cmd_payload_set_i64(&cmd, value);
-    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -233,7 +233,7 @@ katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64
  * Composing the datagram cannot fail -- a wider payload is truncated, never
  * rejected -- so every code below is the send's.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param val6 Command opcode.
  * \param value Payload; only its low 32 bits reach the wire.
  *
@@ -249,11 +249,11 @@ katherine_cmd_send64_i64(katherine_udp_t *udp, uint8_t val6, uint8_t val4, int64
  *   katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
+katherine_cmd_send6_i64(katherine_transport_t *transport, uint8_t val6, int64_t value)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
     katherine_cmd_payload_set_i64(&cmd, value);
-    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
 }
 
 /**
@@ -261,7 +261,7 @@ katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
  *
  * Composing the datagram cannot fail, so every code below is the send's.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param val6 Command opcode.
  * \param value Payload, transmitted as its IEEE-754 bytes.
  *
@@ -277,11 +277,11 @@ katherine_cmd_send6_i64(katherine_udp_t *udp, uint8_t val6, int64_t value)
  *   katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_send6_f32(katherine_udp_t *udp, uint8_t val6, float value)
+katherine_cmd_send6_f32(katherine_transport_t *transport, uint8_t val6, float value)
 {
     katherine_cmd_t cmd = katherine_cmd_create(val6);
     katherine_cmd_payload_set_f32(&cmd, value);
-    return katherine_cmd_send(udp, cmd.b, sizeof(cmd.b));
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
 }
 
 //
@@ -409,7 +409,7 @@ katherine_pll_config_word(const katherine_config_t *config)
 // From this point onward we define the instruction set supported by Katherine.
 
 /**
- * Define katherine_cmd_<CMD_NAME>(udp), sending a command whose arguments
+ * Define katherine_cmd_<CMD_NAME>(transport), sending a command whose arguments
  * are all fixed at definition time.
  * \param A Sender to build on, without the katherine_ prefix (e.g. cmd6).
  * \param CMD_NAME Name of the generated function, without the
@@ -417,13 +417,13 @@ katherine_pll_config_word(const katherine_config_t *config)
  * \param ... Leading arguments of the sender, typically the opcode.
  */
 #define K_DEFINE_CMD_ARG0(A, CMD_NAME, ...) \
-    static inline katherine_error_t katherine_cmd_##CMD_NAME(katherine_udp_t *udp) \
+    static inline katherine_error_t katherine_cmd_##CMD_NAME(katherine_transport_t *transport) \
     { \
-        return katherine_##A(udp, __VA_ARGS__); \
+        return katherine_##A(transport, __VA_ARGS__); \
     }
 
 /**
- * Define katherine_cmd_<CMD_NAME>(udp, arg1), sending a command whose last
+ * Define katherine_cmd_<CMD_NAME>(transport, arg1), sending a command whose last
  * argument the caller supplies.
  * \param A Sender to build on, without the katherine_ prefix.
  * \param CMD_NAME Name of the generated function, without the
@@ -433,9 +433,9 @@ katherine_pll_config_word(const katherine_config_t *config)
  *   follows.
  */
 #define K_DEFINE_CMD_ARG1(A, CMD_NAME, ARG1_TYPE, ...) \
-    static inline katherine_error_t katherine_cmd_##CMD_NAME(katherine_udp_t *udp, ARG1_TYPE arg1) \
+    static inline katherine_error_t katherine_cmd_##CMD_NAME(katherine_transport_t *transport, ARG1_TYPE arg1) \
     { \
-        return katherine_##A(udp, __VA_ARGS__, arg1); \
+        return katherine_##A(transport, __VA_ARGS__, arg1); \
     }
 
 /** Command opcodes of the readout protocol, carried in byte 6 of a command. */
@@ -576,43 +576,6 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
 }
 
 /**
- * Discard whatever a previous exchange left queued on a command session.
- *
- * The readout answers some commands more than once and the network may
- * deliver a response the client had already given up on, so a session can
- * hold datagrams belonging to no request in flight. Correlation recognizes
- * those and steps over them, but a leftover response of the *same* command
- * would correlate perfectly and be read as the answer to a later repetition
- * of it, which is how a session ends up one command out of step for good.
- * Flushing before a command closes that gap, and keeps the stray budget of
- * the wait that follows for genuine surprises.
- *
- * Never blocks: it stops at the first receive that finds nothing queued,
- * which is the ordinary case and must cost nothing, since every command of
- * the library pays for it. Best-effort by design and therefore returning
- * nothing -- a transport failure here resurfaces immediately at the send or
- * receive that follows, where the caller is already prepared for it. What
- * was discarded is counted in katherine_udp_t::stray_command_responses.
- *
- * \param udp Session to flush.
- */
-static inline void
-katherine_cmd_drain(katherine_udp_t *udp)
-{
-    // One byte of headroom, so that an oversized datagram is observed as
-    // oversized rather than silently truncated to a plausible length.
-    char crd[KATHERINE_CMD_CRD_SIZE + 1];
-
-    for (uint32_t discarded = 0; discarded < KATHERINE_CMD_MAX_DRAIN; ++discarded) {
-        size_t received = sizeof(crd);
-
-        if (katherine_udp_recv_nowait(udp, crd, &received) != 0) return;
-
-        ++udp->stray_command_responses;
-    }
-}
-
-/**
  * Receive the command response belonging to one request, keeping its contents.
  *
  * Reads response datagrams until one correlates with the given operation
@@ -625,7 +588,7 @@ katherine_cmd_drain(katherine_udp_t *udp)
  * A command the readout never answers is refused outright rather than waited
  * for; see katherine_cmd_is_acknowledged().
  *
- * \param udp Session to receive on.
+ * \param transport Transport to receive on.
  * \param opcode Operation code of the request whose response this is.
  * \param crd Storage for the KATHERINE_CMD_CRD_SIZE response bytes, or NULL
  *   to discard them.
@@ -658,11 +621,11 @@ katherine_cmd_drain(katherine_udp_t *udp)
  *   recvfrom(2) and katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
+katherine_cmd_wait_ack_crd(katherine_transport_t *transport, uint8_t opcode, char *crd)
 {
     // The second identifier this wait accepts. In strict mode there is no
     // second one, so it collapses onto the request's own operation code.
-    const uint8_t substitute = udp->strict_ack ? opcode : katherine_cmd_reply_id(opcode);
+    const uint8_t substitute = katherine_transport_strict_ack(transport) ? opcode : katherine_cmd_reply_id(opcode);
 
     // One byte of headroom, so that an oversized datagram is observed as
     // oversized rather than silently truncated to a plausible length.
@@ -674,7 +637,7 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
         size_t received = sizeof(buf);
         uint8_t reply_id;
 
-        katherine_error_t res = katherine_udp_recv(udp, buf, &received);
+        katherine_error_t res = katherine_transport_recv_crd(transport, buf, &received);
         if (res) return res;
 
         // Consumed either way, so reporting this does not leave the session
@@ -687,7 +650,7 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
             return KATHERINE_E_OK;
         }
 
-        ++udp->stray_command_responses;
+        katherine_transport_count_stray(transport);
     }
 
     return KATHERINE_E_STRAY;
@@ -696,7 +659,7 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
 /**
  * Receive the command response belonging to one request and discard it, for
  * the commands whose acknowledgement carries no payload of interest.
- * \param udp Session to receive on.
+ * \param transport Transport to receive on.
  * \param opcode Operation code of the request whose response this is.
  *
  * \retval KATHERINE_E_OK on success: a response correlating with opcode
@@ -721,9 +684,9 @@ katherine_cmd_wait_ack_crd(katherine_udp_t *udp, uint8_t opcode, char *crd)
  *   describes what separates a malformed response from a stray one.
  */
 static inline katherine_error_t
-katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
+katherine_cmd_wait_ack(katherine_transport_t *transport, uint8_t opcode)
 {
-    return katherine_cmd_wait_ack_crd(udp, opcode, NULL);
+    return katherine_cmd_wait_ack_crd(transport, opcode, NULL);
 }
 
 /**
@@ -738,7 +701,7 @@ katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
  * separately, so the response cannot be correlated against a code the
  * request did not carry.
  *
- * \param udp Session to exchange on.
+ * \param transport Transport to exchange on.
  * \param buffer Command datagram to send.
  * \param count Its length; at least KATHERINE_CMD_CRD_SIZE, since a shorter
  *   datagram carries no operation code.
@@ -767,7 +730,7 @@ katherine_cmd_wait_ack(katherine_udp_t *udp, uint8_t opcode)
  *   see sendto(2), recvfrom(2), and katherine_udp_last_os_error().
  */
 static inline katherine_error_t
-katherine_cmd_transact(katherine_udp_t *udp, const void *buffer, size_t count, char *crd)
+katherine_cmd_transact(katherine_transport_t *transport, const void *buffer, size_t count, char *crd)
 {
     const uint8_t *bytes = (const uint8_t *) buffer;
     uint8_t opcode;
@@ -778,12 +741,12 @@ katherine_cmd_transact(katherine_udp_t *udp, const void *buffer, size_t count, c
     opcode = bytes[KATHERINE_CMD_OPCODE_BYTE];
     if (!katherine_cmd_is_acknowledged(opcode)) return KATHERINE_E_INVAL;
 
-    katherine_cmd_drain(udp);
+    katherine_transport_flush_incoming(transport);
 
-    res = katherine_cmd_send(udp, buffer, count);
+    res = katherine_cmd_send(transport, buffer, count);
     if (res) return res;
 
-    return katherine_cmd_wait_ack_crd(udp, opcode, crd);
+    return katherine_cmd_wait_ack_crd(transport, opcode, crd);
 }
 
 // clang-format off
@@ -911,7 +874,7 @@ typedef enum katherine_acq_unit_reg {
  * Requires the session's lock to be held, and the session to have been
  * drained: a sequence of these is one transaction, not several.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param reg Register to address.
  * \param value Word to store.
  *
@@ -930,12 +893,12 @@ typedef enum katherine_acq_unit_reg {
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
-katherine_cmd_acq_unit_write(katherine_udp_t *udp, katherine_acq_unit_reg_t reg, uint32_t value)
+katherine_cmd_acq_unit_write(katherine_transport_t *transport, katherine_acq_unit_reg_t reg, uint32_t value)
 {
-    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_ACQUISITION_SETUP, (uint8_t) reg, (int64_t) value);
+    katherine_error_t res = katherine_cmd_send64_i64(transport, CMD_TYPE_ACQUISITION_SETUP, (uint8_t) reg, (int64_t) value);
     if (res) return res;
 
-    return katherine_cmd_wait_ack(udp, CMD_TYPE_ACQUISITION_SETUP);
+    return katherine_cmd_wait_ack(transport, CMD_TYPE_ACQUISITION_SETUP);
 }
 
 /**
@@ -949,7 +912,7 @@ katherine_cmd_acq_unit_write(katherine_udp_t *udp, katherine_acq_unit_reg_t reg,
  * Requires the session's lock to be held, and the session to have been
  * drained.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param reg Register to address.
  * \param value Word read.
  *
@@ -968,13 +931,13 @@ katherine_cmd_acq_unit_write(katherine_udp_t *udp, katherine_acq_unit_reg_t reg,
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
-katherine_cmd_acq_unit_read(katherine_udp_t *udp, katherine_acq_unit_reg_t reg, uint32_t *value)
+katherine_cmd_acq_unit_read(katherine_transport_t *transport, katherine_acq_unit_reg_t reg, uint32_t *value)
 {
-    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, (uint8_t) reg, 0);
+    katherine_error_t res = katherine_cmd_send64_i64(transport, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, (uint8_t) reg, 0);
     if (res) return res;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(udp, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, crd);
+    res = katherine_cmd_wait_ack_crd(transport, CMD_TYPE_GET_ACQUISITION_UNIT_DATA, crd);
     if (res) return res;
 
     if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != (uint8_t) reg) return KATHERINE_E_BAD_CRD;
@@ -1023,7 +986,7 @@ typedef enum katherine_pulse_reg {
  * Requires the session's lock to be held, and the session to have been
  * drained.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param reg Register index.
  * \param value Word to store.
  *
@@ -1042,12 +1005,12 @@ typedef enum katherine_pulse_reg {
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
-katherine_cmd_pulse_generator_write(katherine_udp_t *udp, katherine_pulse_reg_t reg, uint32_t value)
+katherine_cmd_pulse_generator_write(katherine_transport_t *transport, katherine_pulse_reg_t reg, uint32_t value)
 {
-    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_INTERNAL_TRIGGER_GENERATOR, reg, (int64_t) value);
+    katherine_error_t res = katherine_cmd_send64_i64(transport, CMD_TYPE_INTERNAL_TRIGGER_GENERATOR, reg, (int64_t) value);
     if (res) return res;
 
-    return katherine_cmd_wait_ack(udp, CMD_TYPE_INTERNAL_TRIGGER_GENERATOR);
+    return katherine_cmd_wait_ack(transport, CMD_TYPE_INTERNAL_TRIGGER_GENERATOR);
 }
 
 /**
@@ -1060,7 +1023,7 @@ katherine_cmd_pulse_generator_write(katherine_udp_t *udp, katherine_pulse_reg_t 
  * Requires the session's lock to be held, and the session to have been
  * drained.
  *
- * \param udp Session to send on.
+ * \param transport Transport to send on.
  * \param reg Register index.
  * \param value Word read.
  *
@@ -1079,13 +1042,13 @@ katherine_cmd_pulse_generator_write(katherine_udp_t *udp, katherine_pulse_reg_t 
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
  */
 static inline katherine_error_t
-katherine_cmd_pulse_generator_read(katherine_udp_t *udp, katherine_pulse_reg_t reg, uint32_t *value)
+katherine_cmd_pulse_generator_read(katherine_transport_t *transport, katherine_pulse_reg_t reg, uint32_t *value)
 {
-    katherine_error_t res = katherine_cmd_send64_i64(udp, CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, reg, 0);
+    katherine_error_t res = katherine_cmd_send64_i64(transport, CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, reg, 0);
     if (res) return res;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(udp, CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, crd);
+    res = katherine_cmd_wait_ack_crd(transport, CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, crd);
     if (res) return res;
 
     if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != reg) return KATHERINE_E_BAD_CRD;

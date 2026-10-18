@@ -966,7 +966,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 
     acq->acq_start_time = time(NULL);
 
-    res = katherine_cmd_start_acquisition(&acq->device->control_socket, readout_mode);
+    res = katherine_cmd_start_acquisition(&acq->device->control_transport, readout_mode);
     if (res) goto err_cmd;
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
@@ -1022,7 +1022,7 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
     res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) return res;
 
-    res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
+    res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
@@ -1097,7 +1097,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) return res;
 
-    res = katherine_cmd_stop_acquisition(&acq->device->control_socket, acq->readout_mode);
+    res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);

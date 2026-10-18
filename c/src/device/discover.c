@@ -184,7 +184,10 @@ katherine_device_discover_udp(const char *addr, uint16_t reply_port, uint32_t ti
     katherine_cmd_t request = katherine_cmd_create(CMD_TYPE_ECHO_CHIP_ID);
     katherine_cmd_payload_set_i64(&request, (int64_t) reply_port);
 
-    res = katherine_cmd_send(&legacy, request.b, sizeof(request.b));
+    // Sent on the session directly: discovery is a UDP broadcast by nature
+    // and opens no transport over either of its two sessions. This is all
+    // katherine_cmd_send() ever did.
+    res = katherine_udp_send_exact(&legacy, request.b, sizeof(request.b));
     if (res) goto err_send;
 
     const uint64_t deadline = katherine_clock_monotonic_ns() + (uint64_t) timeout_ms * 1000000ULL;

@@ -83,6 +83,9 @@
 static katherine_udp_t g_capture;
 static katherine_udp_t g_sender;
 
+// The command layer sends on a transport, so the fixture's session needs one.
+static katherine_transport_t g_sender_link;
+
 static int
 fixture_init(void)
 {
@@ -96,6 +99,7 @@ fixture_init(void)
     katherine_udp_pin_remote(&g_capture);
 
     res = katherine_udp_init_bound(&g_sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_CAPTURE, CAPTURE_TIMEOUT_MS);
+    if (res == 0) res = katherine_transport_init_udp(&g_sender_link, &g_sender);
     if (res != 0) {
         katherine_udp_fini(&g_capture);
         return res;
@@ -107,6 +111,7 @@ fixture_init(void)
 static void
 fixture_fini(void)
 {
+    katherine_transport_fini(&g_sender_link);
     katherine_udp_fini(&g_sender);
     katherine_udp_fini(&g_capture);
 }
@@ -165,20 +170,20 @@ capture(unsigned char got[8])
 static void
 test_primitive_cmd6(void)
 {
-    CHECK_CMD(katherine_cmd_send6(&g_sender, (uint8_t) 0x5A), 0, 0, 0, 0, 0, 0, 0x5A, 0);
+    CHECK_CMD(katherine_cmd_send6(&g_sender_link, (uint8_t) 0x5A), 0, 0, 0, 0, 0, 0, 0x5A, 0);
 }
 
 static void
 test_primitive_cmd60(void)
 {
-    CHECK_CMD(katherine_cmd_send60(&g_sender, (uint8_t) 0x11, (uint8_t) 0x22), 0x22, 0, 0, 0, 0, 0, 0x11, 0);
+    CHECK_CMD(katherine_cmd_send60(&g_sender_link, (uint8_t) 0x11, (uint8_t) 0x22), 0x22, 0, 0, 0, 0, 0, 0x11, 0);
 }
 
 static void
 test_primitive_cmd6_i64(void)
 {
     // value = 0x0A0B0C0D -> little-endian payload 0D 0C 0B 0A.
-    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x0A0B0C0D), 0x0D, 0x0C, 0x0B, 0x0A, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender_link, (uint8_t) 0x2A, (int64_t) 0x0A0B0C0D), 0x0D, 0x0C, 0x0B, 0x0A, 0, 0, 0x2A, 0);
 
     // value = 0xFFFFFFFF: the payload store only ever writes cmd[0..3],
     // so the top of the representable 32-bit range still leaves byte[4]
@@ -186,14 +191,14 @@ test_primitive_cmd6_i64(void)
     // that test_i64_boundary() exercises from the other side, with values
     // whose bits extend past bit 31.
     CHECK_CMD(
-        katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0xFFFFFFFF), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+        katherine_cmd_send6_i64(&g_sender_link, (uint8_t) 0x2A, (int64_t) 0xFFFFFFFF), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
 static void
 test_primitive_cmd64_i64(void)
 {
     // value = 0x0E0F1011 -> little-endian payload 11 10 0F 0E; sub-index 0x09.
-    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x09, (int64_t) 0x0E0F1011), 0x11, 0x10, 0x0F, 0x0E,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) 0x04, (uint8_t) 0x09, (int64_t) 0x0E0F1011), 0x11, 0x10, 0x0F, 0x0E,
         0x09, 0, 0x04, 0);
 
     // value = 0: the payload store only ever writes cmd[0..3], so cmd[4]
@@ -203,17 +208,17 @@ test_primitive_cmd64_i64(void)
     // on when a caller configures a DAC to value 0 -- the sub-index must
     // survive so the datagram still addresses the right DAC instead of
     // silently reading as DAC 0.
-    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) 0x04, (uint8_t) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) 0x04, (uint8_t) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 }
 
 static void
 test_primitive_cmd6_float(void)
 {
     // 5.0f -> IEEE-754 0x40A00000, little-endian bytes 00 00 A0 40.
-    CHECK_CMD(katherine_cmd_send6_f32(&g_sender, (uint8_t) 0x33, 5.0f), 0x00, 0x00, 0xA0, 0x40, 0, 0, 0x33, 0);
+    CHECK_CMD(katherine_cmd_send6_f32(&g_sender_link, (uint8_t) 0x33, 5.0f), 0x00, 0x00, 0xA0, 0x40, 0, 0, 0x33, 0);
 
     // -1.5f -> IEEE-754 0xBFC00000, little-endian bytes 00 00 C0 BF.
-    CHECK_CMD(katherine_cmd_send6_f32(&g_sender, (uint8_t) 0x44, -1.5f), 0x00, 0x00, 0xC0, 0xBF, 0, 0, 0x44, 0);
+    CHECK_CMD(katherine_cmd_send6_f32(&g_sender_link, (uint8_t) 0x44, -1.5f), 0x00, 0x00, 0xC0, 0xBF, 0, 0, 0x44, 0);
 }
 
 // ------------------------------------------------------------------
@@ -222,13 +227,13 @@ test_primitive_cmd6_float(void)
 static void
 test_wrappers_arg0_base(void)
 {
-    CHECK_CMD(katherine_cmd_set_all_pixel_config(&g_sender), 0, 0, 0, 0, 0, 0, 0x12, 0);
-    CHECK_CMD(katherine_cmd_echo_chip_id(&g_sender), 0, 0, 0, 0, 0, 0, 0x0B, 0);
-    CHECK_CMD(katherine_cmd_get_readout_temperature(&g_sender), 0, 0, 0, 0, 0, 0, 0x15, 0);
-    CHECK_CMD(katherine_cmd_get_sensor_temperature(&g_sender), 0, 0, 0, 0, 0, 0, 0x19, 0);
-    CHECK_CMD(katherine_cmd_get_readout_status(&g_sender), 0, 0, 0, 0, 0, 0, 0x17, 0);
-    CHECK_CMD(katherine_cmd_get_comm_status(&g_sender), 0, 0, 0, 0, 0, 0, 0x18, 0);
-    CHECK_CMD(katherine_cmd_digital_test(&g_sender), 0, 0, 0, 0, 0, 0, 0x20, 0);
+    CHECK_CMD(katherine_cmd_set_all_pixel_config(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x12, 0);
+    CHECK_CMD(katherine_cmd_echo_chip_id(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x0B, 0);
+    CHECK_CMD(katherine_cmd_get_readout_temperature(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x15, 0);
+    CHECK_CMD(katherine_cmd_get_sensor_temperature(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x19, 0);
+    CHECK_CMD(katherine_cmd_get_readout_status(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x17, 0);
+    CHECK_CMD(katherine_cmd_get_comm_status(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x18, 0);
+    CHECK_CMD(katherine_cmd_digital_test(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x20, 0);
 }
 
 // ------------------------------------------------------------------
@@ -238,22 +243,22 @@ test_wrappers_arg0_base(void)
 static void
 test_wrappers_hw(void)
 {
-    CHECK_CMD(katherine_cmd_hw_sensor_config_registers_update(&g_sender), 0, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_internal_dac_update(&g_sender), 1, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_internal_dac_back_read(&g_sender), 2, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_timer_read(&g_sender), 3, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_timer_set(&g_sender), 4, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_reset_matrix_sequential(&g_sender), 5, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_stop_matrix_command(&g_sender), 6, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_load_column_test_pulse_register(&g_sender), 7, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_read_column_test_pulse_register(&g_sender), 8, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_load_pixel_register_configuration(&g_sender), 9, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_read_pixel_register_configuration(&g_sender), 0x0A, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_read_pixel_matrix_sequential_setting(&g_sender), 0x0B, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_read_pixel_matrix_data_driven_setting(&g_sender), 0x0C, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_chip_id_read(&g_sender), 0x0D, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_output_block_config_update(&g_sender), 0x0E, 0, 0, 0, 0, 0, 0x07, 0);
-    CHECK_CMD(katherine_cmd_hw_digital_test(&g_sender), 0x0F, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_sensor_config_registers_update(&g_sender_link), 0, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_internal_dac_update(&g_sender_link), 1, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_internal_dac_back_read(&g_sender_link), 2, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_timer_read(&g_sender_link), 3, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_timer_set(&g_sender_link), 4, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_reset_matrix_sequential(&g_sender_link), 5, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_stop_matrix_command(&g_sender_link), 6, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_load_column_test_pulse_register(&g_sender_link), 7, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_read_column_test_pulse_register(&g_sender_link), 8, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_load_pixel_register_configuration(&g_sender_link), 9, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_read_pixel_register_configuration(&g_sender_link), 0x0A, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_read_pixel_matrix_sequential_setting(&g_sender_link), 0x0B, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_read_pixel_matrix_data_driven_setting(&g_sender_link), 0x0C, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_chip_id_read(&g_sender_link), 0x0D, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_output_block_config_update(&g_sender_link), 0x0E, 0, 0, 0, 0, 0, 0x07, 0);
+    CHECK_CMD(katherine_cmd_hw_digital_test(&g_sender_link), 0x0F, 0, 0, 0, 0, 0, 0x07, 0);
 }
 
 // ------------------------------------------------------------------
@@ -264,18 +269,18 @@ static void
 test_wrappers_arg1_i64(void)
 {
     // 0x01020304 -> LE 04 03 02 01.
-    CHECK_CMD(katherine_cmd_set_acqtime_lsb(&g_sender, (int64_t) 0x01020304), 0x04, 0x03, 0x02, 0x01, 0, 0, 0x01, 0);
+    CHECK_CMD(katherine_cmd_set_acqtime_lsb(&g_sender_link, (int64_t) 0x01020304), 0x04, 0x03, 0x02, 0x01, 0, 0, 0x01, 0);
     // 0x05060708 -> LE 08 07 06 05.
-    CHECK_CMD(katherine_cmd_set_acqtime_msb(&g_sender, (int64_t) 0x05060708), 0x08, 0x07, 0x06, 0x05, 0, 0, 0x0A, 0);
+    CHECK_CMD(katherine_cmd_set_acqtime_msb(&g_sender_link, (int64_t) 0x05060708), 0x08, 0x07, 0x06, 0x05, 0, 0, 0x0A, 0);
     // 0x090A0B0C -> LE 0C 0B 0A 09.
     CHECK_CMD(
-        katherine_cmd_set_number_of_frames(&g_sender, (int64_t) 0x090A0B0C), 0x0C, 0x0B, 0x0A, 0x09, 0, 0, 0x13, 0);
+        katherine_cmd_set_number_of_frames(&g_sender_link, (int64_t) 0x090A0B0C), 0x0C, 0x0B, 0x0A, 0x09, 0, 0, 0x13, 0);
     // 0x11121314 -> LE 14 13 12 11.
     CHECK_CMD(
-        katherine_cmd_set_seq_readout_start(&g_sender, (int64_t) 0x11121314), 0x14, 0x13, 0x12, 0x11, 0, 0, 0x05, 0);
-    CHECK_CMD(katherine_cmd_start_acquisition(&g_sender, (uint8_t) 0x2A), 0x2A, 0, 0, 0, 0, 0, 0x03, 0);
-    CHECK_CMD(katherine_cmd_stop_acquisition(&g_sender, (uint8_t) 0x17), 0x17, 0, 0, 0, 0, 0, 0x06, 0);
-    CHECK_CMD(katherine_cmd_get_adc_voltage(&g_sender, (uint8_t) 0x08), 0x08, 0, 0, 0, 0, 0, 0x0D, 0);
+        katherine_cmd_set_seq_readout_start(&g_sender_link, (int64_t) 0x11121314), 0x14, 0x13, 0x12, 0x11, 0, 0, 0x05, 0);
+    CHECK_CMD(katherine_cmd_start_acquisition(&g_sender_link, (uint8_t) 0x2A), 0x2A, 0, 0, 0, 0, 0, 0x03, 0);
+    CHECK_CMD(katherine_cmd_stop_acquisition(&g_sender_link, (uint8_t) 0x17), 0x17, 0, 0, 0, 0, 0, 0x06, 0);
+    CHECK_CMD(katherine_cmd_get_adc_voltage(&g_sender_link, (uint8_t) 0x08), 0x08, 0, 0, 0, 0, 0, 0x0D, 0);
 }
 
 // ------------------------------------------------------------------
@@ -285,7 +290,7 @@ static void
 test_wrappers_set_bias_settings(void)
 {
     // 42.0f -> IEEE-754 0x42280000, LE bytes 00 00 28 42.
-    CHECK_CMD(katherine_cmd_set_bias_settings(&g_sender, 42.0f), 0x00, 0x00, 0x28, 0x42, 0, 0, 0x02, 0);
+    CHECK_CMD(katherine_cmd_set_bias_settings(&g_sender_link, 42.0f), 0x00, 0x00, 0x28, 0x42, 0, 0, 0x02, 0);
 }
 
 // ------------------------------------------------------------------
@@ -299,35 +304,35 @@ static void
 test_wrappers_dac(void)
 {
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_preamp_on(&g_sender, (int64_t) 0x1050), 0x50, 0x10, 0, 0, 0x00, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_preamp_on(&g_sender_link, (int64_t) 0x1050), 0x50, 0x10, 0, 0, 0x00, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_preamp_off(&g_sender, (int64_t) 0x1051), 0x51, 0x10, 0, 0, 0x01, 0, 0x04, 0);
-    CHECK_CMD(katherine_cmd_set_dac_vpreamp_ncas(&g_sender, (int64_t) 0x1052), 0x52, 0x10, 0, 0, 0x02, 0, 0x04, 0);
-    CHECK_CMD(katherine_cmd_set_dac_ibias_ikrum(&g_sender, (int64_t) 0x1053), 0x53, 0x10, 0, 0, 0x03, 0, 0x04, 0);
-    CHECK_CMD(katherine_cmd_set_dac_vfbk(&g_sender, (int64_t) 0x1054), 0x54, 0x10, 0, 0, 0x04, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_preamp_off(&g_sender_link, (int64_t) 0x1051), 0x51, 0x10, 0, 0, 0x01, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_set_dac_vpreamp_ncas(&g_sender_link, (int64_t) 0x1052), 0x52, 0x10, 0, 0, 0x02, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_set_dac_ibias_ikrum(&g_sender_link, (int64_t) 0x1053), 0x53, 0x10, 0, 0, 0x03, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_set_dac_vfbk(&g_sender_link, (int64_t) 0x1054), 0x54, 0x10, 0, 0, 0x04, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_vthreshold_fine(&g_sender, (int64_t) 0x1055), 0x55, 0x10, 0, 0, 0x05, 0, 0x04, 0);
+        katherine_cmd_set_dac_vthreshold_fine(&g_sender_link, (int64_t) 0x1055), 0x55, 0x10, 0, 0, 0x05, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_vthreshold_coarse(&g_sender, (int64_t) 0x1056), 0x56, 0x10, 0, 0, 0x06, 0, 0x04, 0);
+        katherine_cmd_set_dac_vthreshold_coarse(&g_sender_link, (int64_t) 0x1056), 0x56, 0x10, 0, 0, 0x06, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_discs1_on(&g_sender, (int64_t) 0x1057), 0x57, 0x10, 0, 0, 0x07, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_discs1_on(&g_sender_link, (int64_t) 0x1057), 0x57, 0x10, 0, 0, 0x07, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_discs1_off(&g_sender, (int64_t) 0x1058), 0x58, 0x10, 0, 0, 0x08, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_discs1_off(&g_sender_link, (int64_t) 0x1058), 0x58, 0x10, 0, 0, 0x08, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_discs2_on(&g_sender, (int64_t) 0x1059), 0x59, 0x10, 0, 0, 0x09, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_discs2_on(&g_sender_link, (int64_t) 0x1059), 0x59, 0x10, 0, 0, 0x09, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_discs2_off(&g_sender, (int64_t) 0x105A), 0x5A, 0x10, 0, 0, 0x0A, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_discs2_off(&g_sender_link, (int64_t) 0x105A), 0x5A, 0x10, 0, 0, 0x0A, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_pixeldac(&g_sender, (int64_t) 0x105B), 0x5B, 0x10, 0, 0, 0x0B, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_pixeldac(&g_sender_link, (int64_t) 0x105B), 0x5B, 0x10, 0, 0, 0x0B, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_tpbufferin(&g_sender, (int64_t) 0x105C), 0x5C, 0x10, 0, 0, 0x0C, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_tpbufferin(&g_sender_link, (int64_t) 0x105C), 0x5C, 0x10, 0, 0, 0x0C, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_tpbufferout(&g_sender, (int64_t) 0x105D), 0x5D, 0x10, 0, 0, 0x0D, 0, 0x04, 0);
-    CHECK_CMD(katherine_cmd_set_dac_vtp_coarse(&g_sender, (int64_t) 0x105E), 0x5E, 0x10, 0, 0, 0x0E, 0, 0x04, 0);
-    CHECK_CMD(katherine_cmd_set_dac_vtp_fine(&g_sender, (int64_t) 0x105F), 0x5F, 0x10, 0, 0, 0x0F, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_tpbufferout(&g_sender_link, (int64_t) 0x105D), 0x5D, 0x10, 0, 0, 0x0D, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_set_dac_vtp_coarse(&g_sender_link, (int64_t) 0x105E), 0x5E, 0x10, 0, 0, 0x0E, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_set_dac_vtp_fine(&g_sender_link, (int64_t) 0x105F), 0x5F, 0x10, 0, 0, 0x0F, 0, 0x04, 0);
     CHECK_CMD(
-        katherine_cmd_set_dac_ibias_cp_pll(&g_sender, (int64_t) 0x1060), 0x60, 0x10, 0, 0, 0x10, 0, 0x04, 0);
-    CHECK_CMD(katherine_cmd_set_dac_pll_vcntrl(&g_sender, (int64_t) 0x1061), 0x61, 0x10, 0, 0, 0x11, 0, 0x04, 0);
+        katherine_cmd_set_dac_ibias_cp_pll(&g_sender_link, (int64_t) 0x1060), 0x60, 0x10, 0, 0, 0x10, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_set_dac_pll_vcntrl(&g_sender_link, (int64_t) 0x1061), 0x61, 0x10, 0, 0, 0x11, 0, 0x04, 0);
 }
 
 // ------------------------------------------------------------------
@@ -341,32 +346,32 @@ test_i64_boundary(void)
     // bits are zero encodes as an all-zero payload regardless of any bits
     // set above bit 31. byte[4] is not part of the payload store and
     // stays at its zero-initialized value; opcode untouched at byte[6].
-    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender_link, (uint8_t) 0x2A, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
     // katherine_cmd_send64_i64 with value = 2^32, taken via the set_dac_vfbk
     // path (sub-index 4, the real DAC index for VFBK): byte[4] keeps the
     // sub-index katherine_cmd_send64_i64 had already written before calling
     // into the payload store, since the store never reaches past
     // byte[3]. The datagram still addresses VFBK, not some other DAC.
-    CHECK_CMD(katherine_cmd_set_dac_vfbk(&g_sender, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
+    CHECK_CMD(katherine_cmd_set_dac_vfbk(&g_sender_link, (int64_t) 0x100000000LL), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 
     // katherine_cmd_send6_i64 with value = 2^40: same boundary as 2^32, one
     // nibble further up -- still only the low 32 bits reach the wire, so
     // byte[4] and byte[5] both stay zero and the opcode is untouched.
-    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender_link, (uint8_t) 0x2A, (int64_t) 0x10000000000LL), 0, 0, 0, 0, 0, 0, 0x2A, 0);
 
     // katherine_cmd_send6_i64 with value = INT64_MAX (0x7FFFFFFFFFFFFFFF): the
     // low 32 bits are all set, so the payload is 0xFFFFFFFF; the opcode
     // at byte[6] is untouched since the store never reaches past
     // byte[3].
-    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender_link, (uint8_t) 0x2A, (int64_t) INT64_MAX), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 
     // katherine_cmd_send6_i64 with value = -1: the store reinterprets the
     // value's low 32 bits as their two's complement bit pattern, so -1
     // encodes identically to 0xFFFFFFFF instead of being silently dropped
     // -- the wire field is a fixed-width word, not a signed quantity the
     // encoder can decline to represent.
-    CHECK_CMD(katherine_cmd_send6_i64(&g_sender, (uint8_t) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
+    CHECK_CMD(katherine_cmd_send6_i64(&g_sender_link, (uint8_t) 0x2A, (int64_t) -1), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0x2A, 0);
 }
 
 // ------------------------------------------------------------------
@@ -395,7 +400,7 @@ test_general_config_word(void)
     // not: zero meant "not holes", the Polarity bit came out high, and this
     // vector read 0x59. If it ever reads 0x59 again, the safe default has
     // been lost.
-    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
         0x58, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
@@ -439,7 +444,7 @@ test_general_config_word(void)
         config.polarity                  = general_config_cases[i].polarity;
         config.test_pulse_config.enabled = general_config_cases[i].test_pulses;
 
-        CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+        CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                       (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
             general_config_cases[i].word, 0, 0, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, 0,
             CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
@@ -491,14 +496,14 @@ test_pll_config_word(void)
     // All-zero config: KATHERINE_TPX3_FREQ_20_MHZ and KATHERINE_TPX3_PHASE_1
     // are both encoded as 0, leaving only the pinned bits and the output
     // selector -- 0x280E.
-    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
         0x0E, 0x28, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     // The vendor's word, and the one case that matters most.
     config.freq  = KATHERINE_TPX3_FREQ_40_MHZ;
     config.phase = KATHERINE_TPX3_PHASE_16;
-    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
         0x1E, 0x29, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
@@ -507,13 +512,13 @@ test_pll_config_word(void)
     // KATHERINE_TPX3_PHASE_1 empties the number.
     config.freq  = KATHERINE_TPX3_FREQ_160_MHZ;
     config.phase = KATHERINE_TPX3_PHASE_1;
-    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
         0x3E, 0x28, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     config.freq  = KATHERINE_TPX3_FREQ_20_MHZ;
     config.phase = KATHERINE_TPX3_PHASE_16;
-    CHECK_CMD(katherine_cmd_send64_i64(&g_sender, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
+    CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
         0x0E, 0x29, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 }

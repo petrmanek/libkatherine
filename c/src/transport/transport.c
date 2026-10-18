@@ -45,19 +45,22 @@ katherine_transport_send_cmd(katherine_transport_t *transport, const void *data,
 }
 
 /**
- * Receive one command's response (CRD), of exactly \p count bytes.
+ * Receive one command's response (CRD).
  * \param transport Transport to receive on.
  * \param crd Storage for the response.
- * \param count Bytes to receive, which the response must match exactly.
+ * \param len On entry the capacity of \p crd, on return what arrived.
+ *
+ * The capacity is given with room to spare so that a response longer than a
+ * CRD is seen to be longer, rather than truncated to a plausible length.
  *
  * \retval KATHERINE_E_OK on success.
  * \retval ANY The transport's own codes, beyond those listed here; see the
  *   transport this one was opened as.
  */
 katherine_error_t
-katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t count)
+katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t *len)
 {
-    return transport->ops->recv_crd(transport->ctx, crd, count);
+    return transport->ops->recv_crd(transport->ctx, crd, len);
 }
 
 /**
@@ -190,6 +193,33 @@ int
 katherine_transport_last_os_error(const katherine_transport_t *transport)
 {
     return transport->ops->last_os_error(transport->ctx);
+}
+
+/**
+ * True if this link requires a response to repeat its request's operation
+ * code exactly, rather than accepting the reply identifier derived from it.
+ * \param transport Transport to ask.
+ *
+ * \return The setting, which is false where the link has no such notion.
+ */
+bool
+katherine_transport_strict_ack(const katherine_transport_t *transport)
+{
+    return transport->ops->strict_ack(transport->ctx);
+}
+
+/**
+ * Record one response that belonged to no request in flight.
+ *
+ * Counted rather than reported, because a shared network delivers these for
+ * reasons that are nobody's fault. A link that cannot deliver them at all
+ * does nothing here.
+ * \param transport Transport that saw it.
+ */
+void
+katherine_transport_count_stray(katherine_transport_t *transport)
+{
+    transport->ops->count_stray(transport->ctx);
 }
 
 /**

@@ -60,13 +60,13 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     // cannot be read as this one's. Correlation catches a response
     // identified as some other command's; only the flush catches a stale
     // response of the *same* command, which would correlate perfectly.
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_get_readout_status(&device->control_socket);
+    res = katherine_cmd_get_readout_status(&device->control_transport);
     if (res) goto err;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_READOUT_STATUS, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_READOUT_STATUS, crd);
     if (res) goto err;
 
     const uint64_t *status_crd = (const uint64_t *) &crd;
@@ -118,13 +118,13 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_get_comm_status(&device->control_socket);
+    res = katherine_cmd_get_comm_status(&device->control_transport);
     if (res) goto err;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_COMMUNICATION_STATUS, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_COMMUNICATION_STATUS, crd);
     if (res) goto err;
 
     const uint64_t *status_crd = (const uint64_t *) &crd;
@@ -207,13 +207,13 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_echo_chip_id(&device->control_socket);
+    res = katherine_cmd_echo_chip_id(&device->control_transport);
     if (res) goto err;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_ECHO_CHIP_ID, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_ECHO_CHIP_ID, crd);
     if (res) goto err;
 
     uint32_t chip_id;
@@ -286,13 +286,13 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_get_readout_temperature(&device->control_socket);
+    res = katherine_cmd_get_readout_temperature(&device->control_transport);
     if (res) goto err;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_HW_READOUT_TEMPERATURE, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_HW_READOUT_TEMPERATURE, crd);
     if (res) goto err;
 
     memcpy(temperature, crd, sizeof(*temperature));
@@ -363,13 +363,13 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_get_sensor_temperature(&device->control_socket);
+    res = katherine_cmd_get_sensor_temperature(&device->control_transport);
     if (res) goto err;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_SENSOR_TEMPERATURE, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_SENSOR_TEMPERATURE, crd);
     if (res) goto err;
 
     memcpy(temperature, crd, sizeof(*temperature));
@@ -428,9 +428,9 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_digital_test(&device->control_socket);
+    res = katherine_cmd_digital_test(&device->control_transport);
     if (res) goto err;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
@@ -438,7 +438,7 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device)
 
     do {
         // This can take a while, spin for a limited amount of attempts.
-        res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_DIGITAL_TEST, crd);
+        res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_DIGITAL_TEST, crd);
         --attempts;
     } while (res && attempts);
 
@@ -496,13 +496,13 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_get_adc_voltage(&device->control_socket, channel_id);
+    res = katherine_cmd_get_adc_voltage(&device->control_transport, channel_id);
     if (res) goto err;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_ADC_VOLTAGE, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_ADC_VOLTAGE, crd);
     if (res) goto err;
 
     memcpy(voltage, crd, sizeof(*voltage));
@@ -560,15 +560,15 @@ katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     // Both bytes carry the index: the manual specifies byte 4, the Gen2
     // firmware reads byte 0, and the reference implementation sets both.
-    res = katherine_cmd_send64_i64(&device->control_socket, CMD_TYPE_GET_BIAS_VOLTAGE, bias_id, bias_id);
+    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_GET_BIAS_VOLTAGE, bias_id, bias_id);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_BIAS_VOLTAGE, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_BIAS_VOLTAGE, crd);
     if (res) goto err_recv;
 
     if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
@@ -641,13 +641,13 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *c
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send64_i64(&device->control_socket, CMD_TYPE_GET_BIAS_CURRENT, bias_id, bias_id);
+    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_GET_BIAS_CURRENT, bias_id, bias_id);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_BIAS_CURRENT, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_BIAS_CURRENT, crd);
     if (res) goto err_recv;
 
     // Both from the reference implementation alone: no datasheet, manual or
@@ -745,13 +745,13 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send601(&device->control_socket, CMD_TYPE_INTERNAL_DAC_SCAN, monitor_index, chip_index);
+    res = katherine_cmd_send601(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SCAN, monitor_index, chip_index);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_INTERNAL_DAC_SCAN, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SCAN, crd);
     if (res) goto err_recv;
 
     if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
@@ -834,14 +834,14 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send60(&device->control_socket, CMD_TYPE_GET_ALL_DAC_SCAN, chip_index);
+    res = katherine_cmd_send60(&device->control_transport, CMD_TYPE_GET_ALL_DAC_SCAN, chip_index);
     if (res) goto err_send;
 
     for (size_t i = 0; i < KATHERINE_TPX3_DAC_MONITOR_COUNT; ++i) {
         char crd[KATHERINE_CMD_CRD_SIZE];
-        res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_GET_ALL_DAC_SCAN, crd);
+        res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_ALL_DAC_SCAN, crd);
         if (res) goto err_recv;
 
         if (voltages != NULL) memcpy(&voltages->array[i], crd, sizeof(voltages->array[i]));

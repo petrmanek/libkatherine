@@ -191,25 +191,25 @@ katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_pulse_generator_write(&device->control_socket, KATHERINE_PULSE_REG_SETUP, setup);
+    res = katherine_cmd_pulse_generator_write(&device->control_transport, KATHERINE_PULSE_REG_SETUP, setup);
     if (res) goto err_setup;
 
     for (uint8_t i = 0; i < have; ++i) {
         const katherine_pulse_reg_t reg = (katherine_pulse_reg_t) (KATHERINE_PULSE_REG_LENGTH_0 + 2 * i);
 
-        res = katherine_cmd_pulse_generator_write(&device->control_socket, reg, ticks[i][0]);
+        res = katherine_cmd_pulse_generator_write(&device->control_transport, reg, ticks[i][0]);
         if (res) goto err_length;
 
-        res = katherine_cmd_pulse_generator_write(&device->control_socket, (katherine_pulse_reg_t) (reg + 1), ticks[i][1]);
+        res = katherine_cmd_pulse_generator_write(&device->control_transport, (katherine_pulse_reg_t) (reg + 1), ticks[i][1]);
         if (res) goto err_delay;
     }
 
-    res = katherine_cmd_pulse_generator_write(&device->control_socket, KATHERINE_PULSE_REG_OSC_DIVISOR, divisor);
+    res = katherine_cmd_pulse_generator_write(&device->control_transport, KATHERINE_PULSE_REG_OSC_DIVISOR, divisor);
     if (res) goto err_divisor;
 
-    res = katherine_cmd_pulse_generator_write(&device->control_socket, KATHERINE_PULSE_REG_ENABLE, enable);
+    res = katherine_cmd_pulse_generator_write(&device->control_transport, KATHERINE_PULSE_REG_ENABLE, enable);
     if (res) goto err_enable;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -289,10 +289,10 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     for (uint8_t i = 0; i < sizeof(REGS) / sizeof(REGS[0]); ++i) {
-        res = katherine_cmd_pulse_generator_read(&device->control_socket, REGS[i], &raw[i]);
+        res = katherine_cmd_pulse_generator_read(&device->control_transport, REGS[i], &raw[i]);
         if (res) goto err_read;
     }
 
@@ -356,9 +356,9 @@ katherine_reset_pulse_generator_counts(katherine_device_t *device)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_pulse_generator_write(&device->control_socket, KATHERINE_PULSE_REG_EDGE_COUNT, 0);
+    res = katherine_cmd_pulse_generator_write(&device->control_transport, KATHERINE_PULSE_REG_EDGE_COUNT, 0);
     if (res) goto err_write;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);

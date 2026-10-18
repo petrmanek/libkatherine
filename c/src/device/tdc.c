@@ -142,12 +142,12 @@ katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send6_i64(&device->control_socket, CMD_TYPE_INTERNAL_TDC_SETTINGS, (int64_t) word);
+    res = katherine_cmd_send6_i64(&device->control_transport, CMD_TYPE_INTERNAL_TDC_SETTINGS, (int64_t) word);
     if (res) goto err_send;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_INTERNAL_TDC_SETTINGS);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_INTERNAL_TDC_SETTINGS);
     if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -215,16 +215,16 @@ katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_M
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send6(&device->control_socket, CMD_TYPE_INTERNAL_TDC_READ_COUNTS);
+    res = katherine_cmd_send6(&device->control_transport, CMD_TYPE_INTERNAL_TDC_READ_COUNTS);
     if (res) goto err_send;
 
     // The sequence is read whole whatever the caller wants kept: answers left
     // on the link would be handed to whichever command came next.
     for (uint8_t i = 0; i < device->derived_info.tdc_channel_count; ++i) {
         char crd[KATHERINE_CMD_CRD_SIZE];
-        res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_INTERNAL_TDC_READ_COUNTS, crd);
+        res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_INTERNAL_TDC_READ_COUNTS, crd);
         if (res) goto err_recv;
 
         if (counts == NULL) continue;

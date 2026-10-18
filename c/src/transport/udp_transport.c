@@ -53,11 +53,48 @@ udp_t_send_cmd(void *ctx, const void *data, size_t count)
 }
 
 static katherine_error_t
-udp_t_recv_crd(void *ctx, void *crd, size_t count)
+udp_t_recv_crd(void *ctx, void *crd, size_t *len)
 {
     struct udp_transport *t = ctx;
 
-    return katherine_udp_recv_exact(t->udp, crd, count);
+    return katherine_udp_recv(t->udp, crd, len);
+}
+
+/**
+ * Discard whatever a previous exchange left queued on a command session.
+ *
+ * The readout answers some commands more than once and the network may
+ * deliver a response the client had already given up on, so a session can
+ * hold datagrams belonging to no request in flight. Correlation recognizes
+ * those and steps over them, but a leftover response of the *same* command
+ * would correlate perfectly and be read as the answer to a later repetition
+ * of it, which is how a session ends up one command out of step for good.
+ * Flushing before a command closes that gap, and keeps the stray budget of
+ * the wait that follows for genuine surprises.
+ *
+ * Never blocks: it stops at the first receive that finds nothing queued,
+ * which is the ordinary case and must cost nothing, since every command of
+ * the library pays for it. Best-effort by design and therefore returning
+ * nothing -- a transport failure here resurfaces immediately at the send or
+ * receive that follows, where the caller is already prepared for it. What
+ * was discarded is counted in katherine_udp_t::stray_command_responses.
+ *
+ * \param udp Session to flush.
+ */
+static void
+udp_drain(katherine_udp_t *udp)
+{
+    // One byte of headroom, so that an oversized datagram is observed as
+    // oversized rather than silently truncated to a plausible length.
+    char crd[KATHERINE_CMD_CRD_SIZE + 1];
+
+    for (uint32_t discarded = 0; discarded < KATHERINE_CMD_MAX_DRAIN; ++discarded) {
+        size_t received = sizeof(crd);
+
+        if (katherine_udp_recv_nowait(udp, crd, &received) != 0) return;
+
+        ++udp->stray_command_responses;
+    }
 }
 
 static katherine_error_t
@@ -65,10 +102,7 @@ udp_t_flush_incoming(void *ctx)
 {
     struct udp_transport *t = ctx;
 
-    // The library's own drain, rather than a second loop beside it: it is
-    // bounded the same way, and it counts what it discarded where
-    // katherine_udp_set_strict_ack() expects to find it.
-    katherine_cmd_drain(t->udp);
+    udp_drain(t->udp);
 
     return KATHERINE_E_OK;
 }
@@ -141,6 +175,24 @@ udp_t_mutex_unlock(void *ctx)
     return katherine_udp_mutex_unlock(t->udp);
 }
 
+// Both read straight off the session, which is where they are set from and
+// where the C++ and Python bindings still report them.
+static bool
+udp_t_strict_ack(void *ctx)
+{
+    struct udp_transport *t = ctx;
+
+    return t->udp->strict_ack;
+}
+
+static void
+udp_t_count_stray(void *ctx)
+{
+    struct udp_transport *t = ctx;
+
+    ++t->udp->stray_command_responses;
+}
+
 static int
 udp_t_last_os_error(void *ctx)
 {
@@ -206,6 +258,8 @@ static const katherine_transport_ops_t udp_ops = {
     .mutex_lock       = udp_t_mutex_lock,
     .mutex_unlock     = udp_t_mutex_unlock,
     .last_os_error    = udp_t_last_os_error,
+    .strict_ack       = udp_t_strict_ack,
+    .count_stray      = udp_t_count_stray,
     .fini             = udp_t_fini,
 };
 

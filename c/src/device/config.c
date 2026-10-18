@@ -152,7 +152,7 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
     // Transmit the contents of the buffer three times (assuming lossy UDP).
     for (int i = 0; i < 3 * 64; ++i) {
         // NOTE: ignoring error code below
-        (void) katherine_cmd_send(&device->control_socket, words, 1024);
+        (void) katherine_cmd_send(&device->control_transport, words, 1024);
 
         if (i % 16 == 15) {
             // Same pacing as the upload itself: the flood must not outrun the readout either.
@@ -175,12 +175,12 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
     int res = 0;
     for (int attempts = max_drain; attempts > 0 && !res; --attempts) {
         recv_size = 1024;
-        res       = katherine_udp_recv(&device->control_socket, words, &recv_size);
+        res       = katherine_transport_recv_crd(&device->control_transport, words, &recv_size);
 
-        // Counted in the same tally as everything katherine_cmd_drain()
+        // Counted in the same tally as everything the transport's own flush
         // discards: what is thrown away here is a response belonging to no
         // request in flight, which is exactly what that counter reports.
-        if (!res) ++device->control_socket.stray_command_responses;
+        if (!res) katherine_transport_count_stray(&device->control_transport);
     }
 
     free(words);
@@ -234,7 +234,7 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
     // out an acknowledgement still in flight -- and it has to be, because a
     // stale acknowledgement of *this* command correlates with a retry of it
     // perfectly.
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     // The following section sometimes cause issues, repeat it several times if need be.
     static const int max_attempts = 10;
@@ -252,13 +252,13 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
         --attempts;
 
         // Send command.
-        res = katherine_cmd_set_all_pixel_config(&device->control_socket);
+        res = katherine_cmd_set_all_pixel_config(&device->control_transport);
         if (res) continue;
 
         // Send pixel configuration data.
         const char *config = (const char *) px_config->words;
         for (int i = 0; i < 64; ++i) {
-            res = katherine_cmd_send(&device->control_socket, config + 1024 * i, 1024);
+            res = katherine_cmd_send(&device->control_transport, config + 1024 * i, 1024);
             if (res) break;
 
             if (i % 16 == 15) {
@@ -277,7 +277,7 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
             int ack_attempts = max_ack_attempts;
             do {
                 --ack_attempts;
-                res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_SET_ALL_PIXEL_CONFIG);
+                res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_SET_ALL_PIXEL_CONFIG);
             } while (res == KATHERINE_E_TIMEOUT && ack_attempts > 0);
         }
 
@@ -303,17 +303,17 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
     // dispatch opcode, not under its sub-command number: the readout echoes
     // the operation code of the request it answers, and the sub-command
     // travels in the payload.
-    res = katherine_cmd_hw_reset_matrix_sequential(&device->control_socket);
+    res = katherine_cmd_hw_reset_matrix_sequential(&device->control_transport);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     // Execute HW command 9.
-    res = katherine_cmd_hw_load_pixel_register_configuration(&device->control_socket);
+    res = katherine_cmd_hw_load_pixel_register_configuration(&device->control_transport);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -360,24 +360,24 @@ katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     int64_t acqt = (int64_t) (ns / 10.);
     int64_t lsb  = (acqt & 0x00000000FFFFFFFF);
     int64_t msb  = (acqt & 0xFFFFFFFF00000000) >> 32;
 
     // Set LSB.
-    res = katherine_cmd_set_acqtime_lsb(&device->control_socket, lsb);
+    res = katherine_cmd_set_acqtime_lsb(&device->control_transport, lsb);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
     if (res) goto err;
 
     // Set MSB.
-    res = katherine_cmd_set_acqtime_msb(&device->control_socket, msb);
+    res = katherine_cmd_set_acqtime_msb(&device->control_transport, msb);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -426,12 +426,12 @@ katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_acqtime_seconds(&device->control_socket, (float) (ns / 1e9));
+    res = katherine_cmd_set_acqtime_seconds(&device->control_transport, (float) (ns / 1e9));
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -555,12 +555,12 @@ katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_token_count(&device->control_socket, token_count);
+    res = katherine_cmd_set_token_count(&device->control_transport, token_count);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_NUMBER_OF_TOKENS_SETTING);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_NUMBER_OF_TOKENS_SETTING);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -615,7 +615,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     cmd[0] |= px_mode;
     cmd[1] |= fast_vco_enabled;
 
-    res = katherine_cmd_transact(&device->control_socket, cmd, sizeof(cmd), NULL);
+    res = katherine_cmd_transact(&device->control_transport, cmd, sizeof(cmd), NULL);
     if (res) goto err;
 
     // The merge above only touches the readout's image; the sensor needs the
@@ -623,10 +623,10 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     // state katherine_configure() last pushed -- Op_mode 0 with the fast
     // oscillator on -- so every acquisition silently yielded ToA+ToT data
     // regardless of the mode asked for.
-    res = katherine_cmd_hw_sensor_config_registers_update(&device->control_socket);
+    res = katherine_cmd_hw_sensor_config_registers_update(&device->control_transport);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -678,12 +678,12 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
 
     // TODO use bias_id
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_bias_settings(&device->control_socket, bias_value);
+    res = katherine_cmd_set_bias_settings(&device->control_transport, bias_value);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_BIAS_SETTINGS);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_BIAS_SETTINGS);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -727,12 +727,12 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_number_of_frames(&device->control_socket, no_frames);
+    res = katherine_cmd_set_number_of_frames(&device->control_transport, no_frames);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_NUMBER_OF_FRAMES);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_NUMBER_OF_FRAMES);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -777,7 +777,7 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    res = katherine_cmd_set_seq_readout_start(&device->control_socket, arg);
+    res = katherine_cmd_set_seq_readout_start(&device->control_transport, arg);
     if (res) goto err;
 
     // Note: this command does _not_ produce an acknowledgement.
@@ -862,9 +862,9 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_TRIGGER_SETUP, word);
+    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_TRIGGER_SETUP, word);
     if (res) goto err_write;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -953,9 +953,9 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
     // Sent and awaited by hand rather than through katherine_cmd_transact(),
     // whose single wait this command outlives: the retrying wait below has to
     // reissue the receive, never the command.
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send(&device->control_socket, cmd, sizeof(cmd));
+    res = katherine_cmd_send(&device->control_transport, cmd, sizeof(cmd));
     if (res) goto err;
 
     // The readout applies this command before acknowledging it, and its
@@ -967,7 +967,7 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
     int attempts                  = max_attempts;
     do {
         --attempts;
-        res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_TEST_PULSE_SETTING);
+        res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_TEST_PULSE_SETTING);
     } while (res == KATHERINE_E_TIMEOUT && attempts > 0);
     if (res) goto err;
 
@@ -1022,13 +1022,13 @@ katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_send64_i64(
-        &device->control_socket, CMD_TYPE_SENSOR_REGISTER_SETTING, (uint8_t) reg_idx, reg_value);
+        &device->control_transport, CMD_TYPE_SENSOR_REGISTER_SETTING, (uint8_t) reg_idx, reg_value);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_SENSOR_REGISTER_SETTING);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_SENSOR_REGISTER_SETTING);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -1079,12 +1079,12 @@ katherine_tpx3_update_sensor_registers(katherine_device_t *device)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_hw_sensor_config_registers_update(&device->control_socket);
+    res = katherine_cmd_hw_sensor_config_registers_update(&device->control_transport);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -1126,12 +1126,12 @@ katherine_tpx3_output_block_config_update(katherine_device_t *device)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_hw_output_block_config_update(&device->control_socket);
+    res = katherine_cmd_hw_output_block_config_update(&device->control_transport);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -1173,12 +1173,12 @@ katherine_tpx3_timer_set(katherine_device_t *device)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_hw_timer_set(&device->control_socket);
+    res = katherine_cmd_hw_timer_set(&device->control_transport);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -1237,21 +1237,21 @@ katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t 
     // Nineteen exchanges under one lock, flushed once: each of them
     // correlates its own response, so a flush before every send would only
     // repeat work the correlation already does.
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
         res = katherine_cmd_send64_i64(
-            &device->control_socket, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i]);
+            &device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i]);
         if (res) goto err;
 
-        res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_INTERNAL_DAC_SETTINGS);
+        res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS);
         if (res) goto err;
     }
 
-    res = katherine_cmd_hw_internal_dac_update(&device->control_socket);
+    res = katherine_cmd_hw_internal_dac_update(&device->control_transport);
     if (res) goto err;
 
-    res = katherine_cmd_wait_ack(&device->control_socket, CMD_TYPE_HW_COMMAND_START);
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -1568,15 +1568,15 @@ katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, d
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     // The second generation's trigger word carries a flag that arms the stop
     // delay. Nothing in this library's trigger parameters sets it, so the
     // register is written and waits for one.
-    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY, start_ticks);
+    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY, start_ticks);
     if (res) goto err_start;
 
-    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY, stop_ticks);
+    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY, stop_ticks);
     if (res) goto err_stop;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -1651,13 +1651,13 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send60(&device->control_socket, CMD_TYPE_VERIFY_CHIP_CONFIG, chip_index);
+    res = katherine_cmd_send60(&device->control_transport, CMD_TYPE_VERIFY_CHIP_CONFIG, chip_index);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
-    res = katherine_cmd_wait_ack_crd(&device->control_socket, CMD_TYPE_VERIFY_CHIP_CONFIG, crd);
+    res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_VERIFY_CHIP_CONFIG, crd);
     if (res) goto err_recv;
 
     if (check != NULL) {

@@ -169,7 +169,7 @@ katherine_device_select_interface(katherine_device_t *device, katherine_interfac
     if (res) goto err_lock;
 
     // Unacknowledged, so nothing waits for a reply.
-    res = katherine_cmd_send60(&device->control_socket, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[iface]);
+    res = katherine_cmd_send60(&device->control_transport, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[iface]);
     if (res) goto err_send;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);

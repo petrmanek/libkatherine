@@ -228,15 +228,15 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_GPIO_DIRECTION_SETUP, low);
+    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_GPIO_DIRECTION_SETUP, low);
     if (res) goto err_direction;
 
-    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_MULTIPLEXER_SETUP, high);
+    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_MULTIPLEXER_SETUP, high);
     if (res) goto err_mux;
 
-    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_GPIO_TERMINATION_EN, terminations);
+    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_GPIO_TERMINATION_EN, terminations);
     if (res) goto err_termination;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -317,9 +317,9 @@ katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_acq_unit_write(&device->control_socket, KATHERINE_ACQ_UNIT_REG_READY_COMPLETE_SETUP, word);
+    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_READY_COMPLETE_SETUP, word);
     if (res) goto err_write;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -386,10 +386,10 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    katherine_cmd_drain(&device->control_socket);
+    katherine_transport_flush_incoming(&device->control_transport);
 
     uint32_t word;
-    res = katherine_cmd_acq_unit_read(&device->control_socket, KATHERINE_ACQ_UNIT_REG_GPIO_DIRECTION_SETUP, &word);
+    res = katherine_cmd_acq_unit_read(&device->control_transport, KATHERINE_ACQ_UNIT_REG_GPIO_DIRECTION_SETUP, &word);
     if (res) goto err_levels;
 
     // Levels in the low byte, one bit per channel; the validity of the tick
@@ -409,10 +409,10 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
 
         state->channel[i].signal = KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC;
 
-        res = katherine_cmd_acq_unit_read(&device->control_socket, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i), &state->channel[i].high_ticks);
+        res = katherine_cmd_acq_unit_read(&device->control_transport, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i), &state->channel[i].high_ticks);
         if (res) goto err_ticks;
 
-        res = katherine_cmd_acq_unit_read(&device->control_socket, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i + 1), &state->channel[i].low_ticks);
+        res = katherine_cmd_acq_unit_read(&device->control_transport, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i + 1), &state->channel[i].low_ticks);
         if (res) goto err_ticks;
     }
 
