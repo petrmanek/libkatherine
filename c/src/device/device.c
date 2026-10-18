@@ -95,10 +95,10 @@ static const katherine_device_row_t KATHERINE_DEVICE_INFO[] = {
  * Recognize what a reported hardware type means.
  *
  * \param hw_type Hardware type as katherine_readout_status_t reports it.
- * \return What that readout is, or a zeroed structure if this version does
- *   not know the type. A zeroed one has supported false, which is what makes
- *   the generation-dependent calls refuse an unrecognized readout on exactly
- *   the same test they use to refuse an un-enumerated one.
+ * \return What that readout is, or a zeroed structure if this version does not
+ *   know the type. A zeroed one has supported false, which is what makes the
+ *   generation-dependent calls refuse an unrecognized readout on exactly the
+ *   same test they use to refuse an un-enumerated one.
  */
 katherine_device_derived_info_t
 katherine_device_derived_info_recognize(uint8_t hw_type)
@@ -127,8 +127,8 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * katherine_device_init() does this at open, so there is normally nothing to
  * call: it is for a caller that suppressed that step.
  *
- * \note The parameter is named `iface` because the Windows COM headers
- *   define `interface` as a macro.
+ * \note The parameter is named `iface` because the Windows COM headers define
+ *   `interface` as a macro.
  *
  * \see katherine_device_init
  * \see KATHERINE_DEVICE_DONT_SELECT_INTERFACE
@@ -137,16 +137,15 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * \param iface Physical interface the readout should serve
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if \p iface is not an interface this library
- *   can select, or if the send or the lock rejected an argument; see
- *   sendto(2), pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if \p iface is not an interface this library can
+ *   select, or if the send or the lock rejected an argument; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked.
- * \retval KATHERINE_E_IO if the send failed at the OS level for a reason
- *   none of the other codes cover; see sendto(2) and
- *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_device_select_interface(katherine_device_t *device, katherine_interface_t iface)
@@ -191,12 +190,13 @@ err_iface:
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_ADDR if the given address is not a valid IPv4 address,
- *   or the control or data socket's fixed local port could not be bound;
- *   see inet_pton(3) and bind(2).
+ *   or the control or data socket's fixed local port could not be bound; see
+ *   inet_pton(3) and bind(2).
  * \retval KATHERINE_E_IO if opening the control or data socket, setting its
- *   options, or telling the readout which interface drives it failed at the
- *   OS level for a reason none of the other codes cover; see socket(2),
- *   setsockopt(2), sendto(2), and katherine_udp_last_os_error().
+ *   options, or telling the readout which interface drives it failed at the OS
+ *   level for a reason none of the other codes cover; see socket(2),
+ *   setsockopt(2) and katherine_udp_last_os_error() for the sockets this call
+ *   opens, and katherine_transport_last_os_error() for the command it sends.
  * \retval KATHERINE_E_INVAL if opening the socket, setting its options, or
  *   initializing its mutex reported an invalid argument; see socket(2),
  *   setsockopt(2), pthread_mutex_init(3), and katherine_udp_last_os_error().
@@ -204,13 +204,14 @@ err_iface:
  *   ran out of memory; see socket(2), pthread_mutex_init(3), and
  *   katherine_udp_last_os_error(). Setting the socket options cannot produce
  *   this, setsockopt(2) documenting no ENOMEM.
- * \retval KATHERINE_E_SYSTEM if the socket's mutex could not be
- *   initialized, for a reason none of the other codes cover; see
- *   pthread_mutex_init(3) and katherine_udp_last_os_error().
- * \retval KATHERINE_E_TIMEOUT if the socket's mutex could not be
- *   initialized for lack of a non-memory system resource, or if telling the
- *   readout which interface drives it would have blocked; see
- *   pthread_mutex_init(3), sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if the socket's mutex could not be initialized,
+ *   for a reason none of the other codes cover; see pthread_mutex_init(3) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if the socket's mutex could not be initialized
+ *   for lack of a non-memory system resource, or if telling the readout which
+ *   interface drives it would have blocked; see pthread_mutex_init(3) and
+ *   katherine_udp_last_os_error() for the mutex, and
+ *   katherine_transport_last_os_error() for the command.
  */
 katherine_error_t
 katherine_device_init(katherine_device_t *device, const char *addr, uint32_t flags)
@@ -390,25 +391,24 @@ err_info_null:
  * \param device Device to enumerate.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the
- *   control session's receive timeout.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
+ *   link's receive timeout.
  * \retval KATHERINE_E_BAD_CRD if the status reply was not exactly the fixed
  *   response size the protocol defines.
- * \retval KATHERINE_E_STRAY if non-correlating datagrams kept arriving
- *   until the discard budget ran out before the status reply did.
+ * \retval KATHERINE_E_STRAY if non-correlating datagrams kept arriving until
+ *   the discard budget ran out before the status reply did.
  * \retval KATHERINE_E_INVAL if sending the status request, receiving its
- *   reply, or taking the control session's lock reported an invalid
- *   argument; see sendto(2), recvfrom(2), pthread_mutex_lock(3), and
- *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_IO if sending the status request or receiving its
- *   reply failed at the OS level for a reason none of the other codes
- *   cover; see sendto(2), recvfrom(2), and katherine_udp_last_os_error().
+ *   reply, or taking the control link's lock reported an invalid argument; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if sending the status request or receiving its reply
+ *   failed at the OS level for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the status request or receiving its
- *   reply ran out of memory; see sendto(2), recvfrom(2), and
- *   katherine_udp_last_os_error(). Taking the session lock cannot produce
- *   this: pthread_mutex_lock(3) does not document ENOMEM.
- * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
- *   taken; see pthread_mutex_lock(3) and katherine_udp_last_os_error().
+ *   reply ran out of memory; see katherine_transport_last_os_error(). Taking
+ *   the control link's lock cannot produce this through the UDP transport:
+ *   pthread_mutex_lock(3) does not document ENOMEM.
+ * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
+ *   see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_device_enumerate(katherine_device_t *device)
