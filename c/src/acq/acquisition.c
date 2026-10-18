@@ -442,7 +442,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     { \
         static const int PIXEL_SIZE = sizeof(katherine_tpx3_px_##SUFFIX##_t); \
 \
-        int lock_res = katherine_udp_mutex_lock(&acq->device->data_socket); \
+        int lock_res = katherine_transport_mutex_lock(&acq->device->data_transport); \
         if (lock_res != 0) return lock_res; \
 \
         time_t last_data_received = time(NULL); \
@@ -517,7 +517,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             flush_buffer(acq); \
         } \
 \
-        (void) katherine_udp_mutex_unlock(&acq->device->data_socket); \
+        (void) katherine_transport_mutex_unlock(&acq->device->data_transport); \
         switch (acq->state) { \
         case KATHERINE_ACQUISITION_STATE_SUCCEEDED: return KATHERINE_E_OK; \
         case KATHERINE_ACQUISITION_STATE_TIMED_OUT: return KATHERINE_E_TIMEOUT; \

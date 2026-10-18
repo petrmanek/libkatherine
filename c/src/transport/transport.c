@@ -146,6 +146,37 @@ katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t siz
 }
 
 /**
+ * Take the lock excluding everything else that drives this transport.
+ *
+ * Held across a request and its response, and across a whole read loop, so
+ * that two callers cannot interleave on one link.
+ * \param transport Transport to lock.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
+ */
+katherine_error_t
+katherine_transport_mutex_lock(katherine_transport_t *transport)
+{
+    return transport->ops->mutex_lock(transport->ctx);
+}
+
+/**
+ * Release the lock taken by katherine_transport_mutex_lock().
+ * \param transport Transport to unlock.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval ANY The transport's own codes, beyond those listed here; see the
+ *   transport this one was opened as.
+ */
+katherine_error_t
+katherine_transport_mutex_unlock(katherine_transport_t *transport)
+{
+    return transport->ops->mutex_unlock(transport->ctx);
+}
+
+/**
  * Release everything held by the transport.
  * \param transport Transport to release.
  */

@@ -122,6 +122,25 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
     return KATHERINE_E_OK;
 }
 
+// Delegated rather than reimplemented: the lock belongs to the session, and
+// anything else still reaching that session directly -- the command layer,
+// until it too goes through a transport -- takes the very same one.
+static katherine_error_t
+udp_t_mutex_lock(void *ctx)
+{
+    struct udp_transport *t = ctx;
+
+    return katherine_udp_mutex_lock(t->udp);
+}
+
+static katherine_error_t
+udp_t_mutex_unlock(void *ctx)
+{
+    struct udp_transport *t = ctx;
+
+    return katherine_udp_mutex_unlock(t->udp);
+}
+
 static katherine_error_t
 udp_t_set_buffer_size(void *ctx, size_t size)
 {
@@ -176,6 +195,8 @@ static const katherine_transport_ops_t udp_ops = {
     .release_data_buf = udp_t_release_data_buf,
     .set_timeout      = udp_t_set_timeout,
     .set_buffer_size  = udp_t_set_buffer_size,
+    .mutex_lock       = udp_t_mutex_lock,
+    .mutex_unlock     = udp_t_mutex_unlock,
     .fini             = udp_t_fini,
 };
 

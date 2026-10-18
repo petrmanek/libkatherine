@@ -209,6 +209,30 @@ test_resizing_while_lent_is_refused(void)
     katherine_udp_fini(&receiver);
 }
 
+/* The lock round-trips through the transport. That it is the session's own
+ * lock rather than one the transport keeps beside it is by construction --
+ * the UDP backend delegates -- and matters because the command layer still
+ * takes that session's lock directly. */
+static void
+test_the_lock_round_trips(void)
+{
+    katherine_udp_t receiver;
+    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(katherine_transport_mutex_lock(&t), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_mutex_unlock(&t), KATHERINE_E_OK);
+
+    /* Taken and released again, so the first release really released it. */
+    KT_CHECK_EQ(katherine_transport_mutex_lock(&t), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_mutex_unlock(&t), KATHERINE_E_OK);
+
+    katherine_transport_fini(&t);
+    katherine_udp_fini(&receiver);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -221,6 +245,7 @@ main(void)
     KT_RUN(test_a_udp_transport_says_so);
     KT_RUN(test_a_transport_resizes_exactly);
     KT_RUN(test_resizing_while_lent_is_refused);
+    KT_RUN(test_the_lock_round_trips);
 
 
     return kt_summary();
