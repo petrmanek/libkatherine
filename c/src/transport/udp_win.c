@@ -327,13 +327,11 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_addr, uint16_t lo
     // A session starts out tracking the sender of the datagram it last
     // received (see katherine_udp_pin_remote()) and tolerating the response
     // identifiers the readout firmware substitutes for its own (see
-    // katherine_udp_set_strict_ack()). Callers hand this function
+    // katherine_transport_set_strict_ack()). Callers hand this function
     // uninitialized storage, so the defaults cannot be left to the
     // allocation.
-    u->remote_pinned           = false;
-    u->strict_ack              = false;
-    u->stray_command_responses = 0;
-    u->last_os_error           = 0;
+    u->remote_pinned = false;
+    u->last_os_error = 0;
 
     // Create communication buffer.
     int wres = WSAStartup(MAKEWORD(2, 2), &u->wsa_data);
@@ -758,35 +756,6 @@ void
 katherine_udp_pin_remote(katherine_udp_t *u)
 {
     u->remote_pinned = true;
-}
-
-/**
- * Require command responses to repeat the operation code of their request exactly.
- *
- * A session correlates every command response it receives with the request in flight, by the
- * response identifier the readout puts in byte 6 of the eight-byte datagram, and discards -- and
- * counts, in katherine_udp_t::stray_command_responses -- whatever belongs to no request of its own.
- *
- * By default the correlation also accepts the identifiers the readout firmware is known to
- * substitute for the request's own operation code: it answers the trigger-generator read-back under
- * the acquisition-unit read-back's identifier, and the all-DAC scan under the single-DAC scan's,
- * many times over. Those are the peer's real behavior, so a session that rejected them would fail
- * against the hardware this library exists to talk to.
- *
- * Strict mode drops those allowances and requires the identifier to be the request's operation code
- * and nothing else. It is meant for a caller who has established on hardware that its readout
- * echoes operation codes faithfully, and wants a mis-correlation reported rather than accepted; it
- * is off until then. Nothing else changes: malformed responses and non-correlating ones are handled
- * the same way in both modes.
- *
- * \param u UDP session
- * \param strict True to require the request's own operation code, false (the default) to accept the
- *   firmware's documented substitutions as well
- */
-void
-katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict)
-{
-    u->strict_ack = strict;
 }
 
 /**

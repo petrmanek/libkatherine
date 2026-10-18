@@ -76,9 +76,6 @@ katherine_udp_set_remote(katherine_udp_t *u, const char *remote_addr, uint16_t r
 KATHERINE_EXPORTED void
 katherine_udp_pin_remote(katherine_udp_t *u);
 
-KATHERINE_EXPORTED void
-katherine_udp_set_strict_ack(katherine_udp_t *u, bool strict);
-
 KATHERINE_EXPORTED katherine_error_t
 katherine_udp_mutex_lock(katherine_udp_t *u);
 

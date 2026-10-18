@@ -315,7 +315,7 @@ test_unacknowledged_commands_never_wait(void)
 static void
 test_correlates_past_stray(void)
 {
-    const uint64_t before = g_client.stray_command_responses;
+    const uint64_t before = g_client_link.stray_command_responses;
     char crd[KATHERINE_CMD_CRD_SIZE];
 
     mock_reply(&g_mock, (uint8_t) CMD_TYPE_GET_HW_READOUT_TEMPERATURE, 0x11111111u);
@@ -324,7 +324,7 @@ test_correlates_past_stray(void)
     KT_CHECK_EQ(katherine_cmd_wait_ack_crd(&g_client_link, (uint8_t) CMD_TYPE_GET_READOUT_STATUS, crd), 0);
     KT_CHECK_EQ((unsigned char) crd[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_GET_READOUT_STATUS);
     KT_CHECK_EQ(load_payload(crd), 0xDEADBEEFu);
-    KT_CHECK_EQ(g_client.stray_command_responses - before, 1);
+    KT_CHECK_EQ(g_client_link.stray_command_responses - before, 1);
 
     expect_quiet(&g_client);
 }
@@ -337,7 +337,7 @@ test_correlates_past_stray(void)
 static void
 test_stray_budget_bounds_the_wait(void)
 {
-    const uint64_t before = g_client.stray_command_responses;
+    const uint64_t before = g_client_link.stray_command_responses;
     const uint32_t extra  = 4;
 
     for (uint32_t i = 0; i < KATHERINE_CMD_MAX_STRAY_DISCARDS + extra; ++i) {
@@ -348,7 +348,7 @@ test_stray_budget_bounds_the_wait(void)
     KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client_link, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), KATHERINE_E_STRAY);
     KT_CHECK(difftime(time(NULL), started) <= BOUNDED_WAIT_S);
 
-    KT_CHECK_EQ(g_client.stray_command_responses - before, KATHERINE_CMD_MAX_STRAY_DISCARDS);
+    KT_CHECK_EQ(g_client_link.stray_command_responses - before, KATHERINE_CMD_MAX_STRAY_DISCARDS);
 
     katherine_transport_flush_incoming(&g_client_link);
     expect_quiet(&g_client);
@@ -383,7 +383,7 @@ test_malformed_response_rejected(void)
 static void
 test_documented_reply_identifiers_accepted(void)
 {
-    uint64_t before = g_client.stray_command_responses;
+    uint64_t before = g_client_link.stray_command_responses;
     char crd[KATHERINE_CMD_CRD_SIZE];
 
     // The trigger-generator read-back, answered under the acquisition-unit
@@ -391,7 +391,7 @@ test_documented_reply_identifiers_accepted(void)
     mock_reply(&g_mock, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, 0xCAFEu);
     KT_CHECK_EQ(katherine_cmd_wait_ack_crd(&g_client_link, (uint8_t) CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, crd), 0);
     KT_CHECK_EQ(load_payload(crd), 0xCAFEu);
-    KT_CHECK_EQ(g_client.stray_command_responses - before, 0);
+    KT_CHECK_EQ(g_client_link.stray_command_responses - before, 0);
 
     // The all-DAC scan, answered twenty-two times under the single-DAC
     // scan's identifier: the first datagram is the answer to the request.
@@ -399,17 +399,17 @@ test_documented_reply_identifiers_accepted(void)
         mock_reply(&g_mock, (uint8_t) CMD_TYPE_INTERNAL_DAC_SCAN, i);
     }
 
-    before = g_client.stray_command_responses;
+    before = g_client_link.stray_command_responses;
     KT_CHECK_EQ(katherine_cmd_wait_ack_crd(&g_client_link, (uint8_t) CMD_TYPE_GET_ALL_DAC_SCAN, crd), 0);
     KT_CHECK_EQ(load_payload(crd), 0);
-    KT_CHECK_EQ(g_client.stray_command_responses - before, 0);
+    KT_CHECK_EQ(g_client_link.stray_command_responses - before, 0);
 
     // The twenty-one left over are what the flush of the next transaction
     // exists for: without it they would be read as its answers, one command
     // out of step, for the rest of the session.
-    before = g_client.stray_command_responses;
+    before = g_client_link.stray_command_responses;
     katherine_transport_flush_incoming(&g_client_link);
-    KT_CHECK_EQ(g_client.stray_command_responses - before, DAC_SCAN_REPLIES - 1);
+    KT_CHECK_EQ(g_client_link.stray_command_responses - before, DAC_SCAN_REPLIES - 1);
     expect_quiet(&g_client);
 }
 
@@ -421,20 +421,20 @@ test_documented_reply_identifiers_accepted(void)
 static void
 test_strict_mode_rejects_documented_reply_identifiers(void)
 {
-    const uint64_t before = g_client.stray_command_responses;
+    const uint64_t before = g_client_link.stray_command_responses;
 
-    katherine_udp_set_strict_ack(&g_client, true);
+    katherine_transport_set_strict_ack(&g_client_link, true);
 
     mock_reply(&g_mock, (uint8_t) CMD_TYPE_GET_ACQUISITION_UNIT_DATA, 0xCAFEu);
     KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client_link, (uint8_t) CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ),
         KATHERINE_E_TIMEOUT);
-    KT_CHECK_EQ(g_client.stray_command_responses - before, 1);
+    KT_CHECK_EQ(g_client_link.stray_command_responses - before, 1);
 
     // A peer that does echo the operation code satisfies strict mode.
     mock_reply(&g_mock, (uint8_t) CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ, 1);
     KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client_link, (uint8_t) CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ), 0);
 
-    katherine_udp_set_strict_ack(&g_client, false);
+    katherine_transport_set_strict_ack(&g_client_link, false);
     expect_quiet(&g_client);
 }
 
@@ -446,7 +446,7 @@ test_strict_mode_rejects_documented_reply_identifiers(void)
 static void
 test_flush_consumes_without_blocking(void)
 {
-    const uint64_t before = g_slow_client.stray_command_responses;
+    const uint64_t before = g_slow_client_link.stray_command_responses;
 
     mock_reply(&g_slow_mock, (uint8_t) CMD_TYPE_GET_HW_READOUT_TEMPERATURE, 1);
     mock_reply(&g_slow_mock, (uint8_t) CMD_TYPE_GET_HW_READOUT_TEMPERATURE, 2);
@@ -462,17 +462,17 @@ test_flush_consumes_without_blocking(void)
         time_t call = time(NULL);
         katherine_transport_flush_incoming(&g_slow_client_link);
         KT_CHECK(difftime(time(NULL), call) <= NONBLOCKING_S);
-        if (g_slow_client.stray_command_responses - before >= 2) break;
+        if (g_slow_client_link.stray_command_responses - before >= 2) break;
         katherine_msleep(FLUSH_ATTEMPT_MS);
     }
     KT_CHECK(difftime(time(NULL), started) <= NONBLOCKING_S * FLUSH_ATTEMPTS);
-    KT_CHECK_EQ(g_slow_client.stray_command_responses - before, 2);
+    KT_CHECK_EQ(g_slow_client_link.stray_command_responses - before, 2);
 
     // Again, on the socket it has just emptied.
     started = time(NULL);
     katherine_transport_flush_incoming(&g_slow_client_link);
     KT_CHECK(difftime(time(NULL), started) <= NONBLOCKING_S);
-    KT_CHECK_EQ(g_slow_client.stray_command_responses - before, 2);
+    KT_CHECK_EQ(g_slow_client_link.stray_command_responses - before, 2);
 }
 
 // i) The whole primitive, against a readout that behaves like the real one:
@@ -507,7 +507,7 @@ mock_readout(void *arg)
 static void
 test_transact_flushes_sends_and_correlates(void)
 {
-    const uint64_t before = g_client.stray_command_responses;
+    const uint64_t before = g_client_link.stray_command_responses;
     char crd[KATHERINE_CMD_CRD_SIZE];
     kthread_t thread;
 
@@ -526,7 +526,7 @@ test_transact_flushes_sends_and_correlates(void)
     KT_CHECK_EQ(load_payload(crd), 0x0BADF00Du);
 
     // One stale response flushed, one stray stepped over.
-    KT_CHECK_EQ(g_client.stray_command_responses - before, 2);
+    KT_CHECK_EQ(g_client_link.stray_command_responses - before, 2);
     expect_quiet(&g_client);
 }
 

@@ -124,25 +124,6 @@ public:
     {
         katherine_udp_pin_remote(&udp_);
     }
-
-    /**
-     * Require command responses to repeat the operation code of their request exactly.
-     * \param strict True to require the request's own operation code, false (the default)
-     *   to accept the readout firmware's documented substitutions as well; see
-     *   katherine_udp_set_strict_ack() for what those are and why they are tolerated
-     */
-    void
-    set_strict_ack(bool strict)
-    {
-        katherine_udp_set_strict_ack(&udp_, strict);
-    }
-
-    /**
-     * Count command responses this session discarded as belonging to no request of its own.
-     * \return The running count since the session was created; see
-     *   katherine_udp_set_strict_ack()
-     */
-    std::uint64_t stray_command_responses() const { return udp_.stray_command_responses; }
 };
 
 /** \} */

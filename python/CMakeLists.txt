@@ -34,6 +34,7 @@ set(PYKATHERINE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/cpx.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cpx_config.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cstatus.pxd"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ctransport.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/ctdc.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/ctoa.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cudp.pxd"

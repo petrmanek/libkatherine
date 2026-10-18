@@ -77,32 +77,34 @@ udp_t_recv_crd(void *ctx, void *crd, size_t *len)
  * the library pays for it. Best-effort by design and therefore returning
  * nothing -- a transport failure here resurfaces immediately at the send or
  * receive that follows, where the caller is already prepared for it. What
- * was discarded is counted in katherine_udp_t::stray_command_responses.
+ * was discarded is reported back, for the transport to add to
+ * katherine_transport_t::stray_command_responses.
  *
  * \param udp Session to flush.
+ * \param discarded Storage for how many datagrams were thrown away.
  */
 static void
-udp_drain(katherine_udp_t *udp)
+udp_drain(katherine_udp_t *udp, uint32_t *discarded)
 {
     // One byte of headroom, so that an oversized datagram is observed as
     // oversized rather than silently truncated to a plausible length.
     char crd[KATHERINE_CMD_CRD_SIZE + 1];
 
-    for (uint32_t discarded = 0; discarded < KATHERINE_CMD_MAX_DRAIN; ++discarded) {
+    for (uint32_t taken = 0; taken < KATHERINE_CMD_MAX_DRAIN; ++taken) {
         size_t received = sizeof(crd);
 
         if (katherine_udp_recv_nowait(udp, crd, &received) != 0) return;
 
-        ++udp->stray_command_responses;
+        ++*discarded;
     }
 }
 
 static katherine_error_t
-udp_t_flush_incoming(void *ctx)
+udp_t_flush_incoming(void *ctx, uint32_t *discarded)
 {
     struct udp_transport *t = ctx;
 
-    udp_drain(t->udp);
+    udp_drain(t->udp, discarded);
 
     return KATHERINE_E_OK;
 }
@@ -175,23 +177,6 @@ udp_t_mutex_unlock(void *ctx)
     return katherine_udp_mutex_unlock(t->udp);
 }
 
-// Both read straight off the session, which is where they are set from and
-// where the C++ and Python bindings still report them.
-static bool
-udp_t_strict_ack(void *ctx)
-{
-    struct udp_transport *t = ctx;
-
-    return t->udp->strict_ack;
-}
-
-static void
-udp_t_count_stray(void *ctx)
-{
-    struct udp_transport *t = ctx;
-
-    ++t->udp->stray_command_responses;
-}
 
 static int
 udp_t_last_os_error(void *ctx)
@@ -258,8 +243,6 @@ static const katherine_transport_ops_t udp_ops = {
     .mutex_lock       = udp_t_mutex_lock,
     .mutex_unlock     = udp_t_mutex_unlock,
     .last_os_error    = udp_t_last_os_error,
-    .strict_ack       = udp_t_strict_ack,
-    .count_stray      = udp_t_count_stray,
     .fini             = udp_t_fini,
 };
 
@@ -302,9 +285,11 @@ katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *
     t->udp      = udp;
     t->capacity = DEFAULT_BUFFER_SIZE;
 
-    transport->ops  = &udp_ops;
-    transport->kind = KATHERINE_TRANSPORT_UDP;
-    transport->ctx  = t;
+    transport->ops                     = &udp_ops;
+    transport->kind                    = KATHERINE_TRANSPORT_UDP;
+    transport->ctx                     = t;
+    transport->strict_ack              = false;
+    transport->stray_command_responses = 0;
 
     return KATHERINE_E_OK;
 

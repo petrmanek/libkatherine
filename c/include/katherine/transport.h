@@ -58,7 +58,7 @@ typedef struct katherine_transport_ops {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
     katherine_error_t (*send_cmd)(void *ctx, const void *data, size_t count);
     katherine_error_t (*recv_crd)(void *ctx, void *crd, size_t *len);
-    katherine_error_t (*flush_incoming)(void *ctx);
+    katherine_error_t (*flush_incoming)(void *ctx, uint32_t *discarded);
     katherine_error_t (*acquire_data_buf)(void *ctx, void **buf, size_t *len);
     katherine_error_t (*release_data_buf)(void *ctx, void *buf);
     katherine_error_t (*set_timeout)(void *ctx, uint32_t timeout_ms);
@@ -66,8 +66,6 @@ typedef struct katherine_transport_ops {
     katherine_error_t (*mutex_lock)(void *ctx);
     katherine_error_t (*mutex_unlock)(void *ctx);
     int (*last_os_error)(void *ctx);
-    bool (*strict_ack)(void *ctx);
-    void (*count_stray)(void *ctx);
     void (*fini)(void *ctx);
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 } katherine_transport_ops_t;
@@ -77,6 +75,20 @@ typedef struct katherine_transport {
     const katherine_transport_ops_t *ops; ///< Low-level operations implementing this transport, essentially a vtable of functions.
     katherine_transport_kind_t kind;      ///< Kind of link behind this transport.
     void *ctx;                            ///< The implementation's own state, passed to every operation.
+
+    /**
+     * True to require a command response to repeat the operation code of its
+     * request exactly, rather than accepting the reply identifier derived
+     * from it. Set through katherine_transport_set_strict_ack().
+     */
+    bool strict_ack;
+
+    /**
+     * Command responses discarded because they belonged to no request in
+     * flight. A shared network delivers these for reasons that are nobody's
+     * fault; a link that cannot deliver them leaves this at zero.
+     */
+    uint64_t stray_command_responses;
 } katherine_transport_t;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -116,11 +128,14 @@ katherine_transport_mutex_unlock(katherine_transport_t *transport);
 KATHERINE_EXPORTED int
 katherine_transport_last_os_error(const katherine_transport_t *transport);
 
-KATHERINE_EXPORTED bool
-katherine_transport_strict_ack(const katherine_transport_t *transport);
-
 KATHERINE_EXPORTED void
-katherine_transport_count_stray(katherine_transport_t *transport);
+katherine_transport_set_strict_ack(katherine_transport_t *transport, bool strict);
+
+KATHERINE_EXPORTED const char *
+katherine_str_transport_kind(katherine_transport_kind_t kind);
+
+KATHERINE_EXPORTED int
+katherine_transport_snprint(char *buf, size_t cap, const katherine_transport_t *v);
 
 KATHERINE_EXPORTED void
 katherine_transport_fini(katherine_transport_t *transport);

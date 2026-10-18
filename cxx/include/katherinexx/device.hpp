@@ -18,6 +18,7 @@
 #include <vector>
 
 #include <katherine/device.h>
+#include <katherine/transport.h>
 #include <katherine/status.h>
 #include <katherine/discover.h>
 
@@ -105,6 +106,29 @@ public:
         return &dev_;
     }
 
+
+    /**
+     * Require command responses to repeat the operation code of their request exactly.
+     * \param strict True to require the request's own operation code, false (the default)
+     *   to accept the readout firmware's documented substitutions as well; see
+     *   katherine_transport_set_strict_ack() for what those are and why they are tolerated
+     */
+    void
+    set_strict_ack(bool strict)
+    {
+        katherine_transport_set_strict_ack(&dev_.control_transport, strict);
+    }
+
+    /**
+     * Count command responses the control link discarded as belonging to no request of its own.
+     * \return The running count since the device was opened; see
+     *   katherine_transport_set_strict_ack()
+     */
+    std::uint64_t
+    stray_command_responses() const
+    {
+        return dev_.control_transport.stray_command_responses;
+    }
     // Always false for now: this asks the readout, not a hardware-type table,
     // because the answer also depends on firmware; wiring up the real query
     // is future work. See katherine_device_can_correct_timestamp_phase().

@@ -9,9 +9,11 @@
 from libc.stdint cimport uint32_t
 from libcpp cimport bool
 
+cimport ctransport
+
 cdef extern from 'katherine/device.h':
     ctypedef struct katherine_device_t:
-        pass
+        ctransport.katherine_transport_t control_transport
 
     int katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
 

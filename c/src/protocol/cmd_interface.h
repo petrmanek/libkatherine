@@ -583,7 +583,7 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
  * identifier in byte 6: the operation code itself always matches, and by
  * default so does the identifier the firmware substitutes for it
  * (katherine_cmd_reply_id()), unless the session is in strict mode
- * (katherine_udp_set_strict_ack()).
+ * (katherine_transport_set_strict_ack()).
  *
  * A command the readout never answers is refused outright rather than waited
  * for; see katherine_cmd_is_acknowledged().
@@ -609,7 +609,7 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
  *   sized responses arrived whose identifier byte matched neither the
  *   operation code nor the substitute -- responses belonging to some other
  *   request -- and the awaited one never did. Each of them is counted in
- *   katherine_udp_t::stray_command_responses.
+ *   katherine_transport_t::stray_command_responses.
  * \retval KATHERINE_E_INVAL if the readout does not answer this operation
  *   code at all, refused before any datagram is waited for, or if the
  *   receive reported an invalid argument; see recvfrom(2) and
@@ -625,7 +625,7 @@ katherine_cmd_wait_ack_crd(katherine_transport_t *transport, uint8_t opcode, cha
 {
     // The second identifier this wait accepts. In strict mode there is no
     // second one, so it collapses onto the request's own operation code.
-    const uint8_t substitute = katherine_transport_strict_ack(transport) ? opcode : katherine_cmd_reply_id(opcode);
+    const uint8_t substitute = transport->strict_ack ? opcode : katherine_cmd_reply_id(opcode);
 
     // One byte of headroom, so that an oversized datagram is observed as
     // oversized rather than silently truncated to a plausible length.
@@ -650,7 +650,7 @@ katherine_cmd_wait_ack_crd(katherine_transport_t *transport, uint8_t opcode, cha
             return KATHERINE_E_OK;
         }
 
-        katherine_transport_count_stray(transport);
+        ++transport->stray_command_responses;
     }
 
     return KATHERINE_E_STRAY;

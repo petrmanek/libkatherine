@@ -23,6 +23,7 @@ from enum import Enum as _Enum, unique as _unique
 import array as _array
 
 cimport cdevice
+cimport ctransport
 cimport cstatus
 cimport cconfig
 cimport cgpio
@@ -430,6 +431,14 @@ cdef class Device:
          if self._c_device is not NULL:
              cdevice.katherine_device_fini(self._c_device)
 
+
+    def set_strict_ack(self, bint strict):
+         ctransport.katherine_transport_set_strict_ack(&self._c_device.control_transport, strict)
+
+    @property
+    def stray_command_responses(self):
+         return self._c_device.control_transport.stray_command_responses
+
          PyMem_Free(self._c_device)
 
     def __repr__(self):
@@ -696,12 +705,6 @@ cdef class Udp:
     def pin_remote(self):
          cudp.katherine_udp_pin_remote(self._c_udp)
 
-    def set_strict_ack(self, bint strict):
-         cudp.katherine_udp_set_strict_ack(self._c_udp, strict)
-
-    @property
-    def stray_command_responses(self):
-         return self._c_udp.stray_command_responses
 
 
 cdef class ReadoutStatus:

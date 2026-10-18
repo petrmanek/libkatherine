@@ -52,7 +52,7 @@ typedef enum katherine_error {
 
     // protocol
     KATHERINE_E_BAD_CRD, ///< A command response datagram had an unexpected shape.
-    KATHERINE_E_STRAY,   ///< Datagrams belonging to no request in flight were rejected until the budget for them ran out; see katherine_udp_set_strict_ack().
+    KATHERINE_E_STRAY,   ///< Datagrams belonging to no request in flight were rejected until the budget for them ran out; see katherine_transport_set_strict_ack().
     KATHERINE_E_PROTO,   ///< The readout violated the wire protocol.
 
     // device

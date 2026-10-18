@@ -331,8 +331,6 @@ test_udp(void)
     KT_CHECK(u.c_udp() != nullptr);
 
     // Callable, and none of these needs a peer.
-    u.set_strict_ack(true);
-    u.set_strict_ack(false);
     u.set_remote("127.0.0.1", 1556);
     u.pin_remote();
 

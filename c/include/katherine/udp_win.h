@@ -41,8 +41,6 @@ typedef struct katherine_udp {
 
     bool remote_pinned; ///< True to keep addr_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
 
-    bool strict_ack;                  ///< True to require a command response to repeat the operation code of its request exactly; set through katherine_udp_set_strict_ack().
-    uint64_t stray_command_responses; ///< Command response datagrams discarded because they belonged to no request in flight; see katherine_udp_set_strict_ack().
 
     int last_os_error; ///< 0 unless the last transport operation failed with an OS-level error code; read through katherine_udp_last_os_error().
 } katherine_udp_t;

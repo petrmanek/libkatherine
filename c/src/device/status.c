@@ -783,7 +783,7 @@ err_unsupported:
  *
  * \note The readout answers under the single-monitor read's identifier rather
  *   than this command's, so a session in strict acknowledgement mode refuses
- *   the answers; see katherine_udp_set_strict_ack().
+ *   the answers; see katherine_transport_set_strict_ack().
  *
  * \param device Katherine device
  * \param chip_index Index of the chip to read

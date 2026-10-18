@@ -180,7 +180,7 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
         // Counted in the same tally as everything the transport's own flush
         // discards: what is thrown away here is a response belonging to no
         // request in flight, which is exactly what that counter reports.
-        if (!res) katherine_transport_count_stray(&device->control_transport);
+        if (!res) ++device->control_transport.stray_command_responses;
     }
 
     free(words);

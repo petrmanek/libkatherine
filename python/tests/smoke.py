@@ -660,15 +660,13 @@ def check_udp(tap, katherine):
     u = katherine.Udp('127.0.0.1', 0, '127.0.0.1', 1555, 50)
 
     tap.check('Udp constructs on loopback with an ephemeral local port', u is not None)
-    tap.check_eq('a fresh session has counted no stray responses', u.stray_command_responses, 0)
     tap.check('Udp has a non-empty repr', len(repr(u)) > 0)
 
-    # Callable, and none of them needs a peer.
-    u.set_strict_ack(True)
-    u.set_strict_ack(False)
+    # Callable, and neither needs a peer. Correlation moved to the transport,
+    # so set_strict_ack and the stray count are the device's now.
     u.set_remote('127.0.0.1', 1556)
     u.pin_remote()
-    tap.check('set_strict_ack, set_remote and pin_remote are callable', True)
+    tap.check('set_remote and pin_remote are callable', True)
 
     # KATHERINE_E_TIMEOUT on an empty socket, and it must arrive as
     # TimeoutError rather than as the RuntimeError catch-all.

@@ -361,24 +361,45 @@ test_comm_status(void)
 #define UDP_TEST_PORT3 43603
 #define UDP_TEST_PORT4 43604
 
-// Pinned and in strict mode, with a nonzero stray count: all three of the
-// correlation fields rendered away from the value a fresh session has, so
-// that a stringifier reading the wrong one shows up here.
+// Pinned, so the one field a fresh session renders differently is rendered
+// away from its default and a stringifier reading the wrong one shows up.
 static void
 test_udp(void)
 {
     katherine_udp_t u;
     KT_REQUIRE(katherine_udp_init_bound(&u, UDP_HOST, UDP_TEST_PORT1, UDP_HOST, UDP_TEST_PORT2, 100) == 0);
     katherine_udp_pin_remote(&u);
-    katherine_udp_set_strict_ack(&u, true);
-    u.stray_command_responses = 3;
 
     char buf[192];
     int n = katherine_udp_snprint(buf, sizeof(buf), &u);
-    CHECK_GOLDEN(n, buf,
-        "udp{local: 127.0.0.1:43601, remote: 127.0.0.1:43602, pinned: true, strict_ack: true, "
-        "stray_command_responses: 3, last_os_error: 0}");
+    CHECK_GOLDEN(n, buf, "udp{local: 127.0.0.1:43601, remote: 127.0.0.1:43602, pinned: true, last_os_error: 0}");
 
+    katherine_udp_fini(&u);
+}
+
+// Strict and with a nonzero stray count: both correlation fields rendered
+// away from what a freshly opened transport carries. They live here rather
+// than on the session because correlation is the protocol's business and
+// not the link's.
+static void
+test_transport(void)
+{
+    katherine_udp_t u;
+    KT_REQUIRE(katherine_udp_init_bound(&u, UDP_HOST, UDP_TEST_PORT1, UDP_HOST, UDP_TEST_PORT2, 100) == 0);
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_udp(&t, &u) == 0);
+    KT_CHECK_EQ(t.strict_ack, false);
+    KT_CHECK_EQ(t.stray_command_responses, 0u);
+
+    katherine_transport_set_strict_ack(&t, true);
+    t.stray_command_responses = 3;
+
+    char buf[128];
+    int n = katherine_transport_snprint(buf, sizeof(buf), &t);
+    CHECK_GOLDEN(n, buf, "transport{kind: udp, strict_ack: true, stray_command_responses: 3}");
+
+    katherine_transport_fini(&t);
     katherine_udp_fini(&u);
 }
 
@@ -400,9 +421,9 @@ test_device(void)
     int n = katherine_device_snprint(buf, sizeof(buf), &dev);
     CHECK_GOLDEN(n, buf,
         "device{control_socket: udp{local: 127.0.0.1:43603, remote: 127.0.0.1:43604, pinned: false, "
-        "strict_ack: false, stray_command_responses: 0, last_os_error: 0}, "
+        "last_os_error: 0}, "
         "data_socket: udp{local: 127.0.0.1:43604, remote: 127.0.0.1:43603, pinned: false, "
-        "strict_ack: false, stray_command_responses: 0, last_os_error: 0}}");
+        "last_os_error: 0}}");
 
     katherine_device_fini(&dev);
 }
@@ -559,6 +580,7 @@ main(void)
     KT_RUN(test_readout_status);
     KT_RUN(test_comm_status);
     KT_RUN(test_udp);
+    KT_RUN(test_transport);
     KT_RUN(test_device);
     KT_RUN(test_str_enums);
     KT_RUN(test_config);

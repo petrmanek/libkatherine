@@ -74,7 +74,16 @@ katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t
 katherine_error_t
 katherine_transport_flush_incoming(katherine_transport_t *transport)
 {
-    return transport->ops->flush_incoming(transport->ctx);
+    uint32_t discarded = 0;
+
+    // Tallied here rather than by the backend, which is handed a context and
+    // never the transport the count lives on. One place counts, so a link
+    // that discards nothing simply reports nothing.
+    const katherine_error_t res = transport->ops->flush_incoming(transport->ctx, &discarded);
+
+    transport->stray_command_responses += discarded;
+
+    return res;
 }
 
 /**
@@ -196,30 +205,36 @@ katherine_transport_last_os_error(const katherine_transport_t *transport)
 }
 
 /**
- * True if this link requires a response to repeat its request's operation
- * code exactly, rather than accepting the reply identifier derived from it.
- * \param transport Transport to ask.
+ * Render a transport kind as the token naming it.
+ * \param kind Kind to render.
  *
- * \return The setting, which is false where the link has no such notion.
+ * \return The token, or "?" for a value this version does not name.
  */
-bool
-katherine_transport_strict_ack(const katherine_transport_t *transport)
+const char *
+katherine_str_transport_kind(katherine_transport_kind_t kind)
 {
-    return transport->ops->strict_ack(transport->ctx);
+    switch (kind) {
+    case KATHERINE_TRANSPORT_UDP: return "udp";
+    case KATHERINE_TRANSPORT_USB: return "usb";
+    default:                      return "?";
+    }
 }
 
 /**
- * Record one response that belonged to no request in flight.
+ * Require a command response to repeat the operation code of its request
+ * exactly.
  *
- * Counted rather than reported, because a shared network delivers these for
- * reasons that are nobody's fault. A link that cannot deliver them at all
- * does nothing here.
- * \param transport Transport that saw it.
+ * Off by default, because a readout answers some commands with a reply
+ * identifier derived from the request's rather than the request's own, and
+ * correlation accepts either. Turning this on narrows what counts as an
+ * answer and widens what is counted as a stray.
+ * \param transport Transport to set it on.
+ * \param strict True to require the exact operation code.
  */
 void
-katherine_transport_count_stray(katherine_transport_t *transport)
+katherine_transport_set_strict_ack(katherine_transport_t *transport, bool strict)
 {
-    transport->ops->count_stray(transport->ctx);
+    transport->strict_ack = strict;
 }
 
 /**
