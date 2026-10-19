@@ -77,6 +77,11 @@ function(katherine_add_test)
     if(KATHERINE_LIBM)
         target_link_libraries(${ARG_NAME} PRIVATE ${KATHERINE_LIBM})
     endif()
+    # kports_available() calls Winsock from the test's own translation unit,
+    # and the library links ws2_32 PRIVATE.
+    if(WIN32 OR MINGW)
+        target_link_libraries(${ARG_NAME} PRIVATE ws2_32)
+    endif()
     if(ARG_LIBRARIES)
         target_link_libraries(${ARG_NAME} PRIVATE ${ARG_LIBRARIES})
     endif()

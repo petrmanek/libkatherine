@@ -22,8 +22,15 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <fcntl.h>
 #include <string.h>
+
+#include <katherine/global.h>
+
+#ifdef KATHERINE_WIN
+#include <io.h>
+#else
+#include <fcntl.h>
+#endif
 
 #include <katherine/katherine.h>
 
@@ -33,10 +40,16 @@
 #define PORT_A (KPORTS_FINI + 0)
 #define PORT_B (KPORTS_FINI + 1)
 
+// A Windows socket is not a descriptor, so there a stray close cannot reach
+// stdin and this only confirms the guard did not misfire.
 static bool
 stdin_is_open(void)
 {
+#ifdef KATHERINE_WIN
+    return _get_osfhandle(0) != -1;
+#else
     return fcntl(0, F_GETFD) != -1;
+#endif
 }
 
 // ------------------------------------------------------------------
