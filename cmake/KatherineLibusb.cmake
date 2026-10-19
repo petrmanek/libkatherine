@@ -21,9 +21,11 @@ Visual Studio hosts have no pkg-config to read one: requiring it made
 ``-DKATHERINE_BUILD_TRANSPORT_USB=ON`` a configure failure there rather than
 a build.
 
-Set ``LIBUSB_ROOT`` to the unpacked binary release to use the fallback, e.g.
+Set ``LIBUSB_ROOT`` to the unpacked binary release to use the fallback,
+either as a CMake variable or in the environment:
 
   cmake -DKATHERINE_BUILD_TRANSPORT_USB=ON -DLIBUSB_ROOT=C:/libusb-1.0.30
+  LIBUSB_ROOT=C:/libusb-1.0.30 cmake -DKATHERINE_BUILD_TRANSPORT_USB=ON
 #]=======================================================================]
 
 function(katherine_find_libusb out_var)
@@ -48,12 +50,12 @@ function(katherine_find_libusb out_var)
     # in the release, which is why those are spelled out.
     find_path(LIBUSB_INCLUDE_DIR
               NAMES libusb.h
-              HINTS "${LIBUSB_ROOT}"
+              HINTS "${LIBUSB_ROOT}" "$ENV{LIBUSB_ROOT}"
               PATH_SUFFIXES include include/libusb-1.0 libusb-1.0)
 
     find_library(LIBUSB_LIBRARY
                  NAMES libusb-1.0 usb-1.0
-                 HINTS "${LIBUSB_ROOT}"
+                 HINTS "${LIBUSB_ROOT}" "$ENV{LIBUSB_ROOT}"
                  PATH_SUFFIXES lib lib64
                                VS2022/MS64/dll VS2022/MS32/dll
                                VS2019/MS64/dll VS2019/MS32/dll
@@ -65,7 +67,7 @@ function(katherine_find_libusb out_var)
     if(WIN32)
         find_file(LIBUSB_DLL
                   NAMES libusb-1.0.dll
-                  HINTS "${LIBUSB_ROOT}"
+                  HINTS "${LIBUSB_ROOT}" "$ENV{LIBUSB_ROOT}"
                   PATH_SUFFIXES bin
                                 VS2022/MS64/dll VS2022/MS32/dll
                                 VS2019/MS64/dll VS2019/MS32/dll
