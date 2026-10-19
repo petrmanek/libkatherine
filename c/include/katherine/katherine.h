@@ -26,7 +26,6 @@
 #include <katherine/device.h>
 #include <katherine/status.h>
 #include <katherine/gpio.h>
-#include <katherine/discover.h>
 #include <katherine/tdc.h>
 #include <katherine/pulse.h>
 #include <katherine/toa.h>

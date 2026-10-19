@@ -15,7 +15,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <katherine/discover.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>

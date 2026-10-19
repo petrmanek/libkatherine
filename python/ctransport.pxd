@@ -14,3 +14,7 @@ cdef extern from 'katherine/transport.h':
         uint64_t stray_command_responses
 
     void katherine_transport_set_strict_ack(katherine_transport_t *transport, bint strict)
+
+    ctypedef struct katherine_discovered_t:
+        char *address
+        bint legacy

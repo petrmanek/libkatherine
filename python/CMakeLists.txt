@@ -27,7 +27,6 @@ set(PYKATHERINE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/cacquisition.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cconfig.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cdevice.pxd"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cdiscover.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cerror.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cgpio.pxd"
     "${CMAKE_CURRENT_SOURCE_DIR}/cpulse.pxd"

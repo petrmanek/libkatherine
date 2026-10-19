@@ -29,7 +29,6 @@ cimport cconfig
 cimport cgpio
 cimport ctdc
 cimport cpulse
-cimport cdiscover
 cimport cpx
 cimport cpx_config
 cimport cacquisition
@@ -86,7 +85,7 @@ cdef str _snprint_repr(snprint_fn_t fn, const void *v):
 __version__ = cversion.katherine_version_string().decode('UTF-8')
 
 
-DISCOVER_MIN_PORT = cdiscover.KATHERINE_DISCOVER_MIN_PORT
+DISCOVER_MIN_PORT = cudp.KATHERINE_DISCOVER_MIN_PORT
 
 
 def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
@@ -104,19 +103,19 @@ def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=
     one without a scheme is a UDP address.
     """
     cdef bytes address_b = address.encode('UTF-8')
-    cdef cdiscover.katherine_discovered_t *out
+    cdef ctransport.katherine_discovered_t *out
     cdef size_t count = capacity
 
     if capacity == 0:
         raise ValueError('capacity must be positive')
 
-    out = <cdiscover.katherine_discovered_t *> PyMem_Malloc(
-        capacity * sizeof(cdiscover.katherine_discovered_t))
+    out = <ctransport.katherine_discovered_t *> PyMem_Malloc(
+        capacity * sizeof(ctransport.katherine_discovered_t))
     if out is NULL:
         raise MemoryError()
 
     try:
-        res = cdiscover.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
+        res = cudp.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
         check_return_code(res)
         return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
     finally:
