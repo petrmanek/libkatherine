@@ -65,9 +65,16 @@ from katherine import Device
 address = 'udp://192.168.1.142'
 
 dev = Device(address)
-chip_id = dev.get_chip_id()   # OSError can be raised here.
+chip_id = dev.get_chip_id()   # Raises on failure; see below.
 print('Device %s has chip id: %s' % (address, chip_id))
 ```
+
+The Python binding raises `TimeoutError` on a timeout, `ValueError` on an
+invalid argument and `MemoryError` on a failed allocation. Every other
+failure -- eleven of the fourteen error codes, the I/O and system ones among
+them -- becomes a `RuntimeError` carrying the library's message. Beware that
+`TimeoutError` is an `OSError` and `RuntimeError` is not, so `except OSError`
+catches the timeout alone. The exception does not carry the error code.
 
 ### More Examples
 
