@@ -14,11 +14,6 @@
 
 #ifdef KATHERINE_FEATURE_USB
 
-// Before every other libc include here: monoclock.h sets _POSIX_C_SOURCE, and
-// glibc resolves POSIX visibility once, at the first libc header of the
-// translation unit. Included after <stdlib.h> instead, clock_gettime() is
-// invisible under a strict standard -- which the standards leg of CI builds
-// with, so this is a build failure there and nowhere else.
 #include "monoclock.h"
 
 // struct timeval, which libusb's event calls take. libusb.h pulls in

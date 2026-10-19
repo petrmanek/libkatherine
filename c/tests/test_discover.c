@@ -24,13 +24,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// Must precede every include: msleep.h needs nanosleep(), which glibc hides
-// under a strict -std= unless _POSIX_C_SOURCE is set before the first libc
-// header resolves feature-test macros. Same reasoning as test_cmd_transact.c.
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

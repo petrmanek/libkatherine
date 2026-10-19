@@ -10,16 +10,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// Must precede every include: msleep.h needs nanosleep(), which glibc hides
-// under a strict -std= unless _POSIX_C_SOURCE is set before the first libc
-// header resolves feature-test macros (a once-per-TU decision). Harmless on
-// Windows, whose headers do not gate on it. Same reasoning as tools/ksim.
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <katherine/config.h>
 #include <katherine/device.h>

@@ -15,6 +15,15 @@ set(KATHERINE_VERSION_SUFFIX "-dev")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(KatherineLibusb)
+
+# glibc hides clock_gettime() and friends under a strict standard without
+# this, and it must precede the first libc header, which only the command line
+# can guarantee. _DEFAULT_SOURCE keeps the extensions POSIX alone switches
+# off, SO_RXQ_OVFL among them.
+if(NOT WIN32)
+    add_compile_definitions(_POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
+endif()
+
 include(KatherineFeatures)
 include(KatherineWarnings)
 

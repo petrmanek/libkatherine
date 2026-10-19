@@ -12,21 +12,8 @@
 
 #pragma once
 
-// Must be defined before this header's own first libc include (and ideally
-// before any other libc header in the translation unit), or it has no
-// effect: glibc resolves POSIX visibility once, the first time <features.h>
-// is pulled in, and does not revisit that decision. Left undefined,
-// clock_gettime(), CLOCK_MONOTONIC and struct timespec are invisible under
-// a strict standard (e.g. -std=c11), even though they are unconditionally
-// available at the platform level. Harmless on Windows, whose headers do
-// not gate on it, and deferential to a caller that already set a stricter
-// or looser value of its own.
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+// clock_gettime() needs POSIX visibility, which the build sets for every
+// target; see the top-level CMakeLists.txt.
 #include <stdint.h>
 #include <katherine/global.h>
 

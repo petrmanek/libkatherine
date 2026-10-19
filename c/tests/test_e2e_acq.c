@@ -49,17 +49,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// Must be the very first thing in the file, before any #include: kspawn.h
-// guards its fork()/execv()/waitpid() declarations behind _POSIX_C_SOURCE,
-// but that only has an effect the first time any libc header pulls in
-// <features.h> -- glibc resolves POSIX visibility once for the whole
-// translation unit and does not revisit it -- so it has to be set before
-// literally anything else touches libc. Harmless on Windows, whose headers
-// do not gate on it. Same reasoning as tools/ksim/main.c.
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

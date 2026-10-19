@@ -12,20 +12,6 @@
 
 #pragma once
 
-// Must be defined before this header's own first libc include (and ideally
-// before any other libc header in the translation unit), or it has no
-// effect: glibc resolves POSIX visibility once, the first time <features.h>
-// is pulled in, and does not revisit that decision. Left undefined, fork(),
-// execv(), kill() and waitpid() are invisible under a strict standard (e.g.
-// -std=c11), even though they are unconditionally available at the platform
-// level. Harmless on Windows, whose headers do not gate on it, and
-// deferential to a caller that already set a stricter or looser value of its
-// own. Consumers that also include libc headers of their own follow
-// tools/ksim/main.c and define it at the very top of the file.
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>

@@ -10,15 +10,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// Must be the very first thing in the file, before any #include: monoclock.h
-// guards its clock_gettime() behind _POSIX_C_SOURCE, and that only has an
-// effect the first time any libc header pulls in <features.h>.
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>

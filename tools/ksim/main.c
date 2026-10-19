@@ -10,18 +10,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// Must be the very first thing in the file, before any #include (even
-// <errno.h> below): monoclock.h and stopsig.h each guard their own
-// clock_gettime()/sigaction() declarations behind _POSIX_C_SOURCE, but that
-// only has an effect the first time any libc header pulls in <features.h> --
-// glibc resolves POSIX visibility once for the whole translation unit and
-// does not revisit it -- so it has to be set before literally anything else
-// touches libc, not just before those two headers' own includes. Harmless on
-// Windows, whose headers do not gate on it.
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>

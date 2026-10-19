@@ -10,13 +10,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// Must precede every include: nanosleep() below is guarded by _POSIX_C_SOURCE,
-// which only has an effect before the first libc header is pulled in. Harmless
-// on Windows, whose headers do not gate on it.
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 #include <stdbool.h> // bool
 #include <stdio.h>   // printf, fprintf, fflush
 #include <stdlib.h>  // strtod, exit
