@@ -44,13 +44,15 @@
 #include "msleep.h"
 #include "protocol/cmd_interface.h"
 
-// How many event-handling passes closing waits through before saying the
-// cancellation again and settling in to wait it out. At 20 ms a pass this is
-// one second, which is what usb-skeleton.c gives its anchored URBs before it
-// escalates to usb_kill_anchored_urbs().
+/**
+ * How many event-handling passes closing waits through before saying the
+ * cancellation again and settling in to wait it out. At 20 ms a pass this is
+ * one second, which is what usb-skeleton.c gives its anchored URBs before it
+ * escalates to usb_kill_anchored_urbs().
+ */
 #define DRAIN_POLITE_ATTEMPTS 50
 
-// A lent buffer's place in its owner's ring.
+/** A lent buffer's place in its owner's ring. */
 enum slot_state {
     SLOT_IDLE = 0, ///< Not submitted, nothing in it.
     SLOT_INFLIGHT, ///< Submitted; libusb owns the buffer.
@@ -58,26 +60,28 @@ enum slot_state {
     SLOT_LENT,     ///< A caller is reading it.
 };
 
+/** One read's place in the ring. */
 struct slot {
-    struct libusb_transfer *xfer;
-    uint8_t *buf;
-    int len;
-    enum slot_state state;
-    uint32_t index;
-    struct katherine_usb *usb;
+    struct libusb_transfer *xfer; ///< The read itself, or NULL on a synchronous transport.
+    uint8_t *buf;                 ///< Where that read lands, a whole word longer than the capacity; see the allocation.
+    int len;                      ///< Bytes the last completion brought back.
+    enum slot_state state;        ///< Who owns the buffer right now.
+    uint32_t index;               ///< This slot's place in the ring, so a completion can name itself.
+    struct katherine_usb *usb;    ///< The ring it belongs to, which the completion callback reaches it through.
 };
 
+/** A USB link, its ring of reads, and what guards them. */
 struct katherine_usb {
-    libusb_context *ctx;
-    libusb_device_handle *handle;
-    katherine_usb_config_t config;
+    libusb_context *ctx;           ///< This transport's own libusb session.
+    libusb_device_handle *handle;  ///< The readout, once opened.
+    katherine_usb_config_t config; ///< What it was opened with, queue_len resolved to what was allocated.
 
     // The completion callback can run on any thread that handles events on
     // this context -- including a thread outside this library, and including
     // the caller's own thread inside a synchronous command transfer, which
     // services this context too. Everything it touches is therefore under
     // this lock, and it does no more than record what came back.
-    katherine_mutex_t lock;
+    katherine_mutex_t lock; ///< Guards the ring and everything the completion callback touches.
 
     // What katherine_transport_mutex_lock() takes, and deliberately not the
     // lock above. That one is held for the few instructions a ring update
@@ -85,17 +89,17 @@ struct katherine_usb {
     // across a whole request-and-response exchange and across an entire read
     // loop. One mutex could not do both: the read loop would hold it while
     // the completion callback waited for it.
-    katherine_mutex_t api_lock;
+    katherine_mutex_t api_lock; ///< Serializes callers of the transport operations.
 
-    struct slot *slots;
-    uint32_t *ready; ///< Indices of filled slots, oldest first.
-    uint32_t ready_head;
-    uint32_t ready_count;
-    uint32_t inflight;
+    struct slot *slots;   ///< The ring, config.queue_len of them.
+    uint32_t *ready;      ///< Indices of filled slots, oldest first.
+    uint32_t ready_head;  ///< Where the next slot to lend out sits in ready.
+    uint32_t ready_count; ///< How many of ready hold a slot.
+    uint32_t inflight;    ///< Reads the bus has not answered yet.
 
-    int last_os_error;
-    enum libusb_transfer_status last_status;
-    bool draining;
+    int last_os_error;                       ///< What katherine_transport_last_os_error() reports: a libusb code, or an errno from a mutex.
+    enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
+    bool draining;                           ///< Set while closing, so a completion reposts nothing.
 };
 
 static katherine_error_t
@@ -1223,8 +1227,6 @@ err_args:
  * That is the difference from katherine_device_discover_udp(), which has to
  * put a datagram on the wire to find anything.
  *
- * \param vendor_id USB vendor identifier to look for.
- * \param product_id USB product identifier to look for.
  * \param out Storage for the answers, of at least the entries \p count gives.
  * \param count On entry the capacity of \p out, on return the number of
  *   entries written, which is zero on every error.
