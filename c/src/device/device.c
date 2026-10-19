@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <katherine/device.h>
+#include <katherine/error.h>
 #include <katherine/discover.h>
 #include <katherine/acquisition.h>
 #include <katherine/status.h>
@@ -202,6 +203,52 @@ err_enumerated:
     return res;
 }
 
+// Tell the readout to answer on the ports the sessions actually got, which
+// is what frees the standard pair for somebody else.
+static katherine_error_t
+claim_private_ports(katherine_device_t *device)
+{
+    katherine_error_t res;
+    uint16_t control, data;
+
+    res = katherine_transport_get_bound_udp_port(&device->control_transport, &control);
+    if (res) goto err_control;
+
+    res = katherine_transport_get_bound_udp_port(&device->data_transport, &data);
+    if (res) goto err_data;
+
+    res = katherine_transport_mutex_lock(&device->control_transport);
+    if (res) goto err_lock;
+
+    res = katherine_cmd_change_udp_ports(&device->control_transport, control, data);
+
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
+
+err_lock:
+err_data:
+err_control:
+    return res;
+}
+
+// Only where this device moved them. A readout whose firmware ignores the
+// reply port was never moved and must not be told anything, and neither must
+// one a caller asked to leave alone.
+//
+// Best effort otherwise: a readout can recover itself, and neither caller
+// here has anywhere to report a failure.
+static void
+restore_standard_ports(katherine_device_t *device)
+{
+    if (!device->udp_ports_changed) return;
+
+    device->udp_ports_changed = false;
+
+    if (katherine_transport_mutex_lock(&device->control_transport) != KATHERINE_E_OK) return;
+
+    (void) katherine_cmd_change_udp_ports(&device->control_transport, CONTROL_PORT, DATA_PORT);
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
+}
+
 /**
  * Initialize Katherine device.
  * \param device Katherine device
@@ -218,6 +265,11 @@ err_enumerated:
  *   be bound; see inet_pton(3) and bind(2).
  * \retval KATHERINE_E_UNSUPPORTED if the address names a link this version
  *   cannot open a device on. Only UDP can carry one so far.
+ * \retval KATHERINE_E_BAD_CRD if the readout answered the port change with
+ *   something that was not the length of a command response.
+ * \retval KATHERINE_E_STRAY if responses to other commands kept arriving
+ *   until the discard budget ran out before the port change was
+ *   acknowledged.
  * \retval KATHERINE_E_IO if opening the control or data socket, setting its
  *   options, or telling the readout which interface drives it failed at the OS
  *   level for a reason none of the other codes cover; see socket(2),
@@ -249,7 +301,8 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     katherine_error_t res;
 
     // Ensure the pointer is zeroed and not garbage.
-    device->acquisition = NULL;
+    device->acquisition       = NULL;
+    device->udp_ports_changed = false;
 
     // Zeroed before the probe below, so a readout that never answers leaves
     // hw_type 0 rather than whatever the caller's stack held.
@@ -300,7 +353,13 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         }
     }
 
-    if ((res = katherine_udp_init(&device->control_socket, CONTROL_PORT, host, REMOTE_PORT, CONTROL_TIMEOUT)) != 0) {
+    // A firmware that ignores the reply port cannot be moved off the standard
+    // pair, and a caller may have its own reason to stay there.
+    const bool should_change_ports = kind == KATHERINE_TRANSPORT_UDP && (flags & KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS) == 0 && !legacy;
+    const uint16_t ask_control     = should_change_ports ? 0 : CONTROL_PORT;
+    const uint16_t ask_data        = should_change_ports ? 0 : DATA_PORT;
+
+    if ((res = katherine_udp_init(&device->control_socket, ask_control, host, REMOTE_PORT, CONTROL_TIMEOUT)) != KATHERINE_E_OK) {
         goto err_control;
     }
 
@@ -316,11 +375,11 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 
     // Before katherine_device_enumerate() below, which is the first thing
     // here that takes the control lock.
-    if ((res = katherine_transport_init_udp(&device->control_transport, &device->control_socket)) != 0) {
+    if ((res = katherine_transport_init_udp(&device->control_transport, &device->control_socket)) != KATHERINE_E_OK) {
         goto err_control_transport;
     }
 
-    if ((res = katherine_udp_init(&device->data_socket, DATA_PORT, host, REMOTE_PORT, DATA_TIMEOUT)) != 0) {
+    if ((res = katherine_udp_init(&device->data_socket, ask_data, host, REMOTE_PORT, DATA_TIMEOUT)) != KATHERINE_E_OK) {
         goto err_data;
     }
 
@@ -333,11 +392,19 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // the caller's stack in both README.md and krun.c, and an acquisition
     // choosing its read path out of whatever the stack held segfaults in the
     // decode loop on the first read. Measured on a real Gen2.
-    if ((res = katherine_transport_init_udp(&device->data_transport, &device->data_socket)) != 0) {
+    if ((res = katherine_transport_init_udp(&device->data_transport, &device->data_socket)) != KATHERINE_E_OK) {
         goto err_transport;
     }
 
-    // Optional initial setup
+    // Optional initial setup:
+    // 1. Change ports if supported and not inhibited by flags
+    if (should_change_ports) {
+        if ((res = claim_private_ports(device)) != KATHERINE_E_OK) goto err_ports;
+
+        device->udp_ports_changed = true;
+    }
+
+    // 2. Discover device capabilities if not inhibited by flags
     if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
         (void) katherine_device_enumerate(device);
 
@@ -345,17 +412,13 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         device->info.legacy = legacy;
     }
 
-    (void) (flags & KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS); // TODO
-
-    // Only where it does something: the first generation's dispatcher has no
-    // such command and drops it without a reply. Asking requires knowing the
-    // generation, so suppressing the probe above suppresses this too.
-    //
+    // 3. Gen2 requires a command to select UDP or USB interface, send it if not inhibited by flags
     // TODO: a USB interface will need the other value of this command, sent
     //   over whichever interface is live when it is sent.
+    // TODO: harmonize katherine_interface_t and katherine_transport_kind_t
     if ((flags & KATHERINE_DEVICE_DONT_SELECT_INTERFACE) == 0
         && device->derived_info.supported && device->derived_info.gen >= 2) {
-        if ((res = katherine_device_select_interface(device, KATHERINE_INTERFACE_ETHERNET)) != 0) {
+        if ((res = katherine_device_select_interface(device, KATHERINE_INTERFACE_ETHERNET)) != KATHERINE_E_OK) {
             goto err_select;
         }
     }
@@ -363,6 +426,8 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     return KATHERINE_E_OK;
 
 err_select:
+    restore_standard_ports(device);
+err_ports:
     katherine_transport_fini(&device->data_transport);
 err_transport:
     katherine_udp_fini(&device->data_socket);
@@ -415,6 +480,10 @@ katherine_device_fini(katherine_device_t *device)
         (void) katherine_acquisition_abort(acq);
         device->acquisition = NULL;
     }
+
+    // Put the readout back on the standard pair, or the next client finds it
+    // apparently dead.
+    if (device->control_transport.ops != NULL) restore_standard_ports(device);
 
     // Before the session it drives, which is the order it was opened in, and
     // only where there is one: a device assembled by hand rather than by
@@ -496,12 +565,12 @@ katherine_device_enumerate(katherine_device_t *device)
 
     // Send a couple of probing commands.
     katherine_readout_status_t status = {0};
-    if ((res = katherine_get_readout_status(device, &status)) != 0) {
+    if ((res = katherine_get_readout_status(device, &status)) != KATHERINE_E_OK) {
         goto err_readout_status;
     }
 
     katherine_comm_status_t comm = {0};
-    if ((res = katherine_get_comm_status(device, &comm)) != 0) {
+    if ((res = katherine_get_comm_status(device, &comm)) != KATHERINE_E_OK) {
         goto err_comm_status;
     }
 
@@ -518,7 +587,7 @@ katherine_device_enumerate(katherine_device_t *device)
         // learns it from discovery and writes it after this call.
     };
 
-    if ((res = katherine_device_declare(device, &info)) != 0) {
+    if ((res = katherine_device_declare(device, &info)) != KATHERINE_E_OK) {
         goto err_device_declare;
     }
 

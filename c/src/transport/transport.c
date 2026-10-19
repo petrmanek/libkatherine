@@ -180,6 +180,24 @@ katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t siz
 }
 
 /**
+ * The local UDP port this transport's session is bound to.
+ * \param transport Transport to ask.
+ * \param port Storage for the port, in host byte order.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_UNSUPPORTED on a link that is not UDP and so has no
+ *   such thing.
+ * \note Only UDP ships today, so KATHERINE_E_UNSUPPORTED is documented ahead
+ *   of the first link that cannot answer. The index reports it unreachable
+ *   until then, which is the honest state.
+ */
+katherine_error_t
+katherine_transport_get_bound_udp_port(const katherine_transport_t *transport, uint16_t *port)
+{
+    return transport->ops->get_bound_udp_port(transport->ctx, port);
+}
+
+/**
  * Take the lock excluding everything else that drives this transport.
  *
  * Held across a request and its response, and across a whole read loop, so

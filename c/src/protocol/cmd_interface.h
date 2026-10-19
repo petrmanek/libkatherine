@@ -737,6 +737,47 @@ katherine_cmd_transact(katherine_transport_t *transport, const void *buffer, siz
     return katherine_cmd_wait_ack_crd(transport, opcode, crd);
 }
 
+/**
+ * Tell the readout which local ports to answer on.
+ *
+ * Everything but echo-chip-id follows the pair this sets, so a session on
+ * anything else hears nothing until it has been sent.
+ *
+ * It also recovers a readout a crashed client left pointing elsewhere: the
+ * command travels to the readout's fixed command port whatever the reply
+ * setting is, and the acknowledgement already follows the new one. Measured
+ * on a Gen2 at firmware 5.
+ *
+ * \param transport Transport to send on; its lock is the caller's to hold.
+ * \param control Port the readout is to answer commands on.
+ * \param data Port the readout is to send measurement data to.
+ *
+ * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
+ * \retval KATHERINE_E_TIMEOUT if the acknowledgement did not arrive within
+ *   the link's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
+ *   response.
+ * \retval KATHERINE_E_STRAY if responses to other commands kept arriving
+ *   until the discard budget ran out.
+ * \retval KATHERINE_E_IO if the send or the receive failed at the OS level
+ *   for a reason none of the other codes cover; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_INVAL if the link rejected an argument of the
+ *   exchange; see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the link had no memory for the exchange; see
+ *   katherine_transport_last_os_error().
+ */
+static inline katherine_error_t
+katherine_cmd_change_udp_ports(katherine_transport_t *transport, uint16_t control, uint16_t data)
+{
+    katherine_cmd_t cmd = katherine_cmd_create(CMD_TYPE_CHANGE_PORTS);
+
+    // Both numbers go in the long field, as the firmware reads them.
+    katherine_cmd_payload_set_i64(&cmd, ((int64_t) data << 16) | (int64_t) control);
+
+    return katherine_cmd_transact(transport, cmd.b, sizeof(cmd.b), NULL);
+}
+
 // clang-format off
 K_DEFINE_CMD_ARG0(cmd_send6,      set_all_pixel_config,                     CMD_TYPE_SET_ALL_PIXEL_CONFIG)
 K_DEFINE_CMD_ARG0(cmd_send6,      echo_chip_id,                             CMD_TYPE_ECHO_CHIP_ID)

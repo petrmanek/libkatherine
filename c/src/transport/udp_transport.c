@@ -158,6 +158,16 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
     return KATHERINE_E_OK;
 }
 
+static katherine_error_t
+udp_t_get_bound_udp_port(void *ctx, uint16_t *port)
+{
+    struct udp_transport *t = ctx;
+
+    *port = ntohs(t->udp->address_local.sin_port);
+
+    return KATHERINE_E_OK;
+}
+
 // Delegated rather than reimplemented: the lock belongs to the session, and
 // anything else still reaching that session directly -- the command layer,
 // until it too goes through a transport -- takes the very same one.
@@ -233,17 +243,18 @@ udp_t_fini(void *ctx)
 }
 
 static const katherine_transport_ops_t udp_ops = {
-    .send_cmd         = udp_t_send_cmd,
-    .recv_crd         = udp_t_recv_crd,
-    .flush_incoming   = udp_t_flush_incoming,
-    .acquire_data_buf = udp_t_acquire_data_buf,
-    .release_data_buf = udp_t_release_data_buf,
-    .set_timeout      = udp_t_set_timeout,
-    .set_buffer_size  = udp_t_set_buffer_size,
-    .mutex_lock       = udp_t_mutex_lock,
-    .mutex_unlock     = udp_t_mutex_unlock,
-    .last_os_error    = udp_t_last_os_error,
-    .fini             = udp_t_fini,
+    .send_cmd           = udp_t_send_cmd,
+    .recv_crd           = udp_t_recv_crd,
+    .flush_incoming     = udp_t_flush_incoming,
+    .acquire_data_buf   = udp_t_acquire_data_buf,
+    .release_data_buf   = udp_t_release_data_buf,
+    .set_timeout        = udp_t_set_timeout,
+    .set_buffer_size    = udp_t_set_buffer_size,
+    .get_bound_udp_port = udp_t_get_bound_udp_port,
+    .mutex_lock         = udp_t_mutex_lock,
+    .mutex_unlock       = udp_t_mutex_unlock,
+    .last_os_error      = udp_t_last_os_error,
+    .fini               = udp_t_fini,
 };
 
 /**

@@ -145,6 +145,13 @@ typedef struct katherine_device {
     void *acquisition;
 
     /**
+     * True where this device moved the readout off the standard UDP ports, so
+     * that katherine_device_fini() knows to put it back. Only kept for
+     * bookkeeping purposes.
+     */
+    bool udp_ports_changed;
+
+    /**
      * What this readout said it is, or what a caller declared. Zeroed until
      * katherine_device_enumerate() or katherine_device_declare() has run.
      */
@@ -168,7 +175,7 @@ katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v);
  */
 typedef enum katherine_device_flags {
     KATHERINE_DEVICE_DONT_ENUMERATE        = 1u << 0, ///< Do not ask the readout what it is. Every generation-dependent call then fails with KATHERINE_E_STATE until katherine_device_enumerate() or katherine_device_declare() has run.
-    KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS = 1u << 1, ///< Do not move this session to a private pair of local UDP ports. Moving them is what lets several readouts share one network interface, so suppress this only when something else owns the port assignment.
+    KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS = 1u << 1, ///< Do not move this session to a private pair of local UDP ports. Moving them is what lets one host drive several readouts, so suppress it only where something else owns the port assignment. Not attempted on a firmware that ignores the reply port, which cannot be moved; see katherine_device_info_t::legacy.
     KATHERINE_DEVICE_DONT_SELECT_INTERFACE = 1u << 2, ///< Do not tell the readout which interface drives it. On a readout that wants it, every later command answers orders of magnitude more slowly. See katherine_device_select_interface().
 } katherine_device_flags_t;
 

@@ -392,6 +392,11 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t
         goto err_bind;
     }
 
+    // Read the port back: a local_port of 0 asks the kernel to pick one, and
+    // without this the session would go on claiming the 0 it was asked for.
+    socklen_t bound_len = sizeof(u->address_local);
+    (void) getsockname(u->sock, (struct sockaddr *) &u->address_local, &bound_len);
+
     if (timeout_ms > 0) {
         // Set socket timeout.
         struct timeval timeout;
