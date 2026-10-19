@@ -146,6 +146,16 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
                             "was not found; set LIBUSB_ROOT to point at it")
     endif()
     target_link_libraries(katherine PRIVATE katherine::libusb)
+
+    # Beside the binaries, because every executable here loads katherine and
+    # katherine loads libusb; without this each one exits 0xc0000135 before
+    # reaching main().
+    if(WIN32)
+        add_custom_command(TARGET katherine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    $<TARGET_RUNTIME_DLLS:katherine> $<TARGET_FILE_DIR:katherine>
+            COMMAND_EXPAND_LISTS)
+    endif()
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)

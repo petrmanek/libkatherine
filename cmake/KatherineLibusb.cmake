@@ -59,13 +59,36 @@ function(katherine_find_libusb out_var)
                                VS2019/MS64/dll VS2019/MS32/dll
                                MinGW64/dll MinGW32/dll)
 
-    if(LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARY)
+    # On Windows the DLL is wanted as well as the import library, so that
+    # $<TARGET_RUNTIME_DLLS> can find it: every executable that loads
+    # katherine loads libusb with it, and none of them start without it.
+    if(WIN32)
+        find_file(LIBUSB_DLL
+                  NAMES libusb-1.0.dll
+                  HINTS "${LIBUSB_ROOT}"
+                  PATH_SUFFIXES bin
+                                VS2022/MS64/dll VS2022/MS32/dll
+                                VS2019/MS64/dll VS2019/MS32/dll
+                                MinGW64/dll MinGW32/dll)
+    endif()
+
+    if(NOT LIBUSB_INCLUDE_DIR OR NOT LIBUSB_LIBRARY)
+        set(${out_var} FALSE PARENT_SCOPE)
+        return()
+    endif()
+
+    if(WIN32 AND LIBUSB_DLL)
+        add_library(katherine::libusb SHARED IMPORTED)
+        set_target_properties(katherine::libusb PROPERTIES
+            IMPORTED_LOCATION "${LIBUSB_DLL}"
+            IMPORTED_IMPLIB "${LIBUSB_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}")
+    else()
         add_library(katherine::libusb UNKNOWN IMPORTED)
         set_target_properties(katherine::libusb PROPERTIES
             IMPORTED_LOCATION "${LIBUSB_LIBRARY}"
             INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}")
-        set(${out_var} TRUE PARENT_SCOPE)
-    else()
-        set(${out_var} FALSE PARENT_SCOPE)
     endif()
+
+    set(${out_var} TRUE PARENT_SCOPE)
 endfunction()
