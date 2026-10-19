@@ -134,7 +134,7 @@ stream(const katherine_usb_config_t *config, uint64_t per_hit_ns, double seconds
     if (res == KATHERINE_E_ADDRESS) {
         // The library's word for this is "address resolution or bind failed",
         // which is the network's language rather than the bus's.
-        fprintf(stderr, "no readout on the bus; run with no arguments to list what is\n");
+        fprintf(stderr, "no readout at that address; run with no arguments to list what is on the bus\n");
         exit(1);
     }
     if (res) {
@@ -192,27 +192,31 @@ int
 main(int argc, char **argv)
 {
     if (argc < 2) {
-        printf("usage: %s <seconds> [ns_per_hit...]\n", argv[0]);
-        printf("       %s            (lists the bus)\n\n", argv[0]);
+        printf("usage: %s <address> [seconds] [ns_per_hit...]\n", argv[0]);
+        printf("       %s  (lists the bus)\n\n", argv[0]);
+        printf("       address is \"usb://auto\" for the one readout attached, or a\n");
+        printf("       socket such as \"usb://4-1\" as the listing prints it\n\n");
         return list_bus();
     }
 
     katherine_usb_config_t config = katherine_usb_config_default();
-    // The identifiers and endpoints are the library's own; an address to
-    // pick between several readouts arrives with addressing.
+    if (katherine_usb_config_set_address(&config, argv[1]) != KATHERINE_E_OK) {
+        fprintf(stderr, "not a USB address: %s\n", argv[1]);
+        return 1;
+    }
 
-    const double seconds = atof(argv[1]);
+    const double seconds = argc > 2 ? atof(argv[2]) : 3.0;
 
     uint64_t per_hit[8]  = {0, 5, 10, 18, 0, 0, 0, 0};
     size_t per_hit_count = 4;
-    if (argc > 2) {
+    if (argc > 3) {
         per_hit_count = 0;
-        for (int i = 2; i < argc && per_hit_count < 8; ++i)
+        for (int i = 3; i < argc && per_hit_count < 8; ++i)
             per_hit[per_hit_count++] = strtoull(argv[i], NULL, 0);
     }
 
-    printf("# %u reads of %u B, %.1f s per point\n",
-        config.queue_len, config.buffer_size, seconds);
+    printf("# %s, %u reads of %u B, %.1f s per point\n",
+        argv[1], config.queue_len, config.buffer_size, seconds);
 
     for (size_t i = 0; i < per_hit_count; ++i) {
         for (int shape = 0; shape < 2; ++shape) {

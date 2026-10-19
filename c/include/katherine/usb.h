@@ -13,7 +13,9 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
+#include <katherine/discover.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>
@@ -53,12 +55,42 @@ KATHERINE_EXPORTED const char *
 katherine_str_usb_stream(katherine_usb_stream_t stream);
 
 /**
+ * Tiers a USB tree can be deep, which is what the specification allows and so
+ * the longest chain of port numbers a readout can sit at the end of.
+ */
+#define KATHERINE_USB_PORT_DEPTH 7
+
+/**
  * Readout to open, and the strategy for reading it.
  *
  * \note The interface field is named `iface` because the Windows COM headers
  *   define `interface` as a macro.
  */
 typedef struct katherine_usb_config {
+    /**
+     * Bus the readout is on, as the host numbers them. Meaningful only
+     * together with a nonzero port_count.
+     */
+    uint8_t bus;
+
+    /**
+     * Chain of port numbers from the root hub down to the readout, which is
+     * what tells two identical readouts apart. Stable across a replug into
+     * the same socket and across a device reset, unlike the address the host
+     * assigns at enumeration; it changes when the cable moves or a hub is
+     * added above it.
+     */
+    uint8_t ports[KATHERINE_USB_PORT_DEPTH];
+
+    /**
+     * Entries of ports that are set.
+     *
+     * Zero asks for the one readout on the host instead of a named socket,
+     * which is what "usb://auto" means. It is refused where a second one is
+     * attached, since there is then no saying which was meant.
+     */
+    uint8_t port_count;
+
     katherine_usb_stream_t stream; ///< Read strategy for the measurement-data endpoint.
     uint32_t queue_len;            ///< Reads kept outstanding by KATHERINE_USB_STREAM_ASYNC.
     uint32_t buffer_size;          ///< Bytes one read can carry.
@@ -69,10 +101,19 @@ KATHERINE_EXPORTED katherine_usb_config_t
 katherine_usb_config_default(void);
 
 KATHERINE_EXPORTED katherine_error_t
+katherine_usb_config_set_address(katherine_usb_config_t *config, const char *address);
+
+KATHERINE_EXPORTED int
+katherine_usb_config_snprint_address(char *buf, size_t cap, const katherine_usb_config_t *config);
+
+KATHERINE_EXPORTED katherine_error_t
 katherine_transport_init_usb(katherine_transport_t *transport, const katherine_usb_config_t *config);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_device_discover_usb(katherine_discovered_t *out, size_t *count);
 
 #ifdef __cplusplus
 }

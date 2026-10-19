@@ -38,6 +38,23 @@ static int g_bulk_transferred;
 static int g_context_token;
 static int g_handle_token;
 
+/* The bus, as a flat table. Enough to tell two readouts apart by where they
+ * sit, which is the only thing the transport asks of the topology. */
+#define FAKE_MAX_DEVICES 8
+#define FAKE_PORT_DEPTH  7
+
+struct fake_device {
+    uint16_t vendor;
+    uint16_t product;
+    uint8_t bus;
+    uint8_t ports[FAKE_PORT_DEPTH];
+    int port_count;
+};
+
+static struct fake_device g_devices[FAKE_MAX_DEVICES];
+static int g_device_count;
+static libusb_device *g_list[FAKE_MAX_DEVICES + 1];
+
 void
 fake_usb_reset(void)
 {
@@ -50,12 +67,106 @@ fake_usb_reset(void)
     g_last_bulk_endpoint = 0;
     g_bulk_code          = LIBUSB_SUCCESS;
     g_bulk_transferred   = 0;
+    g_device_count       = 0;
+
+    // The identifiers the ring test asks for, so a case that cares about the
+    // ring rather than about the bus finds a readout without saying so.
+    static const uint8_t default_ports[] = {1};
+    fake_usb_attach(0x1234, 0x5678, 1, default_ports, 1);
 }
 
 void
 fake_usb_set_present(int present)
 {
     g_present = present;
+}
+
+/* Empty the bus. A reset leaves one readout attached so a case about the ring
+ * need not think about topology; a case that composes its own bus says so by
+ * calling this first. */
+void
+fake_usb_clear_devices(void)
+{
+    g_device_count = 0;
+}
+
+void
+fake_usb_attach(uint16_t vendor, uint16_t product, uint8_t bus, const uint8_t *ports, int port_count)
+{
+    if (g_device_count >= FAKE_MAX_DEVICES || port_count > FAKE_PORT_DEPTH) return;
+
+    struct fake_device *d = &g_devices[g_device_count++];
+    d->vendor             = vendor;
+    d->product            = product;
+    d->bus                = bus;
+    d->port_count         = port_count;
+    for (int i = 0; i < port_count; ++i) d->ports[i] = ports[i];
+}
+
+ssize_t
+libusb_get_device_list(libusb_context *ctx, libusb_device ***list)
+{
+    (void) ctx;
+
+    if (!g_present) {
+        g_list[0] = NULL;
+        *list     = g_list;
+        return 0;
+    }
+
+    for (int i = 0; i < g_device_count; ++i) g_list[i] = (libusb_device *) &g_devices[i];
+    g_list[g_device_count] = NULL;
+    *list                  = g_list;
+
+    return g_device_count;
+}
+
+void
+libusb_free_device_list(libusb_device **list, int unref)
+{
+    (void) list;
+    (void) unref;
+}
+
+int
+libusb_get_device_descriptor(libusb_device *device, struct libusb_device_descriptor *descriptor)
+{
+    const struct fake_device *d = (const struct fake_device *) device;
+
+    descriptor->idVendor        = d->vendor;
+    descriptor->idProduct       = d->product;
+    descriptor->bDeviceClass    = 0;
+    descriptor->bDeviceSubClass = 0;
+
+    return LIBUSB_SUCCESS;
+}
+
+uint8_t
+libusb_get_bus_number(libusb_device *device)
+{
+    return ((const struct fake_device *) device)->bus;
+}
+
+int
+libusb_get_port_numbers(libusb_device *device, uint8_t *ports, int len)
+{
+    const struct fake_device *d = (const struct fake_device *) device;
+
+    if (d->port_count > len) return LIBUSB_ERROR_OVERFLOW;
+    for (int i = 0; i < d->port_count; ++i) ports[i] = d->ports[i];
+
+    return d->port_count;
+}
+
+int
+libusb_open(libusb_device *device, libusb_device_handle **handle)
+{
+    (void) device;
+
+    if (!g_present) return LIBUSB_ERROR_NO_DEVICE;
+    *handle = (libusb_device_handle *) &g_present;
+
+    return LIBUSB_SUCCESS;
 }
 
 void

@@ -144,6 +144,16 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
                        LABELS unit)
     target_include_directories(test_usb_ring BEFORE PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
+
+    # Which readout on the bus an address names, built the same way: the
+    # stand-in supplies the topology the matching reads.
+    katherine_add_test(NAME test_usb_address
+                       SOURCES test_usb_address.c
+                               fake_libusb/fake_libusb.c
+                               ../src/transport/usb_transport.c
+                       LABELS unit)
+    target_include_directories(test_usb_address BEFORE PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
 endif()
 
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
@@ -225,4 +235,4 @@ endif()
 # where libusb was found, so they are named as such rather than looking like
 # omissions.
 katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c test_bias.c
-    test_chip_readback.c test_interface_select.c test_usb_ring.c)
+    test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c)

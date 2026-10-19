@@ -51,8 +51,45 @@ enum libusb_transfer_status {
     LIBUSB_TRANSFER_OVERFLOW,
 };
 
+#include <sys/types.h> /* ssize_t, which libusb_get_device_list() returns */
+
 typedef struct libusb_context libusb_context;
 typedef struct libusb_device_handle libusb_device_handle;
+
+/* The topology half of the API, which the transport walks to find one
+ * readout among several. A stand-in device is a plain descriptor plus the
+ * place it sits, which is all the matching reads. */
+typedef struct libusb_device libusb_device;
+
+#define LIBUSB_ERROR_OVERFLOW (-8)
+
+struct libusb_device_descriptor {
+    uint16_t idVendor;
+    uint16_t idProduct;
+    uint8_t bDeviceClass;
+    uint8_t bDeviceSubClass;
+};
+
+ssize_t
+libusb_get_device_list(libusb_context *ctx, libusb_device ***list);
+void
+libusb_free_device_list(libusb_device **list, int unref);
+int
+libusb_get_device_descriptor(libusb_device *device, struct libusb_device_descriptor *descriptor);
+uint8_t
+libusb_get_bus_number(libusb_device *device);
+int
+libusb_get_port_numbers(libusb_device *device, uint8_t *ports, int len);
+int
+libusb_open(libusb_device *device, libusb_device_handle **handle);
+
+/* Empty the bus, for a case that composes its own topology. */
+void
+fake_usb_clear_devices(void);
+
+/* Attach one more stand-in readout at a place on the bus. */
+void
+fake_usb_attach(uint16_t vendor, uint16_t product, uint8_t bus, const uint8_t *ports, int port_count);
 struct libusb_transfer;
 
 typedef void(LIBUSB_CALL *libusb_transfer_cb_fn)(struct libusb_transfer *transfer);

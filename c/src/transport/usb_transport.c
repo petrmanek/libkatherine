@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include <katherine/usb.h>
+#include "address.h"
 #include "mutex.h"
 #include "protocol/cmd_interface.h"
 
@@ -100,6 +101,12 @@ map_usb_error(struct katherine_usb *u, int code)
     default:                         return KATHERINE_E_IO;
     }
 }
+
+// Names the one readout attached rather than a socket: "usb://auto". Spelled
+// here rather than in the header because a caller writes the address out, as
+// it does "udp://192.168.1.42", and the scheme is rendered by
+// katherine_str_transport_kind() rather than pasted together at compile time.
+static const char USB_LOCATION_AUTO[] = "auto";
 
 // What the readout is on the bus, and how its firmware plumbed the endpoints.
 // Not a caller's to choose: a Katherine readout answers at these and nowhere
@@ -686,6 +693,256 @@ static const katherine_transport_ops_t usb_ops_async = {
     .fini             = usb_fini,
 };
 
+// A readout is named by where it sits: the bus, then the chain of port
+// numbers from the root hub down to it. Spelled the way Linux names the same
+// device in /sys/bus/usb/devices, so "2-3.7.1.1" is what a reader sees in
+// lsusb -t and can paste where it is wanted.
+//
+// It is a socket address rather than an identity. It survives a replug into
+// the same socket and a device reset, which the address the host assigns at
+// enumeration does not; it changes when the cable moves or a hub is inserted
+// above it.
+// One decimal field of an address, which is a port number or a bus and so
+// never wider than a byte. Returns where it stopped, or NULL for anything
+// that is not such a field.
+static const char *
+usb_read_u8(const char *text, uint32_t *out)
+{
+    uint32_t value = 0;
+    const char *p  = text;
+
+    for (; *p >= '0' && *p <= '9'; ++p) {
+        value = value * 10 + (uint32_t) (*p - '0');
+        if (value > UINT8_MAX) return NULL;
+    }
+
+    if (p == text) return NULL;
+
+    *out = value;
+
+    return p;
+}
+
+static katherine_error_t
+usb_location_parse(const char *text, uint8_t *bus, uint8_t *ports, uint8_t *port_count)
+{
+    katherine_error_t res;
+    uint32_t value;
+    const char *end;
+
+    // The one readout attached, for a caller that would rather not pin a
+    // socket. usb_open_matching() is what refuses it where a second one is
+    // there, since the address then names no particular readout.
+    if (strcmp(text, USB_LOCATION_AUTO) == 0) {
+        *bus        = 0;
+        *port_count = 0;
+
+        return KATHERINE_E_OK;
+    }
+
+    end = usb_read_u8(text, &value);
+    if (end == NULL || *end != '-') {
+        res = KATHERINE_E_ADDRESS;
+        goto err_bus;
+    }
+
+    *bus        = (uint8_t) value;
+    *port_count = 0;
+
+    for (const char *p = end + 1;;) {
+        end = usb_read_u8(p, &value);
+        if (end == NULL) {
+            res = KATHERINE_E_ADDRESS;
+            goto err_port;
+        }
+        // A port number counts from one, so a zero is a misread rather than
+        // the root: libusb never reports one.
+        if (value == 0) {
+            res = KATHERINE_E_ADDRESS;
+            goto err_port;
+        }
+        if (*port_count >= KATHERINE_USB_PORT_DEPTH) {
+            res = KATHERINE_E_ADDRESS;
+            goto err_depth;
+        }
+
+        ports[(*port_count)++] = (uint8_t) value;
+
+        if (*end == '\0') break;
+        if (*end != '.') {
+            res = KATHERINE_E_ADDRESS;
+            goto err_separator;
+        }
+        p = end + 1;
+    }
+
+    return KATHERINE_E_OK;
+
+err_separator:
+err_depth:
+err_port:
+err_bus:
+    return res;
+}
+
+static int
+usb_location_format(char *buf, size_t cap, uint8_t bus, const uint8_t *ports, uint8_t port_count)
+{
+    int off = snprintf(buf, cap, "%u", (unsigned) bus);
+
+    for (uint8_t i = 0; i < port_count && off >= 0 && (size_t) off < cap; ++i)
+        off += snprintf(buf + off, cap - (size_t) off, "%c%u", i == 0 ? '-' : '.', (unsigned) ports[i]);
+
+    return off;
+}
+
+// True where this device is the one the configuration names. The identifiers
+// are checked always; the location only when one was given, so a
+// configuration that names none still takes whichever device carries them.
+//
+// libusb_open_device_with_vid_pid(), which this replaces, takes the first
+// match and offers no way to say which -- so two readouts on one host were
+// indistinguishable, and which one a program got depended on enumeration
+// order.
+static bool
+usb_device_matches(libusb_device *device, const katherine_usb_config_t *config)
+{
+    struct libusb_device_descriptor descriptor;
+
+    if (libusb_get_device_descriptor(device, &descriptor) != LIBUSB_SUCCESS) return false;
+    if (descriptor.idVendor != USB_VENDOR_ID || descriptor.idProduct != USB_PRODUCT_ID) return false;
+
+    // No chain asked for: any readout answers, and usb_open_matching() is
+    // what refuses the case where more than one does.
+    if (config->port_count == 0) return true;
+
+    if (libusb_get_bus_number(device) != config->bus) return false;
+
+    uint8_t ports[KATHERINE_USB_PORT_DEPTH];
+    const int depth = libusb_get_port_numbers(device, ports, (int) sizeof(ports));
+
+    // The whole chain, not its last element: two readouts in port 1 of two
+    // different hubs share that and nothing else.
+    if (depth <= 0 || (uint8_t) depth != config->port_count) return false;
+
+    return memcmp(ports, config->ports, config->port_count) == 0;
+}
+
+// Caller owns closing the handle. The list is released before returning, as
+// libusb_get_device_list() requires, which is safe because opening the device
+// takes a reference of its own.
+static katherine_error_t
+usb_open_matching(struct katherine_usb *u, const katherine_usb_config_t *config)
+{
+    katherine_error_t res;
+    libusb_device **list = NULL;
+
+    const ssize_t count = libusb_get_device_list(u->ctx, &list);
+    if (count < 0) {
+        res = map_usb_error(u, (int) count);
+        goto err_list;
+    }
+
+    // Counted before anything is opened: an address naming no socket means
+    // "the one readout on this host", and two of them make that a question
+    // with no answer rather than a choice to make arbitrarily.
+    libusb_device *chosen = NULL;
+    unsigned matched      = 0;
+
+    for (ssize_t i = 0; i < count; ++i) {
+        if (!usb_device_matches(list[i], config)) continue;
+
+        matched += 1;
+        if (chosen == NULL) chosen = list[i];
+    }
+
+    if (chosen == NULL || (config->port_count == 0 && matched > 1)) {
+        res = KATHERINE_E_ADDRESS;
+        goto err_open;
+    }
+
+    const int code = libusb_open(chosen, &u->handle);
+    if (code != LIBUSB_SUCCESS) {
+        res = map_usb_error(u, code);
+        goto err_open;
+    }
+
+    libusb_free_device_list(list, 1);
+    return KATHERINE_E_OK;
+
+err_open:
+    libusb_free_device_list(list, 1);
+err_list:
+    return res;
+}
+
+/**
+ * Point a configuration at one readout by where it sits on the bus.
+ * \param config Configuration to set the location on.
+ * \param address Address naming it, with or without the scheme:
+ *   "usb://2-3.7.1.1" or "2-3.7.1.1". The location "auto", as in
+ *   "usb://auto", names the one readout attached instead of a socket, for a
+ *   caller with a single device that would rather not pin its port chain;
+ *   katherine_transport_init_usb() refuses it where a second one is there.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_ADDRESS if config or address is NULL, the address names
+ *   a link that is not USB, or its location is neither "auto" nor a bus
+ *   number followed by between one and KATHERINE_USB_PORT_DEPTH port numbers.
+ */
+katherine_error_t
+katherine_usb_config_set_address(katherine_usb_config_t *config, const char *address)
+{
+    katherine_error_t res;
+    katherine_transport_kind_t kind;
+    const char *rest;
+
+    if (config == NULL) {
+        res = KATHERINE_E_ADDRESS;
+        goto err_config;
+    }
+
+    res = katherine_address_split(address, &kind, &rest);
+    if (res) goto err_split;
+
+    if (kind != KATHERINE_TRANSPORT_USB) {
+        res = KATHERINE_E_ADDRESS;
+        goto err_kind;
+    }
+
+    res = usb_location_parse(rest, &config->bus, config->ports, &config->port_count);
+    if (res) goto err_location;
+
+    return KATHERINE_E_OK;
+
+err_location:
+err_kind:
+err_split:
+err_config:
+    return res;
+}
+
+/**
+ * Write the address naming the readout a configuration points at.
+ * \param buf Destination.
+ * \param cap Bytes available at \p buf.
+ * \param config Configuration to render.
+ *
+ * \return What snprintf(3) returns, so a value of \p cap or more says the
+ *   address was truncated. Negative where the configuration names no
+ *   location at all.
+ */
+int
+katherine_usb_config_snprint_address(char *buf, size_t cap, const katherine_usb_config_t *config)
+{
+    if (config == NULL || config->port_count == 0) return -1;
+
+    char where[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
+    if (usb_location_format(where, sizeof(where), config->bus, config->ports, config->port_count) < 0) return -1;
+
+    return katherine_address_format(buf, cap, KATHERINE_TRANSPORT_USB, where);
+}
+
 /**
  * Render a read strategy as the token naming it.
  * \param stream Strategy to render.
@@ -792,11 +1049,8 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         goto err_init;
     }
 
-    u->handle = libusb_open_device_with_vid_pid(u->ctx, USB_VENDOR_ID, USB_PRODUCT_ID);
-    if (u->handle == NULL) {
-        res = KATHERINE_E_ADDRESS;
-        goto err_open;
-    }
+    res = usb_open_matching(u, config);
+    if (res) goto err_open;
 
     (void) libusb_set_auto_detach_kernel_driver(u->handle, 1);
 
@@ -879,6 +1133,107 @@ err_lock_init:
 err_alloc:
 err_config:
 err_args:
+    return res;
+}
+
+/**
+ * Ask the bus which readouts carrying these identifiers are attached, and
+ * under what address each can be opened.
+ *
+ * Nothing is opened: the walk reads descriptors and topology only, so it
+ * works before a udev rule grants access and never touches a kernel driver.
+ * That is the difference from katherine_device_discover_udp(), which has to
+ * put a datagram on the wire to find anything.
+ *
+ * \param vendor_id USB vendor identifier to look for.
+ * \param product_id USB product identifier to look for.
+ * \param out Storage for the answers, of at least the entries \p count gives.
+ * \param count On entry the capacity of \p out, on return the number of
+ *   entries written, which is zero on every error.
+ *
+ * \retval KATHERINE_E_OK on success, including when nothing is attached.
+ * \retval KATHERINE_E_INVAL if out or count is NULL, or the capacity count
+ *   gives is zero.
+ * \retval KATHERINE_E_NOMEM if the libusb session could not be allocated.
+ * \retval KATHERINE_E_IO if the session or the device list could not be had;
+ *   see libusb_init_context() and libusb_get_device_list().
+ */
+katherine_error_t
+katherine_device_discover_usb(katherine_discovered_t *out, size_t *count)
+{
+    katherine_error_t res;
+    libusb_context *ctx  = NULL;
+    libusb_device **list = NULL;
+
+    if (out == NULL) {
+        res = KATHERINE_E_INVAL;
+        goto err_out;
+    }
+    if (count == NULL) {
+        res = KATHERINE_E_INVAL;
+        goto err_count;
+    }
+
+    const size_t capacity = *count;
+    *count                = 0;
+
+    if (capacity == 0) {
+        res = KATHERINE_E_INVAL;
+        goto err_capacity;
+    }
+
+    int code = libusb_init_context(&ctx, NULL, 0);
+    if (code != LIBUSB_SUCCESS) {
+        res = code == LIBUSB_ERROR_NO_MEM ? KATHERINE_E_NOMEM : KATHERINE_E_IO;
+        goto err_init;
+    }
+
+    const ssize_t found = libusb_get_device_list(ctx, &list);
+    if (found < 0) {
+        res = found == LIBUSB_ERROR_NO_MEM ? KATHERINE_E_NOMEM : KATHERINE_E_IO;
+        goto err_list;
+    }
+
+    // Any port chain: every readout carrying the identifiers is reported,
+    // and the address handed back is what tells them apart.
+    katherine_usb_config_t probe = {.port_count = 0};
+
+    for (ssize_t i = 0; i < found && *count < capacity; ++i) {
+        if (!usb_device_matches(list[i], &probe)) continue;
+
+        katherine_discovered_t *entry = &out[*count];
+        memset(entry, 0, sizeof(*entry));
+
+        uint8_t ports[KATHERINE_USB_PORT_DEPTH];
+        const int depth = libusb_get_port_numbers(list[i], ports, (int) sizeof(ports));
+
+        // A device deeper than the specification allows, or one whose
+        // topology the host will not report, has no address this library can
+        // hand back -- so it is left out rather than reported under a name
+        // that would not open it.
+        if (depth <= 0) continue;
+
+        char where[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
+        if (usb_location_format(where, sizeof(where), libusb_get_bus_number(list[i]), ports, (uint8_t) depth) < 0)
+            continue;
+
+        const int written = katherine_address_format(entry->address, sizeof(entry->address), KATHERINE_TRANSPORT_USB, where);
+        if (written < 0 || (size_t) written >= sizeof(entry->address)) continue;
+
+        // A bus has no reply-port behaviour to have an opinion about.
+        entry->legacy = false;
+        *count += 1;
+    }
+
+    res = KATHERINE_E_OK;
+
+err_list:
+    if (list != NULL) libusb_free_device_list(list, 1);
+    libusb_exit(ctx);
+err_init:
+err_capacity:
+err_count:
+err_out:
     return res;
 }
 

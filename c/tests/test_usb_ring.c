@@ -45,6 +45,9 @@ config_for(katherine_usb_stream_t stream)
     config.buffer_size            = BUF_BYTES;
     config.timeout_ms             = TIMEOUT_MS;
 
+    // No port chain: the one attached readout, which every case here sets up.
+    config.port_count = 0;
+
     return config;
 }
 
@@ -67,6 +70,7 @@ static void
 test_opening_posts_the_whole_ring(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -84,6 +88,7 @@ static void
 test_a_returned_buffer_is_posted_again(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -116,6 +121,7 @@ static void
 test_an_empty_completion_does_not_shrink_the_ring(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -146,6 +152,7 @@ static void
 test_a_short_timeout_still_carries_data(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -167,6 +174,7 @@ static void
 test_silence_times_out(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -185,6 +193,7 @@ static void
 test_returning_a_foreign_buffer_is_refused(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -203,6 +212,7 @@ static void
 test_closing_waits_for_every_transfer(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -220,6 +230,7 @@ static void
 test_a_failing_repost_is_reported(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
@@ -241,6 +252,7 @@ static void
 test_the_synchronous_shape_reads_on_demand(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
     const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_SYNC);
@@ -272,6 +284,7 @@ static void
 test_an_absent_device_is_reported(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
     fake_usb_set_present(0);
 
     katherine_transport_t t;
@@ -286,6 +299,7 @@ static void
 test_a_ring_that_cannot_be_posted_unwinds(void)
 {
     fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
     fake_usb_fail_next_submit(LIBUSB_ERROR_NO_DEVICE);
 
     katherine_transport_t t;
