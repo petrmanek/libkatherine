@@ -132,6 +132,20 @@ katherine_add_test(NAME test_transport SOURCES test_transport.c LABELS unit)
 # second close would have a real descriptor to hit; the rest need nothing.
 katherine_add_test(NAME test_fini_idempotent SOURCES test_fini_idempotent.c LABELS unit)
 
+# The USB backend's ring, against a stand-in libusb rather than a bus. Its
+# include directory shadows the real <libusb.h> for this target only, and the
+# backend's source is compiled into the test rather than taken from the
+# library, which is linked against the real one.
+if(KATHERINE_BUILD_TRANSPORT_USB)
+    katherine_add_test(NAME test_usb_ring
+                       SOURCES test_usb_ring.c
+                               fake_libusb/fake_libusb.c
+                               ../src/transport/usb_transport.c
+                       LABELS unit)
+    target_include_directories(test_usb_ring BEFORE PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
+endif()
+
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
 # call sites unchanged and drives one real failure through each target of
 # its errno mapping, plus a success path. Sockets, but only through the
@@ -206,8 +220,9 @@ if(KATHERINE_BUILD_EMULATOR)
     target_compile_definitions(test_px_recovery PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 endif()
 
-# Every test source above must have been registered. The two end-to-end tests
-# are registered only when the emulator feature is on, so they are named as
-# such rather than looking like omissions.
+# Every test source above must have been registered. The end-to-end tests are
+# registered only when the emulator feature is on, and the USB ring test only
+# where libusb was found, so they are named as such rather than looking like
+# omissions.
 katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c test_bias.c
-    test_chip_readback.c test_interface_select.c)
+    test_chip_readback.c test_interface_select.c test_usb_ring.c)

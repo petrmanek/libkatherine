@@ -1,0 +1,315 @@
+/**
+ * \file
+ * \brief The USB backend's ring of outstanding reads, driven without a bus.
+ *
+ * A bulk endpoint needs hardware, so the backend's ring had no coverage at all
+ * and its failure modes are the quiet kind: a slot that stops being reposted
+ * shrinks the ring one transfer at a time and the stream dies minutes later,
+ * looking like a readout that went silent. The cases below drive that logic
+ * through a stand-in libusb that lets the test say when each transfer comes
+ * back and with what.
+ *
+ * What is NOT covered here is throughput, which is the whole point of the ring
+ * and needs a readout; see c/benchmarks/bench_usb.c.
+ *
+ * \author Petr Mánek
+ * \date 15.10.26
+ *
+ * \copyright Copyright (c) 2018 Petr Mánek.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <stdint.h>
+#include <string.h>
+
+#include <katherine/error.h>
+#include <katherine/transport.h>
+#include <katherine/usb.h>
+
+#include "libusb.h"
+
+#include "ktest.h"
+
+#define RING       4
+#define BUF_BYTES  1024
+#define TIMEOUT_MS 20
+
+static katherine_usb_config_t
+config_for(katherine_usb_stream_t stream)
+{
+    katherine_usb_config_t config = katherine_usb_config_default();
+    config.stream                 = stream;
+    config.queue_len              = RING;
+    config.buffer_size            = BUF_BYTES;
+    config.timeout_ms             = TIMEOUT_MS;
+
+    return config;
+}
+
+// ------------------------------------------------------------------
+
+// katherine_usb_inflight() reports through an out-parameter, so the checks
+// below read it through this.
+static uint32_t
+inflight(const katherine_transport_t *t)
+{
+    uint32_t n = 0;
+    KT_CHECK_EQ(katherine_usb_inflight(t, &n), KATHERINE_E_OK);
+
+    return n;
+}
+
+/* Opening fills the ring: every read is posted up front, which is what keeps
+ * the bus busy before the caller has asked for anything. */
+static void
+test_opening_posts_the_whole_ring(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(fake_usb_submitted(), RING);
+    KT_CHECK_EQ(inflight(&t), (uint32_t) RING);
+
+    katherine_transport_fini(&t);
+}
+
+/* A buffer that came back with data is lent out whole, and giving it back
+ * posts the read again -- which is what keeps the ring full. */
+static void
+test_a_returned_buffer_is_posted_again(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    const int submitted_at_open = fake_usb_submit_count();
+    KT_REQUIRE(fake_usb_complete_oldest(LIBUSB_TRANSFER_COMPLETED, 512) == 0);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
+    KT_CHECK_EQ(len, (size_t) 512);
+    KT_CHECK(buf != NULL);
+
+    // Lent, so one fewer is outstanding until it comes back.
+    KT_CHECK_EQ(inflight(&t), (uint32_t) (RING - 1));
+
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
+    KT_CHECK_EQ(inflight(&t), (uint32_t) RING);
+    KT_CHECK_EQ(fake_usb_submit_count(), submitted_at_open + 1);
+
+    katherine_transport_fini(&t);
+}
+
+/* The case that fails quietly: a read that comes back with nothing, which an
+ * idle readout produces once per timeout on every transfer in the ring. If
+ * those are not posted again the ring drains away and the stream never
+ * resumes -- so acquiring again must find the ring full, not empty. */
+static void
+test_an_empty_completion_does_not_shrink_the_ring(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    // Every transfer times out empty, as they would against an idle readout.
+    for (int i = 0; i < RING; ++i)
+        KT_REQUIRE(fake_usb_complete_oldest(LIBUSB_TRANSFER_TIMED_OUT, 0) == 0);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_TIMEOUT);
+
+    // The ring is whole again, so the next datum has somewhere to land.
+    KT_CHECK_EQ(inflight(&t), (uint32_t) RING);
+
+    // And it does: one more completion, with data this time, is delivered.
+    KT_REQUIRE(fake_usb_complete_oldest(LIBUSB_TRANSFER_COMPLETED, 64) == 0);
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
+    KT_CHECK_EQ(len, (size_t) 64);
+
+    katherine_transport_fini(&t);
+}
+
+/* A transfer that timed out with bytes in it carries measurement data like
+ * any other, and is lent rather than discarded. */
+static void
+test_a_short_timeout_still_carries_data(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_REQUIRE(fake_usb_complete_oldest(LIBUSB_TRANSFER_TIMED_OUT, 48) == 0);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
+    KT_CHECK_EQ(len, (size_t) 48);
+
+    katherine_transport_fini(&t);
+}
+
+/* Silence is a timeout rather than a zero-length buffer: a caller told it was
+ * lent nothing would decode whatever the buffer held last. */
+static void
+test_silence_times_out(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_TIMEOUT);
+
+    katherine_transport_fini(&t);
+}
+
+/* Returning something the transport never lent is refused: on a ring it would
+ * post a transfer that is already outstanding. */
+static void
+test_returning_a_foreign_buffer_is_refused(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    char elsewhere[8];
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, elsewhere), KATHERINE_E_INVAL);
+
+    katherine_transport_fini(&t);
+}
+
+/* Closing cancels what is outstanding and then waits for it: cancellation is
+ * a request, and freeing the ring before the transfers come back would free
+ * buffers libusb still owns. */
+static void
+test_closing_waits_for_every_transfer(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+    KT_REQUIRE(fake_usb_submitted() == RING);
+
+    katherine_transport_fini(&t);
+
+    KT_CHECK_EQ(fake_usb_submitted(), 0);
+}
+
+/* A readout that goes away fails every repost, and saying so beats waiting out
+ * the timeout to report silence. */
+static void
+test_a_failing_repost_is_reported(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_REQUIRE(fake_usb_complete_oldest(LIBUSB_TRANSFER_TIMED_OUT, 0) == 0);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    fake_usb_fail_next_submit(LIBUSB_ERROR_NO_DEVICE);
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_CLOSED);
+
+    katherine_transport_fini(&t);
+}
+
+/* The synchronous shape keeps one read at a time: it posts nothing on open and
+ * issues exactly one transfer per acquire, on the data endpoint. */
+static void
+test_the_synchronous_shape_reads_on_demand(void)
+{
+    fake_usb_reset();
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_SYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(fake_usb_submitted(), 0);
+    KT_CHECK_EQ(fake_usb_bulk_count(), 0);
+
+    fake_usb_set_bulk_result(LIBUSB_SUCCESS, 256);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
+    KT_CHECK_EQ(len, (size_t) 256);
+    KT_CHECK_EQ(fake_usb_bulk_count(), 1);
+    // The data endpoint is the library's constant, not a setting.
+    KT_CHECK_EQ(fake_usb_last_bulk_endpoint(), 0x81);
+
+    // Giving it back costs nothing, there being no ring to refill.
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
+    KT_CHECK_EQ(fake_usb_bulk_count(), 1);
+
+    katherine_transport_fini(&t);
+}
+
+/* A device that is not on the bus is reported as such, before any ring is
+ * built. */
+static void
+test_an_absent_device_is_reported(void)
+{
+    fake_usb_reset();
+    fake_usb_set_present(0);
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &config), KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(fake_usb_submitted(), 0);
+}
+
+/* A ring that cannot be posted at all leaves nothing outstanding: the open
+ * fails and unwinds what it built. */
+static void
+test_a_ring_that_cannot_be_posted_unwinds(void)
+{
+    fake_usb_reset();
+    fake_usb_fail_next_submit(LIBUSB_ERROR_NO_DEVICE);
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &config), KATHERINE_E_CLOSED);
+    KT_CHECK_EQ(fake_usb_submitted(), 0);
+}
+
+// ------------------------------------------------------------------
+
+int
+main(void)
+{
+    KT_RUN(test_opening_posts_the_whole_ring);
+    KT_RUN(test_a_returned_buffer_is_posted_again);
+    KT_RUN(test_an_empty_completion_does_not_shrink_the_ring);
+    KT_RUN(test_a_short_timeout_still_carries_data);
+    KT_RUN(test_silence_times_out);
+    KT_RUN(test_returning_a_foreign_buffer_is_refused);
+    KT_RUN(test_closing_waits_for_every_transfer);
+    KT_RUN(test_a_failing_repost_is_reported);
+    KT_RUN(test_the_synchronous_shape_reads_on_demand);
+    KT_RUN(test_an_absent_device_is_reported);
+    KT_RUN(test_a_ring_that_cannot_be_posted_unwinds);
+
+    return kt_summary();
+}
