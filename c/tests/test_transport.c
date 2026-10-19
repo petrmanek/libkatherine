@@ -9,6 +9,10 @@
  * must honour -- a lent buffer holds what arrived, it stays valid until it is
  * given back, and giving back something else is refused.
  *
+ * The USB cases run without a readout on the bus: they cover the arguments
+ * katherine_transport_init_usb() rejects before it ever looks for one, which is every
+ * path a caller can reach by misconfiguration rather than by missing hardware.
+ *
  * \author Petr Mánek
  * \date 14.10.26
  *
@@ -25,6 +29,10 @@
 #include <katherine/error.h>
 #include <katherine/transport.h>
 #include <katherine/udp.h>
+
+#ifdef KATHERINE_FEATURE_USB
+#include <katherine/usb.h>
+#endif
 
 #include "kports.h"
 #include "ktest.h"
@@ -297,6 +305,66 @@ test_the_os_error_comes_through(void)
     katherine_udp_fini(&receiver);
 }
 
+#ifdef KATHERINE_FEATURE_USB
+
+/* The geometry shipped is the one the reference implementation runs this
+ * readout at; a change to it should be deliberate enough to edit a test. */
+static void
+test_the_default_geometry_is_the_measured_one(void)
+{
+    const katherine_usb_config_t c = katherine_usb_config_default();
+
+    KT_CHECK_EQ(c.queue_len, 64u);
+    KT_CHECK_EQ(c.buffer_size, 48u * 1024u);
+    KT_CHECK_EQ(c.timeout_ms, 100u);
+    KT_CHECK_EQ(c.stream, KATHERINE_USB_STREAM_ASYNC);
+}
+
+/* Every argument error is reported before the bus is searched, so these hold
+ * with no readout attached. */
+static void
+test_a_misconfigured_open_is_refused(void)
+{
+    katherine_usb_config_t c = katherine_usb_config_default();
+    katherine_transport_t t;
+
+    KT_CHECK_EQ(katherine_transport_init_usb(NULL, &c), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, NULL), KATHERINE_E_INVAL);
+
+    c             = katherine_usb_config_default();
+    c.buffer_size = 0;
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &c), KATHERINE_E_INVAL);
+
+    /* A ring of no buffers can hold nothing, and would divide by zero when
+     * the completion callback indexed into it. */
+    c           = katherine_usb_config_default();
+    c.queue_len = 0;
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &c), KATHERINE_E_INVAL);
+}
+
+/* Both shapes are named, because a benchmark prints which one it ran. */
+static void
+test_both_shapes_are_named(void)
+{
+    KT_CHECK_STR_EQ(katherine_str_usb_stream(KATHERINE_USB_STREAM_SYNC), "sync");
+    KT_CHECK_STR_EQ(katherine_str_usb_stream(KATHERINE_USB_STREAM_ASYNC), "async");
+}
+
+/* Asked about a transport that is not one, the count answers rather than
+ * dereferences. */
+static void
+test_the_inflight_count_tolerates_nothing(void)
+{
+    uint32_t inflight = 1;
+    KT_CHECK_EQ(katherine_usb_inflight(NULL, &inflight), KATHERINE_E_INVAL);
+
+    katherine_transport_t empty;
+    memset(&empty, 0, sizeof(empty));
+    KT_CHECK_EQ(katherine_usb_inflight(&empty, &inflight), KATHERINE_E_INVAL);
+}
+
+#endif /* KATHERINE_FEATURE_USB */
+
 // ------------------------------------------------------------------
 
 int
@@ -313,6 +381,12 @@ main(void)
     KT_RUN(test_the_lock_round_trips);
     KT_RUN(test_the_os_error_comes_through);
 
+#ifdef KATHERINE_FEATURE_USB
+    KT_RUN(test_the_default_geometry_is_the_measured_one);
+    KT_RUN(test_a_misconfigured_open_is_refused);
+    KT_RUN(test_both_shapes_are_named);
+    KT_RUN(test_the_inflight_count_tolerates_nothing);
+#endif
 
     return kt_summary();
 }

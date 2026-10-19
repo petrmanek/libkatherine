@@ -28,6 +28,7 @@ set(KATHERINE_SOURCES
     "src/protocol/cmd_interface.h"
     "src/msleep.h"
     "src/monoclock.h"
+    "src/mutex.h"
     "src/protocol/md.h"
 )
 
@@ -66,11 +67,33 @@ if(KATHERINE_BUILD_EMULATOR)
     )
 endif()
 
+# The USB transport is optional: without libusb its source is not compiled
+# and its header is not installed.
+if(KATHERINE_BUILD_TRANSPORT_USB)
+    list(APPEND KATHERINE_SOURCES
+        "src/transport/usb_transport.c"
+    )
+    list(APPEND KATHERINE_HEADERS
+        "include/katherine/usb.h"
+    )
+endif()
+
 # Generated from version.h.in with the values from the project() call
 # above, so the version macros can never drift from CMakeLists.txt.
 set(KATHERINE_GENERATED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
 set(KATHERINE_VERSION_HEADER "${KATHERINE_GENERATED_INCLUDE_DIR}/katherine/version.h")
 configure_file(include/katherine/version.h.in "${KATHERINE_VERSION_HEADER}" @ONLY)
+
+# Likewise for the optional parts: a KATHERINE_FEATURE_* macro per
+# configure-time feature, so that a consumer sees the same declarations the
+# library was built with however it found the headers.
+#
+# #cmakedefine tests a variable of the macro's own name, so each feature is
+# named here rather than read from its KATHERINE_BUILD_* option directly.
+set(KATHERINE_FEATURE_USB ${KATHERINE_BUILD_TRANSPORT_USB})
+
+set(KATHERINE_FEATURES_HEADER "${KATHERINE_GENERATED_INCLUDE_DIR}/katherine/features.h")
+configure_file(include/katherine/features.h.in "${KATHERINE_FEATURES_HEADER}")
 
 # The project-wide documentation build in docs/ documents these files.
 set(KATHERINE_DOCUMENTED_FILES ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
@@ -83,6 +106,7 @@ list(TRANSFORM KATHERINE_DOCUMENTED_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/"
 # build directory is stripped from documented paths in docs/CMakeLists.txt,
 # which is what keeps it out of the output.
 list(APPEND KATHERINE_DOCUMENTED_FILES "${KATHERINE_VERSION_HEADER}")
+list(APPEND KATHERINE_DOCUMENTED_FILES "${KATHERINE_FEATURES_HEADER}")
 set(KATHERINE_DOCUMENTED_FILES "${KATHERINE_DOCUMENTED_FILES}" PARENT_SCOPE)
 
 add_library(katherine SHARED ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
@@ -117,6 +141,12 @@ if(WIN32 OR MINGW)
   target_link_libraries(katherine PRIVATE ws2_32)
 endif()
 
+if(KATHERINE_BUILD_TRANSPORT_USB)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBUSB REQUIRED IMPORTED_TARGET libusb-1.0)
+    target_link_libraries(katherine PRIVATE PkgConfig::LIBUSB)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)
 
 # On Windows the DLL is a RUNTIME artifact and the import library an ARCHIVE
@@ -127,7 +157,8 @@ install(TARGETS katherine
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${KATHERINE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
-install(FILES ${KATHERINE_VERSION_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
+install(FILES ${KATHERINE_VERSION_HEADER} ${KATHERINE_FEATURES_HEADER}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/katherine)
 # The .pc file records the architecture-dependent libdir, so it belongs in
 # the libdir pkgconfig directory rather than the shared-data one.
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/katherine.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)

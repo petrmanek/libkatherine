@@ -1,0 +1,35 @@
+/**
+ * \file
+ * \brief Optional parts this library was built with.
+ * \author Petr Mánek
+ * \date 19.10.26
+ *
+ * \copyright Copyright (c) 2018 Petr Mánek.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE".
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#pragma once
+
+/**
+ * \defgroup katherine_features Features
+ * \ingroup katherine_c_api
+ * \brief What the library was configured to include.
+ */
+
+/**
+ * \addtogroup katherine_features
+ * \{
+ */
+
+// Generated from features.h.in, so a header can tell what the library behind
+// it was built with. Every configure-time feature defines a
+// KATHERINE_FEATURE_* macro here rather than on the compiler's command line,
+// which is what lets a consumer reached through pkg-config, or through no
+// build system at all, see the same declarations the library has.
+
+/// Defined where the USB transport was built; see katherine_transport_init_usb().
+#cmakedefine KATHERINE_FEATURE_USB
+
+/** \} */

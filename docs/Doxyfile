@@ -2017,6 +2017,7 @@ INCLUDE_FILE_PATTERNS  =
 
 PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          KATHERINE_NIX \
+                         KATHERINE_FEATURE_USB \
                          KATHERINE_EXPORTED= \
                          KATHERINE1_DEPRECATED=
 
