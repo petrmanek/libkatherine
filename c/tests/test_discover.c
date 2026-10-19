@@ -193,6 +193,11 @@ test_a_one_readout_is_recorded_under_its_address(void)
     size_t count = 0;
     kthread_t thread;
 
+    if (!kports_available(REPLY_PORT, 1)) {
+        printf("# SKIP the reply port %d is taken\n", REPLY_PORT);
+        return;
+    }
+
     if (mocks_init(1) != 1) {
         printf("# SKIP cannot bind %s:%d\n", ADDRESS_A, READOUT_PORT);
         return;
@@ -233,6 +238,11 @@ test_a_one_readout_is_recorded_under_its_address(void)
 static void
 test_b_several_answers_are_told_apart(void)
 {
+    if (!kports_available(REPLY_PORT, 1)) {
+        printf("# SKIP the reply port %d is taken\n", REPLY_PORT);
+        return;
+    }
+
     katherine_discovered_t found[4];
     size_t count = 0;
     kthread_t thread;
@@ -287,6 +297,11 @@ test_b_several_answers_are_told_apart(void)
 static void
 test_c_finding_nothing_is_not_a_failure(void)
 {
+    if (!kports_available(REPLY_PORT, 1)) {
+        printf("# SKIP the reply port %d is taken\n", REPLY_PORT);
+        return;
+    }
+
     katherine_discovered_t found[2];
     size_t count = 7; /* poisoned, so a call that forgets to set it fails */
 
@@ -340,6 +355,11 @@ test_d_impossible_requests_are_refused(void)
 static void
 test_e_the_request_coming_back_is_not_a_readout(void)
 {
+    if (!kports_available(REPLY_PORT, 1)) {
+        printf("# SKIP the reply port %d is taken\n", REPLY_PORT);
+        return;
+    }
+
     katherine_discovered_t found[2];
     size_t count = 2;
 
@@ -372,6 +392,11 @@ test_g_an_address_without_a_scheme_still_works(void)
     katherine_discovered_t found[4];
     size_t count = 0;
     kthread_t thread;
+
+    if (!kports_available(REPLY_PORT, 1)) {
+        printf("# SKIP the reply port %d is taken\n", REPLY_PORT);
+        return;
+    }
 
     if (mocks_init(1) != 1) {
         printf("# SKIP cannot bind %s:%d\n", ADDRESS_A, READOUT_PORT);

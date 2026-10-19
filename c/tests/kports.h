@@ -27,11 +27,40 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
+#include <katherine/global.h>
+
+#ifdef KATHERINE_WIN
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
 /** Ports per block: enough for two client/mock pairs, which is the most any test uses. */
 #define KPORTS_BLOCK_SIZE    8
 
-/** First port of block n. High and uncommon, and well clear of the ephemeral range. */
-#define KPORTS_BLOCK(n)      (42600 + KPORTS_BLOCK_SIZE * (n))
+/**
+ * First port of block n.
+ *
+ * Below the ephemeral range rather than above it. The previous base, 42600,
+ * sat inside Linux's default net.ipv4.ip_local_port_range of 32768-60999, so
+ * the kernel could hand any of these ports to any program on the machine --
+ * and did: a browser held KPORTS_DISCOVER and test_discover failed as though
+ * the library were broken. 20223 is clear of /etc/services and twelve
+ * thousand ports clear of the ephemeral floor.
+ *
+ * No fixed port is collision-proof, which is what kports_available() below is
+ * for.
+ */
+#define KPORTS_BLOCK(n)      (20223 + KPORTS_BLOCK_SIZE * (n))
 
 #define KPORTS_CMD_ENCODERS  KPORTS_BLOCK(0)
 #define KPORTS_CMD_TRANSACT  KPORTS_BLOCK(1)
@@ -67,3 +96,58 @@ _Static_assert(KPORTS_BENCH_UDP >= KPORTS_UDP_PINNING + KPORTS_BLOCK_SIZE, "port
 _Static_assert(KPORTS_DISCOVER >= KPORTS_BENCH_UDP + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_TRANSPORT >= KPORTS_DISCOVER + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_FINI >= KPORTS_TRANSPORT + KPORTS_BLOCK_SIZE, "port blocks overlap");
+
+// True where every port of a block can be bound right now. A fixed port is
+// always somebody else's to take first, and a test that cannot have the one
+// it reserved has learned nothing about the library -- so it skips rather
+// than reporting a failure that is not there.
+//
+// The probe sockets are closed before returning, so this answers for the
+// moment it was asked and no longer. That is the same race every bind has,
+// and it turns a certain false failure into an unlikely one.
+static inline bool
+kports_available(uint16_t first, unsigned count)
+{
+#ifdef KATHERINE_WIN
+    // Winsock needs starting before a socket can be made.
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return false;
+#endif
+
+    bool available = true;
+
+    for (unsigned i = 0; i < count && available; ++i) {
+#ifdef KATHERINE_WIN
+        const SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sock == INVALID_SOCKET) break;
+#else
+        const int sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sock < 0) break;
+
+        // The library sets this, so the probe must too or it answers a
+        // different question than the one that will be asked.
+        int reuse = 1;
+        (void) setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+#endif
+
+        struct sockaddr_in addr;
+        memset(&addr, 0, sizeof(addr));
+        addr.sin_family      = AF_INET;
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr.sin_port        = htons((uint16_t) (first + i));
+
+        available = bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == 0;
+
+#ifdef KATHERINE_WIN
+        (void) closesocket(sock);
+#else
+        (void) close(sock);
+#endif
+    }
+
+#ifdef KATHERINE_WIN
+    (void) WSACleanup();
+#endif
+
+    return available;
+}
