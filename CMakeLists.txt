@@ -18,10 +18,17 @@ include(KatherineLibusb)
 
 # glibc hides clock_gettime() and friends under a strict standard without
 # this, and it must precede the first libc header, which only the command line
-# can guarantee. _DEFAULT_SOURCE keeps the extensions POSIX alone switches
-# off, SO_RXQ_OVFL among them.
+# can guarantee. Each platform's companion keeps the extensions POSIX alone
+# switches off: SO_RXQ_OVFL on glibc, MSG_DONTWAIT on Darwin, whose
+# sys/socket.h guards it on `!defined(_POSIX_C_SOURCE) ||
+# defined(_DARWIN_C_SOURCE)`.
 if(NOT WIN32)
-    add_compile_definitions(_POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
+    add_compile_definitions(_POSIX_C_SOURCE=200809L)
+    if(APPLE)
+        add_compile_definitions(_DARWIN_C_SOURCE)
+    else()
+        add_compile_definitions(_DEFAULT_SOURCE)
+    endif()
 endif()
 
 include(KatherineFeatures)
