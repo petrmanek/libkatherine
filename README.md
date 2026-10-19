@@ -301,6 +301,7 @@ in the development of this library:
  - Stephine Yearley, University of Alberta,
  - Paul Schütze, Deutsches Elektronen-Synchrotron (DESY),
  - Antonio Bartalesi, Freelance Automation Engineer.
+ - Tomáš Čelko, Institute of Experimental and Applied Physics CTU,
 
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
