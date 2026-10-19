@@ -26,17 +26,17 @@ static int n_found     = 0;
 static int n_attempted = 0;
 
 static void
-test_failed(const char *address)
+test_failed(const char *tried)
 {
-    (void) address;
+    (void) tried;
     // Ignored
 }
 
 static void
-test_succeeded(const char *address, const char *chip_id)
+test_succeeded(const char *found, const char *chip_id)
 {
     ++n_found;
-    printf("Found device: %s,\t chip id: %s\n", address, chip_id);
+    printf("Found device: %s,\t chip id: %s\n", found, chip_id);
 }
 
 static void
