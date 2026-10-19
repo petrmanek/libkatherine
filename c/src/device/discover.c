@@ -15,9 +15,11 @@
 // effect the first time any libc header pulls in <features.h> -- glibc
 // resolves POSIX visibility once for the whole translation unit and does not
 // revisit it. Harmless on Windows, whose headers do not gate on it.
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <string.h>
 #include <katherine/discover.h>

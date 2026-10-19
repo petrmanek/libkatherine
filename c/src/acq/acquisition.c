@@ -13,9 +13,11 @@
 // Must be the very first thing in the file, before any #include: monoclock.h
 // guards its clock_gettime() behind _POSIX_C_SOURCE, and that only has an
 // effect the first time any libc header pulls in <features.h>.
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
 #include <string.h>
@@ -275,7 +277,10 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
  *   to exceed the largest datagram the readout sends, which depends on the
  *   model; 65536 covers every model measured so far.
  * \param pixel_buffer_size Size of the pixel buffer in bytes
- * \param report_timeout Timeout for reporting incomplete pixel buffers (ms). Set zero to disable.
+ * \param report_timeout Silence after which a partly filled pixel buffer is
+ *   delivered (ms). Set zero to disable. Noticed in steps of the data link's
+ *   receive timeout, which bounds it from below -- see
+ *   katherine_acquisition_t::report_timeout.
  * \param fail_timeout Timeout for any device communication (ms). Set zero to disable.
  *
  * \retval KATHERINE_E_OK on success.

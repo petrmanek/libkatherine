@@ -221,7 +221,7 @@ typedef struct katherine_acquisition {
     uint64_t truncated_measurement_data;
 
     time_t acq_start_time; ///< Internal: when the acquisition began, as time() reports it.
-    int report_timeout;    ///< Milliseconds of silence from the readout after which a partly filled pixel buffer is delivered; zero disables.
+    int report_timeout;    ///< Milliseconds of silence from the readout after which a partly filled pixel buffer is delivered; zero disables. Tested only when a receive has timed out, so the readout's silence is noticed in steps of the data link's own receive timeout and never sooner than one; katherine_transport_set_timeout() is what shortens that step.
     int fail_timeout;      ///< Milliseconds allowed past the requested measurement's own duration before the acquisition is declared timed out; zero disables.
 
     katherine_acquisition_handlers_t handlers; ///< The callbacks; set them after katherine_acquisition_init() and before beginning.
