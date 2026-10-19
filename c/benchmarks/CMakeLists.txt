@@ -16,8 +16,13 @@ katherine_add_bench(NAME bench_decode SOURCES bench_decode.c)
 katherine_add_bench(NAME bench_udp SOURCES bench_udp.c)
 target_include_directories(bench_udp PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
-# B3: what a USB readout's read discipline is worth. Needs a readout on the
-# bus, so it is built only where the USB transport is, and is not run by CTest.
+# B3: what a USB readout's read discipline is worth. Built only where the USB
+# transport is, since it needs libusb to link.
+#
+# katherine_add_bench() registers every benchmark as a test, this one
+# included, so CTest does run it -- with no arguments, which lists the bus and
+# returns rather than measuring anything. Measuring needs a readout and an
+# address on the command line.
 if(KATHERINE_BUILD_TRANSPORT_USB)
     katherine_add_bench(NAME bench_usb SOURCES bench_usb.c)
     target_link_libraries(bench_usb PRIVATE katherine::libusb)
