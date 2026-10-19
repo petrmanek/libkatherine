@@ -10,12 +10,20 @@
  * SPDX-License-Identifier: MIT
  */
 
+// Must be the very first thing in the file, before any #include: monoclock.h
+// guards its clock_gettime() behind _POSIX_C_SOURCE, and that only has an
+// effect the first time any libc header pulls in <features.h>.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <katherine/global.h>
 #include <katherine/acquisition.h>
 #include <katherine/error.h>
 #include <katherine/toa.h>
+#include "monoclock.h"
 #include "protocol/cmd_interface.h"
 #include "protocol/md.h"
 
@@ -449,7 +457,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         int lock_res = katherine_transport_mutex_lock(&acq->device->data_transport); \
         if (lock_res != 0) return lock_res; \
 \
-        time_t last_data_received = time(NULL); \
+        uint64_t last_data_received = katherine_clock_monotonic_ns(); \
         double duration; \
         double kill_off_time = acq->fail_timeout <= 0 ? -1 : acq->requested_frames * acq->requested_frame_duration + (double) acq->fail_timeout / 1000.0; \
         int res; \
@@ -465,7 +473,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             res        = katherine_transport_acquire_data_buf(&acq->device->data_transport, &lent, &received); \
 \
             if (res) { \
-                duration = 1000 * difftime(time(NULL), last_data_received); \
+                duration = (double) (katherine_clock_monotonic_ns() - last_data_received) / 1000000.0; \
                 if (acq->report_timeout > 0 && duration > acq->report_timeout && acq->pixel_buffer_valid > 0) { \
                     flush_buffer(acq); \
                 } \
@@ -485,7 +493,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 continue; \
             } \
 \
-            last_data_received = time(NULL); \
+            last_data_received = katherine_clock_monotonic_ns(); \
 \
             /* A datagram that exactly fills the buffer may be intact, or may \
                have been longer on the wire and cut off exactly at the \
