@@ -65,10 +65,7 @@
  *   declared, or is one this version cannot drive: the acquisition time's
  *   encoding depends on the readout generation, which is then not known. See
  *   katherine_set_acq_time().
-  * \retval KATHERINE_E_BAD_CHIP if the configuration addresses a chip the
- *   readout does not carry; see katherine_device_info_t::chip_count, which
- *   is what a readout reports and not what it could hold.
-*/
+ */
 katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config)
 {
@@ -1576,6 +1573,9 @@ katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  */
 katherine_error_t
 katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)

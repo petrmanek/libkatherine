@@ -796,6 +796,9 @@ katherine_cmd_transact(katherine_transport_t *transport, const void *buffer, siz
  *   exchange; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the link had no memory for the exchange; see
  *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_change_udp_ports(katherine_transport_t *transport, uint16_t control, uint16_t data)

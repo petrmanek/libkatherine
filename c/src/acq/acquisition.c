@@ -915,10 +915,7 @@ err_unsupported:
  *   the first katherine_acquisition_read(), so a caller learns before the
  *   detector is made sensitive; katherine_configure() would refuse it anyway,
  *   on the acquisition time.
-  * \retval KATHERINE_E_BAD_CHIP if the configuration addresses a chip the
- *   readout does not carry; see katherine_device_info_t::chip_count, which
- *   is what a readout reports and not what it could hold.
-*/
+ */
 katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
 {

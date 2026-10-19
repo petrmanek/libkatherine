@@ -1068,7 +1068,7 @@ katherine_usb_config_default(void)
  *   for the libusb code behind it.
  * \retval KATHERINE_E_IO if the device could not be opened or its interface
  *   claimed; see katherine_transport_last_os_error().
-  * \note Unreachable here: KATHERINE_E_TIMEOUT. The three calls in this
+ * \note Unreachable here: KATHERINE_E_TIMEOUT. The three calls in this
  *   function that reach the error mapper are libusb_init_context(),
  *   libusb_claim_interface() and libusb_submit_transfer(), and none of
  *   them returns LIBUSB_ERROR_TIMEOUT. The code is reachable through the
