@@ -65,6 +65,9 @@ katherine_tdc_source_str(katherine_tdc_source_t source)
  *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
  *   control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
@@ -182,6 +185,9 @@ err_enumerated:
  *   declared, so its generation is unknown.
  * \retval KATHERINE_E_TIMEOUT if the readout stopped answering partway
  *   through the sequence, or did not start.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if an answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving
  *   until the discard budget ran out.

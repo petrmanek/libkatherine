@@ -894,6 +894,9 @@ err_unsupported:
  *   configuration commands within the control link's receive timeout. Sending
  *   stops at the first such failure, so the device is left partly configured
  *   and not measuring.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a configuration command was answered by a
  *   response that was not exactly the fixed size the protocol defines.
  * \retval KATHERINE_E_STRAY if non-correlating responses kept arriving on the
@@ -912,7 +915,10 @@ err_unsupported:
  *   the first katherine_acquisition_read(), so a caller learns before the
  *   detector is made sensitive; katherine_configure() would refuse it anyway,
  *   on the acquisition time.
- */
+  * \retval KATHERINE_E_BAD_CHIP if the configuration addresses a chip the
+ *   readout does not carry; see katherine_device_info_t::chip_count, which
+ *   is what a readout reports and not what it could hold.
+*/
 katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
 {
@@ -1024,6 +1030,9 @@ err:
  *   for lack of a non-memory system resource -- never because the readout
  *   stayed silent, since this command carries no acknowledgement to wait for;
  *   see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
  *   katherine_transport_last_os_error().
@@ -1080,6 +1089,9 @@ err:
  *   for lack of a non-memory system resource -- never because the readout
  *   stayed silent, since this command carries no acknowledgement to wait for;
  *   see katherine_transport_last_os_error().
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
  *   katherine_transport_last_os_error().

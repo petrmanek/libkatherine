@@ -43,6 +43,9 @@
  *   pixel-matrix upload and the test-pulse command wait longer than that, see
  *   katherine_tpx3_set_all_pixel_config() and
  *   katherine_tpx3_set_test_pulses().
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
@@ -62,7 +65,10 @@
  *   declared, or is one this version cannot drive: the acquisition time's
  *   encoding depends on the readout generation, which is then not known. See
  *   katherine_set_acq_time().
- */
+  * \retval KATHERINE_E_BAD_CHIP if the configuration addresses a chip the
+ *   readout does not carry; see katherine_device_info_t::chip_count, which
+ *   is what a readout reports and not what it could hold.
+*/
 katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config)
 {
@@ -204,6 +210,9 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  *   uploads, each of which waits about a second for it, or if it did not
  *   acknowledge one of the two matrix commands that follow within the control
  *   link's receive timeout -- those two are sent once and not retried.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
@@ -338,6 +347,9 @@ err:
  * \retval KATHERINE_E_OK on success, once both halves have been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   two halves within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if either half could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
  *   codes cover; see katherine_transport_last_os_error().
@@ -403,6 +415,9 @@ err:
  * \retval KATHERINE_E_OK on success, once the command has been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
  *   within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if the command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
  *   codes cover; see katherine_transport_last_os_error().
@@ -460,6 +475,9 @@ err:
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
  *   control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if a command could not be sent, or its
  *   acknowledgement could not be received, for a reason none of the other
  *   codes cover; see katherine_transport_last_os_error().
@@ -532,6 +550,9 @@ err_unsupported:
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
  *   within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
@@ -580,6 +601,9 @@ err:
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the mode
  *   command, or the sensor-register flush that carries it to the chip, within
  *   the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
@@ -648,6 +672,9 @@ err:
  *   bias setting.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the bias
  *   setting within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -700,6 +727,9 @@ err:
  *   frame count.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the frame
  *   count within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -760,6 +790,9 @@ err:
  * \retval KATHERINE_E_TIMEOUT if taking the control link's lock reported
  *   EAGAIN or ETIMEDOUT; see katherine_transport_last_os_error(). No receive
  *   timeout is involved, since this command is not acknowledged.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken for
  *   any other reason; see katherine_transport_last_os_error().
  */
@@ -795,6 +828,9 @@ err:
  *   trigger setup.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the trigger
  *   setup within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -900,6 +936,9 @@ err_enumerated:
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
  *   within roughly five seconds -- fifty receives of the control link's
  *   timeout, spent waiting out the second the readout takes to apply it.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -988,6 +1027,9 @@ err:
  *   write into its register image.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the write
  *   within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -1045,6 +1087,9 @@ err:
  *   flush.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the flush
  *   within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -1093,6 +1138,9 @@ err:
  *   hardware command.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the hardware
  *   command within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -1139,6 +1187,9 @@ err:
  *   hardware command.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the hardware
  *   command within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while the
@@ -1197,6 +1248,9 @@ err:
  *   command have been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   writes, or the update command, within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response arrived whose length is not that
  *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
@@ -1606,6 +1660,9 @@ err_enumerated:
  *   not what it could hold.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
  *   link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.

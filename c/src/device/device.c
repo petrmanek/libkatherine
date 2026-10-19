@@ -149,6 +149,9 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * \retval KATHERINE_E_INVAL if the send or the lock rejected an argument; see
  *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
  *   of the other codes cover; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory.
@@ -280,6 +283,9 @@ restore_standard_ports(katherine_device_t *device)
  *   the readout which interface drives it would have blocked; see
  *   pthread_mutex_init(3) and katherine_udp_last_os_error() for the mutex, and
  *   katherine_transport_last_os_error() for the command.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \note Unreachable here: KATHERINE_E_STATE.
  *   katherine_device_select_interface() returns it, but this call makes it
  *   only on a readout already known to be supported and of the second
@@ -533,6 +539,9 @@ err_info_null:
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
  *   link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the status reply was not exactly the fixed
  *   response size the protocol defines.
  * \retval KATHERINE_E_STRAY if non-correlating datagrams kept arriving until

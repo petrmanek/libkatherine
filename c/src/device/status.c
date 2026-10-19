@@ -29,6 +29,9 @@
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer the status request
  *   within the control link's receive timeout, or if datagrams from other
  *   hosts kept arriving until the pinned session's discard budget ran out.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -90,6 +93,9 @@ err:
  *   status request within the control link's receive timeout, or if datagrams
  *   from other hosts kept arriving until the pinned session's discard budget
  *   ran out.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -171,6 +177,9 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
  *   identifier request within the control link's receive timeout, or if
  *   datagrams from other hosts kept arriving until the pinned session's
  *   discard budget ran out.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -254,6 +263,9 @@ err:
  *   request within the control link's receive timeout, or if datagrams from
  *   other hosts kept arriving until the pinned session's discard budget ran
  *   out.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -326,6 +338,9 @@ err:
  *   request within the control link's receive timeout, or if datagrams from
  *   other hosts kept arriving until the pinned session's discard budget ran
  *   out.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -402,6 +417,9 @@ err_busy:
  * \retval KATHERINE_E_TIMEOUT if none of the hundred attempts saw an answer
  *   within the control link's receive timeout, or if datagrams from other
  *   hosts kept arriving until the pinned session's discard budget ran out.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -467,6 +485,9 @@ err:
  *   request within the control link's receive timeout, or if datagrams from
  *   other hosts kept arriving until the pinned session's discard budget ran
  *   out.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -523,6 +544,9 @@ err:
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
  *   link's receive timeout, or strays exhausted the discard budget.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
@@ -601,6 +625,9 @@ err_enumerated:
  *   link's receive timeout, which is also what a measurement in flight
  *   produces: the operation code is absent from the Gen2 firmware's mid-
  *   acquisition dispatcher.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
@@ -702,6 +729,9 @@ err_enumerated:
  *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
  *   link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
@@ -794,6 +824,9 @@ err_unsupported:
  *   not what it could hold.
  * \retval KATHERINE_E_TIMEOUT if the readout stopped answering partway through
  *   the sequence, or did not start.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if an answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out, or if the session is in strict acknowledgement

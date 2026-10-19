@@ -92,6 +92,9 @@ katherine_pulse_source_str(katherine_pulse_source_t source)
  *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge a write
  *   within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while
@@ -249,6 +252,9 @@ err_enumerated:
  *   whose firmware does not carry this operation code.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer a read within the
  *   control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if an answer never arrived while responses to
@@ -327,6 +333,9 @@ err_enumerated:
  *   whose firmware does not carry this operation code.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the write
  *   within the control link's receive timeout.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if an answer never arrived while responses to
