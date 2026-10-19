@@ -185,16 +185,8 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 KATHERINE_EXPORTED void
 katherine_device_fini(katherine_device_t *device);
 
-/**
- * Physical interface over which a readout is driven.
- */
-typedef enum katherine_interface {
-    KATHERINE_INTERFACE_UNKNOWN  = 0, ///< Invalid value
-    KATHERINE_INTERFACE_ETHERNET = 1, ///< Ethernet, the only interface this library speaks today
-} katherine_interface_t;
-
 KATHERINE_EXPORTED katherine_error_t
-katherine_device_select_interface(katherine_device_t *device, katherine_interface_t iface);
+katherine_device_select_interface(katherine_device_t *device);
 
 KATHERINE_EXPORTED bool
 katherine_device_can_correct_timestamp_phase(const katherine_device_t *device);

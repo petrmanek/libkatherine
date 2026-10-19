@@ -157,12 +157,19 @@ test_a_the_second_generation_is_told_which_interface(void)
     KT_CHECK_EQ(payload, 0u);
 }
 
-// b) The first generation is not: its dispatcher has no such command and
-// would drop the datagram without a reply.
+// b) So is the first generation, which has no such command and drops the
+// datagram. Opening does not know the generation when it sends this and does
+// not need to: in both first-generation firmwares the dispatcher sends opcode
+// 0x50 to the same do-nothing exit as any unknown opcode, restoring the stack
+// and returning without a reply. Read out of the binaries.
+//
+// Asking first would cost what asking is meant to save -- every exchange
+// before the selection runs about 69 ms against a 100 ms budget, and about
+// 0.14 ms after it.
 static void
-test_b_the_first_generation_is_left_alone(void)
+test_b_the_first_generation_is_told_too_and_discards_it(void)
 {
-    KT_CHECK_EQ(selections_during_session(HW_TYPE_GEN1, 0, NULL, NULL, NULL), 0);
+    KT_CHECK_EQ(selections_during_session(HW_TYPE_GEN1, 0, NULL, NULL, NULL), 1);
 }
 
 // c) And a caller that says not to, is obeyed.
@@ -172,30 +179,20 @@ test_c_the_flag_suppresses_it(void)
     KT_CHECK_EQ(selections_during_session(HW_TYPE_GEN2, KATHERINE_DEVICE_DONT_SELECT_INTERFACE, NULL, NULL, NULL), 0);
 }
 
-// d) Suppressing the probe suppresses this too: without it the generation is
-// unknown, and the question is generation-dependent.
+// d) And suppressing the probe does not suppress this, the two having stopped
+// being related: the selection is sent before the probe and without reference
+// to what it would find. KATHERINE_DEVICE_DONT_SELECT_INTERFACE is the only
+// thing that holds it back.
 static void
-test_d_an_unprobed_readout_is_not_told(void)
+test_d_an_unprobed_readout_is_told_anyway(void)
 {
-    KT_CHECK_EQ(selections_during_session(HW_TYPE_GEN2, KATHERINE_DEVICE_DONT_ENUMERATE, NULL, NULL, NULL), 0);
+    KT_CHECK_EQ(selections_during_session(HW_TYPE_GEN2, KATHERINE_DEVICE_DONT_ENUMERATE, NULL, NULL, NULL), 1);
 }
 
 static katherine_error_t
-select_ethernet(katherine_device_t *device)
+select_the_link(katherine_device_t *device)
 {
-    return katherine_device_select_interface(device, KATHERINE_INTERFACE_ETHERNET);
-}
-
-static katherine_error_t
-select_past_the_end(katherine_device_t *device)
-{
-    return katherine_device_select_interface(device, (katherine_interface_t) 99);
-}
-
-static katherine_error_t
-select_unknown(katherine_device_t *device)
-{
-    return katherine_device_select_interface(device, KATHERINE_INTERFACE_UNKNOWN);
+    return katherine_device_select_interface(device);
 }
 
 // e) A caller that suppressed the step at open can take it itself, and gets
@@ -206,30 +203,11 @@ test_e_a_caller_can_select_the_interface_itself(void)
     katherine_error_t res = KATHERINE_E_STATE; // any non-OK: unset if after_open never ran
     uint32_t payload      = 0xFFFFFFFFu;
 
-    KT_CHECK_EQ(
-        selections_during_session(HW_TYPE_GEN2, KATHERINE_DEVICE_DONT_SELECT_INTERFACE, &payload, select_ethernet, &res),
+    KT_CHECK_EQ(selections_during_session(
+                    HW_TYPE_GEN2, KATHERINE_DEVICE_DONT_SELECT_INTERFACE, &payload, select_the_link, &res),
         1);
     KT_CHECK_EQ(res, KATHERINE_E_OK);
     KT_CHECK_EQ(payload, 0u);
-}
-
-// f) An interface this library cannot select is refused before anything
-// reaches the readout. Both ends of the range: past the last interface, and
-// the zero that means none, which indexes the table's unused first slot.
-static void
-test_f_an_unknown_interface_is_refused(void)
-{
-    katherine_error_t past = KATHERINE_E_OK, unknown = KATHERINE_E_OK;
-
-    KT_CHECK_EQ(selections_during_session(HW_TYPE_GEN2, KATHERINE_DEVICE_DONT_SELECT_INTERFACE, NULL,
-                    select_past_the_end, &past),
-        0);
-    KT_CHECK_EQ(past, KATHERINE_E_INVAL);
-
-    KT_CHECK_EQ(
-        selections_during_session(HW_TYPE_GEN2, KATHERINE_DEVICE_DONT_SELECT_INTERFACE, NULL, select_unknown, &unknown),
-        0);
-    KT_CHECK_EQ(unknown, KATHERINE_E_INVAL);
 }
 
 int
@@ -243,11 +221,10 @@ main(void)
     }
 
     KT_RUN(test_a_the_second_generation_is_told_which_interface);
-    KT_RUN(test_b_the_first_generation_is_left_alone);
+    KT_RUN(test_b_the_first_generation_is_told_too_and_discards_it);
     KT_RUN(test_c_the_flag_suppresses_it);
-    KT_RUN(test_d_an_unprobed_readout_is_not_told);
+    KT_RUN(test_d_an_unprobed_readout_is_told_anyway);
     KT_RUN(test_e_a_caller_can_select_the_interface_itself);
-    KT_RUN(test_f_an_unknown_interface_is_refused);
 
     katherine_udp_fini(&g_mock);
     return kt_summary();

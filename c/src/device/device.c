@@ -119,37 +119,34 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
     return unknown;
 }
 
-
 /**
- * Pin the readout to a single physical interface.
+ * Pin the readout to the link that is driving it.
  *
- * A readout that has not been told which interface drives it polls them all,
- * which adds latency to every command it answers. The choice made here
- * spares it that for the rest of its runtime, holding until it is restarted.
+ * A readout that has not been told polls every interface it has, which adds
+ * latency to every command it answers -- about 69 ms against 0.14 ms on a
+ * second-generation readout. The choice holds until it is restarted.
+ *
+ * Which link to name is not a question for the caller: it is the one this
+ * device was opened over.
  *
  * katherine_device_init() does this at open, so there is normally nothing to
- * call: it is for a caller that suppressed that step.
+ * call. It is for a caller that passed KATHERINE_DEVICE_DONT_SELECT_INTERFACE
+ * and wants it later.
  *
- * Second generation only. The first generation's dispatcher has no such
- * command and drops it without a reply, so the send would succeed and select
- * nothing; it is refused here rather than reported as done.
- *
- * \note The parameter is named `iface` because the Windows COM headers define
- *   `interface` as a macro.
+ * Safe on a readout that has no such command. Both first-generation firmwares
+ * send the opcode to the same do-nothing exit as any unknown one, so the send
+ * succeeds and selects nothing.
  *
  * \see katherine_device_init
  * \see KATHERINE_DEVICE_DONT_SELECT_INTERFACE
  *
  * \param device Katherine device
- * \param iface Physical interface the readout should serve
  *
- * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared, so its generation is unknown.
- * \retval KATHERINE_E_UNSUPPORTED if the readout is of the first generation,
- *   which has no interface-selection command.
- * \retval KATHERINE_E_INVAL if \p iface is not an interface this library can
- *   select, or if the send or the lock rejected an argument; see
+ * \retval KATHERINE_E_OK on success. The command is unacknowledged, so this
+ *   says the datagram left, not that the readout acted on it.
+ * \retval KATHERINE_E_UNSUPPORTED if the link this device was opened over has
+ *   no encoding the readout would recognize.
+ * \retval KATHERINE_E_INVAL if the send or the lock rejected an argument; see
  *   katherine_transport_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked.
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
@@ -159,36 +156,30 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  *   see katherine_transport_last_os_error().
  */
 katherine_error_t
-katherine_device_select_interface(katherine_device_t *device, katherine_interface_t iface)
+katherine_device_select_interface(katherine_device_t *device)
 {
-    // What the readout reads for each interface, in its own encoding.
+    // What the readout reads for each link, in its own encoding. A kind with no
+    // entry here is one whose byte is not known yet.
     static const uint8_t INTERFACE_BYTE[] = {
-        [KATHERINE_INTERFACE_ETHERNET] = 0,
+        [KATHERINE_TRANSPORT_UDP] = 0,
+        [KATHERINE_TRANSPORT_USB] = 1,
     };
 
-    const size_t n = sizeof(INTERFACE_BYTE) / sizeof(INTERFACE_BYTE[0]);
+    const size_t n                        = sizeof(INTERFACE_BYTE) / sizeof(INTERFACE_BYTE[0]);
+    const katherine_transport_kind_t kind = device->control_transport.kind;
 
     katherine_error_t res;
 
-    if (!device->derived_info.supported) {
-        res = KATHERINE_E_STATE;
-        goto err_enumerated;
-    }
-    // Not implemented on Gen1.
-    if (device->derived_info.gen < 2) {
+    if ((size_t) kind >= n) {
         res = KATHERINE_E_UNSUPPORTED;
-        goto err_generation;
-    }
-    if (iface <= KATHERINE_INTERFACE_UNKNOWN || (size_t) iface >= n) {
-        res = KATHERINE_E_INVAL;
-        goto err_iface;
+        goto err_kind;
     }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     // Unacknowledged, so nothing waits for a reply.
-    res = katherine_cmd_send60(&device->control_transport, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[iface]);
+    res = katherine_cmd_send60(&device->control_transport, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[kind]);
     if (res) goto err_send;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -197,9 +188,7 @@ katherine_device_select_interface(katherine_device_t *device, katherine_interfac
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
-err_iface:
-err_generation:
-err_enumerated:
+err_kind:
     return res;
 }
 
@@ -399,28 +388,27 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // Optional initial setup:
     // 1. Change ports if supported and not inhibited by flags
     if (should_change_ports) {
-        if ((res = claim_private_ports(device)) != KATHERINE_E_OK) goto err_ports;
+        if ((res = claim_private_ports(device)) != KATHERINE_E_OK) {
+            goto err_ports;
+        }
 
         device->udp_ports_changed = true;
     }
 
-    // 2. Discover device capabilities if not inhibited by flags
+    // 2. Gen2 answers orders of magnitude faster once it has been told which
+    //    interface drives it, so this goes before anything that waits.
+    if ((flags & KATHERINE_DEVICE_DONT_SELECT_INTERFACE) == 0) {
+        if ((res = katherine_device_select_interface(device)) != KATHERINE_E_OK) {
+            goto err_select;
+        }
+    }
+
+    // 3. Discover device capabilities if not inhibited by flags
     if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
         (void) katherine_device_enumerate(device);
 
         // Propagate the result of the legacy check into the device info.
         device->info.legacy = legacy;
-    }
-
-    // 3. Gen2 requires a command to select UDP or USB interface, send it if not inhibited by flags
-    // TODO: a USB interface will need the other value of this command, sent
-    //   over whichever interface is live when it is sent.
-    // TODO: harmonize katherine_interface_t and katherine_transport_kind_t
-    if ((flags & KATHERINE_DEVICE_DONT_SELECT_INTERFACE) == 0
-        && device->derived_info.supported && device->derived_info.gen >= 2) {
-        if ((res = katherine_device_select_interface(device, KATHERINE_INTERFACE_ETHERNET)) != KATHERINE_E_OK) {
-            goto err_select;
-        }
     }
 
     return KATHERINE_E_OK;
@@ -573,8 +561,6 @@ katherine_device_enumerate(katherine_device_t *device)
     if ((res = katherine_get_comm_status(device, &comm)) != KATHERINE_E_OK) {
         goto err_comm_status;
     }
-
-    // TODO: probe capability to redirect ports
 
     // Collect all information
     const katherine_device_info_t info = {
