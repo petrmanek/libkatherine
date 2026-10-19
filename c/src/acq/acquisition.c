@@ -23,6 +23,7 @@
 #include <katherine/acquisition.h>
 #include <katherine/error.h>
 #include <katherine/toa.h>
+#include "atomic.h"
 #include "monoclock.h"
 #include "protocol/cmd_interface.h"
 #include "protocol/md.h"
@@ -153,7 +154,7 @@ handle_aborted_measurement(katherine_acquisition_t *acq, const uint64_t *data)
 {
     (void) data;
 
-    acq->aborted = true;
+    katherine_atomic_store_bool(&acq->aborted, true);
 }
 
 static inline void
@@ -300,10 +301,10 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
 
     katherine_error_t res;
 
-    acq->device       = device;
-    acq->user_ctx     = ctx;
-    acq->state        = KATHERINE_ACQUISITION_STATE_NOT_STARTED;
-    acq->aborted      = false;
+    acq->device   = device;
+    acq->user_ctx = ctx;
+    acq->state    = KATHERINE_ACQUISITION_STATE_NOT_STARTED;
+    katherine_atomic_store_bool(&acq->aborted, false);
     acq->frame_active = false;
 
     acq->truncated_measurement_data = 0;
@@ -487,7 +488,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                    dried up, whether or not the data are decoded. The flag \
                    is raised by katherine_acquisition_abort() and by the \
                    aborted measurement datum alike. */ \
-                if (acq->aborted) { \
+                if (katherine_atomic_load_bool(&acq->aborted)) { \
                     acq->state = KATHERINE_ACQUISITION_STATE_SUCCEEDED; \
                 } \
                 continue; \
@@ -1109,7 +1110,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
 
-    acq->aborted = true;
+    katherine_atomic_store_bool(&acq->aborted, true);
     return KATHERINE_E_OK;
 
 err:

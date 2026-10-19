@@ -157,7 +157,7 @@ typedef struct katherine_acquisition {
     void *user_ctx;             ///< The caller's context, handed back to every handler untouched.
 
     katherine_acquisition_state_t state; ///< Where the acquisition has got to.
-    bool aborted;                        ///< Internal: true once an abort has been requested, which is how the read loop tells a dried-up stream from a lost one.
+    bool aborted;                        ///< Internal: true once an abort has been requested, which is how the read loop tells a dried-up stream from a lost one. Read and written atomically by the library, katherine_acquisition_abort() being callable from another thread than the one reading.
 
     // PINNED for the ASIC work (Petr, 2026-09-04): nothing in an acquisition
     // should be chip-type aware, and these two are Timepix3's. They belong in

@@ -73,6 +73,7 @@
 #include <katherine/katherine.h>
 
 #include "kspawn.h"
+#include "kthread.h"
 #include "ktest.h"
 #include "msleep.h"
 
@@ -720,6 +721,63 @@ test_abort_decoded(void)
 }
 
 // ------------------------------------------------------------------
+// d2) The same abort, requested from another thread. The two cases above
+// abort from inside a handler and so run on the reading thread; this is
+// the only one where the flag crosses a thread boundary, which is how a
+// caller with a user interface actually aborts.
+
+static void *
+abort_once_the_loop_is_running(void *arg)
+{
+    katherine_acquisition_t *acq = (katherine_acquisition_t *) arg;
+
+    katherine_msleep(20);
+    (void) katherine_acquisition_abort(acq);
+    return NULL;
+}
+
+static void
+test_abort_from_another_thread(void)
+{
+    katherine_acquisition_t acq;
+    acq_probe_t probe;
+    katherine_config_t config;
+    kthread_t aborter;
+
+    memset(&acq, 0, sizeof(acq));
+    memset(&probe, 0, sizeof(probe));
+    probe.acq         = &acq;
+    probe.frame_ticks = (uint32_t) (LONG_ACQ_TIME_NS / TICK_NS);
+
+    configure(&config, LONG_ACQ_TIME_NS, 1);
+
+    KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE,
+                   PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
+        == 0);
+
+    acq.handlers.frame_started   = on_frame_started;
+    acq.handlers.frame_ended     = on_frame_ended;
+    acq.handlers.pixels_received = on_pixels_received;
+    acq.handlers.data_received   = on_data_received;
+
+    KT_REQUIRE(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_DATA_DRIVEN,
+                   KATHERINE_TPX3_PX_TOA_TOT, true, true)
+        == 0);
+
+    // Started before the blocking read below, so the abort lands while the
+    // loop is turning rather than before it or after it.
+    KT_REQUIRE(kthread_start(&aborter, abort_once_the_loop_is_running, &acq) == 0);
+
+    KT_CHECK_EQ(katherine_acquisition_read(&acq), 0);
+    KT_CHECK_EQ(kthread_join(&aborter), 0);
+
+    KT_CHECK(acq.aborted);
+    KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
+
+    katherine_acquisition_fini(&acq);
+}
+
+// ------------------------------------------------------------------
 // e) Timeout path. Runs after the shared device has been finalized and
 // the daemon stopped, so this device has the local ports to itself and
 // no late response from the emulated readout can be mistaken for one.
@@ -985,6 +1043,7 @@ main(int argc, char *argv[])
     KT_RUN(test_sequential_frames);
     KT_RUN(test_abort_undecoded);
     KT_RUN(test_abort_decoded);
+    KT_RUN(test_abort_from_another_thread);
     KT_RUN(test_phase_request_resolution);
 
     katherine_device_fini(&g_device);
