@@ -141,7 +141,9 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
                        SOURCES test_usb_ring.c
                                fake_libusb/fake_libusb.c
                                ../src/transport/usb_transport.c
-                       LABELS unit)
+                               ../src/transport/transport.c
+                       LABELS unit
+                       STANDALONE)
     target_include_directories(test_usb_ring BEFORE PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
 
@@ -151,7 +153,9 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
                        SOURCES test_usb_address.c
                                fake_libusb/fake_libusb.c
                                ../src/transport/usb_transport.c
-                       LABELS unit)
+                               ../src/transport/transport.c
+                       LABELS unit
+                       STANDALONE)
     target_include_directories(test_usb_address BEFORE PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
 endif()

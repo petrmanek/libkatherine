@@ -52,7 +52,7 @@ find_library(KATHERINE_LIBM m)
 mark_as_advanced(KATHERINE_LIBM)
 
 function(katherine_add_test)
-    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "NAME" "SOURCES;ARGS;LABELS;LIBRARIES;PROPERTIES")
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "STANDALONE" "NAME" "SOURCES;ARGS;LABELS;LIBRARIES;PROPERTIES")
     if(NOT ARG_NAME)
         message(FATAL_ERROR "katherine_add_test: NAME is required")
     endif()
@@ -70,7 +70,20 @@ function(katherine_add_test)
     endforeach()
 
     add_executable(${ARG_NAME} ${ARG_SOURCES})
-    target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private Threads::Threads)
+    # STANDALONE builds the library sources it names into itself instead of
+    # linking them: a test that substitutes a dependency has to, and linking
+    # the library as well would define every one of those symbols twice.
+    if(ARG_STANDALONE)
+        target_link_libraries(${ARG_NAME} PRIVATE katherine_private Threads::Threads)
+        # The public headers without the library behind them, and the export
+        # macro set as the library sets it: KATHERINE_EXPORTED otherwise
+        # declares as dllimport what this target defines itself.
+        target_include_directories(${ARG_NAME} PRIVATE
+            $<TARGET_PROPERTY:katherine,INTERFACE_INCLUDE_DIRECTORIES>)
+        target_compile_definitions(${ARG_NAME} PRIVATE katherine_EXPORTS)
+    else()
+        target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private Threads::Threads)
+    endif()
     # ktest.h's floating-point comparisons call nextafter(), which glibc keeps
     # in a separate libm. Elsewhere -- MSVC among them -- the maths functions
     # live in the C runtime and there is no such library to find.
