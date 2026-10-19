@@ -21,6 +21,18 @@
 // with, so this is a build failure there and nowhere else.
 #include "monoclock.h"
 
+// struct timeval, which libusb's event calls take. libusb.h pulls in
+// <sys/time.h> for it everywhere except MSVC, where it leaves the definition
+// to the caller -- so on Windows it has to come from Winsock, and ahead of
+// libusb.h. Lean, for the reason monoclock.h gives: <windows.h> otherwise
+// drags in Winsock 1, which redefines what winsock2.h declares.
+#ifdef KATHERINE_WIN
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#endif
+
 #include <errno.h>
 #include <libusb.h>
 #include <stdlib.h>

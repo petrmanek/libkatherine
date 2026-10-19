@@ -68,12 +68,11 @@ function(_katherine_feature_default name fallback out_var)
             endif()
         endif()
     elseif(name STREQUAL "BUILD_TRANSPORT_USB")
-        find_package(PkgConfig QUIET)
-        if(PkgConfig_FOUND)
-            pkg_check_modules(LIBUSB QUIET libusb-1.0)
-            if(LIBUSB_FOUND)
-                set(default ON)
-            endif()
+        # The same lookup the build uses, so a host where libusb is findable
+        # only through LIBUSB_ROOT still detects as ON.
+        katherine_find_libusb(found)
+        if(found)
+            set(default ON)
         endif()
     else()
         message(FATAL_ERROR "katherine_declare_feature(${name}): declared "

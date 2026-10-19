@@ -14,6 +14,7 @@ project(katherine VERSION 2.0.0 LANGUAGES C)
 set(KATHERINE_VERSION_SUFFIX "-dev")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(KatherineLibusb)
 include(KatherineFeatures)
 include(KatherineWarnings)
 

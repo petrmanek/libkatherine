@@ -20,7 +20,5 @@ target_include_directories(bench_udp PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tes
 # bus, so it is built only where the USB transport is, and is not run by CTest.
 if(KATHERINE_BUILD_TRANSPORT_USB)
     katherine_add_bench(NAME bench_usb SOURCES bench_usb.c)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBUSB REQUIRED IMPORTED_TARGET libusb-1.0)
-    target_link_libraries(bench_usb PRIVATE PkgConfig::LIBUSB)
+    target_link_libraries(bench_usb PRIVATE katherine::libusb)
 endif()

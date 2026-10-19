@@ -140,9 +140,12 @@ if(WIN32 OR MINGW)
 endif()
 
 if(KATHERINE_BUILD_TRANSPORT_USB)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBUSB REQUIRED IMPORTED_TARGET libusb-1.0)
-    target_link_libraries(katherine PRIVATE PkgConfig::LIBUSB)
+    katherine_find_libusb(found)
+    if(NOT found)
+        message(FATAL_ERROR "KATHERINE_BUILD_TRANSPORT_USB is ON but libusb-1.0 "
+                            "was not found; set LIBUSB_ROOT to point at it")
+    endif()
+    target_link_libraries(katherine PRIVATE katherine::libusb)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)

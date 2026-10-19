@@ -24,7 +24,27 @@
 
 #include <stddef.h>
 #include <stdint.h>
+
+/* struct timeval, the way the real libusb.h reaches it: <sys/time.h>
+ * everywhere except MSVC, which has no such header and keeps the definition
+ * in Winsock. A stand-in that got this wrong would stop the suite building on
+ * the one toolchain the real header is careful about. */
+#ifdef _MSC_VER
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+
+/* And ssize_t, which libusb_get_device_list() returns. MSVC has no such
+ * type; the real libusb.h spells it from SSIZE_T the same way. */
+#ifndef _SSIZE_T_DEFINED
+#define _SSIZE_T_DEFINED
+#include <basetsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+#else
 #include <sys/time.h>
+#endif
 
 #define LIBUSB_CALL
 
