@@ -472,10 +472,15 @@ err_wsa_data:
 void
 katherine_udp_fini(katherine_udp_t *u)
 {
+    // Guard against double-free. Otherwise this would close stdin (sock == 0).
+    if (u->sock == 0) return;
+
     // Ignoring return codes below.
     (void) closesocket(u->sock);
     (void) CloseHandle(u->mutex);
     (void) WSACleanup();
+
+    u->sock = 0;
 }
 
 /**

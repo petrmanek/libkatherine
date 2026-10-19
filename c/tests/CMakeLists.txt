@@ -128,6 +128,10 @@ katherine_add_test(NAME test_udp_rcvbuf SOURCES test_udp_rcvbuf.c LABELS unit)
 # backend is built -- over the arguments it rejects before it looks for a bus.
 katherine_add_test(NAME test_transport SOURCES test_transport.c LABELS unit)
 
+# Every finalizer, called twice. One case binds a pair of ports so that a
+# second close would have a real descriptor to hit; the rest need nothing.
+katherine_add_test(NAME test_fini_idempotent SOURCES test_fini_idempotent.c LABELS unit)
+
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
 # call sites unchanged and drives one real failure through each target of
 # its errno mapping, plus a success path. Sockets, but only through the

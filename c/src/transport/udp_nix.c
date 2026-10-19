@@ -482,10 +482,14 @@ err_socket:
 void
 katherine_udp_fini(katherine_udp_t *u)
 {
-    close(u->sock);
+    // Guard against double-free. Otherwise this would close stdin (sock == 0).
+    if (u->sock == 0) return;
 
-    // Ignoring return code below.
+    // Ignoring return codes below.
+    (void) close(u->sock);
     (void) pthread_mutex_destroy(&u->mutex);
+
+    u->sock = 0;
 }
 
 /**

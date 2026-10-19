@@ -347,10 +347,14 @@ err_no_transport:
 void
 katherine_acquisition_fini(katherine_acquisition_t *acq)
 {
+    if (acq->device == NULL) return;
+
     // Prevent a dangling pointer to invalid memory.
     acq->device->acquisition = NULL;
+    acq->device              = NULL;
 
     free(acq->pixel_buffer);
+    acq->pixel_buffer = NULL;
 }
 
 /**

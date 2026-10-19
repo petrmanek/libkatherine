@@ -144,6 +144,8 @@ katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf
  * \param timeout_ms Limit on one receive, in milliseconds.
  *
  * \retval KATHERINE_E_OK on success.
+ * \note The UDP transport accepts this and does nothing with it: a session
+ *   carries the timeout it was opened with, and nothing reopens it.
  */
 katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms)
@@ -278,5 +280,12 @@ katherine_transport_set_strict_ack(katherine_transport_t *transport, bool strict
 void
 katherine_transport_fini(katherine_transport_t *transport)
 {
+    // Guard against double-free. The operation table says whether there is
+    // anything to release.
+    if (transport->ops == NULL) return;
+
     transport->ops->fini(transport->ctx);
+
+    transport->ops = NULL;
+    transport->ctx = NULL;
 }
