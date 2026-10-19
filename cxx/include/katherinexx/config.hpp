@@ -92,7 +92,9 @@ enum class px_mode : int {
 } // namespace tpx3
 
 class config {
-    katherine_config_t conf_;
+    // Value-initialized: the defaulted constructor below would otherwise
+    // leave this indeterminate.
+    katherine_config_t conf_{};
 
 public:
     config()          = default;
