@@ -388,11 +388,7 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t
     (void) getsockname(u->sock, (struct sockaddr *) &u->address_local, &bound_len);
 
     if (timeout_ms > 0) {
-        // Set socket timeout.
-        DWORD timeout = timeout_ms;
-        if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout)) == SOCKET_ERROR) {
-            u->last_os_error = WSAGetLastError();
-            res              = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
+        if ((res = katherine_udp_set_timeout(u, timeout_ms)) != KATHERINE_E_OK) {
             goto err_timeout;
         }
     }
@@ -841,6 +837,49 @@ int
 katherine_udp_last_os_error(const katherine_udp_t *u)
 {
     return u->last_os_error;
+}
+
+/**
+ * Set how long a receive on a session waits before reporting
+ * KATHERINE_E_TIMEOUT.
+ *
+ * Separate from the timeout katherine_udp_init() applies, so that a caller
+ * which needs one limit for a slow exchange and another for a fast one does
+ * not have to reopen the session.
+ *
+ * \param u UDP session
+ * \param timeout_ms Limit on one receive, in milliseconds; zero removes the
+ *   limit, leaving a receive to block until something arrives
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the option or its size was rejected; see
+ *   setsockopt() and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the request failed at the OS level for a reason
+ *   none of the other codes cover, or the handle is not an open socket; see
+ *   setsockopt() and katherine_udp_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT,
+ *   which reach this list only through the shared error map; setsockopt()
+ *   documents neither.
+ */
+katherine_error_t
+katherine_udp_set_timeout(katherine_udp_t *u, uint32_t timeout_ms)
+{
+    katherine_error_t res = 0;
+
+    DWORD timeout = timeout_ms;
+
+    if (setsockopt(u->sock, SOL_SOCKET, SO_RCVTIMEO, (const char *) &timeout, sizeof(timeout))
+        == SOCKET_ERROR) {
+        u->last_os_error = WSAGetLastError();
+        res              = katherine_udp_map_socket_error(u->last_os_error, KATHERINE_E_IO);
+        goto err_setsockopt;
+    }
+
+    return KATHERINE_E_OK;
+
+err_setsockopt:
+    return res;
 }
 
 /**

@@ -144,8 +144,14 @@ katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf
  * \param timeout_ms Limit on one receive, in milliseconds.
  *
  * \retval KATHERINE_E_OK on success.
- * \note The UDP transport accepts this and does nothing with it: a session
- *   carries the timeout it was opened with, and nothing reopens it.
+ * \retval KATHERINE_E_INVAL if the link rejected the limit; see
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_IO if setting it failed at the OS level for a reason
+ *   none of the other codes cover; see katherine_transport_last_os_error().
+ *
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT, which
+ *   reach this list only through the shared error map; neither setsockopt(2)
+ *   nor its Winsock counterpart documents a condition mapping to them.
  */
 katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms)

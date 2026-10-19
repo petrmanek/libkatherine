@@ -151,11 +151,9 @@ err_foreign:
 static katherine_error_t
 udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 {
-    (void) ctx;
-    (void) timeout_ms;
+    struct udp_transport *t = ctx;
 
-    // The session carries its own timeout, set when it was opened.
-    return KATHERINE_E_OK;
+    return katherine_udp_set_timeout(t->udp, timeout_ms);
 }
 
 static katherine_error_t

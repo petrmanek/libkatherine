@@ -87,6 +87,9 @@ KATHERINE_EXPORTED int
 katherine_udp_last_os_error(const katherine_udp_t *u);
 
 KATHERINE_EXPORTED katherine_error_t
+katherine_udp_set_timeout(katherine_udp_t *u, uint32_t timeout_ms);
+
+KATHERINE_EXPORTED katherine_error_t
 katherine_udp_set_rcvbuf(katherine_udp_t *u, uint32_t bytes);
 
 KATHERINE_EXPORTED katherine_error_t

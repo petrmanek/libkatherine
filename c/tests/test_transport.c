@@ -28,6 +28,7 @@
 
 #include "kports.h"
 #include "ktest.h"
+#include "monoclock.h"
 
 #define PORT_A     (KPORTS_TRANSPORT + 0)
 #define PORT_B     (KPORTS_TRANSPORT + 1)
@@ -117,6 +118,36 @@ test_silence_times_out(void)
     void *buf  = NULL;
     size_t len = 0;
     KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_TIMEOUT);
+
+    katherine_transport_fini(&t);
+    katherine_udp_fini(&receiver);
+}
+
+/* And the wait is as long as the caller last asked for, not as long as the
+   session happened to be opened with. */
+static void
+test_the_timeout_is_what_was_last_set(void)
+{
+    katherine_udp_t receiver;
+    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
+
+    /* The session was opened with 100 ms; ask for five times that. */
+    KT_CHECK_EQ(katherine_transport_set_timeout(&t, 500), KATHERINE_E_OK);
+
+    void *buf         = NULL;
+    size_t len        = 0;
+    const uint64_t t0 = katherine_clock_monotonic_ns();
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_TIMEOUT);
+    const uint64_t waited_ms = (katherine_clock_monotonic_ns() - t0) / 1000000;
+
+    /* Bounded on both sides: below 500 means the new limit never reached the
+       socket, far above it means something other than this timeout ended the
+       wait. A scheduler can overshoot, so the ceiling is generous. */
+    KT_CHECK(waited_ms >= 450);
+    KT_CHECK(waited_ms < 2000);
 
     katherine_transport_fini(&t);
     katherine_udp_fini(&receiver);
@@ -275,6 +306,7 @@ main(void)
     KT_RUN(test_returning_a_foreign_buffer_is_refused);
     KT_RUN(test_a_transport_over_nothing_is_refused);
     KT_RUN(test_silence_times_out);
+    KT_RUN(test_the_timeout_is_what_was_last_set);
     KT_RUN(test_a_udp_transport_says_so);
     KT_RUN(test_a_transport_resizes_exactly);
     KT_RUN(test_resizing_while_lent_is_refused);
