@@ -22,7 +22,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include <katherine/acquisition.h>
 #include <katherine/transport.h>
@@ -33,6 +32,7 @@
 
 #include "kports.h"
 #include "ktest.h"
+#include "monoclock.h"
 
 #define MD_SIZE     6
 #define PORT_DATA   (KPORTS_GEN2_DECODE + 0)
@@ -146,7 +146,7 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     acq.fast_vco_enabled              = false;
     acq.decode_data                   = true;
     acq.requested_frames              = 1;
-    acq.acq_start_time                = time(NULL);
+    acq.acq_start_time                = katherine_clock_monotonic_ns();
 
     katherine_udp_t sender;
     KT_CHECK(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_DATA, 0)

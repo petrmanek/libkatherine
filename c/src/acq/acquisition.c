@@ -484,7 +484,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                     flush_buffer(acq); \
                 } \
 \
-                duration = difftime(time(NULL), acq->acq_start_time); \
+                duration = (double) (katherine_clock_monotonic_ns() - acq->acq_start_time) / 1000000000.0; \
                 if (kill_off_time > 0 && duration > kill_off_time) { \
                     acq->state = KATHERINE_ACQUISITION_STATE_TIMED_OUT; \
                 } \
@@ -979,7 +979,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) goto err;
 
-    acq->acq_start_time = time(NULL);
+    acq->acq_start_time = katherine_clock_monotonic_ns();
 
     res = katherine_cmd_start_acquisition(&acq->device->control_transport, readout_mode);
     if (res) goto err_cmd;

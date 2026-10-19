@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include <katherine/acquisition.h>
 #include <katherine/transport.h>
@@ -18,6 +17,7 @@
 
 #include "kports.h"
 #include "ktest.h"
+#include "monoclock.h"
 
 #define MD_SIZE     6
 
@@ -142,7 +142,7 @@ run_case(bool send_frame_finished, struct stats *s)
     acq.decode_data                   = true;
     acq.requested_frames              = 1;
     acq.requested_frame_duration      = 0.0;
-    acq.acq_start_time                = time(NULL);
+    acq.acq_start_time                = katherine_clock_monotonic_ns();
 
     // Craft the stream: frame start, 5 pixels, optionally frame finished.
     unsigned char packet[7 * MD_SIZE];

@@ -73,7 +73,7 @@ cdef extern from 'katherine/acquisition.h':
         size_t dropped_measurement_data
         uint64_t truncated_measurement_data
 
-        time_t acq_start_time
+        uint64_t acq_start_time
         int report_timeout
         int fail_timeout
 
