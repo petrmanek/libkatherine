@@ -28,7 +28,8 @@ namespace katherine {
  * \{
  */
 
-static constexpr std::size_t md_size = KATHERINE_MD_SIZE;
+/// Size of one measurement-data word, in bytes.
+constexpr std::size_t md_size = KATHERINE_MD_SIZE;
 
 // Timepix3's, like phase, freq and px_mode in config.hpp, and named for the C
 // side's katherine_tpx3_readout_mode_t rather than the 1.x "type".

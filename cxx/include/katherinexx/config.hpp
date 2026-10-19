@@ -27,7 +27,8 @@ namespace katherine {
 
 using trigger = katherine_trigger_t;
 
-static constexpr trigger no_trigger{
+/// A disarmed trigger, for an acquisition bounded by time alone.
+constexpr trigger no_trigger{
     // TODO: uncomment in C++2a
     /* .enabled = */ false,
     /* .channel = */ 0,
