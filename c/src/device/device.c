@@ -254,11 +254,11 @@ restore_standard_ports(katherine_device_t *device)
  *   be bound; see inet_pton(3) and bind(2).
  * \retval KATHERINE_E_UNSUPPORTED if the address names a link this version
  *   cannot open a device on. Only UDP can carry one so far.
- * \retval KATHERINE_E_BAD_CRD if the readout answered the port change with
- *   something that was not the length of a command response.
+ * \retval KATHERINE_E_BAD_CRD if the readout answered the port change or the
+ *   enumeration with something that was not the length of a command response.
  * \retval KATHERINE_E_STRAY if responses to other commands kept arriving
- *   until the discard budget ran out before the port change was
- *   acknowledged.
+ *   until the discard budget ran out before the port change or the
+ *   enumeration was answered.
  * \retval KATHERINE_E_IO if opening the control or data socket, setting its
  *   options, or telling the readout which interface drives it failed at the OS
  *   level for a reason none of the other codes cover; see socket(2),
@@ -274,10 +274,11 @@ restore_standard_ports(katherine_device_t *device)
  * \retval KATHERINE_E_SYSTEM if the socket's mutex could not be initialized,
  *   for a reason none of the other codes cover; see pthread_mutex_init(3) and
  *   katherine_udp_last_os_error().
- * \retval KATHERINE_E_TIMEOUT if the socket's mutex could not be initialized
- *   for lack of a non-memory system resource, or if telling the readout which
- *   interface drives it would have blocked; see pthread_mutex_init(3) and
- *   katherine_udp_last_os_error() for the mutex, and
+ * \retval KATHERINE_E_TIMEOUT if the readout did not answer the enumeration
+ *   within the control session's receive timeout, if the socket's mutex could
+ *   not be initialized for lack of a non-memory system resource, or if telling
+ *   the readout which interface drives it would have blocked; see
+ *   pthread_mutex_init(3) and katherine_udp_last_os_error() for the mutex, and
  *   katherine_transport_last_os_error() for the command.
  * \note Unreachable here: KATHERINE_E_STATE.
  *   katherine_device_select_interface() returns it, but this call makes it
@@ -405,7 +406,9 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 
     // 3. Discover device capabilities if not inhibited by flags
     if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
-        (void) katherine_device_enumerate(device);
+        if ((res = katherine_device_enumerate(device)) != KATHERINE_E_OK) {
+            goto err_enumerate;
+        }
 
         // Propagate the result of the legacy check into the device info.
         device->info.legacy = legacy;
@@ -413,6 +416,7 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 
     return KATHERINE_E_OK;
 
+err_enumerate:
 err_select:
     restore_standard_ports(device);
 err_ports:

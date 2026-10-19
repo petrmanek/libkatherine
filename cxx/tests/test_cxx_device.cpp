@@ -8,9 +8,10 @@
  * serialized and under the e2e label while the rest of the C++ surface stays
  * a unit test.
  *
- * Still no hardware and no peer. A device constructs against an address
- * nothing answers at -- UDP being connectionless, that succeeds -- and its
- * methods then fail, which is how the error paths are reached. The bar is the
+ * Still no hardware and no peer. A device opens against an address nothing
+ * answers at, asking for the sockets alone, and its methods then fail, which
+ * is how the error paths are reached. Without KATHERINE_DEVICE_DONT_ENUMERATE
+ * the open itself would fail, enumeration being part of it. The bar is the
  * same as in the smoke test: constructible, callable, and failing as a
  * katherine::error rather than as a crash, a hang or a C return code leaking
  * through. Which error is not asserted, since that depends on how the
@@ -76,7 +77,9 @@ streamed(const T& v)
 static void
 test_device_and_acquisition(void)
 {
-    katherine::device dev{DEAD_ADDRESS};
+    // Sockets only: nothing answers at this address, and what is under test
+    // is the methods below rather than the open.
+    katherine::device dev{DEAD_ADDRESS, KATHERINE_DEVICE_DONT_ENUMERATE};
 
     KT_CHECK(dev.c_dev() != nullptr);
     KT_CHECK(streamed(dev).size() > 0);

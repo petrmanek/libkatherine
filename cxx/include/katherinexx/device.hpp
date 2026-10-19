@@ -87,9 +87,11 @@ class device {
     katherine_device_t dev_;
 
 public:
-    device(std::string address)
+    // Flags are a bitmask, so they arrive as the C type rather than an enum
+    // class, which would need operators invented for it.
+    device(std::string address, uint32_t flags = 0)
     {
-        int res = katherine_device_init(&dev_, address.c_str(), 0);
+        int res = katherine_device_init(&dev_, address.c_str(), flags);
         if (res != 0) {
             throw katherine::system_error{res};
         }

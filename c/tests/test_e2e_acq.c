@@ -727,8 +727,10 @@ test_abort_decoded(void)
 static void
 test_control_timeout(void)
 {
+    // Sockets only: the readout is deliberately absent, and what this
+    // measures is the command below rather than the open.
     katherine_device_t device;
-    KT_REQUIRE(katherine_device_init(&device, DEAD_ADDRESS, 0) == 0);
+    KT_REQUIRE(katherine_device_init(&device, DEAD_ADDRESS, KATHERINE_DEVICE_DONT_ENUMERATE) == 0);
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     time_t started = time(NULL);
@@ -746,6 +748,31 @@ test_control_timeout(void)
 }
 
 // ------------------------------------------------------------------
+// e2) What a failed enumeration does to the open. Asking for one and not
+// getting it is a failure; asking for nothing is not, which is what lets a
+// caller open a readout that is not there yet.
+
+static void
+test_enumeration_failure_fails_the_open(void)
+{
+    katherine_device_t device;
+    KT_CHECK(katherine_device_init(&device, DEAD_ADDRESS, 0) != 0);
+
+    // Every step suppressed: sockets and nothing else, so no readout is
+    // needed for the open to succeed.
+    const uint32_t quiet = KATHERINE_DEVICE_DONT_ENUMERATE
+        | KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS
+        | KATHERINE_DEVICE_DONT_SELECT_INTERFACE;
+    KT_REQUIRE(katherine_device_init(&device, DEAD_ADDRESS, quiet) == 0);
+
+    // And it is the unenumerated device the flag documents.
+    KT_CHECK_EQ(device.info.hw_type, 0);
+    KT_CHECK(!device.derived_info.supported);
+
+    katherine_device_fini(&device);
+}
+
+// ------------------------------------------------------------------
 // f) Faux-echo path. A loopback address nobody is bound to delivers a
 // command straight back to the library's own wildcard-bound control
 // socket, where it parses as a response with all identifier fields
@@ -758,8 +785,9 @@ test_control_timeout(void)
 static void
 test_faux_echo_rejected(void)
 {
+    // Sockets only, as in the timeout case above.
     katherine_device_t device;
-    KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDRESS, 0) == 0);
+    KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDRESS, KATHERINE_DEVICE_DONT_ENUMERATE) == 0);
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     KT_CHECK(katherine_get_chip_id(&device, chip_id) != 0);
@@ -1006,6 +1034,7 @@ main(int argc, char *argv[])
     kspawn_stop(&g_ksim);
 
     KT_RUN(test_control_timeout);
+    KT_RUN(test_enumeration_failure_fails_the_open);
     KT_RUN(test_faux_echo_rejected);
 
     return kt_summary();
