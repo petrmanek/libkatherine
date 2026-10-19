@@ -62,6 +62,21 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo ifconfig lo0 alias 127.0.0.2 up
 
+      # The USB transport is only built where libusb is, so a job without it
+      # compiles none of c/src/transport/usb_transport.c and runs none of its
+      # tests. Installed here rather than left to auto-detection so that a
+      # runner image dropping the package shows up as a configure failure
+      # instead of as silently reduced coverage.
+      - name: Install libusb
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+
+      - name: Install libusb
+        if: runner.os == 'macOS'
+        run: brew install libusb
+
       - name: Configure
         run: >
           cmake -B build
@@ -69,6 +84,7 @@ jobs:
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_EXAMPLES=ON
           -DKATHERINE_BUILD_PYTHON=${{ matrix.python && 'ON' || 'OFF' }}
+          -DKATHERINE_BUILD_TRANSPORT_USB=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
 
       - name: Build
         # --config is required by multi-config generators (Visual Studio on
@@ -110,7 +126,7 @@ jobs:
       - name: Install Doxygen and Graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+          sudo apt-get install -y doxygen graphviz libusb-1.0-0-dev
 
       - name: Configure
         run: >
@@ -118,6 +134,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_DOXYGEN=ON
+          -DKATHERINE_BUILD_TRANSPORT_USB=ON
 
       # The point of the job: the documentation has to build at all, on a
       # doxygen this project has never seen.
@@ -189,10 +206,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install libusb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+
       - name: Configure
         run: >
           cmake -B build
           -DCMAKE_BUILD_TYPE=Release
+          -DKATHERINE_BUILD_TRANSPORT_USB=ON
           -DCMAKE_C_STANDARD=${{ matrix.c_standard }}
           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }}
           -DCMAKE_C_EXTENSIONS=${{ matrix.extensions }}
@@ -248,6 +271,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install libusb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+
       - name: Configure
         run: >
           cmake -B build
@@ -255,6 +283,7 @@ jobs:
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_EXAMPLES=ON
           -DKATHERINE_BUILD_PYTHON=OFF
+          -DKATHERINE_BUILD_TRANSPORT_USB=ON
 
       - name: Build
         run: cmake --build build --parallel
