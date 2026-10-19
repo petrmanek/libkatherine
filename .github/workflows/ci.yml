@@ -77,6 +77,18 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install libusb
 
+      # No package manager carries it on the runner, so the project's own
+      # Windows release is unpacked and pointed at, which is what
+      # KatherineLibusb.cmake's LIBUSB_ROOT fallback exists for. The same
+      # shape raspberrypi/picotool uses.
+      - name: Install libusb
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          curl.exe -L -o libusb.7z https://github.com/libusb/libusb/releases/download/v1.0.27/libusb-1.0.27.7z
+          7z x libusb.7z -olibusb
+          "LIBUSB_ROOT=$(Join-Path (Get-Location) libusb)" >> $env:GITHUB_ENV
+
       - name: Configure
         run: >
           cmake -B build
@@ -84,7 +96,7 @@ jobs:
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_EXAMPLES=ON
           -DKATHERINE_BUILD_PYTHON=${{ matrix.python && 'ON' || 'OFF' }}
-          -DKATHERINE_BUILD_TRANSPORT_USB=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
+          -DKATHERINE_BUILD_TRANSPORT_USB=ON
 
       - name: Build
         # --config is required by multi-config generators (Visual Studio on
