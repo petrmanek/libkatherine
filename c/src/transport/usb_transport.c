@@ -29,12 +29,14 @@
 #include <katherine/usb.h>
 #include "address.h"
 #include "mutex.h"
+#include "msleep.h"
 #include "protocol/cmd_interface.h"
 
-// How many event-handling passes closing waits through for the outstanding
-// reads to come back. At 20 ms a pass this is five seconds, after which a
-// readout that has stopped answering is assumed gone.
-#define DRAIN_ATTEMPTS 250
+// How many event-handling passes closing waits through before saying the
+// cancellation again and settling in to wait it out. At 20 ms a pass this is
+// one second, which is what usb-skeleton.c gives its anchored URBs before it
+// escalates to usb_kill_anchored_urbs().
+#define DRAIN_POLITE_ATTEMPTS 50
 
 // A lent buffer's place in its owner's ring.
 enum slot_state {
@@ -506,32 +508,80 @@ usb_last_os_error(void *ctx)
     return u->last_os_error;
 }
 
+// Transports a bus would not release, kept reachable on purpose.
+//
+// The memory is not recoverable -- libusb still owns the buffers and will
+// write into them if the device ever answers -- but unreachable and
+// unaccounted are different things. On this list a leak checker sees it as
+// live rather than lost, so the deliberate decision does not read as a bug in
+// the sanitizer legs; and a core file shows how many readouts stopped
+// answering, which is the question being asked when someone opens one.
 // Cancelling is a request, not an act: every outstanding transfer still calls
-// back, so the ring is only safe to free once none is left in flight.
+// back, so the ring is only safe to free once none is left in flight. Caller
+// holds the lock.
+static void
+cancel_outstanding(struct katherine_usb *u)
+{
+    for (uint32_t i = 0; i < u->config.queue_len; ++i)
+        if (u->slots[i].state == SLOT_INFLIGHT)
+            (void) libusb_cancel_transfer(u->slots[i].xfer);
+}
+
+// Hands events to libusb until nothing is outstanding, or -- where \p limit
+// is nonzero -- until that many passes have gone by.
+//
+// A pass that fails is waited out rather than obeyed: the transfers are still
+// the bus's either way, so there is nothing to do but try again, and sleeping
+// first keeps a context libusb cannot pump from spinning a core.
+//
+// Caller holds the lock; it is dropped around each pass, because the
+// completion callback takes it. Every iteration re-takes it before testing
+// again, including the one that leaves: going by any other route would unlock
+// a mutex this no longer holds.
+static void
+pump_until_quiet(struct katherine_usb *u, uint32_t limit)
+{
+    for (uint32_t attempt = 0; u->inflight > 0; ++attempt) {
+        if (limit != 0 && attempt >= limit) break;
+
+        (void) katherine_mutex_unlock(&u->lock);
+
+        struct timeval tv = {.tv_sec = 0, .tv_usec = 20000};
+        int completed     = 0;
+        const int code    = libusb_handle_events_timeout_completed(u->ctx, &tv, &completed);
+        if (code != LIBUSB_SUCCESS) katherine_msleep(20);
+
+        (void) katherine_mutex_lock(&u->lock);
+    }
+}
+
+// Gives the bus back every buffer it still owns before the ring is freed.
+//
+// Returns only once nothing is outstanding. There is no giving up: freeing a
+// buffer libusb still owns invites the device to write into memory something
+// else now holds, and no bound on the wait makes that safe. The kernel takes
+// the same position -- usb_kill_urb() blocks until the URB has been returned
+// and its completion handler has run.
 static void
 drain_inflight(struct katherine_usb *u)
 {
     (void) katherine_mutex_lock(&u->lock);
     u->draining = true;
 
-    for (uint32_t i = 0; i < u->config.queue_len; ++i)
-        if (u->slots[i].state == SLOT_INFLIGHT)
-            (void) libusb_cancel_transfer(u->slots[i].xfer);
+    cancel_outstanding(u);
 
-    // Bounded, because a readout that has gone away may never complete what
-    // was outstanding, and this runs on the close path where hanging is worse
-    // than leaking. Every iteration re-takes the lock before testing again,
-    // including the one that gives up: leaving by any other route would
-    // unlock a mutex this no longer holds.
-    for (uint32_t attempt = 0; attempt < DRAIN_ATTEMPTS && u->inflight > 0; ++attempt) {
-        (void) katherine_mutex_unlock(&u->lock);
+    pump_until_quiet(u, DRAIN_POLITE_ATTEMPTS);
 
-        struct timeval tv = {.tv_sec = 0, .tv_usec = 20000};
-        int completed     = 0;
-        const int code    = libusb_handle_events_timeout_completed(u->ctx, &tv, &completed);
-
-        (void) katherine_mutex_lock(&u->lock);
-        if (code != LIBUSB_SUCCESS) break;
+    // Nothing came back in the polite window, so say it again and wait it
+    // out. Unbounded on purpose: a cancelled transfer completes once somebody
+    // hands libusb its events, and that is exactly what this does, so the
+    // wait ends on any backend that honours cancellation at all. The kernel
+    // makes the same trade -- usb_kill_urb() blocks until the URB has been
+    // returned and its completion handler has run -- because freeing a buffer
+    // the bus still owns is worse than a close that takes its time.
+    if (u->inflight > 0) {
+        cancel_outstanding(u);
+        pump_until_quiet(u, 0);
     }
 
     (void) katherine_mutex_unlock(&u->lock);
@@ -641,6 +691,14 @@ usb_fini(void *ctx)
     struct katherine_usb *u = ctx;
     if (u == NULL) return;
 
+    // Everything below hands memory back to the allocator and tears down the
+    // session those transfers point into. If the bus still owns a buffer,
+    // doing that invites the device to write into memory something else now
+    // holds -- a corruption with no witness, arriving at a time unrelated to
+    // the close.
+    //
+    // So the drain below waits every one of them out, however long that
+    // takes. Nothing here can free early and nothing is left behind.
     if (u->config.stream == KATHERINE_USB_STREAM_ASYNC) drain_inflight(u);
 
     if (u->slots != NULL) {
