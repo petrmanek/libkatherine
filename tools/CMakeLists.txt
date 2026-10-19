@@ -13,3 +13,20 @@ endif()
 
 add_subdirectory(debuggers)
 add_subdirectory(wireshark)
+
+# The error-code indexer decides what every \retval block in the library is
+# checked against. Its self-test needs python-clang, which nothing else here
+# needs, so a missing one is a skip rather than a failure.
+if(KATHERINE_BUILD_TESTS)
+    # Not through python/, which is only configured when the bindings are.
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME test_errdoc_selftest
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/katherine_errdoc_selftest.py")
+        set_tests_properties(test_errdoc_selftest PROPERTIES
+            LABELS "unit;tools"
+            TIMEOUT 120
+            SKIP_RETURN_CODE 77)
+    endif()
+endif()
