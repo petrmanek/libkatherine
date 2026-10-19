@@ -434,6 +434,8 @@ cdef class Device:
     def __dealloc__(self):
          if self._c_device is not NULL:
              cdevice.katherine_device_fini(self._c_device)
+             PyMem_Free(self._c_device)
+             self._c_device = NULL
 
 
     def set_strict_ack(self, bint strict):
@@ -442,8 +444,6 @@ cdef class Device:
     @property
     def stray_command_responses(self):
          return self._c_device.control_transport.stray_command_responses
-
-         PyMem_Free(self._c_device)
 
     def __repr__(self):
          return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._c_device)
