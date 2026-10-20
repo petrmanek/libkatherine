@@ -33,7 +33,6 @@ cimport cpx
 cimport cpx_config
 cimport cacquisition
 cimport ctoa
-cimport cudp
 cimport cversion
 cimport cerror
 
@@ -85,7 +84,7 @@ cdef str _snprint_repr(snprint_fn_t fn, const void *v):
 __version__ = cversion.katherine_version_string().decode('UTF-8')
 
 
-DISCOVER_MIN_PORT = cudp.KATHERINE_DISCOVER_MIN_PORT
+DISCOVER_MIN_PORT = ctransport.KATHERINE_DISCOVER_MIN_PORT
 
 
 def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
@@ -115,7 +114,7 @@ def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=
         raise MemoryError()
 
     try:
-        res = cudp.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
+        res = ctransport.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
         check_return_code(res)
         return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
     finally:

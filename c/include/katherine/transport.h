@@ -168,6 +168,22 @@ katherine_transport_snprint(char *buf, size_t cap, const katherine_transport_t *
 KATHERINE_EXPORTED void
 katherine_transport_fini(katherine_transport_t *transport);
 
+/**
+ * Lowest port a readout will answer a discovery on. The firmware reads the
+ * reply port out of the request's first two bytes and falls back to its own
+ * default below this, which would send every answer to the port a running
+ * session is already using.
+ */
+#define KATHERINE_DISCOVER_MIN_PORT 32
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count);
+
+#ifdef KATHERINE_FEATURE_USB
+KATHERINE_EXPORTED katherine_error_t
+katherine_device_discover_usb(katherine_discovered_t *out, size_t *count);
+#endif /* KATHERINE_FEATURE_USB */
+
 #ifdef __cplusplus
 }
 #endif

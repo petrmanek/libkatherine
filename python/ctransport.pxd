@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-from libc.stdint cimport uint64_t
+from libc.stdint cimport uint16_t, uint32_t, uint64_t
 
 cdef extern from 'katherine/transport.h':
     ctypedef struct katherine_transport_t:
@@ -18,3 +18,5 @@ cdef extern from 'katherine/transport.h':
     ctypedef struct katherine_discovered_t:
         char *address
         bint legacy
+    cdef int KATHERINE_DISCOVER_MIN_PORT
+    int katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)

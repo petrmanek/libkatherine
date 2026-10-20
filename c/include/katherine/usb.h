@@ -111,8 +111,6 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
 KATHERINE_EXPORTED katherine_error_t
 katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count);
 
-KATHERINE_EXPORTED katherine_error_t
-katherine_device_discover_usb(katherine_discovered_t *out, size_t *count);
 
 #ifdef __cplusplus
 }

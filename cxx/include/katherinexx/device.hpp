@@ -20,7 +20,6 @@
 #include <katherine/device.h>
 #include <katherine/transport.h>
 #include <katherine/status.h>
-#include <katherine/udp.h>
 
 #include <katherinexx/config.hpp>
 #include <katherinexx/error.hpp>
