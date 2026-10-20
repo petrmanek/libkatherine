@@ -384,11 +384,16 @@ test_udp(void)
 static void
 test_transport(void)
 {
-    katherine_udp_t u;
-    KT_REQUIRE(katherine_udp_init_bound(&u, UDP_HOST, UDP_TEST_PORT1, UDP_HOST, UDP_TEST_PORT2, 100) == 0);
+    const katherine_udp_config_t config = {
+        .local_address  = UDP_HOST,
+        .local_port     = UDP_TEST_PORT1,
+        .remote_address = UDP_HOST,
+        .remote_port    = UDP_TEST_PORT2,
+        .timeout_ms     = 100,
+    };
 
     katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &u) == 0);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &config) == 0);
     KT_CHECK_EQ(t.strict_ack, false);
     KT_CHECK_EQ(t.stray_command_responses, 0u);
 
@@ -400,7 +405,6 @@ test_transport(void)
     CHECK_GOLDEN(n, buf, "transport{kind: udp, strict_ack: true, stray_command_responses: 3}");
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&u);
 }
 
 // Unpinned and tolerant, complementing test_udp()'s "true" states with the
@@ -414,16 +418,28 @@ test_device(void)
     // the two sessions -- the borrowed acquisition among them, which
     // katherine_device_fini() acts on.
     memset(&dev, 0, sizeof(dev));
-    KT_REQUIRE(katherine_udp_init_bound(&dev.control_socket, UDP_HOST, UDP_TEST_PORT3, UDP_HOST, UDP_TEST_PORT4, 100) == 0);
-    KT_REQUIRE(katherine_udp_init_bound(&dev.data_socket, UDP_HOST, UDP_TEST_PORT4, UDP_HOST, UDP_TEST_PORT3, 100) == 0);
+    const katherine_udp_config_t control = {
+        .local_address  = UDP_HOST,
+        .local_port     = UDP_TEST_PORT3,
+        .remote_address = UDP_HOST,
+        .remote_port    = UDP_TEST_PORT4,
+        .timeout_ms     = 100,
+    };
+    const katherine_udp_config_t data = {
+        .local_address  = UDP_HOST,
+        .local_port     = UDP_TEST_PORT4,
+        .remote_address = UDP_HOST,
+        .remote_port    = UDP_TEST_PORT3,
+        .timeout_ms     = 100,
+    };
+    KT_REQUIRE(katherine_transport_init_udp(&dev.control_transport, &control) == 0);
+    KT_REQUIRE(katherine_transport_init_udp(&dev.data_transport, &data) == 0);
 
     char buf[384];
     int n = katherine_device_snprint(buf, sizeof(buf), &dev);
     CHECK_GOLDEN(n, buf,
-        "device{control_socket: udp{local: 127.0.0.1:43603, remote: 127.0.0.1:43604, pinned: false, "
-        "last_os_error: 0}, "
-        "data_socket: udp{local: 127.0.0.1:43604, remote: 127.0.0.1:43603, pinned: false, "
-        "last_os_error: 0}}");
+        "device{control_transport: transport{kind: udp, strict_ack: false, stray_command_responses: 0}, "
+        "data_transport: transport{kind: udp, strict_ack: false, stray_command_responses: 0}}");
 
     katherine_device_fini(&dev);
 }

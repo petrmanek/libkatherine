@@ -50,6 +50,17 @@ extern "C" {
 KATHERINE_EXPORTED int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);
 
+/** A UDP session to open: which ports it binds and talks to, and how it behaves once open. */
+typedef struct katherine_udp_config {
+    const char *local_address;  ///< Address to bind to, or NULL for every address the host has.
+    uint16_t local_port;        ///< Port to bind to; zero asks the OS for a free one.
+    const char *remote_address; ///< Readout this session addresses.
+    uint16_t remote_port;       ///< Port on the readout.
+    uint32_t timeout_ms;        ///< Time a receive waits before reporting KATHERINE_E_TIMEOUT.
+    uint32_t rcvbuf;            ///< Receive queue to ask the OS for, or zero for the session's own default.
+    bool pin_remote;            ///< True to refuse datagrams from anywhere but the remote named here; see katherine_udp_pin_remote().
+} katherine_udp_config_t;
+
 KATHERINE_EXPORTED katherine_error_t
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms);
 

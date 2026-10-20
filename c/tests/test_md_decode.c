@@ -202,19 +202,20 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     // Only the data socket is used by the read loop. Bound to a fixed port
     // on loopback, so the sender below can be pointed at it directly
     // instead of discovering an OS-picked one.
-    int res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, RECV_TIMEOUT_MS);
-    KT_CHECK(res == 0);
-    if (res != 0) {
-        return res;
-    }
+    const katherine_udp_config_t data = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_DATA,
+        .remote_address = "127.0.0.1",
+        .remote_port    = 1,
+        .timeout_ms     = RECV_TIMEOUT_MS,
+    };
 
     // The read loop reaches the session through the device's transport, so a
     // device assembled here rather than by katherine_device_init() has to
     // open one of its own.
-    res = katherine_transport_init_udp(&dev.data_transport, &dev.data_socket);
+    int res = katherine_transport_init_udp(&dev.data_transport, &data);
     KT_CHECK(res == 0);
     if (res != 0) {
-        katherine_udp_fini(&dev.data_socket);
         return res;
     }
 
@@ -225,7 +226,6 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     KT_CHECK(res == 0);
     if (res != 0) {
         katherine_transport_fini(&dev.data_transport);
-        katherine_udp_fini(&dev.data_socket);
         return -1;
     }
 
@@ -267,7 +267,6 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
 
     katherine_acquisition_fini(&acq);
     katherine_transport_fini(&dev.data_transport);
-    katherine_udp_fini(&dev.data_socket);
     return res;
 }
 

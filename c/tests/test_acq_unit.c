@@ -153,13 +153,17 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
         if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;
     }
 
-    katherine_error_t res = katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port,
-        "127.0.0.1", remote_port, DEVICE_TIMEOUT_MS);
-    if (res != KATHERINE_E_OK) return res;
-
     // The command layer takes the control lock through the device's
     // transport, so a device assembled here needs one of its own.
-    return katherine_transport_init_udp(&device->control_transport, &device->control_socket);
+    const katherine_udp_config_t config = {
+        .local_address  = "127.0.0.1",
+        .local_port     = local_port,
+        .remote_address = "127.0.0.1",
+        .remote_port    = remote_port,
+        .timeout_ms     = DEVICE_TIMEOUT_MS,
+    };
+
+    return katherine_transport_init_udp(&device->control_transport, &config);
 }
 
 // Arms the mock for `commands` exchanges and starts it.
@@ -287,7 +291,6 @@ test_c_a_setup_composes_three_register_words(void)
     KT_CHECK_EQ(load_word(g_captured[2]), 0x00000001u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // A channel the readout does not have takes its default, whatever the
     // caller asked for. A first-generation readout has four, so everything
@@ -312,7 +315,6 @@ test_c_a_setup_composes_three_register_words(void)
     KT_CHECK_EQ(load_word(g_captured[2]), 0x00000000u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // d) The ready signal is one word: the channels that must be high in its low
@@ -343,7 +345,6 @@ test_d_the_ready_signal_is_one_word_of_two_masks(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000881u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // The channels a first-generation readout does not have take no part.
     memset(&config, 0, sizeof(config));
@@ -359,7 +360,6 @@ test_d_the_ready_signal_is_one_word_of_two_masks(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000001u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // And a termination katherine_set_gpio_config() would refuse -- channel
     // 4 of a readout whose first four reach a connector -- is none of this
@@ -377,7 +377,6 @@ test_d_the_ready_signal_is_one_word_of_two_masks(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000001u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // e) A setting the readout cannot carry out is refused before anything is
@@ -409,7 +408,6 @@ test_e_settings_the_readout_cannot_carry_are_refused(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // And an undeclared readout is refused for not knowing how many it has.
     KT_REQUIRE(device_init(&device, 0, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
@@ -421,7 +419,6 @@ test_e_settings_the_readout_cannot_carry_are_refused(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // f) A probe reads every channel's level out of one register, and the tick
@@ -475,7 +472,6 @@ test_f_a_probe_reads_levels_and_only_the_valid_counters(void)
     KT_CHECK_EQ(state.channel[7].signal, KATHERINE_GPIO_MONITOR_SIGNAL_UNKNOWN);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 #ifdef KATHERINE_TEST_EMULATOR
@@ -544,7 +540,6 @@ test_h_the_shutter_delays_are_two_registers(void)
     KT_CHECK_EQ(load_word(g_captured[1]), 250000);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // Rounding is to the nearest count, not towards zero: four nanoseconds
     // more than a microsecond is still 100 counts, six more is 101.
@@ -557,7 +552,6 @@ test_h_the_shutter_delays_are_two_registers(void)
     KT_CHECK_EQ(load_word(g_captured[1]), 101);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // A delay the register cannot hold is refused before anything is sent,
     // and so is a negative one and a NaN. The widest it holds is 2^32-1
@@ -574,7 +568,6 @@ test_h_the_shutter_delays_are_two_registers(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // i) The generator takes eleven writes, and the enable word comes last:
@@ -628,7 +621,6 @@ test_i_the_generator_is_enabled_last(void)
     KT_CHECK_EQ(load_word(g_captured[10]), 0xC0000002u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // i2) Channels the readout does not have take their defaults, whatever the
@@ -667,7 +659,6 @@ test_i2_channels_the_generator_lacks_take_their_defaults(void)
     KT_CHECK_EQ(load_word(g_captured[6]), 0x80000000u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // j) A delay longer than its register is refused rather than truncated, and
@@ -706,7 +697,6 @@ test_j_the_generator_refuses_what_it_cannot_carry(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
     memset(&config, 0, sizeof(config));
@@ -716,7 +706,6 @@ test_j_the_generator_refuses_what_it_cannot_carry(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // k) The probe reads four registers, one of which is the generator's own
@@ -753,7 +742,6 @@ test_k_the_generator_reports_its_own_clock(void)
     KT_CHECK_EQ(state.clock_mhz, 100);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // l) And the counter is reset by writing zero to the register it is read
@@ -775,7 +763,6 @@ test_l_the_edge_counter_is_reset_by_writing_zero(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 0);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 int

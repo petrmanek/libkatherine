@@ -113,10 +113,11 @@ typedef struct katherine_transport {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 typedef struct katherine_udp katherine_udp_t;
+typedef struct katherine_udp_config katherine_udp_config_t;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *udp);
+katherine_transport_init_udp(katherine_transport_t *transport, const katherine_udp_config_t *config);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count);

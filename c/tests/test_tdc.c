@@ -131,13 +131,17 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
         if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;
     }
 
-    katherine_error_t res = katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port,
-        "127.0.0.1", remote_port, DEVICE_TIMEOUT_MS);
-    if (res != KATHERINE_E_OK) return res;
-
     // The command layer takes the control lock through the device's
     // transport, so a device assembled here needs one of its own.
-    return katherine_transport_init_udp(&device->control_transport, &device->control_socket);
+    const katherine_udp_config_t config = {
+        .local_address  = "127.0.0.1",
+        .local_port     = local_port,
+        .remote_address = "127.0.0.1",
+        .remote_port    = remote_port,
+        .timeout_ms     = DEVICE_TIMEOUT_MS,
+    };
+
+    return katherine_transport_init_udp(&device->control_transport, &config);
 }
 
 static void
@@ -208,7 +212,6 @@ test_a_the_second_generation_word(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 0x03070935u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // b) The first generation's is two masks over three channels, and carries no
@@ -236,7 +239,6 @@ test_b_the_first_generation_word(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000105u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // c) Enabling a channel the readout's unit does not have is refused rather
@@ -265,7 +267,6 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     KT_CHECK_EQ(load_word(g_captured[0]), 0x00000105u);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // A source outside the enumeration on a channel the unit does have is
     // still refused, before anything is sent.
@@ -277,7 +278,6 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // And an undeclared readout is refused for not knowing how many it has.
     KT_REQUIRE(device_init(&device, 0, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
@@ -287,7 +287,6 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // d) The count sequence is five datagrams, and the fifth completes the call:
@@ -312,7 +311,6 @@ test_d_five_counts_complete_the_sequence(void)
     }
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // A readout with fewer counters than the array holds leaves no stale
     // value behind: the entries it does not answer for read zero, whatever
@@ -335,7 +333,6 @@ test_d_five_counts_complete_the_sequence(void)
     }
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // e) One datagram short and the call reports the timeout, leaving the counts
@@ -363,7 +360,6 @@ test_e_a_short_sequence_times_out(void)
     KT_CHECK_EQ(counts[KATHERINE_MAX_TDC_CHANNEL_COUNT - 1], 0xFFFFFFFFu);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 #ifdef KATHERINE_TEST_EMULATOR
@@ -438,10 +434,9 @@ test_h_a_null_array_discards_the_counts(void)
     // to whichever command came next, so the link has to be empty here.
     uint8_t leftover[KATHERINE_CMD_CRD_SIZE];
     size_t count = sizeof(leftover);
-    KT_CHECK_EQ(katherine_udp_recv(&device.control_socket, leftover, &count), KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_transport_recv_crd(&device.control_transport, leftover, &count), KATHERINE_E_TIMEOUT);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 int

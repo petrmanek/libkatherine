@@ -180,13 +180,17 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
         if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;
     }
 
-    katherine_error_t res = katherine_udp_init_bound(&device->control_socket, "127.0.0.1", local_port,
-        "127.0.0.1", remote_port, DEVICE_TIMEOUT_MS);
-    if (res != KATHERINE_E_OK) return res;
-
     // The command layer takes the control lock through the device's
     // transport, so a device assembled here needs one of its own.
-    return katherine_transport_init_udp(&device->control_transport, &device->control_socket);
+    const katherine_udp_config_t config = {
+        .local_address  = "127.0.0.1",
+        .local_port     = local_port,
+        .remote_address = "127.0.0.1",
+        .remote_port    = remote_port,
+        .timeout_ms     = DEVICE_TIMEOUT_MS,
+    };
+
+    return katherine_transport_init_udp(&device->control_transport, &config);
 }
 
 static void
@@ -232,7 +236,6 @@ test_a_the_monitor_index_and_chip_go_on_the_wire(void)
         KT_CHECK_EQ(g_captured[4], 0);
 
         katherine_transport_fini(&device.control_transport);
-        katherine_udp_fini(&device.control_socket);
     }
 }
 
@@ -250,7 +253,6 @@ test_b_bad_arguments_are_refused_without_asking(void)
         KATHERINE_E_STATE);
     expect_nothing_sent();
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // Past what a first-generation readout can address.
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
@@ -272,7 +274,6 @@ test_b_bad_arguments_are_refused_without_asking(void)
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // c) Against the emulated readout: a DAC's monitor answers what that DAC was
@@ -367,7 +368,6 @@ test_d_the_all_monitor_read_fills_every_monitor_in_order(void)
     KT_CHECK_CLOSE(voltages.named.dac[0], mock_answer(0));
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // e) A readout that stops answering partway through reports the timeout and
@@ -402,7 +402,6 @@ test_e_a_short_sequence_leaves_the_rest_not_a_number(void)
     }
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // f) Either read accepts no destination at all, and still takes its answers
@@ -428,7 +427,6 @@ test_f_a_null_destination_is_still_read_off_the_wire(void)
     KT_CHECK_EQ(kthread_join(&thread), 0);
     KT_CHECK_EQ(g_captured[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_INTERNAL_DAC_SCAN);
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // g) The configuration check carries only a chip index, and answers two flags
@@ -475,7 +473,6 @@ test_g_the_configuration_check_answers_two_flags(void)
         KT_CHECK_EQ(check.dacs_ok, cases[i].dacs != 0);
 
         katherine_transport_fini(&device.control_transport);
-        katherine_udp_fini(&device.control_socket);
     }
 }
 
@@ -490,7 +487,6 @@ test_h_the_configuration_check_refuses_the_same_arguments(void)
     KT_CHECK_EQ(katherine_tpx3_verify_config(&device, 0, &check), KATHERINE_E_STATE);
     expect_nothing_sent();
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     // The first generation has no such operation, and is refused for that
     // before the chip index is looked at -- so nothing goes on the wire and
@@ -500,14 +496,12 @@ test_h_the_configuration_check_refuses_the_same_arguments(void)
     KT_CHECK_EQ(katherine_tpx3_verify_config(&device, GEN1_CHIPS, &check), KATHERINE_E_UNSUPPORTED);
     expect_nothing_sent();
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
     KT_CHECK_EQ(katherine_tpx3_verify_config(&device, GEN2_CHIPS, &check), KATHERINE_E_BAD_CHIP);
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 // A caller that only wants to know the call succeeded passes NULL: the answer
@@ -530,7 +524,6 @@ test_i_the_configuration_check_discards_a_null_destination(void)
     KT_CHECK_EQ(g_captured[KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_VERIFY_CHIP_CONFIG);
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
 }
 
 int

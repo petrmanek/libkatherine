@@ -111,9 +111,7 @@
 // all 22, 8 KB does not.
 #define CLIENT_RCVBUF     262144
 
-static katherine_udp_t g_client;
 static katherine_udp_t g_mock;
-static katherine_udp_t g_slow_client;
 static katherine_udp_t g_slow_mock;
 
 // The command layer sends on a transport, so each client session needs one.
@@ -130,25 +128,28 @@ endpoints_init(void)
 {
     int res;
 
-    if ((res = katherine_udp_init_bound(&g_client, "127.0.0.1", PORT_CLIENT, "127.0.0.1", PORT_MOCK, CLIENT_TIMEOUT_MS))
-        != 0) {
-        goto err_client;
-    }
-    katherine_udp_pin_remote(&g_client);
+    const katherine_udp_config_t client = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_CLIENT,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_MOCK,
+        .timeout_ms     = CLIENT_TIMEOUT_MS,
+        .pin_remote     = true,
+        /* Every stray response of a batch has to be queued at once for the
+         * drain to count them all; a host whose queue is shallower drops some.
+         * Asked for explicitly rather than inherited, because the default is
+         * sized for measurement data. */
+        .rcvbuf = CLIENT_RCVBUF,
+    };
 
-    /* The DAC-scan cases queue DAC_SCAN_REPLIES datagrams before draining any,
-     * so the socket has to hold them all at once; a host whose queue is
-     * shallower drops some and the drain then counts fewer strays than were
-     * sent. Asked for explicitly rather than inherited, because the default is
-     * sized for measurement data and what any host grants is its own policy.
-     * The granted size is printed so a failure here names the cause. */
-    if ((res = katherine_udp_set_rcvbuf(&g_client, CLIENT_RCVBUF)) != 0) {
-        goto err_client;
-    }
-    uint32_t granted = 0;
-    if (katherine_udp_rcvbuf(&g_client, &granted) == 0) {
-        printf("# client queue: %u B granted for a request of %d\n", granted, CLIENT_RCVBUF);
-    }
+    const katherine_udp_config_t slow_client = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_SLOW_CLIENT,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_SLOW_MOCK,
+        .timeout_ms     = SLOW_TIMEOUT_MS,
+        .pin_remote     = true,
+    };
 
     if ((res = katherine_udp_init_bound(&g_mock, "127.0.0.1", PORT_MOCK, "127.0.0.1", PORT_CLIENT, MOCK_TIMEOUT_MS))
         != 0) {
@@ -156,20 +157,13 @@ endpoints_init(void)
     }
 
     if ((res = katherine_udp_init_bound(
-             &g_slow_client, "127.0.0.1", PORT_SLOW_CLIENT, "127.0.0.1", PORT_SLOW_MOCK, SLOW_TIMEOUT_MS))
-        != 0) {
-        goto err_slow_client;
-    }
-    katherine_udp_pin_remote(&g_slow_client);
-
-    if ((res = katherine_udp_init_bound(
              &g_slow_mock, "127.0.0.1", PORT_SLOW_MOCK, "127.0.0.1", PORT_SLOW_CLIENT, MOCK_TIMEOUT_MS))
         != 0) {
         goto err_slow_mock;
     }
 
-    if ((res = katherine_transport_init_udp(&g_client_link, &g_client)) != 0) goto err_slow_mock;
-    if ((res = katherine_transport_init_udp(&g_slow_client_link, &g_slow_client)) != 0) goto err_client_link;
+    if ((res = katherine_transport_init_udp(&g_client_link, &client)) != 0) goto err_slow_mock;
+    if ((res = katherine_transport_init_udp(&g_slow_client_link, &slow_client)) != 0) goto err_client_link;
 
     return 0;
 
@@ -177,12 +171,8 @@ err_client_link:
     katherine_transport_fini(&g_client_link);
 
 err_slow_mock:
-    katherine_udp_fini(&g_slow_client);
-err_slow_client:
     katherine_udp_fini(&g_mock);
 err_mock:
-    katherine_udp_fini(&g_client);
-err_client:
     return res;
 }
 
@@ -193,9 +183,7 @@ endpoints_fini(void)
     katherine_transport_fini(&g_client_link);
 
     katherine_udp_fini(&g_slow_mock);
-    katherine_udp_fini(&g_slow_client);
     katherine_udp_fini(&g_mock);
-    katherine_udp_fini(&g_client);
 }
 
 // ------------------------------------------------------------------
@@ -238,6 +226,17 @@ expect_quiet(katherine_udp_t *u)
 
     // And reports no OS-level detail for it, on either platform.
     KT_CHECK_EQ(katherine_udp_last_os_error(u), 0);
+}
+
+// The same of a client side, whose session the link owns.
+static void
+expect_link_quiet(katherine_transport_t *t)
+{
+    unsigned char buf[64];
+    size_t count = sizeof(buf);
+
+    KT_CHECK_EQ(katherine_transport_recv_crd(t, buf, &count), KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_transport_last_os_error(t), 0);
 }
 
 // ------------------------------------------------------------------
@@ -318,7 +317,7 @@ test_correlates_past_stray(void)
     KT_CHECK_EQ(load_payload(crd), 0xDEADBEEFu);
     KT_CHECK_EQ(g_client_link.stray_command_responses - before, 1);
 
-    expect_quiet(&g_client);
+    expect_link_quiet(&g_client_link);
 }
 
 // d) A peer that talks without ever answering must not hold the caller. The
@@ -343,7 +342,7 @@ test_stray_budget_bounds_the_wait(void)
     KT_CHECK_EQ(g_client_link.stray_command_responses - before, KATHERINE_CMD_MAX_STRAY_DISCARDS);
 
     katherine_transport_flush_incoming(&g_client_link);
-    expect_quiet(&g_client);
+    expect_link_quiet(&g_client_link);
 }
 
 // e) The readout's command socket carries nothing but eight-byte responses,
@@ -365,7 +364,7 @@ test_malformed_response_rejected(void)
     KT_CHECK_EQ(katherine_udp_send_exact(&g_mock, oversized, sizeof(oversized)), 0);
     KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client_link, (uint8_t) CMD_TYPE_GET_READOUT_STATUS), KATHERINE_E_BAD_CRD);
 
-    expect_quiet(&g_client);
+    expect_link_quiet(&g_client_link);
 }
 
 // f) The firmware's own substitutions are not errors. Rejecting them would
@@ -402,7 +401,7 @@ test_documented_reply_identifiers_accepted(void)
     before = g_client_link.stray_command_responses;
     katherine_transport_flush_incoming(&g_client_link);
     KT_CHECK_EQ(g_client_link.stray_command_responses - before, DAC_SCAN_REPLIES - 1);
-    expect_quiet(&g_client);
+    expect_link_quiet(&g_client_link);
 }
 
 // g) Strict mode is the same correlation without the firmware allowances: it
@@ -427,7 +426,7 @@ test_strict_mode_rejects_documented_reply_identifiers(void)
     KT_CHECK_EQ(katherine_cmd_wait_ack(&g_client_link, (uint8_t) CMD_TYPE_TRIGGER_GENERATOR_SETUP_READ), 0);
 
     katherine_transport_set_strict_ack(&g_client_link, false);
-    expect_quiet(&g_client);
+    expect_link_quiet(&g_client_link);
 }
 
 // h) The flush that opens a transaction: it consumes what an earlier
@@ -519,7 +518,7 @@ test_transact_flushes_sends_and_correlates(void)
 
     // One stale response flushed, one stray stepped over.
     KT_CHECK_EQ(g_client_link.stray_command_responses - before, 2);
-    expect_quiet(&g_client);
+    expect_link_quiet(&g_client_link);
 }
 
 // k) An acquisition-unit read is answered with the register index repeated in
@@ -568,7 +567,7 @@ test_acq_unit_read_checks_the_register_it_answers_for(void)
     KT_CHECK_EQ(katherine_cmd_acq_unit_read(&g_client_link, ACQ_UNIT_REG, &value), KATHERINE_E_BAD_CRD);
     KT_CHECK_EQ(value, 0);
 
-    expect_quiet(&g_client);
+    expect_link_quiet(&g_client_link);
 }
 
 #ifdef KATHERINE_TEST_EMULATOR

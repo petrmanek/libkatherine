@@ -103,14 +103,19 @@ test_a_session_can_be_finalized_twice(void)
 static void
 test_a_transport_can_be_finalized_twice(void)
 {
-    katherine_udp_t u;
-    if (katherine_udp_init_bound(&u, "127.0.0.1", PORT_A, "127.0.0.1", PORT_B, 50) != KATHERINE_E_OK) {
+    const katherine_udp_config_t config = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_A,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_B,
+        .timeout_ms     = 50,
+    };
+
+    katherine_transport_t t;
+    if (katherine_transport_init_udp(&t, &config) != KATHERINE_E_OK) {
         printf("# SKIP cannot bind 127.0.0.1:%d\n", PORT_A);
         return;
     }
-
-    katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &u) == KATHERINE_E_OK);
 
     katherine_transport_fini(&t);
     KT_CHECK(t.ops == NULL);
@@ -121,8 +126,6 @@ test_a_transport_can_be_finalized_twice(void)
     katherine_transport_t zeroed;
     memset(&zeroed, 0, sizeof(zeroed));
     katherine_transport_fini(&zeroed);
-
-    katherine_udp_fini(&u);
 }
 
 /* An acquisition that never ran, and one finalized twice. */

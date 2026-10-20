@@ -17,7 +17,6 @@
 #include <katherine/global.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>
-#include <katherine/udp.h>
 
 /**
  * \defgroup katherine_device Device
@@ -110,11 +109,6 @@ katherine_device_derived_info_recognize(uint8_t hw_type);
  * about itself, and what this library derives from that.
  */
 typedef struct katherine_device {
-    /**
-     * Slow control communication channel, which carries commands and
-     * acknowledgements (full duplex).
-     */
-    katherine_udp_t control_socket;
 
     /**
      * The control socket above, driven through the transport operations.
@@ -124,11 +118,6 @@ typedef struct katherine_device {
      */
     katherine_transport_t control_transport;
 
-    /**
-     * Measurement data (MD) communication channel, only used during
-     * acquisition (half duplex towards this system).
-     */
-    katherine_udp_t data_socket;
 
     /**
      * The data socket above, driven through the transport operations. What an

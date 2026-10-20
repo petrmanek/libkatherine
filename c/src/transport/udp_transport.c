@@ -41,7 +41,7 @@
 // up to 2 bytes past what arrived; the slack keeps that read inside the
 // allocation for any capacity, multiples of 8 included.
 struct udp_transport {
-    katherine_udp_t *udp;
+    katherine_udp_t udp;
     char *buffer;
     size_t capacity;
     bool lent; ///< True if the one buffer is in the caller's hands.
@@ -52,7 +52,7 @@ udp_t_send_cmd(void *ctx, const void *data, size_t count)
 {
     struct udp_transport *t = ctx;
 
-    return katherine_udp_send_exact(t->udp, data, count);
+    return katherine_udp_send_exact(&t->udp, data, count);
 }
 
 static katherine_error_t
@@ -60,7 +60,7 @@ udp_t_recv_crd(void *ctx, void *crd, size_t *len)
 {
     struct udp_transport *t = ctx;
 
-    return katherine_udp_recv(t->udp, crd, len);
+    return katherine_udp_recv(&t->udp, crd, len);
 }
 
 /**
@@ -107,7 +107,7 @@ udp_t_flush_incoming(void *ctx, uint32_t *discarded)
 {
     struct udp_transport *t = ctx;
 
-    udp_drain(t->udp, discarded);
+    udp_drain(&t->udp, discarded);
 
     return KATHERINE_E_OK;
 }
@@ -119,7 +119,7 @@ udp_t_acquire_data_buf(void *ctx, void **buf, size_t *len)
     struct udp_transport *t = ctx;
     size_t received         = t->capacity;
 
-    res = katherine_udp_recv(t->udp, t->buffer, &received);
+    res = katherine_udp_recv(&t->udp, t->buffer, &received);
     if (res) goto err_recv;
 
     t->lent = true;
@@ -156,7 +156,7 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 {
     struct udp_transport *t = ctx;
 
-    return katherine_udp_set_timeout(t->udp, timeout_ms);
+    return katherine_udp_set_timeout(&t->udp, timeout_ms);
 }
 
 static katherine_error_t
@@ -164,7 +164,7 @@ udp_t_get_bound_udp_port(void *ctx, uint16_t *port)
 {
     struct udp_transport *t = ctx;
 
-    *port = ntohs(t->udp->address_local.sin_port);
+    *port = ntohs(t->udp.address_local.sin_port);
 
     return KATHERINE_E_OK;
 }
@@ -177,7 +177,7 @@ udp_t_mutex_lock(void *ctx)
 {
     struct udp_transport *t = ctx;
 
-    return katherine_udp_mutex_lock(t->udp);
+    return katherine_udp_mutex_lock(&t->udp);
 }
 
 static katherine_error_t
@@ -185,7 +185,7 @@ udp_t_mutex_unlock(void *ctx)
 {
     struct udp_transport *t = ctx;
 
-    return katherine_udp_mutex_unlock(t->udp);
+    return katherine_udp_mutex_unlock(&t->udp);
 }
 
 
@@ -194,7 +194,7 @@ udp_t_last_os_error(void *ctx)
 {
     struct udp_transport *t = ctx;
 
-    return katherine_udp_last_os_error(t->udp);
+    return katherine_udp_last_os_error(&t->udp);
 }
 
 static katherine_error_t
@@ -239,6 +239,7 @@ udp_t_fini(void *ctx)
     struct udp_transport *t = ctx;
     if (t == NULL) return;
 
+    katherine_udp_fini(&t->udp);
     free(t->buffer);
     free(t);
 }
@@ -259,25 +260,38 @@ static const katherine_transport_ops_t udp_ops = {
 };
 
 /**
- * Drive an open UDP session through the transport operations.
+ * Open a UDP session and drive it through the transport operations.
  * \param transport Transport to fill in.
- * \param udp Session to drive, which stays the caller's to close.
+ * \param config Session to open, which the transport closes with itself.
  *
  * The lent buffer starts at a small size of this backend's choosing. A
  * reader that needs a particular one asks for it with
  * katherine_transport_set_buffer_size().
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if no transport or no session was given.
+ * \retval KATHERINE_E_INVAL if no transport or no configuration was given,
+ *   or if the configuration names no remote address.
+ * \retval KATHERINE_E_ADDRESS if either address could not be resolved, or the
+ *   local one could not be bound; see inet_pton(3) and bind(2).
  * \retval KATHERINE_E_NOMEM if the transport or its buffer could not be
  *   allocated.
+ * \retval KATHERINE_E_IO if opening the socket, sizing its receive queue or
+ *   reading back the port it was given failed at the OS level for a reason
+ *   none of the other codes name; see socket(2), setsockopt(2) and
+ *   katherine_transport_last_os_error().
+ * \retval KATHERINE_E_TIMEOUT if one of those calls reported that it would
+ *   have blocked, which this backend renders as a timeout whatever raised it;
+ *   see katherine_transport_last_os_error() for the errno itself.
+ * \retval KATHERINE_E_SYSTEM if the session's lock could not be created, or
+ *   the socket failed for a reason outside the map; see
+ *   pthread_mutex_init(3) and katherine_transport_last_os_error().
  */
 katherine_error_t
-katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *udp)
+katherine_transport_init_udp(katherine_transport_t *transport, const katherine_udp_config_t *config)
 {
     katherine_error_t res;
 
-    if (transport == NULL || udp == NULL) {
+    if (transport == NULL || config == NULL || config->remote_address == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_args;
     }
@@ -294,7 +308,17 @@ katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *
         goto err_buffer;
     }
 
-    t->udp      = udp;
+    res = katherine_udp_init_bound(&t->udp, config->local_address, config->local_port, config->remote_address,
+        config->remote_port, config->timeout_ms);
+    if (res != KATHERINE_E_OK) goto err_udp;
+
+    if (config->pin_remote) katherine_udp_pin_remote(&t->udp);
+
+    // Asked for before anything arrives, since a queue resized under traffic
+    // keeps whatever is already in it.
+    if (config->rcvbuf != 0 && (res = katherine_udp_set_rcvbuf(&t->udp, config->rcvbuf)) != KATHERINE_E_OK)
+        goto err_rcvbuf;
+
     t->capacity = DEFAULT_BUFFER_SIZE;
 
     transport->ops                     = &udp_ops;
@@ -305,6 +329,10 @@ katherine_transport_init_udp(katherine_transport_t *transport, katherine_udp_t *
 
     return KATHERINE_E_OK;
 
+err_rcvbuf:
+    katherine_udp_fini(&t->udp);
+err_udp:
+    free(t->buffer);
 err_buffer:
     free(t);
 err_alloc:

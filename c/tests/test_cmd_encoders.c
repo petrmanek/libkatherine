@@ -81,7 +81,6 @@
 #define CAPTURE_TIMEOUT_MS 20
 
 static katherine_udp_t g_capture;
-static katherine_udp_t g_sender;
 
 // The command layer sends on a transport, so the fixture's session needs one.
 static katherine_transport_t g_sender_link;
@@ -98,8 +97,14 @@ fixture_init(void)
     // this test's traffic.
     katherine_udp_pin_remote(&g_capture);
 
-    res = katherine_udp_init_bound(&g_sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_CAPTURE, CAPTURE_TIMEOUT_MS);
-    if (res == 0) res = katherine_transport_init_udp(&g_sender_link, &g_sender);
+    const katherine_udp_config_t sender = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_SENDER,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_CAPTURE,
+        .timeout_ms     = CAPTURE_TIMEOUT_MS,
+    };
+    res = katherine_transport_init_udp(&g_sender_link, &sender);
     if (res != 0) {
         katherine_udp_fini(&g_capture);
         return res;
@@ -112,7 +117,6 @@ static void
 fixture_fini(void)
 {
     katherine_transport_fini(&g_sender_link);
-    katherine_udp_fini(&g_sender);
     katherine_udp_fini(&g_capture);
 }
 
@@ -125,7 +129,7 @@ is_timeout(int res)
     return res == KATHERINE_E_TIMEOUT;
 }
 
-// Captures the next datagram sent by g_sender into got[8]. The recv buffer
+// Captures the next datagram sent over g_sender_link into got[8]. The recv buffer
 // is oversized to 16 bytes and the received length is required to be
 // exactly 8, so an encoder that emits a short or long datagram fails here
 // instead of being silently truncated or padded into a false match. Once
@@ -537,16 +541,19 @@ test_acquisition_setup_word(void)
                    &capture, "127.0.0.1", PORT_SETUP_CAPTURE, "127.0.0.1", PORT_SETUP_SENDER, CAPTURE_TIMEOUT_MS)
         == 0);
     katherine_udp_pin_remote(&capture);
-    if (katherine_udp_init_bound(
-            &dev.control_socket, "127.0.0.1", PORT_SETUP_SENDER, "127.0.0.1", PORT_SETUP_CAPTURE, CAPTURE_TIMEOUT_MS)
-        != 0) {
+    // The command layer takes the control lock through the device's
+    // transport, so a device assembled here needs one of its own.
+    const katherine_udp_config_t control = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_SETUP_SENDER,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_SETUP_CAPTURE,
+        .timeout_ms     = CAPTURE_TIMEOUT_MS,
+    };
+    if (katherine_transport_init_udp(&dev.control_transport, &control) != 0) {
         katherine_udp_fini(&capture);
         KT_REQUIRE(false);
     }
-
-    // The command layer takes the control lock through the device's
-    // transport, so a device assembled here needs one of its own.
-    KT_REQUIRE(katherine_transport_init_udp(&dev.control_transport, &dev.control_socket) == 0);
 
     // Declared rather than enumerated, because the layout follows the
     // generation and this case checks both of them.
@@ -585,7 +592,6 @@ test_acquisition_setup_word(void)
     KT_CHECK_EQ(katherine_set_acquisition_triggers(&dev, &start, false, &end), KATHERINE_E_STATE);
 
     katherine_transport_fini(&dev.control_transport);
-    katherine_udp_fini(&dev.control_socket);
     katherine_udp_fini(&capture);
 }
 

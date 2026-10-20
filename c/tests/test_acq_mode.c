@@ -123,10 +123,15 @@ test_datagrams(void)
     // the two sessions -- the borrowed acquisition among them, which
     // katherine_device_fini() acts on.
     memset(&device, 0, sizeof(device));
-    KT_REQUIRE(katherine_udp_init(&device.control_socket, LOCAL_PORT, "127.0.0.1", MOCK_PORT, 2000) == 0);
     // The command layer takes the control lock through the device's
     // transport, so a device assembled here needs one of its own.
-    KT_REQUIRE(katherine_transport_init_udp(&device.control_transport, &device.control_socket) == 0);
+    const katherine_udp_config_t config = {
+        .local_port     = LOCAL_PORT,
+        .remote_address = "127.0.0.1",
+        .remote_port    = MOCK_PORT,
+        .timeout_ms     = 2000,
+    };
+    KT_REQUIRE(katherine_transport_init_udp(&device.control_transport, &config) == 0);
 
     // Mode in byte 0, oscillator flag in byte 1. The three mode vectors are
     // the ones whose register readbacks were 0x58, 0x5a and 0x5c.
@@ -144,7 +149,6 @@ test_datagrams(void)
         &device, KATHERINE_TPX3_PX_EVENT_COUNT_ITOT, false, (const unsigned char[8]) {0x02, 0x00, 0, 0, 0, 0, 0x09, 0});
 
     katherine_transport_fini(&device.control_transport);
-    katherine_udp_fini(&device.control_socket);
     katherine_udp_fini(&mock_endpoint);
 }
 

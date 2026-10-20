@@ -110,15 +110,20 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     KT_CHECK(katherine_device_declare(&dev, &id) == KATHERINE_E_OK);
     KT_CHECK_EQ(dev.derived_info.gen, gen);
 
-    katherine_error_t res = katherine_udp_init_bound(&dev.data_socket, "127.0.0.1", PORT_DATA, "127.0.0.1", 1, 100);
+    const katherine_udp_config_t data = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_DATA,
+        .remote_address = "127.0.0.1",
+        .remote_port    = 1,
+        .timeout_ms     = 100,
+    };
 
     // The read loop reaches the session through the device's transport, so a
     // device assembled here rather than by katherine_device_init() has to
     // open one of its own.
-    res = katherine_transport_init_udp(&dev.data_transport, &dev.data_socket);
+    katherine_error_t res = katherine_transport_init_udp(&dev.data_transport, &data);
     KT_CHECK(res == 0);
     if (res != 0) {
-        katherine_udp_fini(&dev.data_socket);
         return res;
     }
     KT_CHECK(res == KATHERINE_E_OK);
@@ -130,7 +135,6 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     KT_CHECK(res == KATHERINE_E_OK);
     if (res != KATHERINE_E_OK) {
         katherine_transport_fini(&dev.data_transport);
-        katherine_udp_fini(&dev.data_socket);
         return res;
     }
 
@@ -159,7 +163,6 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     const size_t dropped = acq.dropped_measurement_data;
     katherine_acquisition_fini(&acq);
     katherine_transport_fini(&dev.data_transport);
-    katherine_udp_fini(&dev.data_socket);
 
     // Folded into chips_seen's spare high bit rather than widening the struct:
     // the tests below care only whether anything was dropped.

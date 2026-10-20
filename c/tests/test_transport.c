@@ -49,15 +49,27 @@ open_session(katherine_udp_t *u, uint16_t local_port, uint16_t remote_port)
     return katherine_udp_init_bound(u, HOST_LOCAL, local_port, HOST_LOCAL, remote_port, 100);
 }
 
+static katherine_udp_config_t
+session_config(uint16_t local_port, uint16_t remote_port)
+{
+    return (katherine_udp_config_t) {
+        .local_address  = HOST_LOCAL,
+        .local_port     = local_port,
+        .remote_address = HOST_LOCAL,
+        .remote_port    = remote_port,
+        .timeout_ms     = 100,
+    };
+}
+
 // ------------------------------------------------------------------
 
 /* A session driven through the operations carries what it carried before. */
 static void
 test_a_lent_buffer_holds_what_arrived(void)
 {
-    katherine_udp_t sender, receiver;
+    katherine_udp_t sender;
     KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
@@ -74,7 +86,6 @@ test_a_lent_buffer_holds_what_arrived(void)
     KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&receiver);
     katherine_udp_fini(&sender);
 }
 
@@ -84,8 +95,7 @@ test_a_lent_buffer_holds_what_arrived(void)
 static void
 test_returning_a_foreign_buffer_is_refused(void)
 {
-    katherine_udp_t receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
@@ -94,7 +104,6 @@ test_returning_a_foreign_buffer_is_refused(void)
     KT_CHECK_EQ(katherine_transport_release_data_buf(&t, elsewhere), KATHERINE_E_INVAL);
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&receiver);
 }
 
 /* An empty buffer can hold no datagram, and a transport over no session has
@@ -102,14 +111,16 @@ test_returning_a_foreign_buffer_is_refused(void)
 static void
 test_a_transport_over_nothing_is_refused(void)
 {
-    katherine_udp_t u;
-    KT_REQUIRE(open_session(&u, PORT_A, PORT_B) == KATHERINE_E_OK);
+    const katherine_udp_config_t config = session_config(PORT_A, PORT_B);
 
     katherine_transport_t t;
     KT_CHECK_EQ(katherine_transport_init_udp(&t, NULL), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_init_udp(NULL, &u), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_udp(NULL, &config), KATHERINE_E_INVAL);
 
-    katherine_udp_fini(&u);
+    // A session with nobody to address is refused before a socket is opened.
+    katherine_udp_config_t nowhere = config;
+    nowhere.remote_address         = NULL;
+    KT_CHECK_EQ(katherine_transport_init_udp(&t, &nowhere), KATHERINE_E_INVAL);
 }
 
 /* Silence is a timeout, not a zero-length buffer: a caller told it was lent
@@ -117,8 +128,7 @@ test_a_transport_over_nothing_is_refused(void)
 static void
 test_silence_times_out(void)
 {
-    katherine_udp_t receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
@@ -128,7 +138,6 @@ test_silence_times_out(void)
     KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_TIMEOUT);
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&receiver);
 }
 
 /* And the wait is as long as the caller last asked for, not as long as the
@@ -136,8 +145,7 @@ test_silence_times_out(void)
 static void
 test_the_timeout_is_what_was_last_set(void)
 {
-    katherine_udp_t receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
@@ -158,15 +166,13 @@ test_the_timeout_is_what_was_last_set(void)
     KT_CHECK(waited_ms < 2000);
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&receiver);
 }
 
 /* The kind travels with the transport, so a caller can tell what it got. */
 static void
 test_a_udp_transport_says_so(void)
 {
-    katherine_udp_t receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
@@ -175,7 +181,6 @@ test_a_udp_transport_says_so(void)
     KT_CHECK(t.ctx != NULL);
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&receiver);
 }
 
 /* Resizing is exact, so a caller that sized something else to match still
@@ -184,8 +189,8 @@ test_a_udp_transport_says_so(void)
 static void
 test_a_transport_resizes_exactly(void)
 {
-    katherine_udp_t sender, receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    katherine_udp_t sender;
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
     KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
 
     katherine_transport_t t;
@@ -215,7 +220,6 @@ test_a_transport_resizes_exactly(void)
 
     katherine_transport_fini(&t);
     katherine_udp_fini(&sender);
-    katherine_udp_fini(&receiver);
 }
 
 /* Resizing under a caller still holding the buffer would hand them a pointer
@@ -223,8 +227,8 @@ test_a_transport_resizes_exactly(void)
 static void
 test_resizing_while_lent_is_refused(void)
 {
-    katherine_udp_t sender, receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    katherine_udp_t sender;
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
     KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
 
     katherine_transport_t t;
@@ -245,7 +249,6 @@ test_resizing_while_lent_is_refused(void)
 
     katherine_transport_fini(&t);
     katherine_udp_fini(&sender);
-    katherine_udp_fini(&receiver);
 }
 
 /* The lock round-trips through the transport. That it is the session's own
@@ -255,8 +258,7 @@ test_resizing_while_lent_is_refused(void)
 static void
 test_the_lock_round_trips(void)
 {
-    katherine_udp_t receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
@@ -269,7 +271,6 @@ test_the_lock_round_trips(void)
     KT_CHECK_EQ(katherine_transport_mutex_unlock(&t), KATHERINE_E_OK);
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&receiver);
 }
 
 /* The OS error behind a failure is reachable through the transport, and is
@@ -283,8 +284,7 @@ test_the_lock_round_trips(void)
 static void
 test_the_os_error_comes_through(void)
 {
-    katherine_udp_t receiver;
-    KT_REQUIRE(open_session(&receiver, PORT_B, PORT_A) == KATHERINE_E_OK);
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
@@ -297,12 +297,9 @@ test_the_os_error_comes_through(void)
     KT_CHECK(katherine_transport_send_cmd(&t, payload, oversized) != KATHERINE_E_OK);
     free(payload);
 
-    const int err = katherine_transport_last_os_error(&t);
-    KT_CHECK(err != 0);
-    KT_CHECK_EQ(err, katherine_udp_last_os_error(&receiver));
+    KT_CHECK(katherine_transport_last_os_error(&t) != 0);
 
     katherine_transport_fini(&t);
-    katherine_udp_fini(&receiver);
 }
 
 #ifdef KATHERINE_FEATURE_USB

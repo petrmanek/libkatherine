@@ -355,31 +355,33 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     const uint16_t ask_control     = should_change_ports ? 0 : CONTROL_PORT;
     const uint16_t ask_data        = should_change_ports ? 0 : DATA_PORT;
 
-    if ((res = katherine_udp_init(&device->control_socket, ask_control, host, REMOTE_PORT, CONTROL_TIMEOUT)) != KATHERINE_E_OK) {
-        goto err_control;
-    }
-
     // Both sessions address one readout, named here and never learned from
-    // the network, so both are pinned to it right away: a client that let an
-    // arriving datagram repoint its session would be hijacked for good by any
-    // stray one -- a late response of a readout probed earlier, or its own
-    // command delivered back to it by a loopback address nobody is bound to
+    // the network, so both are pinned to it: a client that let an arriving
+    // datagram repoint its session would be hijacked for good by any stray
+    // one -- a late response of a readout probed earlier, or its own command
+    // delivered back to it by a loopback address nobody is bound to
     // (issue #23, "net: stop stray datagrams retargeting remote addr").
-    // Pinning cannot fail and needs no undoing, so the error paths below stay
-    // as they were.
-    katherine_udp_pin_remote(&device->control_socket);
+    katherine_udp_config_t control_config = {
+        .local_port     = ask_control,
+        .remote_address = host,
+        .remote_port    = REMOTE_PORT,
+        .timeout_ms     = CONTROL_TIMEOUT,
+        .pin_remote     = true,
+    };
 
     // Before katherine_device_enumerate() below, which is the first thing
     // here that takes the control lock.
-    if ((res = katherine_transport_init_udp(&device->control_transport, &device->control_socket)) != KATHERINE_E_OK) {
-        goto err_control_transport;
+    if ((res = katherine_transport_init_udp(&device->control_transport, &control_config)) != KATHERINE_E_OK) {
+        goto err_control;
     }
 
-    if ((res = katherine_udp_init(&device->data_socket, ask_data, host, REMOTE_PORT, DATA_TIMEOUT)) != KATHERINE_E_OK) {
-        goto err_data;
-    }
-
-    katherine_udp_pin_remote(&device->data_socket);
+    katherine_udp_config_t data_config = {
+        .local_port     = ask_data,
+        .remote_address = host,
+        .remote_port    = REMOTE_PORT,
+        .timeout_ms     = DATA_TIMEOUT,
+        .pin_remote     = true,
+    };
 
     // Opened here rather than by whoever reads from it, which is also why no
     // buffer size is given: an acquisition is set up long after this and asks
@@ -388,8 +390,8 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // the caller's stack in both README.md and krun.c, and an acquisition
     // choosing its read path out of whatever the stack held segfaults in the
     // decode loop on the first read. Measured on a real Gen2.
-    if ((res = katherine_transport_init_udp(&device->data_transport, &device->data_socket)) != KATHERINE_E_OK) {
-        goto err_transport;
+    if ((res = katherine_transport_init_udp(&device->data_transport, &data_config)) != KATHERINE_E_OK) {
+        goto err_data;
     }
 
     // Optional initial setup:
@@ -427,12 +429,8 @@ err_select:
     restore_standard_ports(device);
 err_ports:
     katherine_transport_fini(&device->data_transport);
-err_transport:
-    katherine_udp_fini(&device->data_socket);
 err_data:
     katherine_transport_fini(&device->control_transport);
-err_control_transport:
-    katherine_udp_fini(&device->control_socket);
 err_control:
 err_kind:
 err_address:
@@ -490,9 +488,6 @@ katherine_device_fini(katherine_device_t *device)
     // something the transport layer should be asked to tolerate.
     if (device->data_transport.ops != NULL) katherine_transport_fini(&device->data_transport);
     if (device->control_transport.ops != NULL) katherine_transport_fini(&device->control_transport);
-
-    katherine_udp_fini(&device->data_socket);
-    katherine_udp_fini(&device->control_socket);
 }
 
 /**
