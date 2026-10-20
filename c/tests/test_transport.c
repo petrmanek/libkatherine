@@ -35,7 +35,7 @@
 #include "transport/usb.h"
 #endif
 
-#include "transport/pair.h"
+#include "transport/factory.h"
 
 #include "kports.h"
 #include "ktest.h"
@@ -307,79 +307,75 @@ test_the_os_error_comes_through(void)
 }
 
 // ------------------------------------------------------------------
-// Both of a device's transports, opened together.
+// The transports a device drives, each built on its own.
 
-/* Both roles come back usable, each the kind the address named, and each on a
+/* Both come back usable, each the kind the address named, and each on a
  * session of its own. Asked to move off the standard pair, because 1555/1556
  * are a global resource that the ksim daemon and the device fixtures claim and
  * a unit test must not contend for. */
 static void
-test_a_pair_opens_both_roles(void)
+test_the_factories_open_both_transports(void)
 {
     katherine_transport_t control, data;
-    KT_REQUIRE(katherine_transport_init_pair(HOST_LOCAL_ADDRESS, true, &control, &data) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_for_control(HOST_LOCAL_ADDRESS, true, &control) == KATHERINE_E_OK);
+
+    uint16_t control_port = 0;
+    KT_REQUIRE(katherine_transport_get_bound_udp_port(&control, &control_port) == KATHERINE_E_OK);
+    KT_CHECK(control_port != 0);
+    KT_CHECK(control_port != KATHERINE_UDP_CONTROL_PORT);
+
+    /* The port a device would have told the readout to send to. */
+    KT_REQUIRE(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, &data) == KATHERINE_E_OK);
 
     KT_CHECK_EQ(control.kind, KATHERINE_TRANSPORT_UDP);
     KT_CHECK_EQ(data.kind, KATHERINE_TRANSPORT_UDP);
-    KT_CHECK(control.ops != NULL);
-    KT_CHECK(data.ops != NULL);
 
-    uint16_t control_port = 0, data_port = 0;
-    KT_CHECK_EQ(katherine_transport_get_bound_udp_port(&control, &control_port), KATHERINE_E_OK);
+    uint16_t data_port = 0;
     KT_CHECK_EQ(katherine_transport_get_bound_udp_port(&data, &data_port), KATHERINE_E_OK);
-    KT_CHECK(control_port != 0);
     KT_CHECK(data_port != 0);
-    KT_CHECK(control_port != data_port);
+    KT_CHECK(data_port != control_port);
 
-    /* And neither took the standard pair, which is what was asked. */
-    KT_CHECK(control_port != KATHERINE_UDP_CONTROL_PORT);
-    KT_CHECK(data_port != KATHERINE_UDP_DATA_PORT);
-
-    katherine_transport_fini_pair(&control, &data);
+    katherine_transport_fini(&data);
+    katherine_transport_fini(&control);
 }
 
 /* A missing argument is refused before anything is opened. */
 static void
-test_a_pair_refuses_a_missing_argument(void)
+test_a_factory_refuses_a_missing_argument(void)
 {
     katherine_transport_t control, data;
 
-    KT_CHECK_EQ(katherine_transport_init_pair(NULL, false, &control, &data), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_init_pair(HOST_LOCAL_ADDRESS, false, NULL, &data), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_init_pair(HOST_LOCAL_ADDRESS, false, &control, NULL), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_control(NULL, true, &control), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_control(HOST_LOCAL_ADDRESS, true, NULL), KATHERINE_E_INVAL);
+
+    KT_CHECK_EQ(katherine_transport_init_for_data(NULL, &control, 0, &data), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, NULL, 0, &data), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, NULL), KATHERINE_E_INVAL);
 }
 
-/* A refusal leaves both transports closed, so a caller that finalises anyway
+/* A refusal leaves the transport closed, so a caller that finalises anyway
  * finalises nothing rather than whatever its stack held. */
 static void
-test_a_refused_pair_leaves_nothing_open(void)
+test_a_refused_factory_leaves_nothing_open(void)
 {
-    katherine_transport_t control, data;
+    katherine_transport_t control;
     memset(&control, 0xFF, sizeof(control));
-    memset(&data, 0xFF, sizeof(data));
 
-    KT_CHECK(katherine_transport_init_pair("carrier-pigeon://127.0.0.1", false, &control, &data) != KATHERINE_E_OK);
+    KT_CHECK(katherine_transport_init_for_control("carrier-pigeon://127.0.0.1", true, &control) != KATHERINE_E_OK);
     KT_CHECK(control.ops == NULL);
-    KT_CHECK(data.ops == NULL);
-
-    katherine_transport_fini_pair(&control, &data);
 }
 
-/* A device assembled by hand carries one role or neither, and still closes. */
+/* A data transport is opened against the readout's own control transport,
+ * which is what a link that cannot be claimed twice is driven through. One
+ * that was never opened, or opened on another link, is refused. */
 static void
-test_closing_a_pair_tolerates_a_half_one(void)
+test_the_data_factory_refuses_a_mismatched_control(void)
 {
     katherine_transport_t control, data;
+
     memset(&control, 0, sizeof(control));
-    memset(&data, 0, sizeof(data));
-
-    katherine_transport_fini_pair(&control, &data);
-    katherine_transport_fini_pair(NULL, NULL);
-
-    const katherine_udp_config_t session = session_config(PORT_A, PORT_B);
-    KT_REQUIRE(katherine_transport_init_udp(&control, &session) == KATHERINE_E_OK);
-    katherine_transport_fini_pair(&control, &data);
-    KT_CHECK(control.ops == NULL);
+    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, &data), KATHERINE_E_INVAL);
+    KT_CHECK(data.ops == NULL);
 }
 
 #ifdef KATHERINE_FEATURE_USB
@@ -470,10 +466,10 @@ main(void)
     KT_RUN(test_resizing_while_lent_is_refused);
     KT_RUN(test_the_lock_round_trips);
     KT_RUN(test_the_os_error_comes_through);
-    KT_RUN(test_a_pair_opens_both_roles);
-    KT_RUN(test_a_pair_refuses_a_missing_argument);
-    KT_RUN(test_a_refused_pair_leaves_nothing_open);
-    KT_RUN(test_closing_a_pair_tolerates_a_half_one);
+    KT_RUN(test_the_factories_open_both_transports);
+    KT_RUN(test_a_factory_refuses_a_missing_argument);
+    KT_RUN(test_a_refused_factory_leaves_nothing_open);
+    KT_RUN(test_the_data_factory_refuses_a_mismatched_control);
 
 #ifdef KATHERINE_FEATURE_USB
     KT_RUN(test_the_default_geometry_is_the_measured_one);

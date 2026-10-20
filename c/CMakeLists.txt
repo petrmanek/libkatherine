@@ -29,7 +29,7 @@ set(KATHERINE_SOURCES
     "src/monoclock.h"
     "src/mutex.h"
     "src/transport/udp.h"
-    "src/transport/pair.h"
+    "src/transport/factory.h"
     "src/protocol/md.h"
 )
 

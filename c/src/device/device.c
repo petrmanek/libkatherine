@@ -19,7 +19,7 @@
 #include <katherine/status.h>
 #include "../address.h"
 #include "../protocol/cmd_interface.h"
-#include "../transport/pair.h"
+#include "../transport/factory.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -354,8 +354,16 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 
     // Before katherine_device_enumerate() below, which is the first thing
     // here that takes the control lock.
-    if ((res = katherine_transport_init_pair(address, should_change_ports, &device->control_transport, &device->data_transport)) != KATHERINE_E_OK) {
-        goto err_transports;
+    if ((res = katherine_transport_init_for_control(address, should_change_ports, &device->control_transport)) != KATHERINE_E_OK) {
+        goto err_control;
+    }
+
+    // Opened with the device rather than by whoever reads from it, and so
+    // without a buffer size: an acquisition is set up long after this and asks
+    // the transport to resize when it knows its own.
+    const uint16_t data_port = should_change_ports ? 0 : KATHERINE_UDP_DATA_PORT;
+    if ((res = katherine_transport_init_for_data(address, &device->control_transport, data_port, &device->data_transport)) != KATHERINE_E_OK) {
+        goto err_data;
     }
 
     // Optional initial setup:
@@ -392,8 +400,10 @@ err_enumerate:
 err_select:
     restore_standard_ports(device);
 err_ports:
-    katherine_transport_fini_pair(&device->control_transport, &device->data_transport);
-err_transports:
+    katherine_transport_fini(&device->data_transport);
+err_data:
+    katherine_transport_fini(&device->control_transport);
+err_control:
 err_kind:
 err_address:
     return res;
@@ -448,7 +458,12 @@ katherine_device_fini(katherine_device_t *device)
     // katherine_device_init() carries a zeroed transport, and whether this
     // device opened one is the device's own bookkeeping rather than
     // something the transport layer should be asked to tolerate.
-    katherine_transport_fini_pair(&device->control_transport, &device->data_transport);
+    // Reverse order of acquisition, and each only where there is one: a device
+    // assembled by hand carries a zeroed transport. A link whose data
+    // transport drives what its control transport claimed needs this order,
+    // the claim outliving what points into it.
+    if (device->data_transport.ops != NULL) katherine_transport_fini(&device->data_transport);
+    if (device->control_transport.ops != NULL) katherine_transport_fini(&device->control_transport);
 }
 
 /**
