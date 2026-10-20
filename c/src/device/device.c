@@ -200,13 +200,14 @@ static katherine_error_t
 claim_private_ports(katherine_device_t *device)
 {
     katherine_error_t res;
-    uint16_t control, data;
+    uint16_t control;
 
     res = katherine_transport_get_bound_udp_port(&device->control_transport, &control);
     if (res) goto err_control;
 
-    res = katherine_transport_get_bound_udp_port(&device->data_transport, &data);
-    if (res) goto err_data;
+    // The one after the control port: nothing binds the data socket until an
+    // acquisition asks, so a number has to be named before one exists.
+    const uint16_t data = (uint16_t) (control + 1);
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
@@ -215,8 +216,9 @@ claim_private_ports(katherine_device_t *device)
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 
+    if (res == KATHERINE_E_OK) device->udp_data_port = data;
+
 err_lock:
-err_data:
 err_control:
     return res;
 }
@@ -298,6 +300,14 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // Ensure the pointer is zeroed and not garbage.
     device->acquisition       = NULL;
     device->udp_ports_changed = false;
+    device->udp_data_port     = KATHERINE_UDP_DATA_PORT;
+
+    // An acquisition opens its own link from this, after the caller's string
+    // may be gone.
+    if (address == NULL || strlen(address) >= sizeof(device->address)) {
+        return KATHERINE_E_ADDRESS;
+    }
+    strcpy(device->address, address);
 
     // Zeroed before the probe below, so a readout that never answers leaves
     // hw_type 0 rather than whatever the caller's stack held.
@@ -358,14 +368,6 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         goto err_control;
     }
 
-    // Opened with the device rather than by whoever reads from it, and so
-    // without a buffer size: an acquisition is set up long after this and asks
-    // the transport to resize when it knows its own.
-    const uint16_t data_port = should_change_ports ? 0 : KATHERINE_UDP_DATA_PORT;
-    if ((res = katherine_transport_init_for_data(address, &device->control_transport, data_port, &device->data_transport)) != KATHERINE_E_OK) {
-        goto err_data;
-    }
-
     // Optional initial setup:
     // 1. Change ports if supported and not inhibited by flags
     if (should_change_ports) {
@@ -400,8 +402,6 @@ err_enumerate:
 err_select:
     restore_standard_ports(device);
 err_ports:
-    katherine_transport_fini(&device->data_transport);
-err_data:
     katherine_transport_fini(&device->control_transport);
 err_control:
 err_kind:
@@ -462,7 +462,6 @@ katherine_device_fini(katherine_device_t *device)
     // assembled by hand carries a zeroed transport. A link whose data
     // transport drives what its control transport claimed needs this order,
     // the claim outliving what points into it.
-    if (device->data_transport.ops != NULL) katherine_transport_fini(&device->data_transport);
     if (device->control_transport.ops != NULL) katherine_transport_fini(&device->control_transport);
 }
 

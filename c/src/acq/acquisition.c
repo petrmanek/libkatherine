@@ -20,6 +20,7 @@
 #include "monoclock.h"
 #include "protocol/cmd_interface.h"
 #include "protocol/md.h"
+#include "transport/factory.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -309,21 +310,19 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // some of them does not leave the rest pointing at indeterminate values.
     acq->handlers = (katherine_acquisition_handlers_t) {0};
 
-    // The device is where the link lives, and an acquisition is a reader of
-    // it: without one there is nothing to read from. Said here rather than
-    // discovered as a null table at the first read.
-    if (device->data_transport.ops == NULL) {
-        res = KATHERINE_E_STATE;
-        goto err_no_transport;
-    }
+    // Opened here rather than with the device: nothing reads from one that is
+    // not acquiring. A link claimed once is driven through the control
+    // transport's claim, which is why that one outlives this.
+    res = katherine_transport_init_for_data(device->address, &device->control_transport, device->udp_data_port, &acq->data_transport);
+    if (res) goto err_no_transport;
 
     acq->md_buffer_size = md_buffer_size;
 
-    // The buffer the loop decodes belongs to the device's transport, so the
-    // size asked for here is a request made of that rather than an
-    // allocation of this acquisition's own. Exact, which is what lets
+    // The buffer the loop decodes belongs to the transport, so the size asked
+    // for here is a request made of that rather than an allocation of this
+    // acquisition's own. Exact, which is what lets
     // truncated_measurement_data keep comparing against md_buffer_size.
-    res = katherine_transport_set_buffer_size(&device->data_transport, md_buffer_size);
+    res = katherine_transport_set_buffer_size(&acq->data_transport, md_buffer_size);
     if (res) goto err_buffer_size;
 
     acq->pixel_buffer_size  = pixel_buffer_size;
@@ -341,6 +340,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
 
 err_pixel_buffer:
 err_buffer_size:
+    katherine_transport_fini(&acq->data_transport);
 err_no_transport:
     return res;
 }
@@ -360,6 +360,9 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 
     free(acq->pixel_buffer);
     acq->pixel_buffer = NULL;
+
+    // Before the control transport it was opened against.
+    if (acq->data_transport.ops != NULL) katherine_transport_fini(&acq->data_transport);
 }
 
 /**
@@ -451,7 +454,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     { \
         static const int PIXEL_SIZE = sizeof(katherine_tpx3_px_##SUFFIX##_t); \
 \
-        int lock_res = katherine_transport_mutex_lock(&acq->device->data_transport); \
+        int lock_res = katherine_transport_mutex_lock(&acq->data_transport); \
         if (lock_res != 0) return lock_res; \
 \
         uint64_t last_data_received = katherine_clock_monotonic_ns(); \
@@ -467,7 +470,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 \
         while (acq->state == KATHERINE_ACQUISITION_STATE_RUNNING) { \
             void *lent = NULL; \
-            res        = katherine_transport_acquire_data_buf(&acq->device->data_transport, &lent, &received); \
+            res        = katherine_transport_acquire_data_buf(&acq->data_transport, &lent, &received); \
 \
             if (res) { \
                 duration = (double) (katherine_clock_monotonic_ns() - last_data_received) / 1000000.0; \
@@ -517,7 +520,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 acq->handlers.data_received(acq->user_ctx, (const char *) lent, received); \
             } \
 \
-            (void) katherine_transport_release_data_buf(&acq->device->data_transport, lent); \
+            (void) katherine_transport_release_data_buf(&acq->data_transport, lent); \
         } \
 \
         if (acq->frame_active) { \
@@ -526,7 +529,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             flush_buffer(acq); \
         } \
 \
-        (void) katherine_transport_mutex_unlock(&acq->device->data_transport); \
+        (void) katherine_transport_mutex_unlock(&acq->data_transport); \
         switch (acq->state) { \
         case KATHERINE_ACQUISITION_STATE_SUCCEEDED: return KATHERINE_E_OK; \
         case KATHERINE_ACQUISITION_STATE_TIMED_OUT: return KATHERINE_E_TIMEOUT; \

@@ -109,47 +109,16 @@ katherine_device_derived_info_recognize(uint8_t hw_type);
  * about itself, and what this library derives from that.
  */
 typedef struct katherine_device {
+    char address[KATHERINE_DEVICE_ADDRESS_STR_SIZE]; ///< Address this device was opened with, which an acquisition opens its own link from.
+    katherine_transport_t control_transport;         ///< Slow control channel, used to send commands and receive acknowledgements. Owned by the device.
 
-    /**
-     * The control socket above, driven through the transport operations.
-     * What commands and their acknowledgements travel on, and what the lock
-     * excluding two callers on one link is taken through. Opened with this
-     * device and released with it.
-     */
-    katherine_transport_t control_transport;
+    uint16_t udp_data_port; ///< Port the readout was told to send measurement data to, which an acquisition binds. Valid only for udp:// transport.
+    bool udp_ports_changed; ///< True where this device moved the readout off the standard UDP ports, so that katherine_device_fini() knows to put it back. Valid only for udp:// transport.
 
+    void *acquisition; ///< The acquisition measuring on this device, or NULL when none is. Opaque by design.
 
-    /**
-     * The data socket above, driven through the transport operations. What an
-     * acquisition reads measurement data from, so that a readout reached over
-     * another link is read by the same loop. Opened with this device and
-     * released with it.
-     */
-    katherine_transport_t data_transport;
-
-    /**
-     * The acquisition measuring on this device, or NULL when none is. Opaque
-     * by design. Only kept for bookkeeping purposes.
-     */
-    void *acquisition;
-
-    /**
-     * True where this device moved the readout off the standard UDP ports, so
-     * that katherine_device_fini() knows to put it back. Only kept for
-     * bookkeeping purposes.
-     */
-    bool udp_ports_changed;
-
-    /**
-     * What this readout said it is, or what a caller declared. Zeroed until
-     * katherine_device_enumerate() or katherine_device_declare() has run.
-     */
-    katherine_device_info_t info;
-
-    /**
-     * What that hardware type means. Derived from info, never set on its own.
-     */
-    katherine_device_derived_info_t derived_info;
+    katherine_device_info_t info;                 ///< Self-reported information about the device, or what a caller declared. Zeroed until katherine_device_enumerate() or katherine_device_declare() has run.
+    katherine_device_derived_info_t derived_info; ///< More useful attributes, automatically derived from \p info. \see katherine_device_declare
 } katherine_device_t;
 
 KATHERINE_EXPORTED int

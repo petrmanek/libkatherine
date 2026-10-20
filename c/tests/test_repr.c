@@ -417,7 +417,7 @@ test_device(void)
     katherine_device_t dev;
     // Zeroed whole: this device is built by hand rather than by
     // katherine_device_init(), and katherine_device_t carries fields beyond
-    // the two sessions -- the borrowed acquisition among them, which
+    // its control link -- the borrowed acquisition among them, which
     // katherine_device_fini() acts on.
     memset(&dev, 0, sizeof(dev));
     const katherine_udp_config_t control = {
@@ -427,21 +427,16 @@ test_device(void)
         .remote_port    = UDP_TEST_PORT4,
         .timeout_ms     = 100,
     };
-    const katherine_udp_config_t data = {
-        .local_address  = UDP_HOST,
-        .local_port     = UDP_TEST_PORT4,
-        .remote_address = UDP_HOST,
-        .remote_port    = UDP_TEST_PORT3,
-        .timeout_ms     = 100,
-    };
     KT_REQUIRE(katherine_transport_init_udp(&dev.control_transport, &control) == 0);
-    KT_REQUIRE(katherine_transport_init_udp(&dev.data_transport, &data) == 0);
+    strcpy(dev.address, "udp://" UDP_HOST);
+    dev.udp_data_port = UDP_TEST_PORT4;
 
     char buf[384];
     int n = katherine_device_snprint(buf, sizeof(buf), &dev);
     CHECK_GOLDEN(n, buf,
-        "device{control_transport: transport{kind: udp, strict_ack: false, stray_command_responses: 0}, "
-        "data_transport: transport{kind: udp, strict_ack: false, stray_command_responses: 0}}");
+        "device{address: \"udp://127.0.0.1\", "
+        "control_transport: transport{kind: udp, strict_ack: false, stray_command_responses: 0}, "
+        "udp_data_port: 43604}");
 
     katherine_device_fini(&dev);
 }

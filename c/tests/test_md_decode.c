@@ -52,6 +52,7 @@
 // fixture claims no global resource, so the test needs no exclusive slot
 // among the others.
 #define PORT_DATA             (KPORTS_MD_DECODE + 0)
+#define PORT_CONTROL          (KPORTS_MD_DECODE + 2)
 #define PORT_SENDER           (KPORTS_MD_DECODE + 1)
 
 // The timestamp offset counts whole coarse time-of-arrival windows, i.e.
@@ -202,18 +203,20 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     // Only the data socket is used by the read loop. Bound to a fixed port
     // on loopback, so the sender below can be pointed at it directly
     // instead of discovering an OS-picked one.
-    const katherine_udp_config_t data = {
+    // The acquisition opens its own data link from the device's address,
+    // control link and port.
+    strcpy(dev.address, "udp://127.0.0.1");
+    dev.udp_data_port = PORT_DATA;
+
+    const katherine_udp_config_t control = {
         .local_address  = "127.0.0.1",
-        .local_port     = PORT_DATA,
+        .local_port     = PORT_CONTROL,
         .remote_address = "127.0.0.1",
         .remote_port    = 1,
-        .timeout_ms     = RECV_TIMEOUT_MS,
+        .timeout_ms     = 100,
     };
 
-    // The read loop reaches the session through the device's transport, so a
-    // device assembled here rather than by katherine_device_init() has to
-    // open one of its own.
-    int res = katherine_transport_init_udp(&dev.data_transport, &data);
+    int res = katherine_transport_init_udp(&dev.control_transport, &control);
     KT_CHECK(res == 0);
     if (res != 0) {
         return res;
@@ -225,7 +228,7 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
         PIXEL_BUFFER_HITS * sizeof(px_t), 0 /* report_timeout disabled */, FAIL_TIMEOUT_MS);
     KT_CHECK(res == 0);
     if (res != 0) {
-        katherine_transport_fini(&dev.data_transport);
+        katherine_transport_fini(&dev.control_transport);
         return -1;
     }
 
@@ -266,7 +269,7 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     probe->truncated        = acq.truncated_measurement_data;
 
     katherine_acquisition_fini(&acq);
-    katherine_transport_fini(&dev.data_transport);
+    katherine_transport_fini(&dev.control_transport);
     return res;
 }
 

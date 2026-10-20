@@ -153,8 +153,9 @@ katherine_str_phase_correction(katherine_tpx3_phase_correction_t v);
  * business; the rest is the read loop's state and is documented as such.
  */
 typedef struct katherine_acquisition {
-    katherine_device_t *device; ///< Device this acquisition runs on, as passed to katherine_acquisition_init().
-    void *user_ctx;             ///< The caller's context, handed back to every handler untouched.
+    katherine_device_t *device;           ///< Device this acquisition runs on, as passed to katherine_acquisition_init().
+    katherine_transport_t data_transport; ///< Data channel, which receives collected measurements. Owned by the acquisition.
+    void *user_ctx;                       ///< The caller's context, handed back to every handler untouched.
 
     katherine_acquisition_state_t state; ///< Where the acquisition has got to.
     bool aborted;                        ///< Internal: true once an abort has been requested, which is how the read loop tells a dried-up stream from a lost one. Read and written atomically by the library, katherine_acquisition_abort() being callable from another thread than the one reading.

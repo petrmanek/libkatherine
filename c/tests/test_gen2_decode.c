@@ -34,9 +34,10 @@
 #include "ktest.h"
 #include "monoclock.h"
 
-#define MD_SIZE     6
-#define PORT_DATA   (KPORTS_GEN2_DECODE + 0)
-#define PORT_SENDER (KPORTS_GEN2_DECODE + 1)
+#define MD_SIZE      6
+#define PORT_DATA    (KPORTS_GEN2_DECODE + 0)
+#define PORT_CONTROL (KPORTS_GEN2_DECODE + 2)
+#define PORT_SENDER  (KPORTS_GEN2_DECODE + 1)
 
 static void
 make_md(unsigned char *dst, unsigned header, uint64_t payload)
@@ -110,18 +111,20 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     KT_CHECK(katherine_device_declare(&dev, &id) == KATHERINE_E_OK);
     KT_CHECK_EQ(dev.derived_info.gen, gen);
 
-    const katherine_udp_config_t data = {
+    // The acquisition opens its own data link from the device's address,
+    // control link and port.
+    strcpy(dev.address, "udp://127.0.0.1");
+    dev.udp_data_port = PORT_DATA;
+
+    const katherine_udp_config_t control = {
         .local_address  = "127.0.0.1",
-        .local_port     = PORT_DATA,
+        .local_port     = PORT_CONTROL,
         .remote_address = "127.0.0.1",
         .remote_port    = 1,
         .timeout_ms     = 100,
     };
 
-    // The read loop reaches the session through the device's transport, so a
-    // device assembled here rather than by katherine_device_init() has to
-    // open one of its own.
-    katherine_error_t res = katherine_transport_init_udp(&dev.data_transport, &data);
+    katherine_error_t res = katherine_transport_init_udp(&dev.control_transport, &control);
     KT_CHECK(res == 0);
     if (res != 0) {
         return res;
@@ -134,7 +137,7 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     res = katherine_acquisition_init(&acq, &dev, s, 1024 * MD_SIZE, 65536, 0, 1);
     KT_CHECK(res == KATHERINE_E_OK);
     if (res != KATHERINE_E_OK) {
-        katherine_transport_fini(&dev.data_transport);
+        katherine_transport_fini(&dev.control_transport);
         return res;
     }
 
@@ -162,7 +165,7 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
 
     const size_t dropped = acq.dropped_measurement_data;
     katherine_acquisition_fini(&acq);
-    katherine_transport_fini(&dev.data_transport);
+    katherine_transport_fini(&dev.control_transport);
 
     // Folded into chips_seen's spare high bit rather than widening the struct:
     // the tests below care only whether anything was dropped.

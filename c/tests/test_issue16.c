@@ -19,7 +19,7 @@
 #include "ktest.h"
 #include "monoclock.h"
 
-#define MD_SIZE     6
+#define MD_SIZE      6
 
 // High, uncommon ports of their own, distinct from every other fixed pair
 // registered in this tree (test_cmd_encoders.c's 42600/42601,
@@ -27,8 +27,9 @@
 // 47301/47302/47311/47312, the ksim daemon's 1555/1556): this fixture
 // claims no global resource, so the test needs no exclusive slot among the
 // others.
-#define PORT_DATA   (KPORTS_ISSUE16 + 0)
-#define PORT_SENDER (KPORTS_ISSUE16 + 1)
+#define PORT_DATA    (KPORTS_ISSUE16 + 0)
+#define PORT_CONTROL (KPORTS_ISSUE16 + 2)
+#define PORT_SENDER  (KPORTS_ISSUE16 + 1)
 
 static void
 make_md(unsigned char *dst, unsigned header, uint64_t payload)
@@ -96,18 +97,20 @@ run_case(bool send_frame_finished, struct stats *s)
     // Only the data socket is used by the read loop. 100 ms recv timeout.
     // Bound to a fixed port on loopback, so the sender below can be pointed
     // at it directly instead of discovering an OS-picked one.
-    const katherine_udp_config_t data = {
+    // The acquisition opens its own data link from the device's address,
+    // control link and port.
+    strcpy(dev.address, "udp://127.0.0.1");
+    dev.udp_data_port = PORT_DATA;
+
+    const katherine_udp_config_t control = {
         .local_address  = "127.0.0.1",
-        .local_port     = PORT_DATA,
+        .local_port     = PORT_CONTROL,
         .remote_address = "127.0.0.1",
         .remote_port    = 1,
         .timeout_ms     = 100,
     };
 
-    // The read loop reaches the session through the device's transport, so a
-    // device assembled here rather than by katherine_device_init() has to
-    // open one of its own.
-    katherine_error_t res = katherine_transport_init_udp(&dev.data_transport, &data);
+    katherine_error_t res = katherine_transport_init_udp(&dev.control_transport, &control);
     KT_CHECK(res == 0);
     if (res != 0) {
         return res;
@@ -127,7 +130,7 @@ run_case(bool send_frame_finished, struct stats *s)
     KT_CHECK(res == 0);
     if (res != 0) {
         katherine_acquisition_fini(&acq);
-        katherine_transport_fini(&dev.data_transport);
+        katherine_transport_fini(&dev.control_transport);
         return -1;
     }
 
@@ -167,7 +170,7 @@ run_case(bool send_frame_finished, struct stats *s)
     res = katherine_acquisition_read(&acq);
 
     katherine_acquisition_fini(&acq);
-    katherine_transport_fini(&dev.data_transport);
+    katherine_transport_fini(&dev.control_transport);
     return res;
 }
 

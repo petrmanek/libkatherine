@@ -126,21 +126,25 @@ test_udp_bad_remote_address_maps_to_einval(void)
 static void
 test_acquisition_init_huge_buffer_maps_to_enomem(void)
 {
-    katherine_device_t dev            = {0};
-    const katherine_udp_config_t data = {
+    katherine_device_t dev = {0};
+    // The acquisition opens its own data link from the device.
+    strcpy(dev.address, "udp://" HOST);
+    dev.udp_data_port = PORT_NOMEM + 1;
+
+    const katherine_udp_config_t control = {
         .local_address  = HOST,
         .local_port     = PORT_NOMEM,
         .remote_address = HOST,
         .remote_port    = PORT_NOMEM + 1,
         .timeout_ms     = TIMEOUT_MS,
     };
-    KT_REQUIRE(katherine_transport_init_udp(&dev.data_transport, &data) == 0);
+    KT_REQUIRE(katherine_transport_init_udp(&dev.control_transport, &control) == 0);
 
     katherine_acquisition_t acq;
     size_t huge = SIZE_MAX - 4096; // leaves room for the buffer's +sizeof(uint64_t) headroom to not wrap
     KT_CHECK_EQ(katherine_acquisition_init(&acq, &dev, NULL, huge, 1, 0, 0), ENOMEM);
 
-    katherine_transport_fini(&dev.data_transport);
+    katherine_transport_fini(&dev.control_transport);
 }
 
 // ------------------------------------------------------------------
