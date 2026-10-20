@@ -28,6 +28,7 @@ set(KATHERINE_SOURCES
     "src/msleep.h"
     "src/monoclock.h"
     "src/mutex.h"
+    "src/transport/pair.h"
     "src/protocol/md.h"
 )
 

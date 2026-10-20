@@ -30,18 +30,22 @@
 #include <katherine/transport.h>
 #include <katherine/udp.h>
 
+
 #ifdef KATHERINE_FEATURE_USB
 #include <katherine/usb.h>
 #endif
+
+#include "transport/pair.h"
 
 #include "kports.h"
 #include "ktest.h"
 #include "monoclock.h"
 
-#define PORT_A     (KPORTS_TRANSPORT + 0)
-#define PORT_B     (KPORTS_TRANSPORT + 1)
-#define HOST_LOCAL "127.0.0.1"
-#define BUF_BYTES  2048
+#define PORT_A             (KPORTS_TRANSPORT + 0)
+#define PORT_B             (KPORTS_TRANSPORT + 1)
+#define HOST_LOCAL         "127.0.0.1"
+#define HOST_LOCAL_ADDRESS "udp://127.0.0.1"
+#define BUF_BYTES          2048
 
 static katherine_error_t
 open_session(katherine_udp_t *u, uint16_t local_port, uint16_t remote_port)
@@ -302,6 +306,82 @@ test_the_os_error_comes_through(void)
     katherine_transport_fini(&t);
 }
 
+// ------------------------------------------------------------------
+// Both of a device's transports, opened together.
+
+/* Both roles come back usable, each the kind the address named, and each on a
+ * session of its own. Asked to move off the standard pair, because 1555/1556
+ * are a global resource that the ksim daemon and the device fixtures claim and
+ * a unit test must not contend for. */
+static void
+test_a_pair_opens_both_roles(void)
+{
+    katherine_transport_t control, data;
+    KT_REQUIRE(katherine_transport_init_pair(HOST_LOCAL_ADDRESS, true, &control, &data) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(control.kind, KATHERINE_TRANSPORT_UDP);
+    KT_CHECK_EQ(data.kind, KATHERINE_TRANSPORT_UDP);
+    KT_CHECK(control.ops != NULL);
+    KT_CHECK(data.ops != NULL);
+
+    uint16_t control_port = 0, data_port = 0;
+    KT_CHECK_EQ(katherine_transport_get_bound_udp_port(&control, &control_port), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_get_bound_udp_port(&data, &data_port), KATHERINE_E_OK);
+    KT_CHECK(control_port != 0);
+    KT_CHECK(data_port != 0);
+    KT_CHECK(control_port != data_port);
+
+    /* And neither took the standard pair, which is what was asked. */
+    KT_CHECK(control_port != KATHERINE_UDP_CONTROL_PORT);
+    KT_CHECK(data_port != KATHERINE_UDP_DATA_PORT);
+
+    katherine_transport_fini_pair(&control, &data);
+}
+
+/* A missing argument is refused before anything is opened. */
+static void
+test_a_pair_refuses_a_missing_argument(void)
+{
+    katherine_transport_t control, data;
+
+    KT_CHECK_EQ(katherine_transport_init_pair(NULL, false, &control, &data), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_pair(HOST_LOCAL_ADDRESS, false, NULL, &data), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_pair(HOST_LOCAL_ADDRESS, false, &control, NULL), KATHERINE_E_INVAL);
+}
+
+/* A refusal leaves both transports closed, so a caller that finalises anyway
+ * finalises nothing rather than whatever its stack held. */
+static void
+test_a_refused_pair_leaves_nothing_open(void)
+{
+    katherine_transport_t control, data;
+    memset(&control, 0xFF, sizeof(control));
+    memset(&data, 0xFF, sizeof(data));
+
+    KT_CHECK(katherine_transport_init_pair("carrier-pigeon://127.0.0.1", false, &control, &data) != KATHERINE_E_OK);
+    KT_CHECK(control.ops == NULL);
+    KT_CHECK(data.ops == NULL);
+
+    katherine_transport_fini_pair(&control, &data);
+}
+
+/* A device assembled by hand carries one role or neither, and still closes. */
+static void
+test_closing_a_pair_tolerates_a_half_one(void)
+{
+    katherine_transport_t control, data;
+    memset(&control, 0, sizeof(control));
+    memset(&data, 0, sizeof(data));
+
+    katherine_transport_fini_pair(&control, &data);
+    katherine_transport_fini_pair(NULL, NULL);
+
+    const katherine_udp_config_t session = session_config(PORT_A, PORT_B);
+    KT_REQUIRE(katherine_transport_init_udp(&control, &session) == KATHERINE_E_OK);
+    katherine_transport_fini_pair(&control, &data);
+    KT_CHECK(control.ops == NULL);
+}
+
 #ifdef KATHERINE_FEATURE_USB
 
 /* The geometry shipped is the one the reference implementation runs this
@@ -377,6 +457,10 @@ main(void)
     KT_RUN(test_resizing_while_lent_is_refused);
     KT_RUN(test_the_lock_round_trips);
     KT_RUN(test_the_os_error_comes_through);
+    KT_RUN(test_a_pair_opens_both_roles);
+    KT_RUN(test_a_pair_refuses_a_missing_argument);
+    KT_RUN(test_a_refused_pair_leaves_nothing_open);
+    KT_RUN(test_closing_a_pair_tolerates_a_half_one);
 
 #ifdef KATHERINE_FEATURE_USB
     KT_RUN(test_the_default_geometry_is_the_measured_one);

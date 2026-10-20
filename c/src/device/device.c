@@ -19,15 +19,14 @@
 #include <katherine/status.h>
 #include "../address.h"
 #include "../protocol/cmd_interface.h"
+#include "../transport/pair.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-static const uint16_t CONTROL_PORT = 1555;
-static const uint16_t DATA_PORT    = 1556;
-static const uint16_t REMOTE_PORT  = 1555;
-
-static const uint32_t CONTROL_TIMEOUT = 100; // ms
-static const uint32_t DATA_TIMEOUT    = 100; // ms
+// What the legacy probe waits for an answer. Its own rather than a session's:
+// it runs before any transport exists, and what a broadcast probe should wait
+// is not what a command should.
+static const uint32_t DISCOVER_TIMEOUT = 100; // ms
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -237,7 +236,7 @@ restore_standard_ports(katherine_device_t *device)
 
     if (katherine_transport_mutex_lock(&device->control_transport) != KATHERINE_E_OK) return;
 
-    (void) katherine_cmd_change_udp_ports(&device->control_transport, CONTROL_PORT, DATA_PORT);
+    (void) katherine_cmd_change_udp_ports(&device->control_transport, KATHERINE_UDP_CONTROL_PORT, KATHERINE_UDP_DATA_PORT);
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 }
 
@@ -343,7 +342,7 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         katherine_discovered_t found;
         size_t count = 1;
 
-        if (katherine_device_discover_udp(host, DATA_PORT, CONTROL_TIMEOUT, &found, &count) == KATHERINE_E_OK
+        if (katherine_device_discover_udp(host, KATHERINE_UDP_DATA_PORT, DISCOVER_TIMEOUT, &found, &count) == KATHERINE_E_OK
             && count == 1) {
             legacy = found.legacy;
         }
@@ -352,46 +351,11 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // A firmware that ignores the reply port cannot be moved off the standard
     // pair, and a caller may have its own reason to stay there.
     const bool should_change_ports = kind == KATHERINE_TRANSPORT_UDP && (flags & KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS) == 0 && !legacy;
-    const uint16_t ask_control     = should_change_ports ? 0 : CONTROL_PORT;
-    const uint16_t ask_data        = should_change_ports ? 0 : DATA_PORT;
-
-    // Both sessions address one readout, named here and never learned from
-    // the network, so both are pinned to it: a client that let an arriving
-    // datagram repoint its session would be hijacked for good by any stray
-    // one -- a late response of a readout probed earlier, or its own command
-    // delivered back to it by a loopback address nobody is bound to
-    // (issue #23, "net: stop stray datagrams retargeting remote addr").
-    katherine_udp_config_t control_config = {
-        .local_port     = ask_control,
-        .remote_address = host,
-        .remote_port    = REMOTE_PORT,
-        .timeout_ms     = CONTROL_TIMEOUT,
-        .pin_remote     = true,
-    };
 
     // Before katherine_device_enumerate() below, which is the first thing
     // here that takes the control lock.
-    if ((res = katherine_transport_init_udp(&device->control_transport, &control_config)) != KATHERINE_E_OK) {
-        goto err_control;
-    }
-
-    katherine_udp_config_t data_config = {
-        .local_port     = ask_data,
-        .remote_address = host,
-        .remote_port    = REMOTE_PORT,
-        .timeout_ms     = DATA_TIMEOUT,
-        .pin_remote     = true,
-    };
-
-    // Opened here rather than by whoever reads from it, which is also why no
-    // buffer size is given: an acquisition is set up long after this and asks
-    // the transport to resize when it knows its own. Opening it with the device is also what keeps the
-    // member from ever being read before it is written -- a device lives on
-    // the caller's stack in both README.md and krun.c, and an acquisition
-    // choosing its read path out of whatever the stack held segfaults in the
-    // decode loop on the first read. Measured on a real Gen2.
-    if ((res = katherine_transport_init_udp(&device->data_transport, &data_config)) != KATHERINE_E_OK) {
-        goto err_data;
+    if ((res = katherine_transport_init_pair(address, should_change_ports, &device->control_transport, &device->data_transport)) != KATHERINE_E_OK) {
+        goto err_transports;
     }
 
     // Optional initial setup:
@@ -428,10 +392,8 @@ err_enumerate:
 err_select:
     restore_standard_ports(device);
 err_ports:
-    katherine_transport_fini(&device->data_transport);
-err_data:
-    katherine_transport_fini(&device->control_transport);
-err_control:
+    katherine_transport_fini_pair(&device->control_transport, &device->data_transport);
+err_transports:
 err_kind:
 err_address:
     return res;
@@ -486,8 +448,7 @@ katherine_device_fini(katherine_device_t *device)
     // katherine_device_init() carries a zeroed transport, and whether this
     // device opened one is the device's own bookkeeping rather than
     // something the transport layer should be asked to tolerate.
-    if (device->data_transport.ops != NULL) katherine_transport_fini(&device->data_transport);
-    if (device->control_transport.ops != NULL) katherine_transport_fini(&device->control_transport);
+    katherine_transport_fini_pair(&device->control_transport, &device->data_transport);
 }
 
 /**
