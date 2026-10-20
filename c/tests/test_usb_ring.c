@@ -329,6 +329,62 @@ test_opening_defines_every_field(void)
     katherine_transport_fini(&t);
 }
 
+/* A message transport carries commands and nothing else: it builds no ring,
+ * and its table leaves out the operations belonging to the other role.
+ * Checked on the table rather than by calling, those entries being absent
+ * precisely so that asking is a programming error and not an answer every
+ * command in the library would have to document. */
+static void
+test_a_message_transport_lends_no_buffers(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    // Both endpoints and no ring: the shape that exchanges messages.
+    katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    config.ep_out                 = KATHERINE_USB_EP_CMD_OUT;
+    config.ep_in                  = KATHERINE_USB_EP_CMD_IN;
+    config.queue_len              = 0;
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    /* Nothing was posted, there being no ring to post. */
+    KT_CHECK_EQ(fake_usb_submitted(), 0);
+
+    KT_CHECK(t.ops->acquire_data_buf == NULL);
+    KT_CHECK(t.ops->release_data_buf == NULL);
+    KT_CHECK(t.ops->set_buffer_size == NULL);
+
+    /* And it does play its own. */
+    KT_CHECK(t.ops->send_cmd != NULL);
+    KT_CHECK(t.ops->recv_crd != NULL);
+    KT_CHECK(t.ops->flush_incoming != NULL);
+
+    katherine_transport_fini(&t);
+}
+
+/* And the other way round: a stream transport has no OUT endpoint. */
+static void
+test_a_stream_transport_sends_nothing(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_CHECK(t.ops->send_cmd == NULL);
+    KT_CHECK(t.ops->recv_crd == NULL);
+    KT_CHECK(t.ops->flush_incoming == NULL);
+
+    KT_CHECK(t.ops->acquire_data_buf != NULL);
+    KT_CHECK(t.ops->release_data_buf != NULL);
+
+    katherine_transport_fini(&t);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -346,6 +402,8 @@ main(void)
     KT_RUN(test_an_absent_device_is_reported);
     KT_RUN(test_a_ring_that_cannot_be_posted_unwinds);
     KT_RUN(test_opening_defines_every_field);
+    KT_RUN(test_a_message_transport_lends_no_buffers);
+    KT_RUN(test_a_stream_transport_sends_nothing);
 
     return kt_summary();
 }

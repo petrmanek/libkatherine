@@ -53,6 +53,18 @@ typedef enum katherine_usb_stream {
 KATHERINE_EXPORTED const char *
 katherine_str_usb_stream(katherine_usb_stream_t stream);
 
+// The readout's firmware fixed these, and nothing here may choose them. The
+// response and data endpoints are the reverse of the obvious order.
+
+/// Endpoint a readout reads commands from.
+#define KATHERINE_USB_EP_CMD_OUT ((uint8_t) 0x02)
+
+/// Endpoint a readout writes command responses to.
+#define KATHERINE_USB_EP_CMD_IN  ((uint8_t) 0x82)
+
+/// Endpoint a readout writes measurement data to.
+#define KATHERINE_USB_EP_DATA_IN ((uint8_t) 0x81)
+
 /**
  * Tiers a USB tree can be deep, which is what the specification allows and so
  * the longest chain of port numbers a readout can sit at the end of.
@@ -61,9 +73,6 @@ katherine_str_usb_stream(katherine_usb_stream_t stream);
 
 /**
  * Readout to open, and the strategy for reading it.
- *
- * \note The interface field is named `iface` because the Windows COM headers
- *   define `interface` as a macro.
  */
 typedef struct katherine_usb_config {
     /**
@@ -81,16 +90,11 @@ typedef struct katherine_usb_config {
      */
     uint8_t ports[KATHERINE_USB_PORT_DEPTH];
 
-    /**
-     * Entries of ports that are set.
-     *
-     * Zero asks for the one readout on the host instead of a named socket,
-     * which is what "usb://auto" means. It is refused where a second one is
-     * attached, since there is then no saying which was meant.
-     */
-    uint8_t port_count;
+    uint8_t port_count; ///< The number of items in `ports` that are valid, or zero to select the first compatible device. See: "usb://auto"
 
-    katherine_usb_stream_t stream; ///< Read strategy for the measurement-data endpoint.
+    uint8_t ep_out;                ///< Endpoint written to, or zero for a transport that sends nothing.
+    uint8_t ep_in;                 ///< Endpoint read from, or zero for a transport that receives nothing.
+    katherine_usb_stream_t stream; ///< Read strategy, where a ring was asked for.
     uint32_t queue_len;            ///< Reads kept outstanding by KATHERINE_USB_STREAM_ASYNC.
     uint32_t buffer_size;          ///< Bytes one read can carry.
     uint32_t timeout_ms;           ///< Time a read waits before reporting KATHERINE_E_TIMEOUT.

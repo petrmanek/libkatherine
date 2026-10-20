@@ -130,10 +130,7 @@ static const char USB_LOCATION_AUTO[] = "auto";
 static const uint16_t USB_VENDOR_ID  = 0x16D0;
 static const uint16_t USB_PRODUCT_ID = 0x118A;
 
-static const uint8_t USB_INTERFACE  = 0;
-static const uint8_t USB_EP_CMD_OUT = 0x02;
-static const uint8_t USB_EP_CMD_IN  = 0x82;
-static const uint8_t USB_EP_DATA_IN = 0x81;
+static const uint8_t USB_INTERFACE = 0;
 
 // Runs on whichever thread handled events on this context. It records the
 // outcome and nothing else: no user code, and no resubmission, which happens
@@ -225,7 +222,7 @@ usb_send_cmd(void *ctx, const void *data, size_t count)
     struct katherine_usb *u = ctx;
     int moved               = 0;
 
-    const int code = libusb_bulk_transfer(u->handle, USB_EP_CMD_OUT, (unsigned char *) (uintptr_t) data, (int) count, &moved, u->config.timeout_ms);
+    const int code = libusb_bulk_transfer(u->handle, u->config.ep_out, (unsigned char *) (uintptr_t) data, (int) count, &moved, u->config.timeout_ms);
     if (code != LIBUSB_SUCCESS) {
         res = map_usb_error(u, code);
         goto err_write;
@@ -252,7 +249,7 @@ usb_recv_crd(void *ctx, void *crd, size_t *len)
     struct katherine_usb *u = ctx;
     int moved               = 0;
 
-    const int code = libusb_bulk_transfer(u->handle, USB_EP_CMD_IN, crd, (int) *len, &moved, u->config.timeout_ms);
+    const int code = libusb_bulk_transfer(u->handle, u->config.ep_in, crd, (int) *len, &moved, u->config.timeout_ms);
     if (code != LIBUSB_SUCCESS) {
         res = map_usb_error(u, code);
         goto err_read;
@@ -282,7 +279,7 @@ usb_flush_incoming(void *ctx, uint32_t *discarded)
 
         // One millisecond rather than none: libusb reads zero as "no
         // timeout", which is the opposite of what is wanted here.
-        if (libusb_bulk_transfer(u->handle, USB_EP_CMD_IN, scratch, (int) sizeof(scratch), &moved, 1) != LIBUSB_SUCCESS || moved == 0) break;
+        if (libusb_bulk_transfer(u->handle, u->config.ep_in, scratch, (int) sizeof(scratch), &moved, 1) != LIBUSB_SUCCESS || moved == 0) break;
     }
 
     return KATHERINE_E_OK;
@@ -298,7 +295,7 @@ usb_acquire_sync(void *ctx, void **buf, size_t *len)
     struct slot *s          = &u->slots[0];
     int moved               = 0;
 
-    const int code = libusb_bulk_transfer(u->handle, USB_EP_DATA_IN, s->buf, (int) u->config.buffer_size, &moved, u->config.timeout_ms);
+    const int code = libusb_bulk_transfer(u->handle, u->config.ep_in, s->buf, (int) u->config.buffer_size, &moved, u->config.timeout_ms);
 
     // A timeout that still brought bytes back is data, not a failure.
     if (code != LIBUSB_SUCCESS && !(code == LIBUSB_ERROR_TIMEOUT && moved > 0)) {
@@ -674,7 +671,7 @@ usb_set_buffer_size(void *ctx, size_t size)
         u->slots[i].state = SLOT_IDLE;
 
         if (u->slots[i].xfer != NULL)
-            libusb_fill_bulk_transfer(u->slots[i].xfer, u->handle, USB_EP_DATA_IN, u->slots[i].buf, (int) size, on_transfer_done, &u->slots[i], u->config.timeout_ms);
+            libusb_fill_bulk_transfer(u->slots[i].xfer, u->handle, u->config.ep_in, u->slots[i].buf, (int) size, on_transfer_done, &u->slots[i], u->config.timeout_ms);
     }
 
     // Whatever had already come back was in a buffer that is now freed, so
@@ -722,7 +719,7 @@ usb_fini(void *ctx)
     //
     // So the drain below waits every one of them out, however long that
     // takes. Nothing here can free early and nothing is left behind.
-    if (u->config.stream == KATHERINE_USB_STREAM_ASYNC) drain_inflight(u);
+    if (u->slots != NULL && u->config.stream == KATHERINE_USB_STREAM_ASYNC) drain_inflight(u);
 
     if (u->slots != NULL) {
         for (uint32_t i = 0; i < u->config.queue_len; ++i) {
@@ -746,10 +743,24 @@ usb_fini(void *ctx)
     free(u);
 }
 
-static const katherine_transport_ops_t usb_ops_sync = {
+// One table per shape a transport can take. An operation its endpoints cannot
+// carry is left out, as get_bound_udp_port already is here, and asking for it
+// is a programming error rather than a condition to report: giving it an
+// answer would make that answer one every command in the library could return
+// and so would have to document.
+static const katherine_transport_ops_t usb_ops_messages = {
     .send_cmd          = usb_send_cmd,
     .recv_crd          = usb_recv_crd,
     .flush_incoming    = usb_flush_incoming,
+    .set_timeout       = usb_set_timeout,
+    .get_dropped_input = usb_get_dropped_input,
+    .mutex_lock        = usb_mutex_lock,
+    .mutex_unlock      = usb_mutex_unlock,
+    .last_os_error     = usb_last_os_error,
+    .fini              = usb_fini,
+};
+
+static const katherine_transport_ops_t usb_ops_stream_sync = {
     .acquire_data_buf  = usb_acquire_sync,
     .release_data_buf  = usb_release_sync,
     .set_timeout       = usb_set_timeout,
@@ -761,10 +772,7 @@ static const katherine_transport_ops_t usb_ops_sync = {
     .fini              = usb_fini,
 };
 
-static const katherine_transport_ops_t usb_ops_async = {
-    .send_cmd          = usb_send_cmd,
-    .recv_crd          = usb_recv_crd,
-    .flush_incoming    = usb_flush_incoming,
+static const katherine_transport_ops_t usb_ops_stream_async = {
     .acquire_data_buf  = usb_acquire_async,
     .release_data_buf  = usb_release_async,
     .set_timeout       = usb_set_timeout,
@@ -1054,6 +1062,9 @@ katherine_usb_config_default(void)
 {
     // The geometry the reference implementation runs this readout at.
     katherine_usb_config_t config = {
+        // The measurement stream, these defaults being its geometry. A
+        // message transport asks for no ring and names both endpoints.
+        .ep_in       = KATHERINE_USB_EP_DATA_IN,
         .stream      = KATHERINE_USB_STREAM_ASYNC,
         .queue_len   = 64,
         .buffer_size = 48 * 1024,
@@ -1100,18 +1111,22 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         goto err_args;
     }
 
-    if (config->buffer_size == 0) {
+    // Two shapes and no others: a pair of endpoints exchanging messages, or an
+    // IN endpoint with a ring behind it receiving a stream. A ring and an OUT
+    // endpoint together would leave both disciplines claiming the same IN
+    // endpoint, so it is refused rather than resolved.
+    const bool has_out    = config->ep_out != 0;
+    const bool has_in     = config->ep_in != 0;
+    const bool wants_ring = config->queue_len != 0;
+
+    if (wants_ring ? (has_out || !has_in || config->buffer_size == 0) : (!has_out || !has_in)) {
         res = KATHERINE_E_INVAL;
         goto err_config;
     }
 
     // The synchronous shape reads into one buffer, whatever depth was asked
     // for: there is never more than one read outstanding to fill a second.
-    const uint32_t slots = config->stream == KATHERINE_USB_STREAM_SYNC ? 1 : config->queue_len;
-    if (slots == 0) {
-        res = KATHERINE_E_INVAL;
-        goto err_config;
-    }
+    const uint32_t slots = !wants_ring ? 0 : (config->stream == KATHERINE_USB_STREAM_SYNC ? 1 : config->queue_len);
 
     struct katherine_usb *u = calloc(1, sizeof(*u));
     if (u == NULL) {
@@ -1125,11 +1140,13 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
     if ((res = katherine_mutex_init(&u->lock)) != KATHERINE_E_OK) goto err_lock_init;
     if ((res = katherine_mutex_init(&u->api_lock)) != KATHERINE_E_OK) goto err_api_lock_init;
 
-    u->slots = calloc(slots, sizeof(*u->slots));
-    u->ready = calloc(slots, sizeof(*u->ready));
-    if (u->slots == NULL || u->ready == NULL) {
-        res = KATHERINE_E_NOMEM;
-        goto err_slots;
+    if (wants_ring) {
+        u->slots = calloc(slots, sizeof(*u->slots));
+        u->ready = calloc(slots, sizeof(*u->ready));
+        if (u->slots == NULL || u->ready == NULL) {
+            res = KATHERINE_E_NOMEM;
+            goto err_slots;
+        }
     }
 
     // A private session, so that code elsewhere in the process handling events
@@ -1151,7 +1168,7 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         goto err_claim;
     }
 
-    for (uint32_t i = 0; i < slots; ++i) {
+    for (uint32_t i = 0; wants_ring && i < slots; ++i) {
         u->slots[i].index = i;
         u->slots[i].usb   = u;
         u->slots[i].buf   = malloc(config->buffer_size + sizeof(uint64_t));
@@ -1168,10 +1185,10 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
             goto err_buffers;
         }
 
-        libusb_fill_bulk_transfer(u->slots[i].xfer, u->handle, USB_EP_DATA_IN, u->slots[i].buf, (int) config->buffer_size, on_transfer_done, &u->slots[i], config->timeout_ms);
+        libusb_fill_bulk_transfer(u->slots[i].xfer, u->handle, u->config.ep_in, u->slots[i].buf, (int) config->buffer_size, on_transfer_done, &u->slots[i], config->timeout_ms);
     }
 
-    if (config->stream == KATHERINE_USB_STREAM_ASYNC) {
+    if (wants_ring && config->stream == KATHERINE_USB_STREAM_ASYNC) {
         // Released before err_submit below, which drains the ring and so
         // takes this very lock.
         bool held = false;
@@ -1190,7 +1207,13 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_submit;
     }
 
-    transport->ops                     = config->stream == KATHERINE_USB_STREAM_SYNC ? &usb_ops_sync : &usb_ops_async;
+    if (!wants_ring)
+        transport->ops = &usb_ops_messages;
+    else if (config->stream == KATHERINE_USB_STREAM_SYNC)
+        transport->ops = &usb_ops_stream_sync;
+    else
+        transport->ops = &usb_ops_stream_async;
+
     transport->kind                    = KATHERINE_TRANSPORT_USB;
     transport->ctx                     = u;
     transport->strict_ack              = false;
@@ -1199,13 +1222,13 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
     return KATHERINE_E_OK;
 
 err_submit:
-    drain_inflight(u);
+    if (u->slots != NULL) drain_inflight(u);
 err_buffers:
     // Before the handle and the context go: libusb_free_transfer() reads the
     // transfer's device handle and takes the context's own lock, so freeing
     // here is what reverse order of acquisition means. usb_fini() already
     // does it this way round.
-    for (uint32_t i = 0; i < slots; ++i) {
+    for (uint32_t i = 0; u->slots != NULL && i < slots; ++i) {
         if (u->slots[i].xfer != NULL) libusb_free_transfer(u->slots[i].xfer);
         free(u->slots[i].buf);
     }

@@ -413,9 +413,22 @@ test_a_misconfigured_open_is_refused(void)
     KT_CHECK_EQ(katherine_transport_init_usb(&t, &c), KATHERINE_E_INVAL);
 
     /* A ring of no buffers can hold nothing, and would divide by zero when
-     * the completion callback indexed into it. */
+     * the completion callback indexed into it. Without one, a transport that
+     * names only an IN endpoint has no discipline left to read it by. */
     c           = katherine_usb_config_default();
     c.queue_len = 0;
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &c), KATHERINE_E_INVAL);
+
+    /* A ring behind an OUT endpoint would leave the streaming reads and the
+     * message reads both claiming the IN endpoint. */
+    c        = katherine_usb_config_default();
+    c.ep_out = KATHERINE_USB_EP_CMD_OUT;
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &c), KATHERINE_E_INVAL);
+
+    /* And a transport that names no endpoint at all carries nothing. */
+    c        = katherine_usb_config_default();
+    c.ep_in  = 0;
+    c.ep_out = 0;
     KT_CHECK_EQ(katherine_transport_init_usb(&t, &c), KATHERINE_E_INVAL);
 }
 
