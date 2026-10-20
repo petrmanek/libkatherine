@@ -16,9 +16,9 @@
 #include <string.h>  // strcmp
 
 // katherine/katherine.h must precede <windows.h> below: it transitively
-// pulls in <winsock2.h> (via udp_win.h), and windows.h internally drags in
-// the legacy Winsock 1.1 header unless Winsock 2 was already established
-// first, so the reverse order does not compile under the Windows SDK.
+// pulls in <winsock2.h>, and windows.h internally drags in the legacy
+// Winsock 1.1 header unless Winsock 2 was already established first, so the
+// reverse order does not compile under the Windows SDK.
 #include <katherine/katherine.h>
 
 #ifdef _WIN32

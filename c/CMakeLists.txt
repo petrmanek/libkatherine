@@ -29,8 +29,6 @@ set(KATHERINE_SOURCES
     "src/monoclock.h"
     "src/mutex.h"
     "src/transport/udp.h"
-    "src/transport/udp_nix.h"
-    "src/transport/udp_win.h"
     "src/transport/pair.h"
     "src/protocol/md.h"
 )

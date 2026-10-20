@@ -28,7 +28,7 @@
 #ifdef KATHERINE_WIN
 // Lean, so that <windows.h> does not drag in Winsock 1. This header is meant
 // to be included before any libc header, which on Windows would otherwise put
-// winsock.h ahead of the winsock2.h that katherine/udp_win.h needs, and the
+// winsock.h ahead of the winsock2.h that the session header needs, and the
 // two redefine each other.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

@@ -96,10 +96,10 @@ px_config_xor64(const katherine_tpx3_px_config_t *v)
 
 // Hand-formats "A.B.C.D:port" from a sockaddr_in, without inet_ntop() (which
 // Windows declares in a different header than POSIX does): sin_addr and
-// sin_port are named the same on both platforms via katherine/udp_nix.h and
-// katherine/udp_win.h, and are the only members katherine_udp_snprint()
-// needs. buf must be at least 22 bytes ("255.255.255.255:65535" plus the
-// NUL); the caller below sizes it generously.
+// sin_port are named the same on both platforms, and are the only members
+// katherine_udp_snprint() needs. buf must be at least 22 bytes
+// ("255.255.255.255:65535" plus the NUL); the caller below sizes it
+// generously.
 static void
 format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *address)
 {

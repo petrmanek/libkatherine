@@ -12,12 +12,24 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
+
 #include <katherine/global.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>
-#include "udp_nix.h"
-#include "udp_win.h"
+
+// A session is a socket and a lock, and both are the platform's own. On
+// Windows this must precede any <windows.h>, which internally reaches for the
+// legacy Winsock 1.1 header unless Winsock 2 was established first.
+#ifdef KATHERINE_WIN
+#include <winsock2.h>
+#include <windows.h>
+#else
+#include <arpa/inet.h>
+#include <pthread.h>
+#endif
 
 /**
  * \defgroup katherine_udp UDP transport
@@ -46,6 +58,32 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/** One UDP session: a bound socket, the endpoint it talks to, and the lock serializing it. */
+typedef struct katherine_udp {
+#ifdef KATHERINE_WIN
+    SOCKET sock;                ///< The OS socket handle.
+    SOCKADDR_IN address_local;  ///< Local endpoint this session is bound to.
+    SOCKADDR_IN address_remote; ///< Remote endpoint it sends to; see katherine_udp_set_remote().
+    HANDLE mutex;               ///< Serializes use of the session between threads; taken through katherine_udp_mutex_lock().
+    WSADATA wsa_data;           ///< Winsock state this session initialized, released by katherine_udp_fini().
+#else
+    int sock;                          ///< The OS socket handle.
+    struct sockaddr_in address_local;  ///< Local endpoint this session is bound to.
+    struct sockaddr_in address_remote; ///< Remote endpoint it sends to; see katherine_udp_set_remote().
+    pthread_mutex_t mutex;             ///< Serializes use of the session between threads; taken through katherine_udp_mutex_lock().
+
+    // Winsock keeps no per-socket count of what it dropped for want of queue
+    // space, and attributing its per-interface statistics to one session
+    // would be a guess, so these are the POSIX side's alone.
+    bool count_drops;           ///< True to ask the kernel how many datagrams it dropped for want of queue space; set through katherine_udp_set_drop_counting().
+    uint32_t last_drop_count;   ///< Internal: the kernel's own cumulative counter as of the last datagram, which wraps.
+    uint64_t dropped_datagrams; ///< Datagrams the kernel dropped for want of queue space; read through katherine_udp_get_dropped_datagrams().
+#endif
+
+    bool remote_pinned; ///< True to keep address_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
+    int last_os_error;  ///< 0 unless the last transport operation failed with an OS-level error code; read through katherine_udp_last_os_error().
+} katherine_udp_t;
 
 KATHERINE_EXPORTED int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);

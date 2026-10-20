@@ -50,7 +50,7 @@
 #include <string.h>
 
 // katherine/katherine.h must precede kspawn.h: on Windows it transitively
-// pulls in <winsock2.h> (via udp_win.h) ahead of the <windows.h> that
+// pulls in <winsock2.h> (via the session header) ahead of the <windows.h> that
 // kspawn.h includes, and the reverse order does not compile under the
 // Windows SDK.
 #include <katherine/katherine.h>

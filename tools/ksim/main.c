@@ -18,11 +18,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// katherine/udp.h must precede monoclock.h/stopsig.h below: on Windows, it
-// transitively pulls in <winsock2.h> (via udp_win.h) ahead of <windows.h>,
-// which those two headers include directly. windows.h internally drags in
-// the legacy Winsock 1.1 header unless Winsock 2 was already established
-// first, so the reverse order does not compile under the Windows SDK.
+// The session header must precede monoclock.h/stopsig.h below: on Windows it
+// pulls in <winsock2.h> ahead of the <windows.h> those two include directly.
+// windows.h internally drags in the legacy Winsock 1.1 header unless Winsock 2
+// was already established first, so the reverse order does not compile under
+// the Windows SDK.
 #include <katherine/emulator.h>
 #include <katherine/error.h>
 #include "transport/udp.h"
@@ -32,7 +32,7 @@
 #include "stopsig.h"
 
 /* struct in_addr comes in transitively via katherine/udp.h (through
-   udp_nix.h's <arpa/inet.h> or udp_win.h's <winsock2.h>, depending on
+   the session header's <arpa/inet.h> or <winsock2.h>, depending on
    platform), which is also where katherine_udp_t's own address_remote field
    gets its struct sockaddr_in / SOCKADDR_IN type from. Nothing else here
    needs a directly-included sockets header: the client's address is

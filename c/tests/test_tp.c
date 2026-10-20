@@ -18,7 +18,7 @@
 #include <string.h>
 
 // katherine/katherine.h must precede kthread.h: on Windows it transitively
-// pulls in <winsock2.h> (via udp_win.h) ahead of the <windows.h> that
+// pulls in <winsock2.h> (via the session header) ahead of the <windows.h> that
 // kthread.h includes, and the reverse order does not compile under the
 // Windows SDK. Same reasoning as test_e2e_acq.c's ordering of kspawn.h.
 #include <katherine/katherine.h>
