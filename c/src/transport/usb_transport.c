@@ -858,10 +858,10 @@ usb_fini(void *ctx)
 }
 
 // One table per shape a transport can take. An operation its endpoints cannot
-// carry is left out, as get_bound_udp_port already is here, and asking for it
-// is a programming error rather than a condition to report: giving it an
-// answer would make that answer one every command in the library could return
-// and so would have to document.
+// carry is left out rather than stubbed, and asking for it is a programming
+// error rather than a condition to report: giving it an answer would make
+// that answer one every command in the library could return and so would
+// have to document.
 static const katherine_transport_ops_t usb_ops_messages = {
     .send_cmd          = usb_send_cmd,
     .recv_crd          = usb_recv_crd,

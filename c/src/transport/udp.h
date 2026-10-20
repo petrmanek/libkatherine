@@ -157,6 +157,9 @@ katherine_udp_set_broadcast(katherine_udp_t *u, bool enabled);
 KATHERINE_EXPORTED katherine_error_t
 katherine_udp_get_remote_address(const katherine_udp_t *u, char *address, size_t address_size);
 
+KATHERINE_EXPORTED katherine_error_t
+katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint16_t *port);
+
 
 #ifdef __cplusplus
 }

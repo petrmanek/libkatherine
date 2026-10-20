@@ -160,16 +160,6 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 }
 
 static katherine_error_t
-udp_t_get_bound_udp_port(void *ctx, uint16_t *port)
-{
-    struct udp_transport *t = ctx;
-
-    *port = ntohs(t->udp.address_local.sin_port);
-
-    return KATHERINE_E_OK;
-}
-
-static katherine_error_t
 udp_t_get_dropped_input(void *ctx, uint64_t *count)
 {
     struct udp_transport *t = ctx;
@@ -255,19 +245,18 @@ udp_t_fini(void *ctx)
 }
 
 static const katherine_transport_ops_t udp_ops = {
-    .send_cmd           = udp_t_send_cmd,
-    .recv_crd           = udp_t_recv_crd,
-    .flush_incoming     = udp_t_flush_incoming,
-    .acquire_data_buf   = udp_t_acquire_data_buf,
-    .release_data_buf   = udp_t_release_data_buf,
-    .set_timeout        = udp_t_set_timeout,
-    .set_buffer_size    = udp_t_set_buffer_size,
-    .get_bound_udp_port = udp_t_get_bound_udp_port,
-    .get_dropped_input  = udp_t_get_dropped_input,
-    .mutex_lock         = udp_t_mutex_lock,
-    .mutex_unlock       = udp_t_mutex_unlock,
-    .last_os_error      = udp_t_last_os_error,
-    .fini               = udp_t_fini,
+    .send_cmd          = udp_t_send_cmd,
+    .recv_crd          = udp_t_recv_crd,
+    .flush_incoming    = udp_t_flush_incoming,
+    .acquire_data_buf  = udp_t_acquire_data_buf,
+    .release_data_buf  = udp_t_release_data_buf,
+    .set_timeout       = udp_t_set_timeout,
+    .set_buffer_size   = udp_t_set_buffer_size,
+    .get_dropped_input = udp_t_get_dropped_input,
+    .mutex_lock        = udp_t_mutex_lock,
+    .mutex_unlock      = udp_t_mutex_unlock,
+    .last_os_error     = udp_t_last_os_error,
+    .fini              = udp_t_fini,
 };
 
 /**
@@ -595,5 +584,37 @@ err_port:
 err_capacity:
 err_count:
 err_out:
+    return res;
+}
+
+/**
+ * The local port a UDP transport's session is bound to.
+ * \param transport Transport to ask, open on the UDP link.
+ * \param port Storage for the port, in host byte order.
+ *
+ * Off the generic interface because no other link has a port space, and an
+ * operation only one backend can answer does not belong in a table every
+ * backend fills in.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the transport is not open on the UDP link.
+ */
+katherine_error_t
+katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint16_t *port)
+{
+    katherine_error_t res;
+
+    if (transport->kind != KATHERINE_TRANSPORT_UDP) {
+        res = KATHERINE_E_INVAL;
+        goto err_kind;
+    }
+
+    const struct udp_transport *t = transport->ctx;
+
+    *port = ntohs(t->udp.address_local.sin_port);
+
+    return KATHERINE_E_OK;
+
+err_kind:
     return res;
 }

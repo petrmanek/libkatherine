@@ -202,7 +202,7 @@ claim_private_ports(katherine_device_t *device)
     katherine_error_t res;
     uint16_t control;
 
-    res = katherine_transport_get_bound_udp_port(&device->control_transport, &control);
+    res = katherine_udp_transport_bound_port(&device->control_transport, &control);
     if (res) goto err_control;
 
     // The one after the control port: nothing binds the data socket until an
