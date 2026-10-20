@@ -242,6 +242,26 @@ katherine_transport_get_bound_udp_port(const katherine_transport_t *transport, u
 }
 
 /**
+ * Input the link lost before this library read it.
+ * \param transport Link to ask.
+ * \param count Datagrams, or whatever unit the link delivers, lost for want
+ *   of room in its own receive queue since the count was switched on.
+ *
+ * Counts only what the host lost, and only on a link that keeps a queue of
+ * its own. What a readout dropped before transmitting is its to report; see
+ * katherine_frame_info_t::lost_pixels.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_UNSUPPORTED on a link that keeps no such queue, or one
+ *   whose platform cannot attribute a loss to one session.
+ */
+katherine_error_t
+katherine_transport_get_dropped_input(const katherine_transport_t *transport, uint64_t *count)
+{
+    return transport->ops->get_dropped_input(transport->ctx, count);
+}
+
+/**
  * Take the lock excluding everything else that drives this transport.
  *
  * Held across a request and its response, and across a whole read loop, so

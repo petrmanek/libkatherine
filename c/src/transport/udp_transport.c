@@ -169,6 +169,16 @@ udp_t_get_bound_udp_port(void *ctx, uint16_t *port)
     return KATHERINE_E_OK;
 }
 
+static katherine_error_t
+udp_t_get_dropped_input(void *ctx, uint64_t *count)
+{
+    struct udp_transport *t = ctx;
+
+    *count = katherine_udp_get_dropped_datagrams(&t->udp);
+
+    return KATHERINE_E_OK;
+}
+
 // Delegated rather than reimplemented: the lock belongs to the session, and
 // anything else still reaching that session directly -- the command layer,
 // until it too goes through a transport -- takes the very same one.
@@ -253,6 +263,7 @@ static const katherine_transport_ops_t udp_ops = {
     .set_timeout        = udp_t_set_timeout,
     .set_buffer_size    = udp_t_set_buffer_size,
     .get_bound_udp_port = udp_t_get_bound_udp_port,
+    .get_dropped_input  = udp_t_get_dropped_input,
     .mutex_lock         = udp_t_mutex_lock,
     .mutex_unlock       = udp_t_mutex_unlock,
     .last_os_error      = udp_t_last_os_error,
@@ -313,6 +324,10 @@ katherine_transport_init_udp(katherine_transport_t *transport, const katherine_u
     if (res != KATHERINE_E_OK) goto err_udp;
 
     if (config->pin_remote) katherine_udp_pin_remote(&t->udp);
+
+    // Not every platform can attribute a dropped datagram to one session, and
+    // one that cannot is still a session worth having.
+    if (config->count_drops) (void) katherine_udp_set_drop_counting(&t->udp, true);
 
     // Asked for before anything arrives, since a queue resized under traffic
     // keeps whatever is already in it.

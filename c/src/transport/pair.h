@@ -88,6 +88,7 @@ katherine_transport_init_udp_pair(const char *host, bool should_change_udp_ports
         .remote_port    = KATHERINE_UDP_REMOTE_PORT,
         .timeout_ms     = KATHERINE_UDP_DATA_TIMEOUT,
         .pin_remote     = true,
+        .count_drops    = true,
     };
 
     if ((res = katherine_transport_init_udp(control, &control_session)) != KATHERINE_E_OK) {

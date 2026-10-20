@@ -479,6 +479,18 @@ err_lock:
     return res;
 }
 
+// The ring is posted before the readout is told to send, so nothing arrives
+// with no read outstanding and there is no queue to overflow. What the
+// readout itself dropped is reported in the measurement data.
+static katherine_error_t
+usb_get_dropped_input(void *ctx, uint64_t *count)
+{
+    (void) ctx;
+    (void) count;
+
+    return KATHERINE_E_UNSUPPORTED;
+}
+
 // Taken across a whole exchange or a whole read loop, which is why it is not
 // the ring lock: that one is dropped inside submit_slot() and taken by the
 // completion callback, so a reader holding it for the length of a loop would
@@ -735,31 +747,33 @@ usb_fini(void *ctx)
 }
 
 static const katherine_transport_ops_t usb_ops_sync = {
-    .send_cmd         = usb_send_cmd,
-    .recv_crd         = usb_recv_crd,
-    .flush_incoming   = usb_flush_incoming,
-    .acquire_data_buf = usb_acquire_sync,
-    .release_data_buf = usb_release_sync,
-    .set_timeout      = usb_set_timeout,
-    .set_buffer_size  = usb_set_buffer_size,
-    .mutex_lock       = usb_mutex_lock,
-    .mutex_unlock     = usb_mutex_unlock,
-    .last_os_error    = usb_last_os_error,
-    .fini             = usb_fini,
+    .send_cmd          = usb_send_cmd,
+    .recv_crd          = usb_recv_crd,
+    .flush_incoming    = usb_flush_incoming,
+    .acquire_data_buf  = usb_acquire_sync,
+    .release_data_buf  = usb_release_sync,
+    .set_timeout       = usb_set_timeout,
+    .set_buffer_size   = usb_set_buffer_size,
+    .get_dropped_input = usb_get_dropped_input,
+    .mutex_lock        = usb_mutex_lock,
+    .mutex_unlock      = usb_mutex_unlock,
+    .last_os_error     = usb_last_os_error,
+    .fini              = usb_fini,
 };
 
 static const katherine_transport_ops_t usb_ops_async = {
-    .send_cmd         = usb_send_cmd,
-    .recv_crd         = usb_recv_crd,
-    .flush_incoming   = usb_flush_incoming,
-    .acquire_data_buf = usb_acquire_async,
-    .release_data_buf = usb_release_async,
-    .set_timeout      = usb_set_timeout,
-    .set_buffer_size  = usb_set_buffer_size,
-    .mutex_lock       = usb_mutex_lock,
-    .mutex_unlock     = usb_mutex_unlock,
-    .last_os_error    = usb_last_os_error,
-    .fini             = usb_fini,
+    .send_cmd          = usb_send_cmd,
+    .recv_crd          = usb_recv_crd,
+    .flush_incoming    = usb_flush_incoming,
+    .acquire_data_buf  = usb_acquire_async,
+    .release_data_buf  = usb_release_async,
+    .set_timeout       = usb_set_timeout,
+    .set_buffer_size   = usb_set_buffer_size,
+    .get_dropped_input = usb_get_dropped_input,
+    .mutex_lock        = usb_mutex_lock,
+    .mutex_unlock      = usb_mutex_unlock,
+    .last_os_error     = usb_last_os_error,
+    .fini              = usb_fini,
 };
 
 // A readout is named by where it sits: the bus, then the chain of port

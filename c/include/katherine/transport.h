@@ -83,6 +83,7 @@ typedef struct katherine_transport_ops {
     katherine_error_t (*set_timeout)(void *ctx, uint32_t timeout_ms);
     katherine_error_t (*set_buffer_size)(void *ctx, size_t size);
     katherine_error_t (*get_bound_udp_port)(void *ctx, uint16_t *port);
+    katherine_error_t (*get_dropped_input)(void *ctx, uint64_t *count);
     katherine_error_t (*mutex_lock)(void *ctx);
     katherine_error_t (*mutex_unlock)(void *ctx);
     int (*last_os_error)(void *ctx);
@@ -142,6 +143,9 @@ katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t siz
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_get_bound_udp_port(const katherine_transport_t *transport, uint16_t *port);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_transport_get_dropped_input(const katherine_transport_t *transport, uint64_t *count);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_mutex_lock(katherine_transport_t *transport);

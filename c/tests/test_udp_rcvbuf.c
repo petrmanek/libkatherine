@@ -33,6 +33,7 @@
 #include <stdio.h>
 
 #include <katherine/error.h>
+#include <katherine/transport.h>
 #include <katherine/udp.h>
 
 #include "kports.h"
@@ -48,6 +49,8 @@
 // cases that must not have thousands of datagrams queued behind them.
 #define PORT_DROP_RECEIVER (KPORTS_UDP_RCVBUF + 2)
 #define PORT_DROP_SENDER   (KPORTS_UDP_RCVBUF + 3)
+#define PORT_TDROP_RECV    (KPORTS_UDP_RCVBUF + 4)
+#define PORT_TDROP_SEND    (KPORTS_UDP_RCVBUF + 5)
 
 #define HOST_LOCAL         "127.0.0.1"
 
@@ -314,6 +317,74 @@ test_the_kernel_reports_the_datagrams_it_dropped(void)
     katherine_udp_fini(&receiver);
 }
 
+
+/* The same count, reached the way an acquisition reaches it: a transport that
+ * was asked to count at open, read through the transport operations. Proves
+ * the configuration flag is wired to the socket option, which nothing else
+ * observes. */
+static void
+test_a_transport_reports_what_its_session_dropped(void)
+{
+    static unsigned char payload[FLOOD_PAYLOAD];
+
+    const katherine_udp_config_t config = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_TDROP_RECV,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_TDROP_SEND,
+        .timeout_ms     = 100,
+        /* The OS minimum, which is the shallowest queue it will grant, and
+           the point here is to overrun it. */
+        .rcvbuf      = 0,
+        .count_drops = true,
+    };
+
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_udp(&t, &config) == KATHERINE_E_OK);
+
+    uint64_t dropped            = 1;
+    const katherine_error_t res = katherine_transport_get_dropped_input(&t, &dropped);
+    if (res == KATHERINE_E_UNSUPPORTED) {
+        printf("# SKIP this platform has no per-socket drop counter\n");
+        katherine_transport_fini(&t);
+        return;
+    }
+    KT_CHECK_EQ(res, KATHERINE_E_OK);
+    KT_CHECK_EQ(dropped, 0u);
+
+    katherine_udp_t sender;
+    KT_REQUIRE(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_TDROP_SEND, "127.0.0.1", PORT_TDROP_RECV, 100) == 0);
+
+    for (unsigned i = 0; i < FLOOD_DATAGRAMS; ++i)
+        if (katherine_udp_send_exact(&sender, payload, sizeof(payload)) != 0) break;
+
+    /* The kernel reports its count alongside a delivered datagram, so what
+       survived is drained and one more is sent to carry the count. */
+    for (;;) {
+        void *buf  = NULL;
+        size_t len = 0;
+
+        if (katherine_transport_acquire_data_buf(&t, &buf, &len) != KATHERINE_E_OK) break;
+        (void) katherine_transport_release_data_buf(&t, buf);
+    }
+
+    if (katherine_udp_send_exact(&sender, payload, sizeof(payload)) == 0) {
+        void *buf  = NULL;
+        size_t len = 0;
+
+        if (katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK)
+            (void) katherine_transport_release_data_buf(&t, buf);
+    }
+
+    KT_CHECK_EQ(katherine_transport_get_dropped_input(&t, &dropped), KATHERINE_E_OK);
+    printf("# flood through a transport: %u sent, %llu reported dropped\n", FLOOD_DATAGRAMS,
+        (unsigned long long) dropped);
+    if (dropped == 0) printf("# SKIP this host dropped nothing on a %u-datagram flood\n", FLOOD_DATAGRAMS);
+
+    katherine_udp_fini(&sender);
+    katherine_transport_fini(&t);
+}
+
 int
 main(void)
 {
@@ -324,5 +395,6 @@ main(void)
     KT_RUN(test_a_request_beyond_the_option_is_capped);
 
     KT_RUN(test_the_kernel_reports_the_datagrams_it_dropped);
+    KT_RUN(test_a_transport_reports_what_its_session_dropped);
     return kt_summary();
 }
