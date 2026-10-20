@@ -112,10 +112,17 @@ test_e_opening_reads_the_scheme(void)
 {
     katherine_device_t device;
 
-    /* A link this version cannot open a device on is a different answer from
+#ifdef KATHERINE_FEATURE_USB
+    /* The scheme is read and acted on: nothing sits that deep on the bus, so
+     * the refusal is of the place rather than of the link. */
+    KT_CHECK_EQ(katherine_device_init(&device, "usb://2-3.7.1.1", KATHERINE_DEVICE_DONT_ENUMERATE),
+        KATHERINE_E_ADDRESS);
+#else
+    /* A link this build cannot open a device on is a different answer from
      * one it has never heard of: the first is a gap, the second a typo. */
     KT_CHECK_EQ(katherine_device_init(&device, "usb://2-3.7.1.1", KATHERINE_DEVICE_DONT_ENUMERATE),
         KATHERINE_E_UNSUPPORTED);
+#endif /* KATHERINE_FEATURE_USB */
     KT_CHECK_EQ(katherine_device_init(&device, "http://" QUIET_HOST, KATHERINE_DEVICE_DONT_ENUMERATE),
         KATHERINE_E_ADDRESS);
     KT_CHECK_EQ(katherine_device_init(&device, "udp://", KATHERINE_DEVICE_DONT_ENUMERATE), KATHERINE_E_ADDRESS);

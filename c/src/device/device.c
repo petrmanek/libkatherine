@@ -321,18 +321,6 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     if ((res = katherine_address_split(address, &kind, &host)) != KATHERINE_E_OK) {
         goto err_address;
     }
-    // TEMPORARY. This function is to become transport-agnostic, opening
-    // whichever transport the scheme names -- UDP, USB, PCIe -- so that the
-    // only thing an address decides is which one is instantiated. Two steps
-    // below stay UDP's and will be the only ones left under a test of the
-    // kind: the legacy-firmware probe, which measures how a firmware answered
-    // a discovery datagram, and the UDP port change. Everything else here is
-    // already link-independent.
-    if (kind != KATHERINE_TRANSPORT_UDP) {
-        res = KATHERINE_E_UNSUPPORTED;
-        goto err_kind;
-    }
-
     // Before the main control and data channels are open, run a quick check that
     // determines whether a readout is a legacy firmware or not. This requires the
     // main control port to be 1555, which would clash with the default control
@@ -340,15 +328,14 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     //
     // UDP's alone: the flag records whether a firmware honoured the reply port
     // of a discovery datagram, and a link that is not a shared network has no
-    // such thing. It moves under a test of the kind once a second transport
-    // can reach here.
+    // such thing.
     //
     // True where nothing answered, because the flag gates a port change the
     // first generation cannot honour: guessing false there would issue it to a
     // readout that drops it.
     bool legacy = true;
 
-    if ((flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
+    if (kind == KATHERINE_TRANSPORT_UDP && (flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
         katherine_discovered_t found;
         size_t count = 1;
 
@@ -393,7 +380,7 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         }
 
         // Propagate the result of the legacy check into the device info.
-        device->info.legacy = legacy;
+        if (kind == KATHERINE_TRANSPORT_UDP) device->info.legacy = legacy;
     }
 
     return KATHERINE_E_OK;
@@ -404,7 +391,6 @@ err_select:
 err_ports:
     katherine_transport_fini(&device->control_transport);
 err_control:
-err_kind:
 err_address:
     return res;
 }
