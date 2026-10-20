@@ -45,6 +45,10 @@
 #include <stdint.h>
 #include <string.h>
 
+// The session header first: katherine1.h renames the 1.x session calls with
+// macros, and a macro reaching a declaration rewrites that too.
+#include "transport/udp.h"
+
 #include <katherine/katherine1.h>
 
 #include "ktest.h"
@@ -76,20 +80,15 @@ __tsan_default_options(void)
 }
 
 // ------------------------------------------------------------------
-// ETIMEDOUT: a receive on a bound-but-silent socket runs out its timeout,
-// the same condition test_udp_pinning.c drives via an idle peer.
+// ETIMEDOUT: opening a readout that nobody answers runs the enumeration out
+// of its timeout. TEST-NET-1 (RFC 5737) rather than loopback, where this
+// suite's own emulator answers.
 
 static void
 test_recv_timeout_maps_to_etimedout(void)
 {
-    katherine_udp_t u;
-    KT_REQUIRE(katherine_udp_init_bound(&u, HOST, PORT_SILENT, HOST, PORT_SILENT + 1, TIMEOUT_MS) == 0);
-
-    char buf[64];
-    size_t count = sizeof(buf);
-    KT_CHECK_EQ(katherine_udp_recv(&u, buf, &count), ETIMEDOUT);
-
-    katherine_udp_fini(&u);
+    katherine_device_t dev;
+    KT_CHECK_EQ(katherine_device_init(&dev, "udp://192.0.2.1"), ETIMEDOUT);
 }
 
 // ------------------------------------------------------------------
@@ -115,8 +114,8 @@ test_dacs_validate_out_of_range_maps_to_einval(void)
 static void
 test_udp_bad_remote_address_maps_to_einval(void)
 {
-    katherine_udp_t u;
-    KT_CHECK_EQ(katherine_udp_init_bound(&u, NULL, PORT_BADADDRESS, "not-an-address", 0, TIMEOUT_MS), EINVAL);
+    katherine_device_t dev;
+    KT_CHECK_EQ(katherine_device_init(&dev, "not-an-address"), EINVAL);
 }
 
 // ------------------------------------------------------------------
@@ -171,27 +170,25 @@ test_dacs_validate_success(void)
 }
 
 // ------------------------------------------------------------------
-// Negative control, cause 2: a real send/receive round trip over loopback,
-// exercising the 1.x names of the send and receive paths together rather
-// than a single call in isolation.
+// The 1.x session calls still compile and still link, and every one of them
+// declines: a session is no longer part of this library's interface, and a
+// caller reaches a readout by address instead.
 
 static void
-test_udp_round_trip_success(void)
+test_udp_calls_decline(void)
 {
-    katherine_udp_t a, b;
-    KT_REQUIRE(katherine_udp_init_bound(&a, HOST, PORT_A, HOST, PORT_B, TIMEOUT_MS) == 0);
-    KT_REQUIRE(katherine_udp_init_bound(&b, HOST, PORT_B, HOST, PORT_A, TIMEOUT_MS) == 0);
-
-    KT_CHECK_EQ(katherine_udp_send_exact(&a, ROUND_TRIP_TEXT, strlen(ROUND_TRIP_TEXT)), 0);
-
+    katherine_udp_t *u = NULL;
     char buf[64];
     size_t count = sizeof(buf);
-    KT_CHECK_EQ(katherine_udp_recv(&b, buf, &count), 0);
-    KT_CHECK_EQ(count, strlen(ROUND_TRIP_TEXT));
-    KT_CHECK_MEM_EQ(buf, ROUND_TRIP_TEXT, count);
 
-    katherine_udp_fini(&b);
-    katherine_udp_fini(&a);
+    KT_CHECK_EQ(katherine_udp_init(u, PORT_A, HOST, PORT_B, TIMEOUT_MS), ENOTSUP);
+    KT_CHECK_EQ(katherine_udp_init_bound(u, HOST, PORT_A, HOST, PORT_B, TIMEOUT_MS), ENOTSUP);
+    KT_CHECK_EQ(katherine_udp_send_exact(u, ROUND_TRIP_TEXT, strlen(ROUND_TRIP_TEXT)), ENOTSUP);
+    KT_CHECK_EQ(katherine_udp_recv_exact(u, buf, count), ENOTSUP);
+    KT_CHECK_EQ(katherine_udp_recv(u, buf, &count), ENOTSUP);
+    KT_CHECK_EQ(katherine_udp_set_remote(u, HOST, PORT_B), ENOTSUP);
+    KT_CHECK_EQ(katherine_udp_mutex_lock(u), ENOTSUP);
+    KT_CHECK_EQ(katherine_udp_mutex_unlock(u), ENOTSUP);
 }
 
 // ------------------------------------------------------------------
@@ -484,7 +481,7 @@ main(void)
     KT_RUN(test_acquisition_init_huge_buffer_maps_to_enomem);
     KT_RUN(test_px_config_missing_file_maps_to_eio);
     KT_RUN(test_dacs_validate_success);
-    KT_RUN(test_udp_round_trip_success);
+    KT_RUN(test_udp_calls_decline);
     KT_RUN(test_coord_keeps_its_1x_spellings);
     KT_RUN(test_hit_layouts_keep_their_1x_spellings);
     KT_RUN(test_function_aliases);

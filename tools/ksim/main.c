@@ -25,7 +25,7 @@
 // first, so the reverse order does not compile under the Windows SDK.
 #include <katherine/emulator.h>
 #include <katherine/error.h>
-#include <katherine/udp.h>
+#include "transport/udp.h"
 
 #include "args.h"
 #include "monoclock.h"

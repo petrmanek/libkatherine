@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <katherine/usb.h>
+#include "usb.h"
 #include "address.h"
 #include "mutex.h"
 #include "msleep.h"

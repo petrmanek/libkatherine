@@ -14,7 +14,7 @@
 #include <string.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
-#include <katherine/udp.h>
+#include "../transport/udp.h"
 #include <katherine/acquisition.h>
 #include <katherine/status.h>
 #include "../address.h"

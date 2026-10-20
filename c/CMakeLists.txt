@@ -28,6 +28,9 @@ set(KATHERINE_SOURCES
     "src/msleep.h"
     "src/monoclock.h"
     "src/mutex.h"
+    "src/transport/udp.h"
+    "src/transport/udp_nix.h"
+    "src/transport/udp_win.h"
     "src/transport/pair.h"
     "src/protocol/md.h"
 )
@@ -48,9 +51,6 @@ set(KATHERINE_HEADERS
     "include/katherine/status.h"
     "include/katherine/toa.h"
     "include/katherine/transport.h"
-    "include/katherine/udp.h"
-    "include/katherine/udp_nix.h"
-    "include/katherine/udp_win.h"
 )
 
 # The emulator is an optional part of the library: with the feature off,
@@ -66,14 +66,11 @@ if(KATHERINE_BUILD_EMULATOR)
     )
 endif()
 
-# The USB transport is optional: without libusb its source is not compiled
-# and its header is not installed.
+# The USB transport is optional: without libusb its source is not compiled.
 if(KATHERINE_BUILD_TRANSPORT_USB)
     list(APPEND KATHERINE_SOURCES
         "src/transport/usb_transport.c"
-    )
-    list(APPEND KATHERINE_HEADERS
-        "include/katherine/usb.h"
+        "src/transport/usb.h"
     )
 endif()
 

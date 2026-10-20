@@ -25,6 +25,8 @@
 #include <katherine/transport.h>
 #ifdef KATHERINE_TEST_EMULATOR
 #include <katherine/emulator.h>
+
+#include "transport/udp.h"
 #endif
 
 #include "protocol/cmd_builder.h"

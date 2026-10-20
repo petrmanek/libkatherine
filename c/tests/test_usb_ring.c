@@ -26,7 +26,7 @@
 
 #include <katherine/error.h>
 #include <katherine/transport.h>
-#include <katherine/usb.h>
+#include "transport/usb.h"
 
 #include "libusb.h"
 

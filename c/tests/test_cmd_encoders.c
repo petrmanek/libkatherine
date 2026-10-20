@@ -52,7 +52,7 @@
 #include <katherine/transport.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
-#include <katherine/udp.h>
+#include "transport/udp.h"
 
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"

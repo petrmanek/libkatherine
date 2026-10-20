@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include <katherine/transport.h>
-#include <katherine/udp.h>
+#include "udp.h"
 
 #include "address.h"
 #include "monoclock.h"

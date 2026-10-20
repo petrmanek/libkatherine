@@ -32,6 +32,8 @@
 // test_cmd_transact.c, which documents the include order.
 #include <katherine/katherine.h>
 
+#include "transport/udp.h"
+
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
 #include "kports.h"

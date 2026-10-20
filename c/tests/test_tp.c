@@ -24,6 +24,8 @@
 #include <katherine/katherine.h>
 #include <katherine/transport.h>
 
+#include "transport/udp.h"
+
 #include "kthread.h"
 #include "ktest.h"
 

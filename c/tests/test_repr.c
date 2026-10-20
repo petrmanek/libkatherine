@@ -24,6 +24,8 @@
 
 #include <katherine/katherine.h>
 
+#include "transport/udp.h"
+
 #include "ktest.h"
 
 // Requires the snprint call to have rendered exactly `expected`: the return

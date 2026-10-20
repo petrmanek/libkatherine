@@ -27,7 +27,7 @@ empty_method(void)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <katherine/error.h>
-#include <katherine/udp.h>
+#include "udp.h"
 
 #include "transport/udp_error_map.h"
 

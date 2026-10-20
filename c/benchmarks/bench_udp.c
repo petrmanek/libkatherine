@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <katherine/udp.h>
+#include "transport/udp.h"
 
 // Internal header, provided by the katherine_private interface target:
 // wraps the platform monotonic clock.

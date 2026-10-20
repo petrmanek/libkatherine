@@ -40,6 +40,8 @@ main(void)
 #else
 
 #include <libusb.h>
+
+#include "transport/usb.h"
 #include "monoclock.h"
 
 static void

@@ -28,7 +28,7 @@
 #include <katherine/device.h>
 #include <katherine/error.h>
 #include <katherine/toa.h>
-#include <katherine/udp.h>
+#include "transport/udp.h"
 
 #include "kports.h"
 #include "ktest.h"

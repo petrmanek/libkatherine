@@ -117,7 +117,9 @@ katherine1_map_result(int result)
     case KATHERINE_E_NOMEM:   return ENOMEM;
     case KATHERINE_E_INVAL:   return EINVAL;
     case KATHERINE_E_ADDRESS: return EINVAL;
-    default:                  return EIO;
+    // What the session calls below answer, 1.x having had no such code.
+    case KATHERINE_E_UNSUPPORTED: return ENOTSUP;
+    default:                      return EIO;
     }
 }
 
@@ -419,13 +421,23 @@ katherine1_acquisition_read(katherine_acquisition_t *acq)
 }
 
 // udp.h
+//
+// A session is no longer part of this library's interface: a readout is named
+// by address and opened with katherine_device_init(). These keep their
+// declarations so that code written against 1.x still compiles, and decline.
 
 /** \legacy1{katherine_udp_init} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms)
 {
-    return katherine1_map_result(katherine_udp_init(u, local_port, remote_address, remote_port, timeout_ms));
+    (void) u;
+    (void) local_port;
+    (void) remote_address;
+    (void) remote_port;
+    (void) timeout_ms;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 /** \legacy1{katherine_udp_init_bound} */
@@ -433,7 +445,14 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms)
 {
-    return katherine1_map_result(katherine_udp_init_bound(u, local_address, local_port, remote_address, remote_port, timeout_ms));
+    (void) u;
+    (void) local_address;
+    (void) local_port;
+    (void) remote_address;
+    (void) remote_port;
+    (void) timeout_ms;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 /** \legacy1{katherine_udp_send_exact} */
@@ -441,7 +460,11 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_send_exact(katherine_udp_t *u, const void *data, size_t count)
 {
-    return katherine1_map_result(katherine_udp_send_exact(u, data, count));
+    (void) u;
+    (void) data;
+    (void) count;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 /** \legacy1{katherine_udp_recv_exact} */
@@ -449,7 +472,11 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_recv_exact(katherine_udp_t *u, void *data, size_t count)
 {
-    return katherine1_map_result(katherine_udp_recv_exact(u, data, count));
+    (void) u;
+    (void) data;
+    (void) count;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 /** \legacy1{katherine_udp_recv} */
@@ -457,7 +484,11 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_recv(katherine_udp_t *u, void *data, size_t *count)
 {
-    return katherine1_map_result(katherine_udp_recv(u, data, count));
+    (void) u;
+    (void) data;
+    (void) count;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 /** \legacy1{katherine_udp_set_remote} */
@@ -465,7 +496,11 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_set_remote(katherine_udp_t *u, const char *remote_address, uint16_t remote_port)
 {
-    return katherine1_map_result(katherine_udp_set_remote(u, remote_address, remote_port));
+    (void) u;
+    (void) remote_address;
+    (void) remote_port;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 /** \legacy1{katherine_udp_mutex_lock} */
@@ -473,7 +508,9 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_mutex_lock(katherine_udp_t *u)
 {
-    return katherine1_map_result(katherine_udp_mutex_lock(u));
+    (void) u;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 /** \legacy1{katherine_udp_mutex_unlock} */
@@ -481,7 +518,9 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_udp_mutex_unlock(katherine_udp_t *u)
 {
-    return katherine1_map_result(katherine_udp_mutex_unlock(u));
+    (void) u;
+
+    return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
 // emulator.h -- see the file header for why this is conditional.

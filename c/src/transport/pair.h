@@ -19,7 +19,7 @@
 #include <katherine/error.h>
 #include <katherine/global.h>
 #include <katherine/transport.h>
-#include <katherine/udp.h>
+#include "udp.h"
 
 #include "../address.h"
 

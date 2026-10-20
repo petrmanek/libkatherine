@@ -29,7 +29,7 @@
 #include <katherine/transport.h>
 #include <katherine/device.h>
 #include <katherine/toa.h>
-#include <katherine/udp.h>
+#include "transport/udp.h"
 
 // The pixel mapping functions of md.h are written against the acquisition,
 // so its declaration has to precede them.

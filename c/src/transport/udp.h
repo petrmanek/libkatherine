@@ -16,8 +16,8 @@
 #include <katherine/global.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>
-#include <katherine/udp_nix.h>
-#include <katherine/udp_win.h>
+#include "udp_nix.h"
+#include "udp_win.h"
 
 /**
  * \defgroup katherine_udp UDP transport

@@ -37,6 +37,8 @@
 #include <katherine/katherine.h>
 #include <katherine/emulator.h>
 
+#include "transport/udp.h"
+
 #include "ktest.h"
 #include "kthread.h"
 #include "protocol/cmd_builder.h"

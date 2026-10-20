@@ -34,6 +34,8 @@
 
 #include <katherine/katherine.h>
 
+#include "transport/udp.h"
+
 #include "kports.h"
 #include "ktest.h"
 

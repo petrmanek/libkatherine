@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <katherine/katherine.h>
 
+#include "transport/udp.h"
+
 // This is the single source of truth for the human-readable rendering of
 // every printable public struct: one katherine_<name>_snprint() per type,
 // with exact snprintf() semantics (would-be length returned, safe

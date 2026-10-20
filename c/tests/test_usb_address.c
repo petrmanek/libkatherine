@@ -24,6 +24,8 @@
 
 #include <katherine/katherine.h>
 
+#include "transport/usb.h"
+
 #include "fake_libusb/libusb.h"
 #include "ktest.h"
 

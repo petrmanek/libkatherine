@@ -23,7 +23,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <katherine/error.h>
-#include <katherine/udp.h>
+#include "udp.h"
 
 #include "transport/udp_error_map.h"
 

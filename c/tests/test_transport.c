@@ -28,11 +28,11 @@
 
 #include <katherine/error.h>
 #include <katherine/transport.h>
-#include <katherine/udp.h>
+#include "transport/udp.h"
 
 
 #ifdef KATHERINE_FEATURE_USB
-#include <katherine/usb.h>
+#include "transport/usb.h"
 #endif
 
 #include "transport/pair.h"
