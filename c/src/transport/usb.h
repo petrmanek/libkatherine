@@ -92,6 +92,15 @@ typedef struct katherine_usb_config {
 
     uint8_t port_count; ///< The number of items in `ports` that are valid, or zero to select the first compatible device. See: "usb://auto"
 
+    /**
+     * Readout already opened and claimed, which this transport drives without
+     * closing, or NULL to open and claim one of its own. Given together with
+     * \p handle or not at all.
+     */
+    struct libusb_context *ctx;
+
+    struct libusb_device_handle *handle; ///< Handle belonging to \p ctx; see it.
+
     uint8_t ep_out;                ///< Endpoint written to, or zero for a transport that sends nothing.
     uint8_t ep_in;                 ///< Endpoint read from, or zero for a transport that receives nothing.
     katherine_usb_stream_t stream; ///< Read strategy, where a ring was asked for.
@@ -111,6 +120,9 @@ katherine_usb_config_snprint_address(char *buf, size_t cap, const katherine_usb_
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_init_usb(katherine_transport_t *transport, const katherine_usb_config_t *config);
+
+KATHERINE_EXPORTED katherine_error_t
+katherine_usb_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count);

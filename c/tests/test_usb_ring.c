@@ -385,6 +385,73 @@ test_a_stream_transport_sends_nothing(void)
     katherine_transport_fini(&t);
 }
 
+/* An interface is one handle's at a time, so a second transport opened on its
+ * own is refused -- the condition measured on the readout as
+ * LIBUSB_ERROR_BUSY, which this backend reports as an I/O failure. */
+static void
+test_a_second_independent_open_is_refused(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t first;
+    const katherine_usb_config_t stream = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&first, &stream) == KATHERINE_E_OK);
+    KT_CHECK_EQ(fake_usb_claims(), 1);
+
+    katherine_usb_config_t messages = config_for(KATHERINE_USB_STREAM_ASYNC);
+    messages.ep_out                 = KATHERINE_USB_EP_CMD_OUT;
+    messages.ep_in                  = KATHERINE_USB_EP_CMD_IN;
+    messages.queue_len              = 0;
+
+    katherine_transport_t second;
+    KT_CHECK_EQ(katherine_transport_init_usb(&second, &messages), KATHERINE_E_IO);
+    KT_CHECK_EQ(fake_usb_claims(), 1);
+
+    katherine_transport_fini(&first);
+}
+
+/* Handed the readout the first transport opened, the second drives it without
+ * claiming again, and closes nothing: the half that opened is the half that
+ * closes, which is why the other is finalised first. */
+static void
+test_a_second_transport_adopts_the_first(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_usb_config_t messages = config_for(KATHERINE_USB_STREAM_ASYNC);
+    messages.ep_out                 = KATHERINE_USB_EP_CMD_OUT;
+    messages.ep_in                  = KATHERINE_USB_EP_CMD_IN;
+    messages.queue_len              = 0;
+
+    katherine_transport_t control;
+    KT_REQUIRE(katherine_transport_init_usb(&control, &messages) == KATHERINE_E_OK);
+    KT_CHECK_EQ(fake_usb_opens(), 1);
+    KT_CHECK_EQ(fake_usb_claims(), 1);
+
+    katherine_usb_config_t stream = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_usb_borrow_device(&stream, &control) == KATHERINE_E_OK);
+
+    katherine_transport_t data;
+    KT_REQUIRE(katherine_transport_init_usb(&data, &stream) == KATHERINE_E_OK);
+
+    /* Nothing opened and nothing claimed a second time, and the ring is up. */
+    KT_CHECK_EQ(fake_usb_opens(), 1);
+    KT_CHECK_EQ(fake_usb_claims(), 1);
+    KT_CHECK_EQ(fake_usb_submitted(), RING);
+
+    /* The adopted half gives back its transfers and closes nothing. */
+    katherine_transport_fini(&data);
+    KT_CHECK_EQ(fake_usb_releases(), 0);
+    KT_CHECK_EQ(fake_usb_closes(), 0);
+
+    /* The half that opened closes, once. */
+    katherine_transport_fini(&control);
+    KT_CHECK_EQ(fake_usb_releases(), 1);
+    KT_CHECK_EQ(fake_usb_closes(), 1);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -404,6 +471,8 @@ main(void)
     KT_RUN(test_opening_defines_every_field);
     KT_RUN(test_a_message_transport_lends_no_buffers);
     KT_RUN(test_a_stream_transport_sends_nothing);
+    KT_RUN(test_a_second_independent_open_is_refused);
+    KT_RUN(test_a_second_transport_adopts_the_first);
 
     return kt_summary();
 }

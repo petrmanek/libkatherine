@@ -27,6 +27,12 @@ struct pending {
 static struct pending g_outstanding[FAKE_MAX_TRANSFERS];
 static int g_outstanding_count;
 static int g_submit_count;
+static int g_opens;
+static int g_closes;
+static int g_claims;
+static int g_releases;
+static int g_claimed;
+
 static int g_present = 1;
 static int g_fail_next_submit;
 static int g_bulk_count;
@@ -68,6 +74,11 @@ fake_usb_reset(void)
     g_bulk_code          = LIBUSB_SUCCESS;
     g_bulk_transferred   = 0;
     g_device_count       = 0;
+    g_opens              = 0;
+    g_closes             = 0;
+    g_claims             = 0;
+    g_releases           = 0;
+    g_claimed            = 0;
 
     // The identifiers the ring test asks for, so a case that cares about the
     // ring rather than about the bus finds a readout without saying so.
@@ -165,8 +176,33 @@ libusb_open(libusb_device *device, libusb_device_handle **handle)
 
     if (!g_present) return LIBUSB_ERROR_NO_DEVICE;
     *handle = (libusb_device_handle *) &g_present;
+    ++g_opens;
 
     return LIBUSB_SUCCESS;
+}
+
+int
+fake_usb_opens(void)
+{
+    return g_opens;
+}
+
+int
+fake_usb_closes(void)
+{
+    return g_closes;
+}
+
+int
+fake_usb_claims(void)
+{
+    return g_claims;
+}
+
+int
+fake_usb_releases(void)
+{
+    return g_releases;
 }
 
 void
@@ -251,13 +287,23 @@ void
 libusb_close(libusb_device_handle *handle)
 {
     (void) handle;
+    ++g_closes;
 }
 
+// One handle at a time, as the readout answers: a second claim of a held
+// interface is refused, which is what measurement on the Gen2 showed and what
+// makes two transports share the one claim rather than take one each.
 int
 libusb_claim_interface(libusb_device_handle *handle, int interface_number)
 {
     (void) handle;
     (void) interface_number;
+
+    if (g_claimed) return LIBUSB_ERROR_BUSY;
+
+    g_claimed = 1;
+    ++g_claims;
+
     return LIBUSB_SUCCESS;
 }
 
@@ -266,6 +312,10 @@ libusb_release_interface(libusb_device_handle *handle, int interface_number)
 {
     (void) handle;
     (void) interface_number;
+
+    g_claimed = 0;
+    ++g_releases;
+
     return LIBUSB_SUCCESS;
 }
 

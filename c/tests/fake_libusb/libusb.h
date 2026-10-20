@@ -195,6 +195,19 @@ fake_usb_fail_next_submit(int code);
 int
 fake_usb_submitted(void);
 
+/// Times the stand-in was asked to open, close, claim and release.
+int
+fake_usb_opens(void);
+
+int
+fake_usb_closes(void);
+
+int
+fake_usb_claims(void);
+
+int
+fake_usb_releases(void);
+
 /** How many submissions have ever been made. */
 int
 fake_usb_submit_count(void);

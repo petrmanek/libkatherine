@@ -95,6 +95,7 @@ struct katherine_usb {
     int last_os_error;                       ///< What katherine_transport_last_os_error() reports: a libusb code, or an errno from a mutex.
     enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
+    bool owns_device;                        ///< True if this transport opened and claimed the readout, and so closes it.
 };
 
 static katherine_error_t
@@ -731,12 +732,13 @@ usb_fini(void *ctx)
 
     free(u->ready);
 
-    if (u->handle != NULL) {
+    // Only what this transport opened: the other half of a pair drives the
+    // same handle and is closed by whichever of them owns it.
+    if (u->owns_device) {
         (void) libusb_release_interface(u->handle, USB_INTERFACE);
         libusb_close(u->handle);
+        libusb_exit(u->ctx);
     }
-
-    if (u->ctx != NULL) libusb_exit(u->ctx);
 
     (void) katherine_mutex_fini(&u->lock);
     (void) katherine_mutex_fini(&u->api_lock);
@@ -1149,23 +1151,33 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         }
     }
 
-    // A private session, so that code elsewhere in the process handling events
-    // on the default context cannot reach these transfers.
-    int code = libusb_init_context(&u->ctx, NULL, 0);
-    if (code != LIBUSB_SUCCESS) {
-        res = map_usb_error(u, code);
-        goto err_init;
-    }
+    // An interface can be claimed by one handle at a time, so a readout's two
+    // transports share the one the first of them opened. Handed a handle,
+    // this drives it and leaves it to whoever opened it to close.
+    if (config->handle != NULL) {
+        u->ctx    = config->ctx;
+        u->handle = config->handle;
+    } else {
+        // A private session, so that code elsewhere in the process handling
+        // events on the default context cannot reach these transfers.
+        int code = libusb_init_context(&u->ctx, NULL, 0);
+        if (code != LIBUSB_SUCCESS) {
+            res = map_usb_error(u, code);
+            goto err_init;
+        }
 
-    res = usb_open_matching(u, config);
-    if (res) goto err_open;
+        res = usb_open_matching(u, config);
+        if (res) goto err_open;
 
-    (void) libusb_set_auto_detach_kernel_driver(u->handle, 1);
+        (void) libusb_set_auto_detach_kernel_driver(u->handle, 1);
 
-    code = libusb_claim_interface(u->handle, USB_INTERFACE);
-    if (code != LIBUSB_SUCCESS) {
-        res = map_usb_error(u, code);
-        goto err_claim;
+        code = libusb_claim_interface(u->handle, USB_INTERFACE);
+        if (code != LIBUSB_SUCCESS) {
+            res = map_usb_error(u, code);
+            goto err_claim;
+        }
+
+        u->owns_device = true;
     }
 
     for (uint32_t i = 0; wants_ring && i < slots; ++i) {
@@ -1232,11 +1244,11 @@ err_buffers:
         if (u->slots[i].xfer != NULL) libusb_free_transfer(u->slots[i].xfer);
         free(u->slots[i].buf);
     }
-    (void) libusb_release_interface(u->handle, USB_INTERFACE);
+    if (u->owns_device) (void) libusb_release_interface(u->handle, USB_INTERFACE);
 err_claim:
-    libusb_close(u->handle);
+    if (u->owns_device) libusb_close(u->handle);
 err_open:
-    libusb_exit(u->ctx);
+    if (u->owns_device) libusb_exit(u->ctx);
 err_init:
 err_slots:
     free(u->slots);
@@ -1248,6 +1260,41 @@ err_lock_init:
     free(u);
 err_alloc:
 err_config:
+err_args:
+    return res;
+}
+
+/**
+ * Point a configuration at the readout another transport already opened.
+ * \param config Configuration to fill in.
+ * \param from Transport whose readout is to be driven, which keeps it.
+ *
+ * An interface is one handle's at a time, so a readout's second transport
+ * drives what its first claimed rather than claiming again. The transport
+ * opened from the result closes nothing: \p from stays the owner, and so is
+ * the one to finalise last.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if either argument is missing, or \p from is not
+ *   an open USB transport.
+ */
+katherine_error_t
+katherine_usb_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from)
+{
+    katherine_error_t res;
+
+    if (config == NULL || from == NULL || from->kind != KATHERINE_TRANSPORT_USB || from->ctx == NULL) {
+        res = KATHERINE_E_INVAL;
+        goto err_args;
+    }
+
+    const struct katherine_usb *u = from->ctx;
+
+    config->ctx    = u->ctx;
+    config->handle = u->handle;
+
+    return KATHERINE_E_OK;
+
 err_args:
     return res;
 }
