@@ -1176,9 +1176,11 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_submit;
     }
 
-    transport->ops  = config->stream == KATHERINE_USB_STREAM_SYNC ? &usb_ops_sync : &usb_ops_async;
-    transport->kind = KATHERINE_TRANSPORT_USB;
-    transport->ctx  = u;
+    transport->ops                     = config->stream == KATHERINE_USB_STREAM_SYNC ? &usb_ops_sync : &usb_ops_async;
+    transport->kind                    = KATHERINE_TRANSPORT_USB;
+    transport->ctx                     = u;
+    transport->strict_ack              = false;
+    transport->stray_command_responses = 0;
 
     return KATHERINE_E_OK;
 

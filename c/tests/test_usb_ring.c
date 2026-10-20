@@ -308,6 +308,27 @@ test_a_ring_that_cannot_be_posted_unwinds(void)
     KT_CHECK_EQ(fake_usb_submitted(), 0);
 }
 
+/* A transport is the caller's to allocate, so opening one has to define all
+ * of it. An unwritten strict_ack decides from stack contents whether a command
+ * response must repeat its request's opcode. */
+static void
+test_opening_defines_every_field(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t t;
+    memset(&t, 0xFF, sizeof(t));
+
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_CHECK(!t.strict_ack);
+    KT_CHECK_EQ(t.stray_command_responses, (uint64_t) 0);
+
+    katherine_transport_fini(&t);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -324,6 +345,7 @@ main(void)
     KT_RUN(test_the_synchronous_shape_reads_on_demand);
     KT_RUN(test_an_absent_device_is_reported);
     KT_RUN(test_a_ring_that_cannot_be_posted_unwinds);
+    KT_RUN(test_opening_defines_every_field);
 
     return kt_summary();
 }
