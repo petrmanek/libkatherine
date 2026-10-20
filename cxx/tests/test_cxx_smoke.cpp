@@ -320,41 +320,35 @@ test_errors(void)
 }
 
 // ------------------------------------------------------------------
-// 7. katherine::udp, on a socket with no peer.
+// 7. The error mapping, on a device that is not there.
 
 static void
-test_udp(void)
+test_error_mapping(void)
 {
-    katherine::udp u{"127.0.0.1", 0, "127.0.0.1", 1555, 50};
-
-    KT_CHECK(streamed(u).size() > 0);
-    KT_CHECK(u.c_udp() != nullptr);
-
-    // Callable, and none of these needs a peer.
-    u.set_remote("127.0.0.1", 1556);
-    u.pin_remote();
-
-    // An empty socket yields KATHERINE_E_TIMEOUT, which the wrapper raises as
-    // katherine::system_error. Asserted by type, and by the code it carries.
-    bool threw_timeout = false;
-    try {
-        unsigned char buf[16];
-        std::size_t count = sizeof(buf);
-        u.recv(buf, count);
-    } catch (const katherine::error& e) {
-        threw_timeout = (std::string(e.what()) == std::string(katherine_strerror(KATHERINE_E_TIMEOUT)));
-    }
-    KT_CHECK(threw_timeout);
-
-    // A malformed address is rejected before any socket work.
+    // An address naming no link is refused before any socket work, and
+    // KATHERINE_E_ADDRESS has no dedicated class: it falls to the catch-all,
+    // which is the group every unmapped code lands in.
     bool threw_address = false;
     try {
-        katherine::udp bad{"not-an-address", 0, "127.0.0.1", 1555, 50};
+        katherine::device bad{"not-an-address"};
         (void) bad;
     } catch (const katherine::error&) {
         threw_address = true;
     }
     KT_CHECK(threw_address);
+
+    // Nothing answers in TEST-NET-1 (RFC 5737), so the open fails its
+    // enumeration with KATHERINE_E_TIMEOUT. Not loopback: the suite runs a
+    // readout emulator there. Asserted by the code it carries rather than by
+    // type, which is what tells a silently remapped code from a working one.
+    bool threw_timeout = false;
+    try {
+        katherine::device absent{"udp://192.0.2.1"};
+        (void) absent;
+    } catch (const katherine::error& e) {
+        threw_timeout = (std::string(e.what()) == std::string(katherine_strerror(KATHERINE_E_TIMEOUT)));
+    }
+    KT_CHECK(threw_timeout);
 }
 
 // ------------------------------------------------------------------
@@ -492,7 +486,7 @@ main(void)
     KT_RUN(test_px_config);
     KT_RUN(test_timestamps);
     KT_RUN(test_errors);
-    KT_RUN(test_udp);
+    KT_RUN(test_error_mapping);
     KT_RUN(test_struct_rendering);
     KT_RUN(test_readout_peripherals);
     KT_RUN(test_discovery);

@@ -26,6 +26,5 @@
 #include <katherinexx/tdc.hpp>
 #include <katherinexx/pulse.hpp>
 #include <katherinexx/toa.hpp>
-#include <katherinexx/udp.hpp>
 #include <katherinexx/version.hpp>
 #include <katherinexx/repr.hpp>

@@ -652,35 +652,26 @@ def check_pixel_types(tap, katherine):
         tap.check('%s has a non-empty repr' % name, len(repr(px)) > 0)
 
 
-def check_udp(tap, katherine):
-    """The Udp wrapper, and the error mapping, on a socket with no peer.
+def check_error_mapping(tap, katherine):
+    """The exception mapping, on a device that is not there.
 
-    Udp was never constructed by this file. It is also the cheapest way to
-    provoke a real library error without hardware, which is what makes it the
-    vehicle for the exception-type assertions #33 asks for.
+    The cheapest way to provoke a real library error without hardware, which
+    is what makes it the vehicle for the exception-type assertions #33 asks
+    for.
     """
-    u = katherine.Udp('127.0.0.1', 0, '127.0.0.1', 1555, 50)
-
-    tap.check('Udp constructs on loopback with an ephemeral local port', u is not None)
-    tap.check('Udp has a non-empty repr', len(repr(u)) > 0)
-
-    # Callable, and neither needs a peer. Correlation moved to the transport,
-    # so set_strict_ack and the stray count are the device's now.
-    u.set_remote('127.0.0.1', 1556)
-    u.pin_remote()
-    tap.check('set_remote and pin_remote are callable', True)
-
-    # KATHERINE_E_TIMEOUT on an empty socket, and it must arrive as
-    # TimeoutError rather than as the RuntimeError catch-all.
-    tap.check_raises('a receive on an empty socket raises TimeoutError',
-                     TimeoutError, u.recv_nowait, 16)
+    # KATHERINE_E_TIMEOUT on an address nothing answers, and it must arrive as
+    # TimeoutError rather than as the RuntimeError catch-all. TEST-NET-1
+    # (RFC 5737) rather than loopback, where this file runs a readout
+    # emulator of its own.
+    tap.check_raises('opening a device nothing answers raises TimeoutError',
+                     TimeoutError, katherine.Device, 'udp://192.0.2.1')
 
     # KATHERINE_E_ADDRESS has no dedicated Python class and falls to the
     # catch-all, which is itself worth pinning: it is the group every
     # unmapped code lands in, so a code that silently stops matching shows up
     # as one of these instead of as the specific class it should have been.
     tap.check_raises('a malformed address raises RuntimeError',
-                     RuntimeError, katherine.Udp, 'not-an-address', 0, '127.0.0.1', 1555, 50)
+                     RuntimeError, katherine.Device, 'not-an-address')
 
     # ValueError, but raised by the binding's own length guard rather than
     # routed through check_return_code(). Worth having, and worth being clear
@@ -692,11 +683,8 @@ def check_udp(tap, katherine):
 
     # MemoryError is deliberately not provoked. Reaching KATHERINE_E_NOMEM
     # means exhausting an allocation this test would have to make enormous,
-    # which trades a reliable suite for one more asserted class. Nor is
-    # KATHERINE_E_INVAL reachable from the library without a device to refuse
-    # something -- that pair belongs to the hardware window.
-    tap.comment('MemoryError and a library-raised ValueError are not provoked: see check_udp()')
-
+    # which trades a reliable suite for one more asserted class.
+    tap.comment('MemoryError is not provoked: see check_error_mapping()')
 
 def run_checks(tap, katherine, device):
     check_enums(tap, katherine)
@@ -706,7 +694,7 @@ def run_checks(tap, katherine, device):
     check_module_surface(tap, katherine)
     check_timestamp_functions(tap, katherine)
     check_pixel_types(tap, katherine)
-    check_udp(tap, katherine)
+    check_error_mapping(tap, katherine)
 
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
 

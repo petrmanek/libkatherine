@@ -17,7 +17,6 @@ set(KATHERINEXX_HEADERS
     "include/katherinexx/repr.hpp"
     "include/katherinexx/tdc.hpp"
     "include/katherinexx/toa.hpp"
-    "include/katherinexx/udp.hpp"
     "include/katherinexx/version.hpp"
 )
 

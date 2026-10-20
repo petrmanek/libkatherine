@@ -21,7 +21,6 @@
 #include <katherinexx/acquisition.hpp>
 #include <katherinexx/config.hpp>
 #include <katherinexx/device.hpp>
-#include <katherinexx/udp.hpp>
 
 /**
  * \addtogroup katherine_cxx_api
@@ -195,13 +194,6 @@ operator<<(std::ostream& os, const katherine_comm_status_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_comm_status_snprint);
 }
 
-/** Renders a katherine_udp_t (via katherine_udp_snprint()). */
-inline std::ostream&
-operator<<(std::ostream& os, const katherine_udp_t& v)
-{
-    return katherine::detail::stream_snprint(os, &v, katherine_udp_snprint);
-}
-
 /** Renders a katherine_device_t (via katherine_device_snprint()). */
 inline std::ostream&
 operator<<(std::ostream& os, const katherine_device_t& v)
@@ -355,13 +347,6 @@ namespace katherine {
 // types is never implicitly convertible to the corresponding C struct --
 // unlike katherine::px_config above, these need their own overload, found
 // by ADL in this namespace.
-
-/** Renders a katherine::udp over its c_udp() accessor. */
-inline std::ostream&
-operator<<(std::ostream& os, const katherine::udp& v)
-{
-    return detail::stream_snprint(os, v.c_udp(), katherine_udp_snprint);
-}
 
 /** Renders a katherine::device over its c_dev() accessor. */
 inline std::ostream&
