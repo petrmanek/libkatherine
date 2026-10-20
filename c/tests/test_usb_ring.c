@@ -26,6 +26,7 @@
 
 #include <katherine/error.h>
 #include <katherine/transport.h>
+#include "transport/factory.h"
 #include "transport/usb.h"
 
 #include "libusb.h"
@@ -452,6 +453,54 @@ test_a_second_transport_adopts_the_first(void)
     KT_CHECK_EQ(fake_usb_closes(), 1);
 }
 
+/* The factory hands the whole address to the configuration, which reads the
+ * scheme itself. Handing it only the remainder answers KATHERINE_E_ADDRESS,
+ * the same code an empty bus gives, so a readout that is really there is what
+ * tells the two apart. */
+static void
+test_the_control_factory_opens_a_usb_address(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t control;
+    KT_REQUIRE(katherine_transport_init_for_control("usb://1-1", false, &control) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(control.kind, KATHERINE_TRANSPORT_USB);
+    KT_CHECK_EQ(fake_usb_claims(), 1);
+
+    /* The message shape the control role asks for: no ring, nothing to lend. */
+    KT_CHECK_EQ(fake_usb_submitted(), 0);
+    KT_CHECK(control.ops->send_cmd != NULL);
+    KT_CHECK(control.ops->acquire_data_buf == NULL);
+
+    katherine_transport_fini(&control);
+    KT_CHECK_EQ(fake_usb_releases(), 1);
+}
+
+/* And the data factory drives what the control one claimed. */
+static void
+test_the_data_factory_adopts_the_control_transport(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t control, data;
+    KT_REQUIRE(katherine_transport_init_for_control("usb://1-1", false, &control) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_for_data("usb://1-1", &control, 0, &data) == KATHERINE_E_OK);
+
+    /* One open and one claim between them, and the ring is up. */
+    KT_CHECK_EQ(fake_usb_opens(), 1);
+    KT_CHECK_EQ(fake_usb_claims(), 1);
+    KT_CHECK(data.ops->acquire_data_buf != NULL);
+
+    katherine_transport_fini(&data);
+    KT_CHECK_EQ(fake_usb_releases(), 0);
+
+    katherine_transport_fini(&control);
+    KT_CHECK_EQ(fake_usb_releases(), 1);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -473,6 +522,8 @@ main(void)
     KT_RUN(test_a_stream_transport_sends_nothing);
     KT_RUN(test_a_second_independent_open_is_refused);
     KT_RUN(test_a_second_transport_adopts_the_first);
+    KT_RUN(test_the_control_factory_opens_a_usb_address);
+    KT_RUN(test_the_data_factory_adopts_the_control_transport);
 
     return kt_summary();
 }

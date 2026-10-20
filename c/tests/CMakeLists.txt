@@ -137,11 +137,16 @@ katherine_add_test(NAME test_fini_idempotent SOURCES test_fini_idempotent.c LABE
 # backend's source is compiled into the test rather than taken from the
 # library, which is linked against the real one.
 if(KATHERINE_BUILD_TRANSPORT_USB)
+    # The factory reaches both backends, so the UDP half is compiled in too.
     katherine_add_test(NAME test_usb_ring
                        SOURCES test_usb_ring.c
                                fake_libusb/fake_libusb.c
                                ../src/transport/usb_transport.c
                                ../src/transport/transport.c
+                               ../src/transport/udp_transport.c
+                               ../src/transport/udp_nix.c
+                               ../src/transport/udp_win.c
+                               ../src/error.c
                        LABELS unit
                        STANDALONE)
     target_include_directories(test_usb_ring BEFORE PRIVATE

@@ -114,7 +114,7 @@ katherine_transport_init_for_control(const char *address, bool private_udp_ports
         config.ep_in     = KATHERINE_USB_EP_CMD_IN;
         config.queue_len = 0;
 
-        if ((res = katherine_usb_config_set_address(&config, rest)) == KATHERINE_E_OK) {
+        if ((res = katherine_usb_config_set_address(&config, address)) == KATHERINE_E_OK) {
             res = katherine_transport_init_usb(control, &config);
         }
         break;
@@ -205,7 +205,7 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
     case KATHERINE_TRANSPORT_USB: {
         katherine_usb_config_t config = katherine_usb_config_default();
 
-        if ((res = katherine_usb_config_set_address(&config, rest)) != KATHERINE_E_OK) break;
+        if ((res = katherine_usb_config_set_address(&config, address)) != KATHERINE_E_OK) break;
         if ((res = katherine_usb_borrow_device(&config, control)) != KATHERINE_E_OK) break;
 
         res = katherine_transport_init_usb(data, &config);
