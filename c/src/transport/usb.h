@@ -57,19 +57,29 @@ katherine_str_usb_stream(katherine_usb_stream_t stream);
 // response and data endpoints are the reverse of the obvious order.
 
 /// Endpoint a readout reads commands from.
-#define KATHERINE_USB_EP_CMD_OUT ((uint8_t) 0x02)
+#define KATHERINE_USB_EP_CMD_OUT      ((uint8_t) 0x02)
 
 /// Endpoint a readout writes command responses to.
-#define KATHERINE_USB_EP_CMD_IN  ((uint8_t) 0x82)
+#define KATHERINE_USB_EP_CMD_IN       ((uint8_t) 0x82)
 
 /// Endpoint a readout writes measurement data to.
-#define KATHERINE_USB_EP_DATA_IN ((uint8_t) 0x81)
+#define KATHERINE_USB_EP_DATA_IN      ((uint8_t) 0x81)
 
 /**
  * Tiers a USB tree can be deep, which is what the specification allows and so
  * the longest chain of port numbers a readout can sit at the end of.
  */
-#define KATHERINE_USB_PORT_DEPTH 7
+#define KATHERINE_USB_PORT_DEPTH      7
+
+/**
+ * Bytes the readout's measurement endpoint sends per data frame.
+ *
+ * Fixed in the FPGA rather than negotiated on the bus: the streamer emits
+ * 170 six-byte words and then four zero bytes, which is where the figure
+ * comes from. Deriving it from the endpoint's maximum packet size happens
+ * to agree at SuperSpeed and disagrees at every other speed.
+ */
+#define KATHERINE_USB_DATA_FRAME_SIZE 1024
 
 /**
  * Readout to open, and the strategy for reading it.

@@ -10,6 +10,9 @@
  * SPDX-License-Identifier: MIT
  */
 
+// For KATHERINE_MD_SIZE: the stream this transport carries is measurement
+// data, and the bridge's framing is described in terms of its words.
+#include <katherine/acquisition.h>
 #include <katherine/global.h>
 
 #ifdef KATHERINE_FEATURE_USB
@@ -61,6 +64,7 @@ struct slot {
     uint8_t *buf;                 ///< Where that read lands, a whole word longer than the capacity; see the allocation.
     int len;                      ///< Bytes the last completion brought back.
     enum slot_state state;        ///< Who owns the buffer right now.
+    int taken;                    ///< Bytes of len already lent out; see next_run().
     uint32_t index;               ///< This slot's place in the ring, so a completion can name itself.
     struct katherine_usb *usb;    ///< The ring it belongs to, which the completion callback reaches it through.
 };
@@ -97,6 +101,80 @@ struct katherine_usb {
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
     bool owns_device;                        ///< True if this transport opened and claimed the readout, and so closes it.
 };
+
+/** Drop the slot at the head of the ready queue, which is the one in hand. */
+static void
+retire_head(struct katherine_usb *u)
+{
+    if (u->ready_count == 0) {
+        return;
+    }
+
+    u->ready_head = (u->ready_head + 1) % u->config.queue_len;
+    u->ready_count -= 1;
+}
+
+/// Words the streamer emits before the four bytes that end a data frame.
+#define USB_FRAME_WORDS (KATHERINE_USB_DATA_FRAME_SIZE - 4)
+
+/** True if a word is the idle pattern the streamer emits in place of data. */
+static bool
+is_filler(const uint8_t *word)
+{
+    return word[0] == 0x55 && word[1] == 0x55 && word[2] == 0x55 && word[3] == 0x55 && word[4] == 0x55 && word[5] == 0x55;
+}
+
+/**
+ * Find the next run of measurement-data words in a completed read.
+ *
+ * The readout's USB bridge does not send a flat sequence of words: its
+ * streamer emits 170 of them and then four zero bytes, and whenever its
+ * input runs dry mid-frame it emits 0x555555555555 in place of a word.
+ * Neither is data -- a filler decodes as a hit under a Gen2 chip header,
+ * and the four bytes shift every word behind them -- and both are
+ * word-aligned, so what remains is runs of words with gaps between them.
+ *
+ * Lending one run at a time is what keeps this free of copying: the gaps
+ * are stepped over rather than closed up.
+ *
+ * \param buf The completed read.
+ * \param len Bytes it brought back.
+ * \param from Offset to resume at.
+ * \param off Out-parameter for where the run starts.
+ * \param run Out-parameter for its length, always a whole number of words.
+ * \return True if a run was found, false once the read holds no more.
+ */
+static bool
+next_run(const uint8_t *buf, size_t len, size_t from, size_t *off, size_t *run)
+{
+    size_t i = from;
+
+    while (i + KATHERINE_MD_SIZE <= len) {
+        const size_t in_frame = i % KATHERINE_USB_DATA_FRAME_SIZE;
+
+        if (in_frame >= USB_FRAME_WORDS) {
+            i += KATHERINE_USB_DATA_FRAME_SIZE - in_frame;
+        } else if (is_filler(buf + i)) {
+            i += KATHERINE_MD_SIZE;
+        } else {
+            break;
+        }
+    }
+
+    if (i + KATHERINE_MD_SIZE > len) {
+        return false;
+    }
+
+    size_t end = i;
+    while (end + KATHERINE_MD_SIZE <= len && (end % KATHERINE_USB_DATA_FRAME_SIZE) < USB_FRAME_WORDS && !is_filler(buf + end)) {
+        end += KATHERINE_MD_SIZE;
+    }
+
+    *off = i;
+    *run = end - i;
+
+    return true;
+}
 
 static katherine_error_t
 map_usb_error(struct katherine_usb *u, int code)
@@ -151,7 +229,8 @@ on_transfer_done(struct libusb_transfer *xfer)
     // A bulk read that timed out may still have brought back a short buffer,
     // and those bytes are measurement data like any other.
     case LIBUSB_TRANSFER_TIMED_OUT:
-        s->len = xfer->actual_length;
+        s->len   = xfer->actual_length;
+        s->taken = 0;
         if (s->len > 0) {
             s->state                                                         = SLOT_FILLED;
             u->ready[(u->ready_head + u->ready_count) % u->config.queue_len] = s->index;
@@ -294,18 +373,34 @@ usb_acquire_sync(void *ctx, void **buf, size_t *len)
     katherine_error_t res;
     struct katherine_usb *u = ctx;
     struct slot *s          = &u->slots[0];
-    int moved               = 0;
+    size_t off, run;
 
-    const int code = libusb_bulk_transfer(u->handle, u->config.ep_in, s->buf, (int) u->config.buffer_size, &moved, u->config.timeout_ms);
+    // What the last read still holds, before asking the bus for more.
+    if (!next_run(s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
+        int moved = 0;
 
-    // A timeout that still brought bytes back is data, not a failure.
-    if (code != LIBUSB_SUCCESS && !(code == LIBUSB_ERROR_TIMEOUT && moved > 0)) {
-        res = map_usb_error(u, code);
-        goto err_read;
+        const int code = libusb_bulk_transfer(u->handle, u->config.ep_in, s->buf, (int) u->config.buffer_size, &moved, u->config.timeout_ms);
+
+        // A timeout that still brought bytes back is data, not a failure.
+        if (code != LIBUSB_SUCCESS && !(code == LIBUSB_ERROR_TIMEOUT && moved > 0)) {
+            res = map_usb_error(u, code);
+            goto err_read;
+        }
+
+        s->len   = moved;
+        s->taken = 0;
+
+        if (!next_run(s->buf, (size_t) moved, 0, &off, &run)) {
+            // The read held nothing but what the bridge pads with.
+            *buf = s->buf;
+            *len = 0;
+            return KATHERINE_E_OK;
+        }
     }
 
-    *buf = s->buf;
-    *len = (size_t) moved;
+    s->taken = (int) (off + run);
+    *buf     = s->buf + off;
+    *len     = run;
 
     return KATHERINE_E_OK;
 
@@ -352,15 +447,24 @@ usb_acquire_async(void *ctx, void **buf, size_t *len)
         }
 
         if (u->ready_count > 0) {
-            const uint32_t i = u->ready[u->ready_head];
-            u->ready_head    = (u->ready_head + 1) % u->config.queue_len;
-            u->ready_count -= 1;
+            struct slot *s = &u->slots[u->ready[u->ready_head]];
 
-            struct slot *s = &u->slots[i];
-            s->state       = SLOT_LENT;
+            size_t off, run;
+            if (!next_run(s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
+                // Nothing left in it, so back onto the bus and on to the next.
+                retire_head(u);
+                if (!u->draining) {
+                    res = submit_slot(u, s, &held);
+                    if (res && u->ready_count == 0) goto err_submit;
+                }
+                continue;
+            }
 
-            *buf = s->buf;
-            *len = (size_t) s->len;
+            s->state = SLOT_LENT;
+            s->taken = (int) (off + run);
+
+            *buf = s->buf + off;
+            *len = run;
 
             if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_lent_unlock;
             held = false;
@@ -422,7 +526,7 @@ usb_release_async(void *ctx, void *buf)
 
     struct slot *s = NULL;
     for (uint32_t i = 0; i < u->config.queue_len; ++i) {
-        if (u->slots[i].buf == (unsigned char *) buf) {
+        if ((unsigned char *) buf >= u->slots[i].buf && (unsigned char *) buf < u->slots[i].buf + u->config.buffer_size) {
             s = &u->slots[i];
             break;
         }
@@ -433,13 +537,21 @@ usb_release_async(void *ctx, void *buf)
         goto err_foreign;
     }
 
+    size_t off, run;
+
     if (u->draining) {
         // Closing down, so the slot goes idle rather than back onto the bus:
         // the ring is about to be taken apart.
         s->state = SLOT_IDLE;
-    } else {
+        retire_head(u);
+    } else if (!next_run(s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
+        retire_head(u);
         res = submit_slot(u, s, &held);
         if (res) goto err_submit;
+    } else {
+        // More runs in it, so it stays where it is and keeps its place in
+        // the stream; the next acquire takes the next one.
+        s->state = SLOT_FILLED;
     }
 
     if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_unlock;

@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <katherine/acquisition.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>
 #include "transport/factory.h"
@@ -101,7 +102,9 @@ test_a_returned_buffer_is_posted_again(void)
     void *buf  = NULL;
     size_t len = 0;
     KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
-    KT_CHECK_EQ(len, (size_t) 512);
+    // 512 is not a whole number of six-byte words, and the transport lends
+    // only whole ones: 85 words, 2 bytes left behind.
+    KT_CHECK_EQ(len, (size_t) 510);
     KT_CHECK(buf != NULL);
 
     // Lent, so one fewer is outstanding until it comes back.
@@ -142,7 +145,7 @@ test_an_empty_completion_does_not_shrink_the_ring(void)
     // And it does: one more completion, with data this time, is delivered.
     KT_REQUIRE(fake_usb_complete_oldest(LIBUSB_TRANSFER_COMPLETED, 64) == 0);
     KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
-    KT_CHECK_EQ(len, (size_t) 64);
+    KT_CHECK_EQ(len, (size_t) 60);
 
     katherine_transport_fini(&t);
 }
@@ -267,7 +270,7 @@ test_the_synchronous_shape_reads_on_demand(void)
     void *buf  = NULL;
     size_t len = 0;
     KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
-    KT_CHECK_EQ(len, (size_t) 256);
+    KT_CHECK_EQ(len, (size_t) 252);
     KT_CHECK_EQ(fake_usb_bulk_count(), 1);
     // The data endpoint is the library's constant, not a setting.
     KT_CHECK_EQ(fake_usb_last_bulk_endpoint(), 0x81);
@@ -501,6 +504,69 @@ test_the_data_factory_adopts_the_control_transport(void)
     KT_CHECK_EQ(fake_usb_releases(), 1);
 }
 
+/* What the readout's USB bridge adds to the stream, and what the transport
+ * owes the decoder: whole six-byte words, with the bridge's own padding and
+ * its 0x55 idle filler gone. */
+static void
+test_the_bridge_padding_and_filler_are_stripped(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    /* One data frame as the streamer emits it: 170 words then four zero
+     * bytes. Every third word is filler, which is what it sends when its
+     * input runs dry mid-frame. */
+    static uint8_t frame[KATHERINE_USB_DATA_FRAME_SIZE];
+    unsigned real = 0;
+    for (unsigned w = 0; w < 170; ++w) {
+        uint8_t *word = frame + w * KATHERINE_MD_SIZE;
+        if (w % 3 == 2) {
+            memset(word, 0x55, KATHERINE_MD_SIZE);
+        } else {
+            memset(word, 0, KATHERINE_MD_SIZE);
+            word[5] = 0x10 | (uint8_t) (w & 0x0F); /* a chip-0 pixel header */
+            ++real;
+        }
+    }
+    memset(frame + 170 * KATHERINE_MD_SIZE, 0, 4);
+
+    KT_REQUIRE(fake_usb_complete_oldest_with(LIBUSB_TRANSFER_COMPLETED, frame, (int) sizeof(frame)) == 0);
+
+    /* The gaps are stepped over rather than closed up, so the read comes
+       back as runs: every word of it, none of the filler, and none of the
+       four bytes that end the frame. */
+    unsigned seen = 0;
+    unsigned runs = 0;
+    while (seen < real) {
+        void *buf  = NULL;
+        size_t len = 0;
+        KT_REQUIRE(katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK);
+        KT_REQUIRE(len > 0);
+        KT_CHECK_EQ(len % KATHERINE_MD_SIZE, (size_t) 0);
+
+        for (size_t i = 0; i < len; i += KATHERINE_MD_SIZE) {
+            const uint8_t *word = (const uint8_t *) buf + i;
+            KT_CHECK((word[5] & 0xF0) == 0x10);
+            ++seen;
+        }
+
+        ++runs;
+        KT_REQUIRE(katherine_transport_release_data_buf(&t, buf) == KATHERINE_E_OK);
+    }
+
+    KT_CHECK_EQ(seen, real);
+    KT_CHECK_EQ(real, 114u);
+
+    /* Two words between each filler, so one run per filler. */
+    KT_CHECK_EQ(runs, 57u);
+
+    katherine_transport_fini(&t);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -522,6 +588,7 @@ main(void)
     KT_RUN(test_a_stream_transport_sends_nothing);
     KT_RUN(test_a_second_independent_open_is_refused);
     KT_RUN(test_a_second_transport_adopts_the_first);
+    KT_RUN(test_the_bridge_padding_and_filler_are_stripped);
     KT_RUN(test_the_control_factory_opens_a_usb_address);
     KT_RUN(test_the_data_factory_adopts_the_control_transport);
 

@@ -226,8 +226,19 @@ fake_usb_submit_count(void)
 int
 fake_usb_complete_oldest(enum libusb_transfer_status status, int actual_length)
 {
+    return fake_usb_complete_oldest_with(status, NULL, actual_length);
+}
+
+int
+fake_usb_complete_oldest_with(enum libusb_transfer_status status, const void *data, int actual_length)
+{
     for (int i = 0; i < g_outstanding_count; ++i) {
         if (g_outstanding[i].armed) continue;
+
+        if (data != NULL && g_outstanding[i].transfer != NULL && g_outstanding[i].transfer->buffer != NULL) {
+            if (actual_length > g_outstanding[i].transfer->length) return -1;
+            memcpy(g_outstanding[i].transfer->buffer, data, (size_t) actual_length);
+        }
 
         g_outstanding[i].status        = status;
         g_outstanding[i].actual_length = actual_length;

@@ -220,6 +220,10 @@ fake_usb_submit_count(void);
 int
 fake_usb_complete_oldest(enum libusb_transfer_status status, int actual_length);
 
+/** As above, but also writes what the bridge is to have sent into the buffer. */
+int
+fake_usb_complete_oldest_with(enum libusb_transfer_status status, const void *data, int actual_length);
+
 /** How many synchronous bulk transfers have been made, and on which endpoint. */
 int
 fake_usb_bulk_count(void);
