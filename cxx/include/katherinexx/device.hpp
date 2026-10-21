@@ -84,6 +84,36 @@ discover(const std::string& address, uint16_t reply_port, std::chrono::duration<
 }
 #endif /* KATHERINE_FEATURE_UDP */
 
+#ifdef KATHERINE_FEATURE_USB
+/**
+ * Ask the bus which readouts are attached, and under what address each can
+ * be opened.
+ *
+ * Nothing is opened: the walk reads descriptors and topology only, so it
+ * works before a udev rule grants access. That is the difference from the
+ * overload taking an address, which has to put a datagram on the wire.
+ *
+ * \param capacity Room to make for answers.
+ * \return The addresses attached, each naming its link -- "usb://2-3" -- so
+ *   one can be handed straight to katherine::device.
+ */
+inline std::vector<katherine::discovered>
+discover_usb(std::size_t capacity = 32)
+{
+    std::vector<katherine::discovered> out(capacity);
+    std::size_t count = out.size();
+
+    int res = katherine_device_discover_usb(out.data(), &count);
+
+    if (res != 0) {
+        throw katherine::system_error{res};
+    }
+
+    out.resize(count);
+    return out;
+}
+#endif /* KATHERINE_FEATURE_USB */
+
 class device {
     katherine_device_t dev_;
 

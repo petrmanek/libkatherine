@@ -477,6 +477,33 @@ test_discovery(void)
     KT_CHECK(threw);
 }
 
+/* The bus walk needs no readout attached: with none it answers an empty
+ * list rather than failing, and it refuses nowhere to put the answers. */
+#ifdef KATHERINE_FEATURE_USB
+static void
+test_usb_discovery(void)
+{
+    // Whatever is attached, the call succeeds and reports no more than was
+    // asked for. A bus with nothing on it is not an error.
+    const auto found = katherine::discover_usb(4);
+    KT_CHECK(found.size() <= 4);
+
+    // Each answer names its link, so it can be handed straight to a device.
+    for (const auto& d : found) {
+        KT_CHECK(std::string{d.address}.rfind("usb://", 0) == 0);
+        KT_CHECK(!d.legacy);
+    }
+
+    bool threw = false;
+    try {
+        (void) katherine::discover_usb(0);
+    } catch (const katherine::system_error&) {
+        threw = true;
+    }
+    KT_CHECK(threw);
+}
+#endif /* KATHERINE_FEATURE_USB */
+
 int
 main(void)
 {
@@ -490,5 +517,8 @@ main(void)
     KT_RUN(test_struct_rendering);
     KT_RUN(test_readout_peripherals);
     KT_RUN(test_discovery);
+#ifdef KATHERINE_FEATURE_USB
+    KT_RUN(test_usb_discovery);
+#endif /* KATHERINE_FEATURE_USB */
     return kt_summary();
 }

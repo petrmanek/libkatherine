@@ -20,3 +20,4 @@ cdef extern from 'katherine/transport.h':
         bint legacy
     cdef int KATHERINE_DISCOVER_MIN_PORT
     int katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
+    int katherine_device_discover_usb(katherine_discovered_t *out, size_t *count)

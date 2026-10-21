@@ -121,6 +121,39 @@ IF KATHERINE_FEATURE_UDP:
         finally:
             PyMem_Free(out)
 
+IF KATHERINE_FEATURE_USB:
+    def discover_usb(size_t capacity=32):
+        """Ask the bus which readouts are attached.
+
+        Nothing is opened: the walk reads descriptors and topology only, so
+        it works before a udev rule grants access. That is the difference
+        from discover(), which has to put a datagram on the wire.
+
+        Returns (address, legacy) pairs, one per readout attached. Each
+        address names its link -- "usb://2-3" -- so one can be passed
+        straight to Device(). legacy is always False on this link: it
+        describes how a firmware answered a discovery datagram, and no
+        datagram is sent here.
+        """
+        cdef ctransport.katherine_discovered_t *out
+        cdef size_t count = capacity
+
+        if capacity == 0:
+            raise ValueError('capacity must be positive')
+
+        out = <ctransport.katherine_discovered_t *> PyMem_Malloc(
+            capacity * sizeof(ctransport.katherine_discovered_t))
+        if out is NULL:
+            raise MemoryError()
+
+        try:
+            res = ctransport.katherine_device_discover_usb(out, &count)
+            check_return_code(res)
+            return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
+        finally:
+            PyMem_Free(out)
+
+
 def version():
     return cversion.katherine_version()
 

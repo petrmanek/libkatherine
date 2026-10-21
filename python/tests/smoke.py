@@ -554,6 +554,27 @@ def check_discovery(tap, katherine):
                      ValueError, katherine.discover, '127.0.0.1', 31, 50)
 
 
+def check_usb_discovery(tap, katherine):
+    """The bus walk reaches Python, and an empty bus is not an error.
+
+    Skipped where the library was built without the USB transport, which is
+    the same condition under which the wrapper is not defined.
+    """
+    if not hasattr(katherine, 'discover_usb'):
+        tap.comment('USB discovery absent: the library was built without that transport')
+        return
+
+    found = katherine.discover_usb(4)
+    tap.check('bus discovery returns no more than was asked for', len(found) <= 4)
+
+    for address, legacy in found:
+        tap.check('each answer names its link', address.startswith('usb://'))
+        tap.check('no answer on this link claims legacy firmware', legacy is False)
+
+    tap.check_raises('bus discovery rejects no room for an answer', ValueError,
+                     katherine.discover_usb, 0)
+
+
 def check_module_surface(tap, katherine):
     """The module exports its own names and nothing borrowed.
 
@@ -691,6 +712,7 @@ def run_checks(tap, katherine, device):
     check_enum_rendering(tap, katherine)
     check_readout_peripherals(tap, katherine)
     check_discovery(tap, katherine)
+    check_usb_discovery(tap, katherine)
     check_module_surface(tap, katherine)
     check_timestamp_functions(tap, katherine)
     check_pixel_types(tap, katherine)

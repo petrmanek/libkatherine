@@ -48,9 +48,16 @@ else()
     set(KATHERINE_PY_FEATURE_UDP False)
 endif()
 
+if(KATHERINE_BUILD_TRANSPORT_USB)
+    set(KATHERINE_PY_FEATURE_USB True)
+else()
+    set(KATHERINE_PY_FEATURE_USB False)
+endif()
+
 add_custom_command(OUTPUT "${PYKATHERINE_C}"
                    COMMAND "${Python3_EXECUTABLE}" -m cython -3
                            -E "KATHERINE_FEATURE_UDP=${KATHERINE_PY_FEATURE_UDP}"
+                           -E "KATHERINE_FEATURE_USB=${KATHERINE_PY_FEATURE_USB}"
                            -I "${CMAKE_CURRENT_SOURCE_DIR}"
                            -o "${PYKATHERINE_C}"
                            "${PYKATHERINE_PYX}"
