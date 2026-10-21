@@ -19,10 +19,13 @@
 #include <katherine/error.h>
 #include <katherine/transport.h>
 
-/**
- * \addtogroup katherine_transport
- * \{
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #ifdef __cplusplus
 extern "C" {
@@ -145,4 +148,4 @@ katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count);
 }
 #endif
 
-/** \} */
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */

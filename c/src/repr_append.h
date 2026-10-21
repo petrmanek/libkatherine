@@ -17,6 +17,14 @@
 #include <stddef.h>
 #include <stdio.h>
 
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 // Internal: given a growing buffer buf of capacity cap and a byte offset
 // off already accounted for by earlier appends (some possibly already
 // truncated, i.e. off may exceed cap), computes the destination pointer and
@@ -58,3 +66,5 @@ repr_cursor(char *buf, size_t cap, size_t off, char **dst, size_t *rem)
         repr_cursor((buf), (cap), (off), &dst_, &rem_); \
         (off) += (size_t) fn(dst_, rem_, __VA_ARGS__); \
     } while (0)
+
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */

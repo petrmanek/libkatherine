@@ -31,16 +31,13 @@
 #include <pthread.h>
 #endif
 
-/**
- * \defgroup katherine_udp UDP transport
- * \ingroup katherine_c_api
- * \brief The datagram sessions carrying the control and data planes.
- */
+//
+// IMPORTANT NOTICE:
+//
+// The following interface is internal.
+// It is not intended for user application access.
 
-/**
- * \addtogroup katherine_udp
- * \{
- */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 // Uncomment the following line to enable network trace:
 // #define KATHERINE_DEBUG_UDP 2
@@ -165,4 +162,4 @@ katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint1
 }
 #endif
 
-/** \} */
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
