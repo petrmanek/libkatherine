@@ -74,11 +74,10 @@
 #define PORT_SLOW_CLIENT  (KPORTS_CMD_TRANSACT + 2)
 #define PORT_SLOW_MOCK    (KPORTS_CMD_TRANSACT + 3)
 
-// Receive timeout of the session under test. Every datagram a case expects
-// is already queued by the time the call under test runs -- loopback
-// delivery completes before katherine_udp_send_exact() returns -- so this
-// only bounds the cases that deliberately wait for something that never
-// comes, and is kept short for that reason.
+// Receive timeout of the session under test. A case that reads back what it
+// has just sent blocks here until it arrives, so this has to cover one
+// loopback delivery and nothing more; what it is really kept short for are
+// the cases that deliberately wait for something that never comes.
 #define CLIENT_TIMEOUT_MS 50
 
 // The mock readout waits for a command only on the threaded case, where it
@@ -93,9 +92,10 @@
 #define SLOW_TIMEOUT_MS   3000
 #define NONBLOCKING_S     1.0
 
-// Retries allowed while waiting for two datagrams to reach the socket, and
-// the pause between them. Ten attempts of 20 ms bound the wait at 0.2 s,
-// far above any loopback delivery and far below the test's own timeout.
+// Retries allowed while waiting for a burst of datagrams to reach the
+// socket, and the pause between them. Ten attempts of 20 ms bound the wait
+// at 0.2 s, far above any loopback delivery and far below the test's own
+// timeout.
 #define FLUSH_ATTEMPTS    10
 #define FLUSH_ATTEMPT_MS  20
 
@@ -241,6 +241,25 @@ expect_link_quiet(katherine_transport_t *t)
     KT_CHECK_EQ(katherine_transport_get_last_os_error(t), 0);
 }
 
+// Discards what is queued, and keeps asking until the expected number has
+// been accounted for. A send returning is not a delivery: the loopback of
+// some platforms queues the datagram a moment later, and a non-blocking
+// flush is entitled to find the socket still empty, so a single call cannot
+// be required to find a burst whole. Bounded, so a flush that consumes
+// nothing still fails. See test_flush_consumes_without_blocking(), which
+// asserts the non-blocking property this takes for granted.
+static void
+flush_until(katherine_transport_t *t, uint64_t before, uint64_t expected)
+{
+    for (int attempt = 0; attempt < FLUSH_ATTEMPTS; ++attempt) {
+        katherine_transport_flush_incoming(t);
+        if (t->stray_command_responses - before >= expected) break;
+        katherine_msleep(FLUSH_ATTEMPT_MS);
+    }
+
+    KT_CHECK_EQ(t->stray_command_responses - before, expected);
+}
+
 // ------------------------------------------------------------------
 // a) The two tables that state what the readout answers, and under which
 // identifier. Both are read off the firmware's command dispatcher, and
@@ -343,7 +362,7 @@ test_stray_budget_bounds_the_wait(void)
 
     KT_CHECK_EQ(g_client_link.stray_command_responses - before, KATHERINE_CMD_MAX_STRAY_DISCARDS);
 
-    katherine_transport_flush_incoming(&g_client_link);
+    flush_until(&g_client_link, before, KATHERINE_CMD_MAX_STRAY_DISCARDS + extra);
     expect_link_quiet(&g_client_link);
 }
 
@@ -401,8 +420,7 @@ test_documented_reply_identifiers_accepted(void)
     // exists for: without it they would be read as its answers, one command
     // out of step, for the rest of the session.
     before = g_client_link.stray_command_responses;
-    katherine_transport_flush_incoming(&g_client_link);
-    KT_CHECK_EQ(g_client_link.stray_command_responses - before, DAC_SCAN_REPLIES - 1);
+    flush_until(&g_client_link, before, DAC_SCAN_REPLIES - 1);
     expect_link_quiet(&g_client_link);
 }
 
