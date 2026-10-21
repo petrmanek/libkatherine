@@ -14,16 +14,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-// katherine_device_discover_udp() is defined here, and its result type
-// and the address buffer it fills are the device's.
-#include <katherine/device.h>
+#include <katherine/device.h> // the discovery below fills the device's own result type
 #include <katherine/transport.h>
-#include "udp.h"
-#include "repr_append.h"
 
 #include "address.h"
 #include "monoclock.h"
 #include "msleep.h"
+#include "repr_append.h"
+#include "udp.h"
 #include "protocol/cmd_interface.h"
 
 /**
@@ -35,15 +33,12 @@
  */
 #define DEFAULT_BUFFER_SIZE 4096
 
-// One buffer is enough here, which is the whole difference from the USB
-// transport: a socket keeps filling SO_RCVBUF whether or not the application
-// is inside recv(), so the kernel already does what a ring of outstanding
-// reads does there. Lending a second buffer would buy nothing.
+// One buffer is enough, which is the whole difference from the USB transport:
+// a socket keeps filling SO_RCVBUF whether or not the application is inside
+// recv(), so the kernel already does what a ring does there.
 //
-// It is allocated a whole word past its capacity. A caller decoding 6-byte
-// measurement data reads the last one through an 8-byte load, which reaches
-// up to 2 bytes past what arrived; the slack keeps that read inside the
-// allocation for any capacity, multiples of 8 included.
+// Allocated a whole word past its capacity: a decoder reads the last six-byte
+// item through an eight-byte load, which reaches two bytes past what arrived.
 struct udp_transport {
     katherine_udp_t udp;
     char *buffer;
@@ -51,6 +46,13 @@ struct udp_transport {
     bool lent; ///< True if the one buffer is in the caller's hands.
 };
 
+/**
+ * Send a command on the session.
+ * \param ctx Session to send on.
+ * \param data Bytes to send.
+ * \param count How many.
+ * \return KATHERINE_E_OK once every byte is on the wire.
+ */
 static katherine_error_t
 udp_t_send_cmd(void *ctx, const void *data, size_t count)
 {
@@ -59,6 +61,13 @@ udp_t_send_cmd(void *ctx, const void *data, size_t count)
     return katherine_udp_send_exact(&t->udp, data, count);
 }
 
+/**
+ * Receive one command response.
+ * \param ctx Session to read.
+ * \param crd Storage for the response.
+ * \param len Capacity on entry, bytes received on return.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 udp_t_recv_crd(void *ctx, void *crd, size_t *len)
 {
@@ -106,6 +115,12 @@ udp_drain(katherine_udp_t *udp, uint32_t *discarded)
     }
 }
 
+/**
+ * Discard whatever an earlier exchange left on the session.
+ * \param ctx Session to drain.
+ * \param discarded Out-parameter for how many were dropped, or NULL.
+ * \return KATHERINE_E_OK once the session is quiet.
+ */
 static katherine_error_t
 udp_t_flush_incoming(void *ctx, uint32_t *discarded)
 {
@@ -116,6 +131,13 @@ udp_t_flush_incoming(void *ctx, uint32_t *discarded)
     return KATHERINE_E_OK;
 }
 
+/**
+ * Lend the datagram just received.
+ * \param ctx Session to read.
+ * \param buf Out-parameter for the lent bytes.
+ * \param len Out-parameter for how many.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 udp_t_acquire_data_buf(void *ctx, void **buf, size_t *len)
 {
@@ -136,6 +158,12 @@ err_recv:
     return res;
 }
 
+/**
+ * Give back the lent datagram, which frees the one buffer to be filled again.
+ * \param ctx Session it came from.
+ * \param buf The buffer.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 udp_t_release_data_buf(void *ctx, void *buf)
 {
@@ -155,6 +183,12 @@ err_foreign:
     return res;
 }
 
+/**
+ * Set how long a receive waits.
+ * \param ctx Session to set.
+ * \param timeout_ms The limit.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 {
@@ -163,6 +197,12 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
     return katherine_udp_set_timeout(&t->udp, timeout_ms);
 }
 
+/**
+ * Datagrams the kernel dropped for want of queue space.
+ * \param ctx Session to ask.
+ * \param count Out-parameter for the running total.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 udp_t_get_dropped_input(void *ctx, uint64_t *count)
 {
@@ -173,9 +213,14 @@ udp_t_get_dropped_input(void *ctx, uint64_t *count)
     return KATHERINE_E_OK;
 }
 
-// Delegated rather than reimplemented: the lock belongs to the session, and
-// anything else still reaching that session directly -- the command layer,
-// until it too goes through a transport -- takes the very same one.
+/**
+ * Take the lock serializing callers of this session.
+ *
+ * Delegated rather than reimplemented: the lock belongs to the session, and
+ * anything else still reaching it directly takes the very same one.
+ * \param ctx Session to lock.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 udp_t_mutex_lock(void *ctx)
 {
@@ -184,6 +229,11 @@ udp_t_mutex_lock(void *ctx)
     return katherine_udp_mutex_lock(&t->udp);
 }
 
+/**
+ * Release the lock udp_t_mutex_lock() took.
+ * \param ctx Session to unlock.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 udp_t_mutex_unlock(void *ctx)
 {
@@ -193,6 +243,11 @@ udp_t_mutex_unlock(void *ctx)
 }
 
 
+/**
+ * The OS code the last failed operation reported.
+ * \param ctx Session to ask.
+ * \return The code, or 0 if nothing failed.
+ */
 static int
 udp_t_get_last_os_error(void *ctx)
 {
@@ -201,6 +256,12 @@ udp_t_get_last_os_error(void *ctx)
     return katherine_udp_last_os_error(&t->udp);
 }
 
+/**
+ * Resize the buffer one datagram is received into.
+ * \param ctx Session to resize.
+ * \param size Bytes it is to hold.
+ * \return KATHERINE_E_OK on success, leaving the old buffer in place otherwise.
+ */
 static katherine_error_t
 udp_t_set_buffer_size(void *ctx, size_t size)
 {
@@ -237,6 +298,10 @@ err_size:
     return res;
 }
 
+/**
+ * Close the session and free its buffer.
+ * \param ctx Session to close.
+ */
 static void
 udp_t_fini(void *ctx)
 {
@@ -389,10 +454,8 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
     if (received != KATHERINE_CMD_CRD_SIZE) return COLLECT_DISCARD;
     if ((uint8_t) crd[KATHERINE_CMD_OPCODE_BYTE] != CMD_TYPE_ECHO_CHIP_ID) return COLLECT_DISCARD;
 
-    // The request itself, delivered back to its sender: a broadcast reaches
-    // this host too, and a command and its response differ only in the
-    // fields a readout fills in, so the operation code does not tell them
-    // apart.
+    // The request itself, delivered back to its sender: a broadcast reaches this
+    // host too, and the operation code does not tell a command from its response.
     if (memcmp(crd, request->b, sizeof(request->b)) == 0) return COLLECT_DISCARD;
 
     memset(entry, 0, sizeof(*entry));
@@ -494,10 +557,9 @@ katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t
         res = KATHERINE_E_INVAL;
         goto err_port;
     }
-    // Zero is the one value the sessions below read as no timeout at all:
-    // SO_RCVTIMEO is left unset and a receive then blocks past the deadline
-    // this call keeps for itself. A millisecond is the shortest limit the
-    // parameter can express, so anything under one is refused here.
+    // Zero reads as no timeout at all -- SO_RCVTIMEO is left unset and a receive
+    // blocks past this call's own deadline -- and a millisecond is the shortest
+    // limit the parameter can express, so anything under one is refused.
     if (timeout_ms == 0) {
         res = KATHERINE_E_INVAL;
         goto err_timeout;
@@ -512,14 +574,11 @@ katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t
         goto err_kind;
     }
 
-    // Both unpinned on purpose: a pinned session would discard every answer
-    // but the first host's, and adopting each sender in turn is how the
-    // address of each answer is read back.
+    // Both unpinned on purpose: a pinned session would discard every answer but the
+    // first host's, and adopting each sender in turn is how each address is read back.
     //
-    // The standard port is bound first because the request is sent from it.
-    // A firmware that ignores the reply port answers either to its own
-    // default or to the port the request came from, and binding the one the
-    // request leaves from makes both of those the same socket.
+    // The standard port is bound first because the request is sent from it, which
+    // makes a firmware's two possible replies land on the same socket.
     katherine_udp_t legacy;
     res = katherine_udp_init_bound(&legacy, NULL, DISCOVER_DEFAULT_PORT, host, DISCOVER_DEFAULT_PORT, timeout_ms);
     if (res) goto err_legacy;
@@ -535,9 +594,8 @@ katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t
     katherine_cmd_t request = katherine_cmd_create(CMD_TYPE_ECHO_CHIP_ID);
     katherine_cmd_payload_set_i64(&request, (int64_t) reply_port);
 
-    // Sent on the session directly: discovery is a UDP broadcast by nature
-    // and opens no transport over either of its two sessions. This is all
-    // katherine_cmd_send() ever did.
+    // Sent on the session directly: discovery is a broadcast by nature and opens no
+    // transport over either of its sessions.
     res = katherine_udp_send_exact(&legacy, request.b, sizeof(request.b));
     if (res) goto err_send;
 
@@ -624,12 +682,16 @@ err_kind:
     return res;
 }
 
-// Hand-formats "A.B.C.D:port" from a sockaddr_in, without inet_ntop() (which
-// Windows declares in a different header than POSIX does): sin_addr and
-// sin_port are named the same on both platforms, and are the only members
-// katherine_udp_snprint() needs. buf must be at least 22 bytes
-// ("255.255.255.255:65535" plus the NUL); the caller below sizes it
-// generously.
+/**
+ * Write "A.B.C.D:port" from a sockaddr_in.
+ *
+ * Hand-formatted rather than through inet_ntop(), which Windows declares in a
+ * different header than POSIX does; sin_addr and sin_port are named the same on
+ * both.
+ * \param buf Destination, at least 22 bytes for "255.255.255.255:65535".
+ * \param cap Its capacity.
+ * \param address The endpoint to render.
+ */
 static void
 format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *address)
 {
