@@ -98,6 +98,9 @@ typedef struct katherine_udp_config {
 } katherine_udp_config_t;
 
 KATHERINE_NOT_EXPORTED katherine_error_t
+katherine_transport_init_udp(katherine_transport_t *transport, const katherine_udp_config_t *config);
+
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms);
 
 KATHERINE_NOT_EXPORTED katherine_error_t
