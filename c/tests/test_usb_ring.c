@@ -55,13 +55,13 @@ config_for(katherine_usb_stream_t stream)
 
 // ------------------------------------------------------------------
 
-// katherine_usb_inflight() reports through an out-parameter, so the checks
+// katherine_usb_transport_get_inflight_transfers() reports through an out-parameter, so the checks
 // below read it through this.
 static uint32_t
 inflight(const katherine_transport_t *t)
 {
     uint32_t n = 0;
-    KT_CHECK_EQ(katherine_usb_inflight(t, &n), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_usb_transport_get_inflight_transfers(t, &n), KATHERINE_E_OK);
 
     return n;
 }
@@ -448,7 +448,7 @@ test_a_second_transport_adopts_the_first(void)
     KT_CHECK_EQ(fake_usb_claims(), 1);
 
     katherine_usb_config_t stream = config_for(KATHERINE_USB_STREAM_ASYNC);
-    KT_REQUIRE(katherine_usb_borrow_device(&stream, &control) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_usb_config_borrow_device(&stream, &control) == KATHERINE_E_OK);
 
     katherine_transport_t data;
     KT_REQUIRE(katherine_transport_init_usb(&data, &stream) == KATHERINE_E_OK);
@@ -615,7 +615,7 @@ test_a_short_read_does_not_shift_the_next(void)
     }
 
     uint64_t framing = 1;
-    KT_CHECK_EQ(katherine_usb_transport_framing_errors(&t, &framing), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_usb_transport_get_framing_errors(&t, &framing), KATHERINE_E_OK);
     KT_CHECK_EQ(framing, (uint64_t) 0);
 
     katherine_transport_fini(&t);
@@ -653,7 +653,7 @@ test_padding_that_is_not_padding_is_counted(void)
     (void) katherine_transport_acquire_data_buf(&t, &buf, &len);
 
     uint64_t framing = 0;
-    KT_CHECK_EQ(katherine_usb_transport_framing_errors(&t, &framing), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_usb_transport_get_framing_errors(&t, &framing), KATHERINE_E_OK);
     KT_CHECK_EQ(framing, (uint64_t) 1);
 
     katherine_transport_fini(&t);

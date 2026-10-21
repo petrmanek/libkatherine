@@ -222,7 +222,7 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
         katherine_usb_config_t config = katherine_usb_config_default();
 
         if ((res = katherine_usb_config_set_address(&config, address)) != KATHERINE_E_OK) break;
-        if ((res = katherine_usb_borrow_device(&config, control)) != KATHERINE_E_OK) break;
+        if ((res = katherine_usb_config_borrow_device(&config, control)) != KATHERINE_E_OK) break;
 
         res = katherine_transport_init_usb(data, &config);
         break;

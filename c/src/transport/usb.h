@@ -122,26 +122,26 @@ typedef struct katherine_usb_config {
     uint32_t timeout_ms;           ///< Time a read waits before reporting KATHERINE_E_TIMEOUT.
 } katherine_usb_config_t;
 
-KATHERINE_NOT_EXPORTED katherine_usb_config_t
-katherine_usb_config_default(void);
-
-KATHERINE_NOT_EXPORTED katherine_error_t
-katherine_usb_config_set_address(katherine_usb_config_t *config, const char *address);
-
 KATHERINE_NOT_EXPORTED int
 katherine_usb_config_snprint_address(char *buf, size_t cap, const katherine_usb_config_t *config);
 
 KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_transport_init_usb(katherine_transport_t *transport, const katherine_usb_config_t *config);
 
-KATHERINE_NOT_EXPORTED katherine_error_t
-katherine_usb_transport_framing_errors(const katherine_transport_t *transport, uint64_t *count);
+KATHERINE_NOT_EXPORTED katherine_usb_config_t
+katherine_usb_config_default(void);
 
 KATHERINE_NOT_EXPORTED katherine_error_t
-katherine_usb_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from);
+katherine_usb_config_set_address(katherine_usb_config_t *config, const char *address);
 
 KATHERINE_NOT_EXPORTED katherine_error_t
-katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count);
+katherine_usb_config_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from);
+
+KATHERINE_NOT_EXPORTED katherine_error_t
+katherine_usb_transport_get_framing_errors(const katherine_transport_t *transport, uint64_t *count);
+
+KATHERINE_NOT_EXPORTED katherine_error_t
+katherine_usb_transport_get_inflight_transfers(const katherine_transport_t *transport, uint32_t *count);
 
 
 #ifdef __cplusplus

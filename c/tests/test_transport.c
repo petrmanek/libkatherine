@@ -442,11 +442,11 @@ static void
 test_the_inflight_count_tolerates_nothing(void)
 {
     uint32_t inflight = 1;
-    KT_CHECK_EQ(katherine_usb_inflight(NULL, &inflight), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_usb_transport_get_inflight_transfers(NULL, &inflight), KATHERINE_E_INVAL);
 
     katherine_transport_t empty;
     memset(&empty, 0, sizeof(empty));
-    KT_CHECK_EQ(katherine_usb_inflight(&empty, &inflight), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_usb_transport_get_inflight_transfers(&empty, &inflight), KATHERINE_E_INVAL);
 }
 
 #endif /* KATHERINE_FEATURE_USB */

@@ -103,7 +103,7 @@ struct katherine_usb {
     enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
     bool owns_device;                        ///< True if this transport opened and claimed the readout, and so closes it.
-    uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_usb_transport_framing_errors().
+    uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_usb_transport_get_framing_errors().
 };
 
 /** Drop the slot at the head of the ready queue, which is the one in hand. */
@@ -1405,7 +1405,7 @@ err_args:
  *   an open USB transport.
  */
 katherine_error_t
-katherine_usb_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from)
+katherine_usb_config_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from)
 {
     katherine_error_t res;
 
@@ -1537,7 +1537,7 @@ err_out:
  *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count)
+katherine_usb_transport_get_inflight_transfers(const katherine_transport_t *transport, uint32_t *count)
 {
     katherine_error_t res;
 
@@ -1578,7 +1578,7 @@ err_args:
  *   does not frame its stream, which is every link but USB.
  */
 katherine_error_t
-katherine_usb_transport_framing_errors(const katherine_transport_t *transport, uint64_t *count)
+katherine_usb_transport_get_framing_errors(const katherine_transport_t *transport, uint64_t *count)
 {
     katherine_error_t res;
 
