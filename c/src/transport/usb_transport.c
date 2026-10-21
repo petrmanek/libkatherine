@@ -10,23 +10,19 @@
  * SPDX-License-Identifier: MIT
  */
 
-// For KATHERINE_MD_SIZE: the stream this transport carries is measurement
-// data, and the bridge's framing is described in terms of its words.
-#include <katherine/acquisition.h>
-// katherine_device_discover_usb() is defined here, and its result type
-// and the address buffer it fills are the device's.
-#include <katherine/device.h>
 #include <katherine/global.h>
 
 #ifdef KATHERINE_FEATURE_USB
 
-#include "monoclock.h"
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
-// struct timeval, which libusb's event calls take. libusb.h pulls in
-// <sys/time.h> for it everywhere except MSVC, where it leaves the definition
-// to the caller -- so on Windows it has to come from Winsock, and ahead of
-// libusb.h. Lean, for the reason monoclock.h gives: <windows.h> otherwise
-// drags in Winsock 1, which redefines what winsock2.h declares.
+#include <katherine/acquisition.h> // KATHERINE_MD_SIZE: this stream is measurement data
+#include <katherine/device.h>      // the discovery below fills the device's own result type
+
+// MSVC leaves struct timeval to the caller, so on Windows it comes from
+// Winsock -- and ahead of libusb.h, whose event calls take one.
 #ifdef KATHERINE_WIN
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -34,15 +30,13 @@
 #include <winsock2.h>
 #endif
 
-#include <errno.h>
 #include <libusb.h>
-#include <stdlib.h>
-#include <string.h>
 
-#include "usb.h"
 #include "address.h"
-#include "mutex.h"
+#include "monoclock.h"
 #include "msleep.h"
+#include "mutex.h"
+#include "usb.h"
 #include "protocol/cmd_interface.h"
 
 /**
@@ -78,19 +72,14 @@ struct katherine_usb {
     libusb_device_handle *handle;  ///< The readout, once opened.
     katherine_usb_config_t config; ///< What it was opened with, queue_len resolved to what was allocated.
 
-    // The completion callback can run on any thread that handles events on
-    // this context -- including a thread outside this library, and including
-    // the caller's own thread inside a synchronous command transfer, which
-    // services this context too. Everything it touches is therefore under
-    // this lock, and it does no more than record what came back.
+    // The completion callback can run on any thread pumping this context, so
+    // everything it touches is under this lock and it only records what came back.
     katherine_mutex_t lock; ///< Guards the ring and everything the completion callback touches.
 
-    // What katherine_transport_mutex_lock() takes, and deliberately not the
-    // lock above. That one is held for the few instructions a ring update
-    // costs and is dropped again inside submit_slot(); this one is held
-    // across a whole request-and-response exchange and across an entire read
-    // loop. One mutex could not do both: the read loop would hold it while
-    // the completion callback waited for it.
+    // What katherine_transport_mutex_lock() takes, and not the lock above: that
+    // one is dropped inside submit_slot(), this is held across a whole exchange
+    // or read loop. One mutex could not do both -- the loop would block its own
+    // callbacks.
     katherine_mutex_t api_lock; ///< Serializes callers of the transport operations.
 
     struct slot *slots;   ///< The ring, config.queue_len of them.
@@ -106,7 +95,10 @@ struct katherine_usb {
     uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_usb_transport_get_framing_errors().
 };
 
-/** Drop the slot at the head of the ready queue, which is the one in hand. */
+/**
+ * Drop the slot at the head of the ready queue, which is the one in hand.
+ * \param u Link whose queue to advance.
+ */
 static void
 retire_head(struct katherine_usb *u)
 {
@@ -121,7 +113,11 @@ retire_head(struct katherine_usb *u)
 /// Words the streamer emits before the four bytes that end a data frame.
 #define USB_FRAME_WORDS (KATHERINE_USB_DATA_FRAME_SIZE - 4)
 
-/** True if a word is the idle pattern the streamer emits in place of data. */
+/**
+ * Is a word the idle pattern the bridge emits in place of data?
+ * \param word Six bytes to test.
+ * \return True if every one of them is 0x55.
+ */
 static bool
 is_filler(const uint8_t *word)
 {
@@ -141,6 +137,7 @@ is_filler(const uint8_t *word)
  * Lending one run at a time is what keeps this free of copying: the gaps
  * are stepped over rather than closed up.
  *
+ * \param u Link to count a framing error against.
  * \param buf The completed read.
  * \param len Bytes it brought back.
  * \param from Offset to resume at.
@@ -161,10 +158,8 @@ next_run(struct katherine_usb *u, const uint8_t *buf, size_t len, size_t from, s
         if (in_frame >= USB_FRAME_WORDS) {
             const size_t pad = KATHERINE_USB_DATA_FRAME_SIZE - in_frame;
 
-            // The padding is zero bytes, so anything else means a read did
-            // not begin where a data frame does, and every word behind it
-            // is being read shifted. Measured not to happen -- the bridge
-            // hands over whole frames -- so this is a guard, not a case.
+            // Anything but zeros means a read did not begin where a data frame
+            // does. Measured not to happen: a guard, not a case.
             if (u != NULL && i + pad <= len) {
                 for (size_t b = 0; b < pad; ++b) {
                     if (buf[i + b] != 0) {
@@ -197,6 +192,12 @@ next_run(struct katherine_usb *u, const uint8_t *buf, size_t len, size_t from, s
     return true;
 }
 
+/**
+ * Translate a libusb code into the library's error domain, recording it.
+ * \param u Link to record the code against.
+ * \param code libusb return code.
+ * \return The matching katherine_error_t.
+ */
 static katherine_error_t
 map_usb_error(struct katherine_usb *u, int code)
 {
@@ -215,26 +216,26 @@ map_usb_error(struct katherine_usb *u, int code)
     }
 }
 
-// Names the one readout attached rather than a socket: "usb://auto". Spelled
-// here rather than in the header because a caller writes the address out, as
-// it does "udp://192.168.1.42", and the scheme is rendered by
-// katherine_str_transport_kind() rather than pasted together at compile time.
+// "usb://auto" names the one readout attached rather than a socket. Spelled
+// here because a caller writes the address out, and the scheme is rendered by
+// katherine_str_transport_kind().
 static const char USB_LOCATION_AUTO[] = "auto";
 
-// What the readout is on the bus, and how its firmware plumbed the endpoints.
-// Not a caller's to choose: a Katherine readout answers at these and nowhere
-// else, so a configurable copy could only ever be set wrong.
-//
-// The numbering is not the order it suggests -- the lower IN endpoint carries
-// measurement data and the higher one carries command responses.
+// What a Katherine readout answers at and nowhere else, so not a caller's to
+// choose. The numbering misleads: the lower IN endpoint carries measurement
+// data and the higher one command responses.
 static const uint16_t USB_VENDOR_ID  = 0x16D0;
 static const uint16_t USB_PRODUCT_ID = 0x118A;
 
 static const uint8_t USB_INTERFACE = 0;
 
-// Runs on whichever thread handled events on this context. It records the
-// outcome and nothing else: no user code, and no resubmission, which happens
-// on the consumer's thread in release_data_buf() once the buffer is free.
+/**
+ * Record how one read came back.
+ *
+ * Runs on whichever thread pumped this context, and records the outcome only:
+ * resubmission happens on the consumer's thread, in release_data_buf().
+ * \param xfer The transfer that completed.
+ */
 static void LIBUSB_CALL
 on_transfer_done(struct libusb_transfer *xfer)
 {
@@ -257,10 +258,8 @@ on_transfer_done(struct libusb_transfer *xfer)
             u->ready[(u->ready_head + u->ready_count) % u->config.queue_len] = s->index;
             u->ready_count += 1;
         } else {
-            // Nothing came back, which an idle readout does once per timeout
-            // on every read. The slot is reposted by acquire_data_buf() on
-            // the consumer's thread rather than here, so that submission
-            // stays off whichever thread happened to handle the event.
+            // Nothing came back, which an idle readout does once per timeout.
+            // acquire_data_buf() reposts it, keeping submission off this thread.
             s->state = SLOT_IDLE;
         }
         break;
@@ -278,10 +277,16 @@ on_transfer_done(struct libusb_transfer *xfer)
     (void) katherine_mutex_unlock(&u->lock);
 }
 
-// Caller must hold the lock; it is dropped around the submission because
-// libusb may complete the transfer, and so take the lock, before returning.
-// \p held says whether it came back, since a caller must not release a lock
-// it no longer holds.
+/**
+ * Post one slot's read to the bus.
+ *
+ * Caller holds the lock; it is dropped around the submission, which libusb may
+ * complete -- and so take it -- before returning.
+ * \param u Link to post on.
+ * \param s Slot to post.
+ * \param held Set to whether the lock is held on return, which a caller must know.
+ * \return KATHERINE_E_OK, or what the submission failed with.
+ */
 static katherine_error_t
 submit_slot(struct katherine_usb *u, struct slot *s, bool *held)
 {
@@ -316,6 +321,13 @@ err_submit:
     return res;
 }
 
+/**
+ * Send a command on the OUT endpoint.
+ * \param ctx Link to send on.
+ * \param data Bytes to send.
+ * \param count How many.
+ * \return KATHERINE_E_OK once every byte is on the bus.
+ */
 static katherine_error_t
 usb_send_cmd(void *ctx, const void *data, size_t count)
 {
@@ -343,6 +355,13 @@ err_write:
     return res;
 }
 
+/**
+ * Receive one command response from the response endpoint.
+ * \param ctx Link to read.
+ * \param crd Storage for the response.
+ * \param len Capacity on entry, bytes received on return.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_recv_crd(void *ctx, void *crd, size_t *len)
 {
@@ -366,15 +385,20 @@ err_read:
     return res;
 }
 
+/**
+ * Discard whatever an earlier exchange left on the response endpoint.
+ * \param ctx Link to drain.
+ * \param discarded Out-parameter for how many were dropped, or NULL.
+ * \return KATHERINE_E_OK once the endpoint is quiet.
+ */
 static katherine_error_t
 usb_flush_incoming(void *ctx, uint32_t *discarded)
 {
     struct katherine_usb *u = ctx;
     uint8_t scratch[512];
 
-    // Bounded like udp_drain(), and for the same reason: a readout still
-    // talking would otherwise keep this here indefinitely, and the operation
-    // is contracted to return at once.
+    // Bounded like udp_drain(): a readout still talking would otherwise hold
+    // this here, and the operation must return at once.
     for (*discarded = 0; *discarded < KATHERINE_CMD_MAX_DRAIN; ++*discarded) {
         int moved = 0;
 
@@ -386,8 +410,16 @@ usb_flush_incoming(void *ctx, uint32_t *discarded)
     return KATHERINE_E_OK;
 }
 
-// One read at a time, issued now. Nothing crosses the bus between the moment
-// the previous buffer came back and the moment this call is made.
+/**
+ * Lend the next run of measurement words, reading on demand.
+ *
+ * One read at a time, issued now: nothing crosses the bus between the moment
+ * the previous buffer came back and the moment this call is made.
+ * \param ctx Link to read.
+ * \param buf Out-parameter for the lent bytes.
+ * \param len Out-parameter for how many.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_acquire_sync(void *ctx, void **buf, size_t *len)
 {
@@ -428,6 +460,12 @@ err_read:
     return res;
 }
 
+/**
+ * Give back a buffer lent by the synchronous shape, which owns only one.
+ * \param ctx Link it came from.
+ * \param buf The buffer.
+ * \return KATHERINE_E_OK always.
+ */
 static katherine_error_t
 usb_release_sync(void *ctx, void *buf)
 {
@@ -437,8 +475,16 @@ usb_release_sync(void *ctx, void *buf)
     return KATHERINE_E_OK;
 }
 
-// Several reads outstanding, so the bus keeps filling buffers while the
-// caller decodes the one it was lent.
+/**
+ * Lend the next run of measurement words from the ring.
+ *
+ * Several reads outstanding, so the bus keeps filling buffers while the caller
+ * decodes the one it was lent.
+ * \param ctx Link to read.
+ * \param buf Out-parameter for the lent bytes.
+ * \param len Out-parameter for how many.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_acquire_async(void *ctx, void **buf, size_t *len)
 {
@@ -451,10 +497,8 @@ usb_acquire_async(void *ctx, void **buf, size_t *len)
     held = true;
 
     for (;;) {
-        // Repost whatever came back empty or failed. Without this the ring
-        // drains away a slot at a time -- an idle readout times every read
-        // out, so the whole of it would be gone within one timeout and the
-        // stream would never resume.
+        // Repost what came back empty or failed: an idle readout times every
+        // read out, so the whole ring would be gone within one timeout.
         if (!u->draining) {
             for (uint32_t i = 0; i < u->config.queue_len; ++i) {
                 if (u->slots[i].state != SLOT_IDLE) continue;
@@ -534,6 +578,12 @@ err_lock:
     return res;
 }
 
+/**
+ * Give a ring buffer back, reposting it once the read holds no more.
+ * \param ctx Link it came from.
+ * \param buf The buffer, which may point into a slot.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_release_async(void *ctx, void *buf)
 {
@@ -563,9 +613,8 @@ usb_release_async(void *ctx, void *buf)
         s->state = SLOT_IDLE;
         retire_head(u);
     } else {
-        // It keeps its place in the stream, whether or not anything is left
-        // in it: acquire retires a spent slot when it reaches one, which
-        // saves scanning the read twice to find out.
+        // It keeps its place whether or not anything is left: acquire retires a
+        // spent slot, which saves scanning the read twice.
         s->state = SLOT_FILLED;
     }
 
@@ -582,6 +631,12 @@ err_lock:
     return res;
 }
 
+/**
+ * Set how long a read or a response waits.
+ * \param ctx Link to set.
+ * \param timeout_ms The limit.
+ * \return KATHERINE_E_OK always.
+ */
 static katherine_error_t
 usb_set_timeout(void *ctx, uint32_t timeout_ms)
 {
@@ -603,9 +658,15 @@ err_lock:
     return res;
 }
 
-// The ring is posted before the readout is told to send, so nothing arrives
-// with no read outstanding and there is no queue to overflow. What the
-// readout itself dropped is reported in the measurement data.
+/**
+ * Input this link lost before the library read it, which is none.
+ *
+ * The ring is posted before the readout is told to send, so nothing arrives
+ * unread. What the readout dropped is reported in the measurement data.
+ * \param ctx Link to ask.
+ * \param count Out-parameter, always zero.
+ * \return KATHERINE_E_OK always.
+ */
 static katherine_error_t
 usb_get_dropped_input(void *ctx, uint64_t *count)
 {
@@ -615,10 +676,14 @@ usb_get_dropped_input(void *ctx, uint64_t *count)
     return KATHERINE_E_UNSUPPORTED;
 }
 
-// Taken across a whole exchange or a whole read loop, which is why it is not
-// the ring lock: that one is dropped inside submit_slot() and taken by the
-// completion callback, so a reader holding it for the length of a loop would
-// stop the very callbacks the loop is waiting for.
+/**
+ * Take the lock serializing callers of this transport.
+ *
+ * Not the ring lock, which submit_slot() drops and the completion callback
+ * takes: holding that for a whole loop would stop the callbacks it waits for.
+ * \param ctx Link to lock.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_mutex_lock(void *ctx)
 {
@@ -633,6 +698,11 @@ err_lock:
     return res;
 }
 
+/**
+ * Release the lock usb_mutex_lock() took.
+ * \param ctx Link to unlock.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_mutex_unlock(void *ctx)
 {
@@ -647,6 +717,11 @@ err_unlock:
     return res;
 }
 
+/**
+ * The libusb code the last failed operation reported.
+ * \param ctx Link to ask.
+ * \return The code, or 0 if nothing failed.
+ */
 static int
 usb_get_last_os_error(void *ctx)
 {
@@ -655,17 +730,15 @@ usb_get_last_os_error(void *ctx)
     return u->last_os_error;
 }
 
-// Transports a bus would not release, kept reachable on purpose.
-//
-// The memory is not recoverable -- libusb still owns the buffers and will
-// write into them if the device ever answers -- but unreachable and
-// unaccounted are different things. On this list a leak checker sees it as
-// live rather than lost, so the deliberate decision does not read as a bug in
-// the sanitizer legs; and a core file shows how many readouts stopped
-// answering, which is the question being asked when someone opens one.
-// Cancelling is a request, not an act: every outstanding transfer still calls
-// back, so the ring is only safe to free once none is left in flight. Caller
-// holds the lock.
+/**
+ * Ask the bus to give back every transfer still in flight.
+ *
+ * Transports a bus would not release are kept reachable on purpose: the memory
+ * is not recoverable, but a leak checker then sees it live rather than lost.
+ * Cancelling is a request, so the ring is safe to free only once nothing is in
+ * flight. Caller holds the lock.
+ * \param u Link to cancel on.
+ */
 static void
 cancel_outstanding(struct katherine_usb *u)
 {
@@ -674,17 +747,15 @@ cancel_outstanding(struct katherine_usb *u)
             (void) libusb_cancel_transfer(u->slots[i].xfer);
 }
 
-// Hands events to libusb until nothing is outstanding, or -- where \p limit
-// is nonzero -- until that many passes have gone by.
-//
-// A pass that fails is waited out rather than obeyed: the transfers are still
-// the bus's either way, so there is nothing to do but try again, and sleeping
-// first keeps a context libusb cannot pump from spinning a core.
-//
-// Caller holds the lock; it is dropped around each pass, because the
-// completion callback takes it. Every iteration re-takes it before testing
-// again, including the one that leaves: going by any other route would unlock
-// a mutex this no longer holds.
+/**
+ * Hand events to libusb until nothing is outstanding.
+ *
+ * A failed pass is waited out rather than obeyed -- the transfers are the bus's
+ * either way -- and sleeping keeps an unpumpable context off a core. Caller holds
+ * the lock; it is dropped around each pass and re-taken before every test.
+ * \param u Link to pump.
+ * \param limit Passes to stop after, or 0 to wait indefinitely.
+ */
 static void
 pump_until_quiet(struct katherine_usb *u, uint32_t limit)
 {
@@ -702,13 +773,13 @@ pump_until_quiet(struct katherine_usb *u, uint32_t limit)
     }
 }
 
-// Gives the bus back every buffer it still owns before the ring is freed.
-//
-// Returns only once nothing is outstanding. There is no giving up: freeing a
-// buffer libusb still owns invites the device to write into memory something
-// else now holds, and no bound on the wait makes that safe. The kernel takes
-// the same position -- usb_kill_urb() blocks until the URB has been returned
-// and its completion handler has run.
+/**
+ * Give the bus back every buffer it owns, however long that takes.
+ *
+ * Freeing one libusb still owns invites the device to write into memory something
+ * else holds; usb_kill_urb() takes the same position.
+ * \param u Link to drain.
+ */
 static void
 drain_inflight(struct katherine_usb *u)
 {
@@ -719,13 +790,9 @@ drain_inflight(struct katherine_usb *u)
 
     pump_until_quiet(u, DRAIN_POLITE_ATTEMPTS);
 
-    // Nothing came back in the polite window, so say it again and wait it
-    // out. Unbounded on purpose: a cancelled transfer completes once somebody
-    // hands libusb its events, and that is exactly what this does, so the
-    // wait ends on any backend that honours cancellation at all. The kernel
-    // makes the same trade -- usb_kill_urb() blocks until the URB has been
-    // returned and its completion handler has run -- because freeing a buffer
-    // the bus still owns is worse than a close that takes its time.
+    // Nothing came back in the polite window, so say it again and wait it out.
+    // Unbounded on purpose: a cancelled transfer completes once somebody pumps
+    // events, which is exactly what this does.
     if (u->inflight > 0) {
         cancel_outstanding(u);
         pump_until_quiet(u, 0);
@@ -734,10 +801,15 @@ drain_inflight(struct katherine_usb *u)
     (void) katherine_mutex_unlock(&u->lock);
 }
 
-// Every buffer in the ring is the wrong size, so the whole ring is rebuilt.
-// The replacements are allocated before any of the originals is given up:
-// running out of memory partway then leaves the transport reading at exactly
-// the size it already had, which is what the operation promises.
+/**
+ * Rebuild the ring so each read carries a different number of bytes.
+ *
+ * Replacements are allocated before any original is given up, so running out
+ * leaves the transport reading at the size it already had.
+ * \param ctx Link to resize.
+ * \param size Bytes one read is to carry.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_set_buffer_size(void *ctx, size_t size)
 {
@@ -751,10 +823,8 @@ usb_set_buffer_size(void *ctx, size_t size)
         goto err_size;
     }
 
-    // Asked before anything is torn down, because a refusal must leave the
-    // ring untouched. Nothing can lend a buffer between here and the swap:
-    // lending happens only in acquire_data_buf(), and a caller inside this
-    // call is by construction not inside that one.
+    // Asked before anything is torn down, because a refusal must leave the ring
+    // untouched. Only acquire_data_buf() lends, and no caller is inside both.
     if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_probe_lock;
 
     bool lent = false;
@@ -774,9 +844,8 @@ usb_set_buffer_size(void *ctx, size_t size)
         goto err_table;
     }
 
-    // A whole word past the capacity, for the reason the UDP transport gives
-    // at the same allocation: a decoder reads the last six-byte item through
-    // an eight-byte load.
+    // A whole word past the capacity, as the UDP transport allocates: a decoder
+    // reads the last six-byte item through an eight-byte load.
     for (; allocated < u->config.queue_len; ++allocated) {
         fresh[allocated] = malloc(size + sizeof(uint64_t));
         if (fresh[allocated] == NULL) {
@@ -801,10 +870,8 @@ usb_set_buffer_size(void *ctx, size_t size)
             libusb_fill_bulk_transfer(u->slots[i].xfer, u->handle, u->config.ep_in, u->slots[i].buf, (int) size, on_transfer_done, &u->slots[i], u->config.timeout_ms);
     }
 
-    // Whatever had already come back was in a buffer that is now freed, so
-    // the queue of filled slots goes with it. Resizing happens between a link
-    // being opened and a measurement being set up on it, where there is
-    // nothing yet to discard.
+    // The queue of filled slots goes with the freed buffers. Resizing happens
+    // between opening a link and setting up a measurement, with nothing to lose.
     u->ready_head         = 0;
     u->ready_count        = 0;
     u->draining           = false;
@@ -814,9 +881,8 @@ usb_set_buffer_size(void *ctx, size_t size)
     // on releases the table alone.
     if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_swapped;
 
-    // Not resubmitted here. acquire_data_buf() reposts every idle slot before
-    // it waits, so the ring refills itself on the next read and this call has
-    // no failure of its own to report.
+    // Not resubmitted here: acquire_data_buf() reposts every idle slot before it
+    // waits, so this call has no failure of its own to report.
     free(fresh);
 
     return KATHERINE_E_OK;
@@ -832,20 +898,19 @@ err_size:
     return res;
 }
 
+/**
+ * Close the link, after the bus has given back everything it owns.
+ * \param ctx Link to close.
+ */
 static void
 usb_fini(void *ctx)
 {
     struct katherine_usb *u = ctx;
     if (u == NULL) return;
 
-    // Everything below hands memory back to the allocator and tears down the
-    // session those transfers point into. If the bus still owns a buffer,
-    // doing that invites the device to write into memory something else now
-    // holds -- a corruption with no witness, arriving at a time unrelated to
-    // the close.
-    //
-    // So the drain below waits every one of them out, however long that
-    // takes. Nothing here can free early and nothing is left behind.
+    // Everything below frees memory those transfers point into. If the bus still
+    // owns a buffer, the device may write into memory something else holds -- a
+    // corruption with no witness. So the drain waits every one of them out.
     if (u->slots != NULL && u->config.stream == KATHERINE_USB_STREAM_ASYNC) drain_inflight(u);
 
     if (u->slots != NULL) {
@@ -872,10 +937,8 @@ usb_fini(void *ctx)
 }
 
 // One table per shape a transport can take. An operation its endpoints cannot
-// carry is left out rather than stubbed, and asking for it is a programming
-// error rather than a condition to report: giving it an answer would make
-// that answer one every command in the library could return and so would
-// have to document.
+// carry is left out rather than stubbed: answering it would make that answer
+// one every command in the library could return, and so would have to document.
 static const katherine_transport_ops_t usb_ops_messages = {
     .send_cmd          = usb_send_cmd,
     .recv_crd          = usb_recv_crd,
@@ -912,18 +975,20 @@ static const katherine_transport_ops_t usb_ops_stream_async = {
     .fini              = usb_fini,
 };
 
-// A readout is named by where it sits: the bus, then the chain of port
-// numbers from the root hub down to it. Spelled the way Linux names the same
-// device in /sys/bus/usb/devices, so "2-3.7.1.1" is what a reader sees in
-// lsusb -t and can paste where it is wanted.
+// ------------------------------------------------------------------
+// Naming a readout by where it sits.
 //
-// It is a socket address rather than an identity. It survives a replug into
-// the same socket and a device reset, which the address the host assigns at
-// enumeration does not; it changes when the cable moves or a hub is inserted
-// above it.
-// One decimal field of an address, which is a port number or a bus and so
-// never wider than a byte. Returns where it stopped, or NULL for anything
-// that is not such a field.
+// The bus, then the chain of port numbers down to it, spelled as Linux does
+// in /sys/bus/usb/devices -- so "2-3.7.1.1" is what lsusb -t shows. It is a
+// socket address rather than an identity: it survives a replug into the same
+// socket and a reset, and changes when the cable moves.
+
+/**
+ * Read one decimal field of an address, which never exceeds a byte.
+ * \param text Where to read from.
+ * \param out Storage for the value.
+ * \return Where reading stopped, or NULL for anything that is not such a field.
+ */
 static const char *
 usb_read_u8(const char *text, uint32_t *out)
 {
@@ -942,6 +1007,14 @@ usb_read_u8(const char *text, uint32_t *out)
     return p;
 }
 
+/**
+ * Read a bus number and port chain out of an address.
+ * \param text The address, without its scheme.
+ * \param bus Storage for the bus.
+ * \param ports Storage for the chain, KATHERINE_USB_PORT_DEPTH entries.
+ * \param port_count Storage for how many were read.
+ * \return KATHERINE_E_OK if the whole string was a location.
+ */
 static katherine_error_t
 usb_location_parse(const char *text, uint8_t *bus, uint8_t *ports, uint8_t *port_count)
 {
@@ -949,9 +1022,8 @@ usb_location_parse(const char *text, uint8_t *bus, uint8_t *ports, uint8_t *port
     uint32_t value;
     const char *end;
 
-    // The one readout attached, for a caller that would rather not pin a
-    // socket. usb_open_matching() is what refuses it where a second one is
-    // there, since the address then names no particular readout.
+    // The one readout attached, for a caller that would rather not pin a socket.
+    // usb_open_matching() refuses it where a second one is there.
     if (strcmp(text, USB_LOCATION_AUTO) == 0) {
         *bus        = 0;
         *port_count = 0;
@@ -1004,6 +1076,15 @@ err_bus:
     return res;
 }
 
+/**
+ * Write a bus number and port chain as an address.
+ * \param buf Destination.
+ * \param cap Its capacity.
+ * \param bus Bus the readout is on.
+ * \param ports Chain down to it.
+ * \param port_count How many entries it has.
+ * \return Bytes the address needs, as snprintf() counts them.
+ */
 static int
 usb_location_format(char *buf, size_t cap, uint8_t bus, const uint8_t *ports, uint8_t port_count)
 {
@@ -1015,14 +1096,16 @@ usb_location_format(char *buf, size_t cap, uint8_t bus, const uint8_t *ports, ui
     return off;
 }
 
-// True where this device is the one the configuration names. The identifiers
-// are checked always; the location only when one was given, so a
-// configuration that names none still takes whichever device carries them.
-//
-// libusb_open_device_with_vid_pid(), which this replaces, takes the first
-// match and offers no way to say which -- so two readouts on one host were
-// indistinguishable, and which one a program got depended on enumeration
-// order.
+/**
+ * Is this the device the configuration names?
+ *
+ * The identifiers always, the location only when one was given.
+ * libusb_open_device_with_vid_pid(), which this replaces, takes the first match
+ * and offers no way to say which.
+ * \param device Device to test.
+ * \param config What was asked for.
+ * \return True if it matches.
+ */
 static bool
 usb_device_matches(libusb_device *device, const katherine_usb_config_t *config)
 {
@@ -1047,9 +1130,15 @@ usb_device_matches(libusb_device *device, const katherine_usb_config_t *config)
     return memcmp(ports, config->ports, config->port_count) == 0;
 }
 
-// Caller owns closing the handle. The list is released before returning, as
-// libusb_get_device_list() requires, which is safe because opening the device
-// takes a reference of its own.
+/**
+ * Open the one device the configuration names, and claim its interface.
+ *
+ * Caller owns closing the handle. The list is released first, as
+ * libusb_get_device_list() requires; safe because opening took its own reference.
+ * \param u Link to open into.
+ * \param config What to look for.
+ * \return KATHERINE_E_OK on success.
+ */
 static katherine_error_t
 usb_open_matching(struct katherine_usb *u, const katherine_usb_config_t *config)
 {
@@ -1062,9 +1151,8 @@ usb_open_matching(struct katherine_usb *u, const katherine_usb_config_t *config)
         goto err_list;
     }
 
-    // Counted before anything is opened: an address naming no socket means
-    // "the one readout on this host", and two of them make that a question
-    // with no answer rather than a choice to make arbitrarily.
+    // Counted before anything is opened: an address naming no socket means "the one
+    // readout on this host", and two make that a question with no answer.
     libusb_device *chosen = NULL;
     unsigned matched      = 0;
 
@@ -1239,10 +1327,9 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         goto err_args;
     }
 
-    // Two shapes and no others: a pair of endpoints exchanging messages, or an
-    // IN endpoint with a ring behind it receiving a stream. A ring and an OUT
-    // endpoint together would leave both disciplines claiming the same IN
-    // endpoint, so it is refused rather than resolved.
+    // Two shapes and no others: a pair of endpoints exchanging messages, or an IN
+    // endpoint with a ring behind it. Both together would leave each discipline
+    // claiming the same IN endpoint.
     const bool has_out    = config->ep_out != 0;
     const bool has_in     = config->ep_in != 0;
     const bool wants_ring = config->queue_len != 0;
@@ -1278,8 +1365,7 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
     }
 
     // An interface can be claimed by one handle at a time, so a readout's two
-    // transports share the one the first of them opened. Handed a handle,
-    // this drives it and leaves it to whoever opened it to close.
+    // transports share the one the first opened; whoever opened it closes it.
     if (config->handle != NULL) {
         u->ctx    = config->ctx;
         u->handle = config->handle;
@@ -1363,9 +1449,7 @@ err_submit:
     if (u->slots != NULL) drain_inflight(u);
 err_buffers:
     // Before the handle and the context go: libusb_free_transfer() reads the
-    // transfer's device handle and takes the context's own lock, so freeing
-    // here is what reverse order of acquisition means. usb_fini() already
-    // does it this way round.
+    // transfer's handle and takes the context lock. usb_fini() does the same.
     for (uint32_t i = 0; u->slots != NULL && i < slots; ++i) {
         if (u->slots[i].xfer != NULL) libusb_free_transfer(u->slots[i].xfer);
         free(u->slots[i].buf);
@@ -1494,10 +1578,8 @@ katherine_device_discover_usb(katherine_discovered_t *out, size_t *count)
         uint8_t ports[KATHERINE_USB_PORT_DEPTH];
         const int depth = libusb_get_port_numbers(list[i], ports, (int) sizeof(ports));
 
-        // A device deeper than the specification allows, or one whose
-        // topology the host will not report, has no address this library can
-        // hand back -- so it is left out rather than reported under a name
-        // that would not open it.
+        // A device deeper than the specification allows, or whose topology the host will
+        // not report, has no address this library can hand back, so it is left out.
         if (depth <= 0) continue;
 
         char where[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
