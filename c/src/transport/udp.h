@@ -39,6 +39,10 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Uncomment the following line to enable network trace:
 // #define KATHERINE_DEBUG_UDP 2
 
@@ -51,10 +55,6 @@
 /// successively smaller buffers, so a session may hold less than this; what it
 /// actually holds is read through katherine_udp_rcvbuf().
 #define KATHERINE_UDP_RCVBUF_DEFAULT   4194304
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /** One UDP session: a bound socket, the endpoint it talks to, and the lock serializing it. */
 typedef struct katherine_udp {

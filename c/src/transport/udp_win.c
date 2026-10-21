@@ -22,7 +22,7 @@ void
 empty_method(void)
 { }
 
-#ifdef KATHERINE_WIN
+#if defined(KATHERINE_FEATURE_UDP) && defined(KATHERINE_WIN)
 
 #include <errno.h>
 #include <limits.h>
@@ -1102,4 +1102,4 @@ err_address_size:
     return res;
 }
 
-#endif /* KATHERINE_WIN */
+#endif /* KATHERINE_FEATURE_UDP && KATHERINE_WIN */

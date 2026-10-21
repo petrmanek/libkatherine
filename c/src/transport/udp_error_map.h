@@ -15,6 +15,8 @@
 #include <katherine/error.h>
 #include <katherine/global.h>
 
+#ifdef KATHERINE_FEATURE_UDP
+
 #ifdef KATHERINE_WIN
 #include <winsock2.h>
 #else
@@ -133,3 +135,5 @@ katherine_udp_map_socket_error(int err, katherine_error_t fallback)
 #endif /* KATHERINE_WIN */
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+#endif /* KATHERINE_FEATURE_UDP */

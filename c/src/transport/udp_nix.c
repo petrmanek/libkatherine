@@ -14,7 +14,7 @@
 #include <katherine/device.h>
 #include <katherine/global.h>
 
-#ifdef KATHERINE_NIX
+#if defined(KATHERINE_FEATURE_UDP) && defined(KATHERINE_NIX)
 
 #include <errno.h>
 #include <limits.h>
@@ -1133,4 +1133,4 @@ err_address_size:
     return res;
 }
 
-#endif /* KATHERINE_NIX */
+#endif /* KATHERINE_FEATURE_UDP && KATHERINE_NIX */

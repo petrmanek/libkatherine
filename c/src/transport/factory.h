@@ -19,11 +19,14 @@
 #include <katherine/error.h>
 #include <katherine/global.h>
 #include <katherine/transport.h>
+
+#include "../address.h"
 #ifdef KATHERINE_FEATURE_UDP
 #include "udp.h"
 #endif /* KATHERINE_FEATURE_UDP */
-
-#include "../address.h"
+#ifdef KATHERINE_FEATURE_USB
+#include "usb.h"
+#endif
 
 //
 // IMPORTANT NOTICE:
@@ -33,6 +36,10 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // The standard pair a readout serves, and the port it listens on.
 #define KATHERINE_UDP_CONTROL_PORT    ((uint16_t) 1555)
 #define KATHERINE_UDP_DATA_PORT       ((uint16_t) 1556)
@@ -41,10 +48,6 @@
 // What a session waits for an answer that may never come.
 #define KATHERINE_UDP_CONTROL_TIMEOUT ((uint32_t) 100)
 #define KATHERINE_UDP_DATA_TIMEOUT    ((uint32_t) 100)
-
-#ifdef KATHERINE_FEATURE_USB
-#include "usb.h"
-#endif
 
 /**
  * Open the transport a readout's commands travel on.
@@ -239,5 +242,9 @@ err_address:
 err_args:
     return res;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

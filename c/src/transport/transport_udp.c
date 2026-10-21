@@ -10,6 +10,10 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <katherine/global.h>
+
+#ifdef KATHERINE_FEATURE_UDP
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -725,3 +729,5 @@ katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
         katherine_str_bool(v->remote_pinned), v->last_os_error);
     return (int) off;
 }
+
+#endif /* KATHERINE_FEATURE_UDP */
