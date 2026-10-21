@@ -124,6 +124,104 @@ jobs:
             "$bin"
           done
 
+  # Every job above builds both transports at once, so nothing has checked
+  # that either one can be turned off -- the CMake gating, the
+  # KATHERINE_FEATURE_* macros, and the #ifdefs around each transport's
+  # sources. Windows is in the matrix for the one thing Linux cannot show:
+  # ws2_32 is linked only where the UDP transport is built, so a USB-only
+  # Windows build is the only configuration in which a stray winsock call
+  # fails to link.
+  #
+  # The USB transport is auto-detected, so a leg that wants it off has to
+  # say so; libusb is installed only where a leg wants it on.
+  transports:
+    name: transports (${{ matrix.os }}, ${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: UDP only
+            udp: 'ON'
+            usb: 'OFF'
+          - os: ubuntu-latest
+            name: USB only
+            udp: 'OFF'
+            usb: 'ON'
+          - os: windows-latest
+            name: UDP only
+            udp: 'ON'
+            usb: 'OFF'
+          - os: windows-latest
+            name: USB only
+            udp: 'OFF'
+            usb: 'ON'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libusb
+        if: matrix.usb == 'ON' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+
+      # The same unpack the build job does, for the reason given there.
+      - name: Install libusb
+        if: matrix.usb == 'ON' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          curl.exe -L -o libusb.7z https://github.com/libusb/libusb/releases/download/v1.0.27/libusb-1.0.27.7z
+          7z x libusb.7z -olibusb
+          "LIBUSB_ROOT=$(Join-Path (Get-Location) libusb)" >> $env:GITHUB_ENV
+
+      - name: Configure
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DKATHERINE_BUILD_CXX=ON
+          -DKATHERINE_BUILD_EXAMPLES=ON
+          -DKATHERINE_BUILD_PYTHON=OFF
+          -DKATHERINE_BUILD_TRANSPORT_UDP=${{ matrix.udp }}
+          -DKATHERINE_BUILD_TRANSPORT_USB=${{ matrix.usb }}
+
+      - name: Build
+        run: cmake --build build --parallel --config Release
+
+      # A build without the UDP transport registers no tests at all: the
+      # emulator, the examples and the suite each address a readout by host,
+      # so all three are skipped. Same guard the build job uses.
+      - name: Test
+        if: ${{ hashFiles('build/CTestTestfile.cmake') != '' }}
+        run: ctest --test-dir build --output-on-failure -C Release --timeout 300
+
+  # The other half of the same property. With neither transport the library
+  # would have no way to reach a readout, so the configure refuses instead of
+  # producing one. A job of its own, because a leg whose configure must fail
+  # cannot share steps with the ones that must succeed.
+  transports-none:
+    name: transports (neither)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure must refuse
+        shell: bash
+        run: |
+          if cmake -B build -DKATHERINE_BUILD_TRANSPORT_UDP=OFF -DKATHERINE_BUILD_TRANSPORT_USB=OFF > configure.log 2>&1; then
+            echo "the configure succeeded with no transport enabled"
+            cat configure.log
+            exit 1
+          fi
+          grep -q 'no transport selected' configure.log || {
+            echo "the configure failed, but not on the missing transport:"
+            cat configure.log
+            exit 1
+          }
+          echo "refused, as it must"
+
   # Nothing built the documentation until now, so its whole configuration --
   # two doxygen runs, the manual-page prune, the macro predefines -- was
   # verified on one developer machine at one doxygen version, while the
