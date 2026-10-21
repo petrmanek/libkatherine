@@ -100,6 +100,7 @@ struct katherine_usb {
     enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
     bool owns_device;                        ///< True if this transport opened and claimed the readout, and so closes it.
+    uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_usb_transport_framing_errors().
 };
 
 /** Drop the slot at the head of the ready queue, which is the one in hand. */
@@ -145,16 +146,33 @@ is_filler(const uint8_t *word)
  * \return True if a run was found, false once the read holds no more.
  */
 static bool
-next_run(const uint8_t *buf, size_t len, size_t from, size_t *off, size_t *run)
+next_run(struct katherine_usb *u, const uint8_t *buf, size_t len, size_t from, size_t *off, size_t *run)
 {
     size_t i = from;
 
-    while (i + KATHERINE_MD_SIZE <= len) {
+    // Not "while a word fits": the padding is four bytes, so the one at the
+    // end of a read has no word behind it and would never be looked at.
+    while (i < len) {
         const size_t in_frame = i % KATHERINE_USB_DATA_FRAME_SIZE;
 
         if (in_frame >= USB_FRAME_WORDS) {
-            i += KATHERINE_USB_DATA_FRAME_SIZE - in_frame;
-        } else if (is_filler(buf + i)) {
+            const size_t pad = KATHERINE_USB_DATA_FRAME_SIZE - in_frame;
+
+            // The padding is zero bytes, so anything else means a read did
+            // not begin where a data frame does, and every word behind it
+            // is being read shifted. Measured not to happen -- the bridge
+            // hands over whole frames -- so this is a guard, not a case.
+            if (u != NULL && i + pad <= len) {
+                for (size_t b = 0; b < pad; ++b) {
+                    if (buf[i + b] != 0) {
+                        u->framing_errors += 1;
+                        break;
+                    }
+                }
+            }
+
+            i += pad;
+        } else if (i + KATHERINE_MD_SIZE <= len && is_filler(buf + i)) {
             i += KATHERINE_MD_SIZE;
         } else {
             break;
@@ -376,7 +394,7 @@ usb_acquire_sync(void *ctx, void **buf, size_t *len)
     size_t off, run;
 
     // What the last read still holds, before asking the bus for more.
-    if (!next_run(s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
+    if (!next_run(u, s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
         int moved = 0;
 
         const int code = libusb_bulk_transfer(u->handle, u->config.ep_in, s->buf, (int) u->config.buffer_size, &moved, u->config.timeout_ms);
@@ -389,8 +407,7 @@ usb_acquire_sync(void *ctx, void **buf, size_t *len)
 
         s->len   = moved;
         s->taken = 0;
-
-        if (!next_run(s->buf, (size_t) moved, 0, &off, &run)) {
+        if (!next_run(u, s->buf, (size_t) moved, 0, &off, &run)) {
             // The read held nothing but what the bridge pads with.
             *buf = s->buf;
             *len = 0;
@@ -450,7 +467,7 @@ usb_acquire_async(void *ctx, void **buf, size_t *len)
             struct slot *s = &u->slots[u->ready[u->ready_head]];
 
             size_t off, run;
-            if (!next_run(s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
+            if (!next_run(u, s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
                 // Nothing left in it, so back onto the bus and on to the next.
                 retire_head(u);
                 if (!u->draining) {
@@ -537,20 +554,15 @@ usb_release_async(void *ctx, void *buf)
         goto err_foreign;
     }
 
-    size_t off, run;
-
     if (u->draining) {
         // Closing down, so the slot goes idle rather than back onto the bus:
         // the ring is about to be taken apart.
         s->state = SLOT_IDLE;
         retire_head(u);
-    } else if (!next_run(s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
-        retire_head(u);
-        res = submit_slot(u, s, &held);
-        if (res) goto err_submit;
     } else {
-        // More runs in it, so it stays where it is and keeps its place in
-        // the stream; the next acquire takes the next one.
+        // It keeps its place in the stream, whether or not anything is left
+        // in it: acquire retires a spent slot when it reaches one, which
+        // saves scanning the read twice to find out.
         s->state = SLOT_FILLED;
     }
 
@@ -559,7 +571,6 @@ usb_release_async(void *ctx, void *buf)
 
     return KATHERINE_E_OK;
 
-err_submit:
 err_foreign:
     // See usb_acquire_async(): an error is already on its way out.
     if (held) (void) katherine_mutex_unlock(&u->lock);
@@ -1549,3 +1560,36 @@ err_args:
 }
 
 #endif /* KATHERINE_FEATURE_USB */
+
+/**
+ * Data frames whose padding was not the four zero bytes it must be.
+ * \param transport Transport to ask, open on the USB link.
+ * \param count Storage for the running total.
+ *
+ * Nonzero means a read did not begin where a data frame does, so words are
+ * being read shifted. Off the generic interface because only this link
+ * frames what it sends.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_UNSUPPORTED if the transport is open on a link that
+ *   does not frame its stream, which is every link but USB.
+ */
+katherine_error_t
+katherine_usb_transport_framing_errors(const katherine_transport_t *transport, uint64_t *count)
+{
+    katherine_error_t res;
+
+    if (transport->kind != KATHERINE_TRANSPORT_USB) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_kind;
+    }
+
+    const struct katherine_usb *u = transport->ctx;
+
+    *count = u->framing_errors;
+
+    return KATHERINE_E_OK;
+
+err_kind:
+    return res;
+}

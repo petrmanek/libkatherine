@@ -85,7 +85,10 @@ test_opening_posts_the_whole_ring(void)
 }
 
 /* A buffer that came back with data is lent out whole, and giving it back
- * posts the read again -- which is what keeps the ring full. */
+ * posts the read again -- which is what keeps the ring full. The repost
+ * happens at the next acquire rather than at the release: a read holds
+ * several runs, and deciding at release whether any are left would mean
+ * scanning it a second time. */
 static void
 test_a_returned_buffer_is_posted_again(void)
 {
@@ -110,7 +113,17 @@ test_a_returned_buffer_is_posted_again(void)
     // Lent, so one fewer is outstanding until it comes back.
     KT_CHECK_EQ(inflight(&t), (uint32_t) (RING - 1));
 
+    // Returned, but not yet back on the bus: nothing has asked for the next
+    // buffer, so nothing has established that this one is spent.
     KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
+    KT_CHECK_EQ(fake_usb_submit_count(), submitted_at_open);
+
+    // Asking does. The read held one run, so the slot is spent and goes back
+    // on the bus, and the ring is whole again.
+    void *next  = NULL;
+    size_t nlen = 0;
+    // Nothing more has arrived, so it times out -- after reposting.
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &next, &nlen), KATHERINE_E_TIMEOUT);
     KT_CHECK_EQ(inflight(&t), (uint32_t) RING);
     KT_CHECK_EQ(fake_usb_submit_count(), submitted_at_open + 1);
 
@@ -567,6 +580,85 @@ test_the_bridge_padding_and_filler_are_stripped(void)
     katherine_transport_fini(&t);
 }
 
+/* Every read begins where a data frame does -- the bridge hands over whole
+ * frames, measured on the readout -- so the padding falls at the same place
+ * in each one and a short read does not shift the next. Carrying a phase
+ * across reads instead was tried and is wrong: it reads every word behind
+ * the first short read shifted. */
+static void
+test_a_short_read_does_not_shift_the_next(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    static uint8_t read[600];
+    for (size_t i = 0; i + KATHERINE_MD_SIZE <= sizeof(read); i += KATHERINE_MD_SIZE) {
+        memset(read + i, 0, KATHERINE_MD_SIZE);
+        read[i + 5] = 0x10;
+    }
+
+    /* Two short reads, neither a whole number of frames. Both are lent
+       entire: 600 bytes is well inside a frame, so neither carries padding
+       and the second is not read as though it began 600 bytes in. */
+    for (int n = 0; n < 2; ++n) {
+        KT_REQUIRE(fake_usb_complete_oldest_with(LIBUSB_TRANSFER_COMPLETED, read, (int) sizeof(read)) == 0);
+
+        void *buf  = NULL;
+        size_t len = 0;
+        KT_REQUIRE(katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK);
+        KT_CHECK_EQ(len, sizeof(read));
+        KT_REQUIRE(katherine_transport_release_data_buf(&t, buf) == KATHERINE_E_OK);
+    }
+
+    uint64_t framing = 1;
+    KT_CHECK_EQ(katherine_usb_transport_framing_errors(&t, &framing), KATHERINE_E_OK);
+    KT_CHECK_EQ(framing, (uint64_t) 0);
+
+    katherine_transport_fini(&t);
+}
+
+/* And when the padding is not the zeros it must be, that is the one symptom
+ * of a lost phase the transport can actually see, so it counts it. */
+static void
+test_padding_that_is_not_padding_is_counted(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    static uint8_t frame[KATHERINE_USB_DATA_FRAME_SIZE];
+    for (unsigned w = 0; w < 170; ++w) {
+        uint8_t *word = frame + w * KATHERINE_MD_SIZE;
+        memset(word, 0, KATHERINE_MD_SIZE);
+        word[5] = 0x10;
+    }
+    memset(frame + 170 * KATHERINE_MD_SIZE, 0xAB, 4); /* not zeros */
+
+    KT_REQUIRE(fake_usb_complete_oldest_with(LIBUSB_TRANSFER_COMPLETED, frame, (int) sizeof(frame)) == 0);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_REQUIRE(katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK);
+    KT_CHECK_EQ(len, (size_t) 170 * KATHERINE_MD_SIZE);
+    KT_REQUIRE(katherine_transport_release_data_buf(&t, buf) == KATHERINE_E_OK);
+
+    /* Reaching past the words is what inspects the padding. */
+    (void) katherine_transport_acquire_data_buf(&t, &buf, &len);
+
+    uint64_t framing = 0;
+    KT_CHECK_EQ(katherine_usb_transport_framing_errors(&t, &framing), KATHERINE_E_OK);
+    KT_CHECK_EQ(framing, (uint64_t) 1);
+
+    katherine_transport_fini(&t);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -589,6 +681,8 @@ main(void)
     KT_RUN(test_a_second_independent_open_is_refused);
     KT_RUN(test_a_second_transport_adopts_the_first);
     KT_RUN(test_the_bridge_padding_and_filler_are_stripped);
+    KT_RUN(test_a_short_read_does_not_shift_the_next);
+    KT_RUN(test_padding_that_is_not_padding_is_counted);
     KT_RUN(test_the_control_factory_opens_a_usb_address);
     KT_RUN(test_the_data_factory_adopts_the_control_transport);
 

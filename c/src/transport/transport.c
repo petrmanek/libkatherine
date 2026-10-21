@@ -148,21 +148,13 @@ katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **bu
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if the buffer is not one this transport lent.
- * \retval KATHERINE_E_CLOSED if the link went away before the buffer could be
- *   put back to work; see katherine_transport_last_os_error().
- * \retval KATHERINE_E_TIMEOUT if resubmitting it would have blocked.
- * \retval KATHERINE_E_IO if resubmitting it failed at the OS level for a
- *   reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
- * \retval KATHERINE_E_NOMEM if resubmitting it ran out of memory; see
- *   katherine_transport_last_os_error().
- * \note Giving a buffer back is not free on every link. A transport that
- *   keeps reads outstanding posts the next one here, on the thread that
- *   returns the buffer, so the failures of a submission are this call's
- *   too -- where a transport holding one buffer has nothing to fail.
  * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
  *   released, which a transport serializing its own access can report;
  *   see katherine_transport_last_os_error().
+ * \note Giving a buffer back does not put it back to work. A transport that
+ *   keeps reads outstanding posts the next one when something asks for the
+ *   next buffer, not here, so a submission's failures belong to
+ *   katherine_transport_acquire_data_buf() rather than to this call.
  */
 katherine_error_t
 katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf)
