@@ -36,6 +36,10 @@
 #include <time.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // C11 <threads.h> also offers thrd_sleep, but it is unavailable on some
 // supported platforms (Apple's toolchain ships no <threads.h> at all, and
 // MSVC only gained it recently), so the sleep is done with the native
@@ -53,5 +57,9 @@ katherine_msleep(uint32_t ms)
     (void) nanosleep(&ts, NULL);
 #endif
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

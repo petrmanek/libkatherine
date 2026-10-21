@@ -33,6 +33,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // One thread started with kthread_start(), and the only operation this
 // suite's mock readouts ever need afterwards: a single blocking join. No
 // detach, no cancellation -- kspawn_proc_t is the model to extend if a future
@@ -111,5 +115,9 @@ kthread_join(kthread_t *t)
 }
 
 #endif /* KATHERINE_WIN */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

@@ -23,6 +23,10 @@
 #include "bitfields.h"
 #include <katherine/px.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // MD stands for Measurement Data, the 6 byte
 // messages sent during (or after) acquisition.
 //
@@ -379,5 +383,9 @@ DEFINE_PMD_MAP(event_count_itot)
 #undef DEFINE_PMD_PAIR
 #undef DEFINE_PMD_PAIR_COORD
 #undef DEFINE_PMD_PAIR_TIMESTAMP
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -91,6 +91,10 @@
 #endif
 // clang-format on
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Render a bool the way every katherine_*_snprint() function in this
  * library does for its bool fields: the literal token "true" or "false",
@@ -105,5 +109,9 @@ katherine_str_bool(bool value)
 {
     return value ? "true" : "false";
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 /** \} */

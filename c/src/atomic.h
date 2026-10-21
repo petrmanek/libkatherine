@@ -23,6 +23,14 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // The flags these operate on stay plain bool in the installed headers, which
 // the C++ wrapper and the Python binding both read directly and neither can
 // spell _Atomic. So the atomicity lives at the access rather than in the
@@ -31,8 +39,6 @@
 // The split is the compiler, not the platform: MinGW's gcc and clang both
 // build for Windows and both have the GNU builtins.
 #ifdef _MSC_VER
-
-#include <intrin.h>
 
 // _InterlockedOr8 with a zero operand reads without changing anything, and
 // is a full barrier on every architecture MSVC targets -- unlike a volatile
@@ -64,5 +70,9 @@ katherine_atomic_store_bool(bool *flag, bool value)
 }
 
 #endif /* _MSC_VER */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

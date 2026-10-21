@@ -28,6 +28,10 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // An address names a link as well as a readout on it: "udp://192.168.1.42"
 // rather than "192.168.1.42". The scheme token is the one
 // katherine_str_transport_kind() renders, so the two cannot drift.
@@ -114,5 +118,9 @@ katherine_address_format(char *buf, size_t cap, katherine_transport_kind_t kind,
 {
     return snprintf(buf, cap, "%s" KATHERINE_ADDRESS_SCHEME_SEP "%s", katherine_str_transport_kind(kind), rest);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

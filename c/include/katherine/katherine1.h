@@ -67,6 +67,10 @@
  * \{
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // The #define renames below are ordered after every wrapper definition in
 // this file on purpose: each wrapper's body calls the real 2.0 function by
@@ -788,5 +792,9 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 #define TPX3_REG_EXT_DAC_SELECTOR                 KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+#ifdef __cplusplus
+}
+#endif
 
 /** \} */

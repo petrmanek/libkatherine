@@ -46,6 +46,10 @@ typedef SSIZE_T ssize_t;
 #include <sys/time.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LIBUSB_CALL
 
 enum libusb_error {
@@ -233,3 +237,7 @@ fake_usb_last_bulk_endpoint(void);
 /** What the next synchronous bulk transfer returns. */
 void
 fake_usb_set_bulk_result(int code, int transferred);
+
+#ifdef __cplusplus
+}
+#endif

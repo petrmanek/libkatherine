@@ -25,6 +25,10 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * A command datagram of this protocol: exactly 8 bytes, of which b[6] is
  * always the opcode and b[7] is unused by this device generation. The
@@ -218,5 +222,9 @@ katherine_cmd_payload_set_chip(katherine_cmd_t *cmd, uint8_t opcode, uint8_t chi
 #undef KATHERINE_CHIP_SLOT
 #undef KATHERINE_CHIP_SLOT_BYTE
 #undef KATHERINE_CHIP_SLOT_NONE
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

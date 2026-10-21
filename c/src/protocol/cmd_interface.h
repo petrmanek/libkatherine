@@ -22,6 +22,10 @@
 #include "bitfields.h"
 #include "cmd_builder.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // IMPORTANT NOTICE:
 //
@@ -1132,3 +1136,7 @@ katherine_cmd_pulse_generator_read(katherine_transport_t *transport, katherine_p
 
     return KATHERINE_E_OK;
 }
+
+#ifdef __cplusplus
+}
+#endif

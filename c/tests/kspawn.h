@@ -45,6 +45,10 @@
 #endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // One spawned child process. Zero-initialize (`= {0}`) before use if any
 // function other than kspawn_start() may run first: every function is a
 // no-op on a structure that owns no child, but only if the flag says so.
@@ -269,5 +273,9 @@ kspawn_stop(kspawn_proc_t *proc)
 }
 
 #endif /* KATHERINE_WIN */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

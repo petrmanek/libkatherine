@@ -38,6 +38,10 @@
 #include <time.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef KATHERINE_WIN
 
 // Monotonic timestamp in nanoseconds since an arbitrary epoch.
@@ -96,5 +100,9 @@ katherine_clock_monotonic_ns(void)
 }
 
 #endif /* KATHERINE_WIN */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

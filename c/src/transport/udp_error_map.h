@@ -31,6 +31,10 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Both platforms' mappings live here rather than one in each transport, so
 // that a divergence between them is visible in one screen instead of inferred
 // by reading two files. They are a pair by construction: the same wire failure
@@ -133,6 +137,10 @@ katherine_udp_map_socket_error(int err, katherine_error_t fallback)
 }
 
 #endif /* KATHERINE_WIN */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

@@ -36,6 +36,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Mutual exclusion, in whichever primitive the platform supplies. Every call
 // reports in the library's own error codes: the platform's number is mapped
 // here rather than handed out, so no caller has to know which platform it is
@@ -126,5 +130,9 @@ katherine_mutex_unlock(katherine_mutex_t *mutex)
 }
 
 #endif /* KATHERINE_WIN */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

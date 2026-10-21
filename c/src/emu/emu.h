@@ -30,6 +30,10 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Length of a command datagram: the readout reads a fixed eight bytes.
 #define KATHERINE_EMU_CMD_SIZE          8
 
@@ -138,5 +142,9 @@ katherine_emu_stream_stop(katherine_emu_t *emu);
 
 KATHERINE_NOT_EXPORTED void
 katherine_emu_stream_advance(katherine_emu_t *emu, uint64_t ns);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

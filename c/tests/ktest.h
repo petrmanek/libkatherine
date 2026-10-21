@@ -42,6 +42,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static int kt_g_test_count       = 0;
 static int kt_g_fail_count       = 0;
 static int kt_g_cur_failed       = 0;
@@ -189,3 +193,7 @@ kt_summary(void)
     printf("1..%d\n", kt_g_test_count);
     return kt_g_fail_count != 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
