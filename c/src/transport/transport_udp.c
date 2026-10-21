@@ -39,12 +39,12 @@
 //
 // Allocated a whole word past its capacity: a decoder reads the last six-byte
 // item through an eight-byte load, which reaches two bytes past what arrived.
-struct udp_transport {
+typedef struct katherine_transport_udp {
     katherine_udp_t udp;
     char *buffer;
     size_t capacity;
     bool lent; ///< True if the one buffer is in the caller's hands.
-};
+} katherine_transport_udp_t;
 
 /**
  * Send a command on the session.
@@ -56,7 +56,7 @@ struct udp_transport {
 static katherine_error_t
 udp_t_send_cmd(void *ctx, const void *data, size_t count)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     return katherine_udp_send_exact(&t->udp, data, count);
 }
@@ -71,7 +71,7 @@ udp_t_send_cmd(void *ctx, const void *data, size_t count)
 static katherine_error_t
 udp_t_recv_crd(void *ctx, void *crd, size_t *len)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     return katherine_udp_recv(&t->udp, crd, len);
 }
@@ -124,7 +124,7 @@ udp_drain(katherine_udp_t *udp, uint32_t *discarded)
 static katherine_error_t
 udp_t_flush_incoming(void *ctx, uint32_t *discarded)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     udp_drain(&t->udp, discarded);
 
@@ -142,8 +142,8 @@ static katherine_error_t
 udp_t_acquire_data_buf(void *ctx, void **buf, size_t *len)
 {
     katherine_error_t res;
-    struct udp_transport *t = ctx;
-    size_t received         = t->capacity;
+    katherine_transport_udp_t *t = ctx;
+    size_t received              = t->capacity;
 
     res = katherine_udp_recv(&t->udp, t->buffer, &received);
     if (res) goto err_recv;
@@ -168,7 +168,7 @@ static katherine_error_t
 udp_t_release_data_buf(void *ctx, void *buf)
 {
     katherine_error_t res;
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     if (buf != t->buffer) {
         res = KATHERINE_E_INVAL;
@@ -192,7 +192,7 @@ err_foreign:
 static katherine_error_t
 udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     return katherine_udp_set_timeout(&t->udp, timeout_ms);
 }
@@ -206,7 +206,7 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 static katherine_error_t
 udp_t_get_dropped_input(void *ctx, uint64_t *count)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     *count = katherine_udp_get_dropped_datagrams(&t->udp);
 
@@ -224,7 +224,7 @@ udp_t_get_dropped_input(void *ctx, uint64_t *count)
 static katherine_error_t
 udp_t_mutex_lock(void *ctx)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     return katherine_udp_mutex_lock(&t->udp);
 }
@@ -237,7 +237,7 @@ udp_t_mutex_lock(void *ctx)
 static katherine_error_t
 udp_t_mutex_unlock(void *ctx)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     return katherine_udp_mutex_unlock(&t->udp);
 }
@@ -251,7 +251,7 @@ udp_t_mutex_unlock(void *ctx)
 static int
 udp_t_get_last_os_error(void *ctx)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     return katherine_udp_last_os_error(&t->udp);
 }
@@ -266,7 +266,7 @@ static katherine_error_t
 udp_t_set_buffer_size(void *ctx, size_t size)
 {
     katherine_error_t res;
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
 
     if (size == 0) {
         res = KATHERINE_E_INVAL;
@@ -305,7 +305,7 @@ err_size:
 static void
 udp_t_fini(void *ctx)
 {
-    struct udp_transport *t = ctx;
+    katherine_transport_udp_t *t = ctx;
     if (t == NULL) return;
 
     katherine_udp_fini(&t->udp);
@@ -365,7 +365,7 @@ katherine_transport_init_udp(katherine_transport_t *transport, const katherine_u
         goto err_args;
     }
 
-    struct udp_transport *t = calloc(1, sizeof(*t));
+    katherine_transport_udp_t *t = calloc(1, sizeof(*t));
     if (t == NULL) {
         res = KATHERINE_E_NOMEM;
         goto err_alloc;
@@ -429,11 +429,11 @@ err_args:
 #define DISCOVER_POLL_MS      1
 
 /** One socket's result from a single poll. */
-typedef enum {
-    COLLECT_EMPTY,   ///< An empty socket.
-    COLLECT_DISCARD, ///< Something was waiting, but it is not an answer.
-    COLLECT_TAKEN,   ///< An answer, written to the entry.
-} collect_result_t;
+typedef enum katherine_collect_result {
+    KATHERINE_COLLECT_EMPTY,   ///< An empty socket.
+    KATHERINE_COLLECT_DISCARD, ///< Something was waiting, but it is not an answer.
+    KATHERINE_COLLECT_TAKEN,   ///< An answer, written to the entry.
+} katherine_collect_result_t;
 
 /**
  * Take one datagram from a socket, if one is waiting, and judge it.
@@ -444,19 +444,19 @@ typedef enum {
  * \param entry Destination for an answer
  * \return What the poll found
  */
-static collect_result_t
+static katherine_collect_result_t
 collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, katherine_discovered_t *entry)
 {
     char crd[KATHERINE_CMD_CRD_SIZE];
     size_t received = sizeof(crd);
 
-    if (katherine_udp_recv_nowait(udp, crd, &received) != KATHERINE_E_OK) return COLLECT_EMPTY;
-    if (received != KATHERINE_CMD_CRD_SIZE) return COLLECT_DISCARD;
-    if ((uint8_t) crd[KATHERINE_CMD_OPCODE_BYTE] != CMD_TYPE_ECHO_CHIP_ID) return COLLECT_DISCARD;
+    if (katherine_udp_recv_nowait(udp, crd, &received) != KATHERINE_E_OK) return KATHERINE_COLLECT_EMPTY;
+    if (received != KATHERINE_CMD_CRD_SIZE) return KATHERINE_COLLECT_DISCARD;
+    if ((uint8_t) crd[KATHERINE_CMD_OPCODE_BYTE] != CMD_TYPE_ECHO_CHIP_ID) return KATHERINE_COLLECT_DISCARD;
 
     // The request itself, delivered back to its sender: a broadcast reaches this
     // host too, and the operation code does not tell a command from its response.
-    if (memcmp(crd, request->b, sizeof(request->b)) == 0) return COLLECT_DISCARD;
+    if (memcmp(crd, request->b, sizeof(request->b)) == 0) return KATHERINE_COLLECT_DISCARD;
 
     memset(entry, 0, sizeof(*entry));
 
@@ -464,16 +464,16 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
     // what discovery reports is what katherine_device_init() takes.
     char host[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
     if (katherine_udp_get_remote_address(udp, host, sizeof(host)) != KATHERINE_E_OK) {
-        return COLLECT_DISCARD;
+        return KATHERINE_COLLECT_DISCARD;
     }
 
     const int written = katherine_address_format(entry->address, sizeof(entry->address), KATHERINE_TRANSPORT_UDP, host);
     if (written < 0 || (size_t) written >= sizeof(entry->address)) {
-        return COLLECT_DISCARD;
+        return KATHERINE_COLLECT_DISCARD;
     }
     entry->legacy = legacy;
 
-    return COLLECT_TAKEN;
+    return KATHERINE_COLLECT_TAKEN;
 }
 
 /**
@@ -610,15 +610,15 @@ katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t
             katherine_udp_t *udp = is_legacy ? &legacy : &modern;
 
             switch (collect_one(udp, &request, is_legacy, &out[*count])) {
-            case COLLECT_TAKEN:
+            case KATHERINE_COLLECT_TAKEN:
                 ++*count;
                 idle = false;
                 break;
-            case COLLECT_DISCARD:
+            case KATHERINE_COLLECT_DISCARD:
                 ++discarded;
                 idle = false;
                 break;
-            case COLLECT_EMPTY:
+            case KATHERINE_COLLECT_EMPTY:
                 break;
             }
         }
@@ -672,7 +672,7 @@ katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint1
         goto err_kind;
     }
 
-    const struct udp_transport *t = transport->ctx;
+    const katherine_transport_udp_t *t = transport->ctx;
 
     *port = ntohs(t->udp.address_local.sin_port);
 

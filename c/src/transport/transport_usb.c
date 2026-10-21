@@ -48,26 +48,28 @@
 #define DRAIN_POLITE_ATTEMPTS 50
 
 /** A lent buffer's place in its owner's ring. */
-enum slot_state {
-    SLOT_IDLE = 0, ///< Not submitted, nothing in it.
-    SLOT_INFLIGHT, ///< Submitted; libusb owns the buffer.
-    SLOT_FILLED,   ///< Came back with data, waiting for a caller.
-    SLOT_LENT,     ///< A caller is reading it.
-};
+typedef enum katherine_ring_slot_state {
+    KATHERINE_RING_SLOT_IDLE = 0, ///< Not submitted, nothing in it.
+    KATHERINE_RING_SLOT_INFLIGHT, ///< Submitted; libusb owns the buffer.
+    KATHERINE_RING_SLOT_FILLED,   ///< Came back with data, waiting for a caller.
+    KATHERINE_RING_SLOT_LENT,     ///< A caller is reading it.
+} katherine_ring_slot_state_t;
+
+typedef struct katherine_transport_usb katherine_transport_usb_t;
 
 /** One read's place in the ring. */
-struct slot {
-    struct libusb_transfer *xfer; ///< The read itself, or NULL on a synchronous transport.
-    uint8_t *buf;                 ///< Where that read lands, a whole word longer than the capacity; see the allocation.
-    int len;                      ///< Bytes the last completion brought back.
-    enum slot_state state;        ///< Who owns the buffer right now.
-    int taken;                    ///< Bytes of len already lent out; see next_run().
-    uint32_t index;               ///< This slot's place in the ring, so a completion can name itself.
-    struct katherine_usb *usb;    ///< The ring it belongs to, which the completion callback reaches it through.
-};
+typedef struct katherine_ring_slot {
+    struct libusb_transfer *xfer;      ///< The read itself, or NULL on a synchronous transport.
+    uint8_t *buf;                      ///< Where that read lands, a whole word longer than the capacity; see the allocation.
+    int len;                           ///< Bytes the last completion brought back.
+    katherine_ring_slot_state_t state; ///< Who owns the buffer right now.
+    int taken;                         ///< Bytes of len already lent out; see next_run().
+    uint32_t index;                    ///< This slot's place in the ring, so a completion can name itself.
+    katherine_transport_usb_t *usb;    ///< The ring it belongs to, which the completion callback reaches it through.
+} katherine_ring_slot_t;
 
 /** A USB link, its ring of reads, and what guards them. */
-struct katherine_usb {
+struct katherine_transport_usb {
     libusb_context *ctx;           ///< This transport's own libusb session.
     libusb_device_handle *handle;  ///< The readout, once opened.
     katherine_usb_config_t config; ///< What it was opened with, queue_len resolved to what was allocated.
@@ -82,11 +84,11 @@ struct katherine_usb {
     // callbacks.
     katherine_mutex_t api_lock; ///< Serializes callers of the transport operations.
 
-    struct slot *slots;   ///< The ring, config.queue_len of them.
-    uint32_t *ready;      ///< Indices of filled slots, oldest first.
-    uint32_t ready_head;  ///< Where the next slot to lend out sits in ready.
-    uint32_t ready_count; ///< How many of ready hold a slot.
-    uint32_t inflight;    ///< Reads the bus has not answered yet.
+    katherine_ring_slot_t *slots; ///< The ring, config.queue_len of them.
+    uint32_t *ready;              ///< Indices of filled slots, oldest first.
+    uint32_t ready_head;          ///< Where the next slot to lend out sits in ready.
+    uint32_t ready_count;         ///< How many of ready hold a slot.
+    uint32_t inflight;            ///< Reads the bus has not answered yet.
 
     int last_os_error;                       ///< What katherine_transport_get_last_os_error() reports: a libusb code, or an errno from a mutex.
     enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
@@ -100,7 +102,7 @@ struct katherine_usb {
  * \param u Link whose queue to advance.
  */
 static void
-retire_head(struct katherine_usb *u)
+retire_head(katherine_transport_usb_t *u)
 {
     if (u->ready_count == 0) {
         return;
@@ -146,7 +148,7 @@ is_filler(const uint8_t *word)
  * \return True if a run was found, false once the read holds no more.
  */
 static bool
-next_run(struct katherine_usb *u, const uint8_t *buf, size_t len, size_t from, size_t *off, size_t *run)
+next_run(katherine_transport_usb_t *u, const uint8_t *buf, size_t len, size_t from, size_t *off, size_t *run)
 {
     size_t i = from;
 
@@ -199,7 +201,7 @@ next_run(struct katherine_usb *u, const uint8_t *buf, size_t len, size_t from, s
  * \return The matching katherine_error_t.
  */
 static katherine_error_t
-map_usb_error(struct katherine_usb *u, int code)
+map_usb_error(katherine_transport_usb_t *u, int code)
 {
     u->last_os_error = code;
 
@@ -239,8 +241,8 @@ static const uint8_t USB_INTERFACE = 0;
 static void LIBUSB_CALL
 on_transfer_done(struct libusb_transfer *xfer)
 {
-    struct slot *s          = (struct slot *) xfer->user_data;
-    struct katherine_usb *u = s->usb;
+    katherine_ring_slot_t *s     = (katherine_ring_slot_t *) xfer->user_data;
+    katherine_transport_usb_t *u = s->usb;
 
     (void) katherine_mutex_lock(&u->lock);
 
@@ -254,23 +256,23 @@ on_transfer_done(struct libusb_transfer *xfer)
         s->len   = xfer->actual_length;
         s->taken = 0;
         if (s->len > 0) {
-            s->state                                                         = SLOT_FILLED;
+            s->state                                                         = KATHERINE_RING_SLOT_FILLED;
             u->ready[(u->ready_head + u->ready_count) % u->config.queue_len] = s->index;
             u->ready_count += 1;
         } else {
             // Nothing came back, which an idle readout does once per timeout.
             // acquire_data_buf() reposts it, keeping submission off this thread.
-            s->state = SLOT_IDLE;
+            s->state = KATHERINE_RING_SLOT_IDLE;
         }
         break;
 
     case LIBUSB_TRANSFER_CANCELLED:
-        s->state = SLOT_IDLE;
+        s->state = KATHERINE_RING_SLOT_IDLE;
         break;
 
     default:
         u->last_status = xfer->status;
-        s->state       = SLOT_IDLE;
+        s->state       = KATHERINE_RING_SLOT_IDLE;
         break;
     }
 
@@ -288,11 +290,11 @@ on_transfer_done(struct libusb_transfer *xfer)
  * \return KATHERINE_E_OK, or what the submission failed with.
  */
 static katherine_error_t
-submit_slot(struct katherine_usb *u, struct slot *s, bool *held)
+submit_slot(katherine_transport_usb_t *u, katherine_ring_slot_t *s, bool *held)
 {
     katherine_error_t res;
 
-    s->state = SLOT_INFLIGHT;
+    s->state = KATHERINE_RING_SLOT_INFLIGHT;
     u->inflight += 1;
 
     if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_unlock;
@@ -304,7 +306,7 @@ submit_slot(struct katherine_usb *u, struct slot *s, bool *held)
     *held = true;
 
     if (code != LIBUSB_SUCCESS) {
-        s->state = SLOT_IDLE;
+        s->state = KATHERINE_RING_SLOT_IDLE;
         u->inflight -= 1;
         res = map_usb_error(u, code);
         goto err_submit;
@@ -314,7 +316,7 @@ submit_slot(struct katherine_usb *u, struct slot *s, bool *held)
 
 err_unlock:
     // Nothing reached the bus, so the slot goes back as it was.
-    s->state = SLOT_IDLE;
+    s->state = KATHERINE_RING_SLOT_IDLE;
     u->inflight -= 1;
 err_relock:
 err_submit:
@@ -332,8 +334,8 @@ static katherine_error_t
 usb_t_send_cmd(void *ctx, const void *data, size_t count)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
-    int moved               = 0;
+    katherine_transport_usb_t *u = ctx;
+    int moved                    = 0;
 
     const int code = libusb_bulk_transfer(u->handle, u->config.ep_out, (unsigned char *) (uintptr_t) data, (int) count, &moved, u->config.timeout_ms);
     if (code != LIBUSB_SUCCESS) {
@@ -366,8 +368,8 @@ static katherine_error_t
 usb_t_recv_crd(void *ctx, void *crd, size_t *len)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
-    int moved               = 0;
+    katherine_transport_usb_t *u = ctx;
+    int moved                    = 0;
 
     const int code = libusb_bulk_transfer(u->handle, u->config.ep_in, crd, (int) *len, &moved, u->config.timeout_ms);
     if (code != LIBUSB_SUCCESS) {
@@ -394,7 +396,7 @@ err_read:
 static katherine_error_t
 usb_t_flush_incoming(void *ctx, uint32_t *discarded)
 {
-    struct katherine_usb *u = ctx;
+    katherine_transport_usb_t *u = ctx;
     uint8_t scratch[512];
 
     // Bounded like udp_drain(): a readout still talking would otherwise hold
@@ -424,8 +426,8 @@ static katherine_error_t
 usb_t_acquire_data_buf_sync(void *ctx, void **buf, size_t *len)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
-    struct slot *s          = &u->slots[0];
+    katherine_transport_usb_t *u = ctx;
+    katherine_ring_slot_t *s     = &u->slots[0];
     size_t off, run;
 
     // What the last read still holds, before asking the bus for more.
@@ -489,9 +491,9 @@ static katherine_error_t
 usb_t_acquire_data_buf_async(void *ctx, void **buf, size_t *len)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
-    const uint64_t deadline = katherine_clock_monotonic_ns() + (uint64_t) u->config.timeout_ms * 1000000ULL;
-    bool held               = false;
+    katherine_transport_usb_t *u = ctx;
+    const uint64_t deadline      = katherine_clock_monotonic_ns() + (uint64_t) u->config.timeout_ms * 1000000ULL;
+    bool held                    = false;
 
     if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_lock;
     held = true;
@@ -501,7 +503,7 @@ usb_t_acquire_data_buf_async(void *ctx, void **buf, size_t *len)
         // read out, so the whole ring would be gone within one timeout.
         if (!u->draining) {
             for (uint32_t i = 0; i < u->config.queue_len; ++i) {
-                if (u->slots[i].state != SLOT_IDLE) continue;
+                if (u->slots[i].state != KATHERINE_RING_SLOT_IDLE) continue;
 
                 // A readout that has gone away fails every repost, so saying
                 // so beats waiting out the timeout to report silence.
@@ -511,7 +513,7 @@ usb_t_acquire_data_buf_async(void *ctx, void **buf, size_t *len)
         }
 
         if (u->ready_count > 0) {
-            struct slot *s = &u->slots[u->ready[u->ready_head]];
+            katherine_ring_slot_t *s = &u->slots[u->ready[u->ready_head]];
 
             size_t off, run;
             if (!next_run(u, s->buf, (size_t) s->len, (size_t) s->taken, &off, &run)) {
@@ -524,7 +526,7 @@ usb_t_acquire_data_buf_async(void *ctx, void **buf, size_t *len)
                 continue;
             }
 
-            s->state = SLOT_LENT;
+            s->state = KATHERINE_RING_SLOT_LENT;
             s->taken = (int) (off + run);
 
             *buf = s->buf + off;
@@ -588,13 +590,13 @@ static katherine_error_t
 usb_t_release_data_buf_async(void *ctx, void *buf)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
-    bool held               = false;
+    katherine_transport_usb_t *u = ctx;
+    bool held                    = false;
 
     if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_lock;
     held = true;
 
-    struct slot *s = NULL;
+    katherine_ring_slot_t *s = NULL;
     for (uint32_t i = 0; i < u->config.queue_len; ++i) {
         if ((unsigned char *) buf >= u->slots[i].buf && (unsigned char *) buf < u->slots[i].buf + u->config.buffer_size) {
             s = &u->slots[i];
@@ -602,7 +604,7 @@ usb_t_release_data_buf_async(void *ctx, void *buf)
         }
     }
 
-    if (s == NULL || s->state != SLOT_LENT) {
+    if (s == NULL || s->state != KATHERINE_RING_SLOT_LENT) {
         res = KATHERINE_E_INVAL;
         goto err_foreign;
     }
@@ -610,12 +612,12 @@ usb_t_release_data_buf_async(void *ctx, void *buf)
     if (u->draining) {
         // Closing down, so the slot goes idle rather than back onto the bus:
         // the ring is about to be taken apart.
-        s->state = SLOT_IDLE;
+        s->state = KATHERINE_RING_SLOT_IDLE;
         retire_head(u);
     } else {
         // It keeps its place whether or not anything is left: acquire retires a
         // spent slot, which saves scanning the read twice.
-        s->state = SLOT_FILLED;
+        s->state = KATHERINE_RING_SLOT_FILLED;
     }
 
     if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_unlock;
@@ -641,7 +643,7 @@ static katherine_error_t
 usb_t_set_timeout(void *ctx, uint32_t timeout_ms)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
+    katherine_transport_usb_t *u = ctx;
 
     if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_lock;
 
@@ -688,7 +690,7 @@ static katherine_error_t
 usb_t_mutex_lock(void *ctx)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
+    katherine_transport_usb_t *u = ctx;
 
     if ((res = katherine_mutex_lock(&u->api_lock)) != KATHERINE_E_OK) goto err_lock;
 
@@ -707,7 +709,7 @@ static katherine_error_t
 usb_t_mutex_unlock(void *ctx)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
+    katherine_transport_usb_t *u = ctx;
 
     if ((res = katherine_mutex_unlock(&u->api_lock)) != KATHERINE_E_OK) goto err_unlock;
 
@@ -725,7 +727,7 @@ err_unlock:
 static int
 usb_t_get_last_os_error(void *ctx)
 {
-    struct katherine_usb *u = ctx;
+    katherine_transport_usb_t *u = ctx;
 
     return u->last_os_error;
 }
@@ -740,10 +742,10 @@ usb_t_get_last_os_error(void *ctx)
  * \param u Link to cancel on.
  */
 static void
-cancel_outstanding(struct katherine_usb *u)
+cancel_outstanding(katherine_transport_usb_t *u)
 {
     for (uint32_t i = 0; i < u->config.queue_len; ++i)
-        if (u->slots[i].state == SLOT_INFLIGHT)
+        if (u->slots[i].state == KATHERINE_RING_SLOT_INFLIGHT)
             (void) libusb_cancel_transfer(u->slots[i].xfer);
 }
 
@@ -757,7 +759,7 @@ cancel_outstanding(struct katherine_usb *u)
  * \param limit Passes to stop after, or 0 to wait indefinitely.
  */
 static void
-pump_until_quiet(struct katherine_usb *u, uint32_t limit)
+pump_until_quiet(katherine_transport_usb_t *u, uint32_t limit)
 {
     for (uint32_t attempt = 0; u->inflight > 0; ++attempt) {
         if (limit != 0 && attempt >= limit) break;
@@ -781,7 +783,7 @@ pump_until_quiet(struct katherine_usb *u, uint32_t limit)
  * \param u Link to drain.
  */
 static void
-drain_inflight(struct katherine_usb *u)
+drain_inflight(katherine_transport_usb_t *u)
 {
     (void) katherine_mutex_lock(&u->lock);
     u->draining = true;
@@ -814,9 +816,9 @@ static katherine_error_t
 usb_t_set_buffer_size(void *ctx, size_t size)
 {
     katherine_error_t res;
-    struct katherine_usb *u = ctx;
-    uint8_t **fresh         = NULL;
-    uint32_t allocated      = 0;
+    katherine_transport_usb_t *u = ctx;
+    uint8_t **fresh              = NULL;
+    uint32_t allocated           = 0;
 
     if (size == 0) {
         res = KATHERINE_E_INVAL;
@@ -829,7 +831,7 @@ usb_t_set_buffer_size(void *ctx, size_t size)
 
     bool lent = false;
     for (uint32_t i = 0; i < u->config.queue_len; ++i)
-        if (u->slots[i].state == SLOT_LENT) lent = true;
+        if (u->slots[i].state == KATHERINE_RING_SLOT_LENT) lent = true;
 
     if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_probe_lock;
 
@@ -864,7 +866,7 @@ usb_t_set_buffer_size(void *ctx, size_t size)
         free(u->slots[i].buf);
         u->slots[i].buf   = fresh[i];
         u->slots[i].len   = 0;
-        u->slots[i].state = SLOT_IDLE;
+        u->slots[i].state = KATHERINE_RING_SLOT_IDLE;
 
         if (u->slots[i].xfer != NULL)
             libusb_fill_bulk_transfer(u->slots[i].xfer, u->handle, u->config.ep_in, u->slots[i].buf, (int) size, on_transfer_done, &u->slots[i], u->config.timeout_ms);
@@ -905,7 +907,7 @@ err_size:
 static void
 usb_t_fini(void *ctx)
 {
-    struct katherine_usb *u = ctx;
+    katherine_transport_usb_t *u = ctx;
     if (u == NULL) return;
 
     // Everything below frees memory those transfers point into. If the bus still
@@ -1140,7 +1142,7 @@ usb_device_matches(libusb_device *device, const katherine_usb_config_t *config)
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_open_matching(struct katherine_usb *u, const katherine_usb_config_t *config)
+usb_open_matching(katherine_transport_usb_t *u, const katherine_usb_config_t *config)
 {
     katherine_error_t res;
     libusb_device **list = NULL;
@@ -1343,7 +1345,7 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
     // for: there is never more than one read outstanding to fill a second.
     const uint32_t slots = !wants_ring ? 0 : (config->stream == KATHERINE_USB_STREAM_SYNC ? 1 : config->queue_len);
 
-    struct katherine_usb *u = calloc(1, sizeof(*u));
+    katherine_transport_usb_t *u = calloc(1, sizeof(*u));
     if (u == NULL) {
         res = KATHERINE_E_NOMEM;
         goto err_alloc;
@@ -1498,7 +1500,7 @@ katherine_usb_config_borrow_device(katherine_usb_config_t *config, const katheri
         goto err_args;
     }
 
-    const struct katherine_usb *u = from->ctx;
+    const katherine_transport_usb_t *u = from->ctx;
 
     config->ctx    = u->ctx;
     config->handle = u->handle;
@@ -1628,7 +1630,7 @@ katherine_usb_transport_get_inflight_transfers(const katherine_transport_t *tran
         goto err_args;
     }
 
-    struct katherine_usb *u = transport->ctx;
+    katherine_transport_usb_t *u = transport->ctx;
 
     if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_lock;
 
@@ -1669,7 +1671,7 @@ katherine_usb_transport_get_framing_errors(const katherine_transport_t *transpor
         goto err_kind;
     }
 
-    const struct katherine_usb *u = transport->ctx;
+    const katherine_transport_usb_t *u = transport->ctx;
 
     *count = u->framing_errors;
 
