@@ -46,7 +46,9 @@ function(katherine_add_bench)
     endif()
 
     add_executable(${ARG_NAME} ${ARG_SOURCES})
-    target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private)
+    # The archive, like the tests: a benchmark drives the link backends
+    # directly and those are no longer published by the shared object.
+    target_link_libraries(${ARG_NAME} PRIVATE katherine_static katherine_private)
     katherine_target_warnings(${ARG_NAME})
 
     add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME})

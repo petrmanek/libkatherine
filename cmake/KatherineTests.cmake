@@ -82,7 +82,9 @@ function(katherine_add_test)
             $<TARGET_PROPERTY:katherine,INTERFACE_INCLUDE_DIRECTORIES>)
         target_compile_definitions(${ARG_NAME} PRIVATE katherine_EXPORTS)
     else()
-        target_link_libraries(${ARG_NAME} PRIVATE katherine katherine_private Threads::Threads)
+        # The archive rather than the shared object: a test may call what the
+        # library does not publish, and hidden visibility would refuse it.
+        target_link_libraries(${ARG_NAME} PRIVATE katherine_static katherine_private Threads::Threads)
     endif()
     # ktest.h's floating-point comparisons call nextafter(), which glibc keeps
     # in a separate libm. Elsewhere -- MSVC among them -- the maths functions

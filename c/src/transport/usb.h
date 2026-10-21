@@ -50,7 +50,7 @@ typedef enum katherine_usb_stream {
     KATHERINE_USB_STREAM_SYNC,
 } katherine_usb_stream_t;
 
-KATHERINE_EXPORTED const char *
+KATHERINE_NOT_EXPORTED const char *
 katherine_str_usb_stream(katherine_usb_stream_t stream);
 
 // The readout's firmware fixed these, and nothing here may choose them. The
@@ -119,22 +119,22 @@ typedef struct katherine_usb_config {
     uint32_t timeout_ms;           ///< Time a read waits before reporting KATHERINE_E_TIMEOUT.
 } katherine_usb_config_t;
 
-KATHERINE_EXPORTED katherine_usb_config_t
+KATHERINE_NOT_EXPORTED katherine_usb_config_t
 katherine_usb_config_default(void);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_usb_config_set_address(katherine_usb_config_t *config, const char *address);
 
-KATHERINE_EXPORTED int
+KATHERINE_NOT_EXPORTED int
 katherine_usb_config_snprint_address(char *buf, size_t cap, const katherine_usb_config_t *config);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_transport_init_usb(katherine_transport_t *transport, const katherine_usb_config_t *config);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_usb_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count);
 
 

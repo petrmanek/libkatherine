@@ -85,7 +85,7 @@ typedef struct katherine_udp {
     int last_os_error;  ///< 0 unless the last transport operation failed with an OS-level error code; read through katherine_udp_last_os_error().
 } katherine_udp_t;
 
-KATHERINE_EXPORTED int
+KATHERINE_NOT_EXPORTED int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);
 
 /** A UDP session to open: which ports it binds and talks to, and how it behaves once open. */
@@ -100,64 +100,64 @@ typedef struct katherine_udp_config {
     bool pin_remote;            ///< True to refuse datagrams from anywhere but the remote named here; see katherine_udp_pin_remote().
 } katherine_udp_config_t;
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t local_port, const char *remote_address, uint16_t remote_port, uint32_t timeout_ms);
 
-KATHERINE_EXPORTED void
+KATHERINE_NOT_EXPORTED void
 katherine_udp_fini(katherine_udp_t *u);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_send_exact(katherine_udp_t *u, const void *data, size_t count);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_recv_exact(katherine_udp_t *u, void *data, size_t count);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_recv_nowait(katherine_udp_t *u, void *data, size_t *count);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_set_remote(katherine_udp_t *u, const char *remote_address, uint16_t remote_port);
 
-KATHERINE_EXPORTED void
+KATHERINE_NOT_EXPORTED void
 katherine_udp_pin_remote(katherine_udp_t *u);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_mutex_lock(katherine_udp_t *u);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_mutex_unlock(katherine_udp_t *u);
 
-KATHERINE_EXPORTED int
+KATHERINE_NOT_EXPORTED int
 katherine_udp_last_os_error(const katherine_udp_t *u);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_set_timeout(katherine_udp_t *u, uint32_t timeout_ms);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_set_rcvbuf(katherine_udp_t *u, uint32_t bytes);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_rcvbuf(const katherine_udp_t *u, uint32_t *bytes);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_set_drop_counting(katherine_udp_t *u, bool enabled);
 
-KATHERINE_EXPORTED uint64_t
+KATHERINE_NOT_EXPORTED uint64_t
 katherine_udp_get_dropped_datagrams(const katherine_udp_t *u);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_set_broadcast(katherine_udp_t *u, bool enabled);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_get_remote_address(const katherine_udp_t *u, char *address, size_t address_size);
 
-KATHERINE_EXPORTED katherine_error_t
+KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint16_t *port);
 
 

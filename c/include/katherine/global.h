@@ -35,7 +35,11 @@
 
 // clang-format off
 // Define KATHERINE_EXPORTED for any platform
-#if defined _WIN32 || defined __CYGWIN__
+#if defined KATHERINE_STATIC
+  // Linked into the caller, so there is nothing to import, export or hide.
+  #define KATHERINE_EXPORTED
+  #define KATHERINE_NOT_EXPORTED
+#elif defined _WIN32 || defined __CYGWIN__
   #ifdef katherine_EXPORTS
     // Exporting...
     #ifdef __GNUC__

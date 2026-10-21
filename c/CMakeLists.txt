@@ -154,6 +154,35 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
     endif()
 endif()
 
+# The same library as an archive, which the tests link instead of the shared
+# object. Hidden visibility keeps a symbol out of a shared object's dynamic
+# table; an archive has no such table, so a test can still reach what the
+# library does not publish. Built here rather than installed: it exists for
+# the tests, not for callers.
+add_library(katherine_static STATIC ${KATHERINE_SOURCES} ${KATHERINE_HEADERS})
+add_library(katherine::static ALIAS katherine_static)
+
+target_compile_features(katherine_static PRIVATE c_std_11)
+katherine_target_warnings(katherine_static)
+# PUBLIC: whoever links the archive must see the same declarations it was
+# compiled with, or Windows declares as dllimport what the archive defines.
+target_compile_definitions(katherine_static PUBLIC KATHERINE_STATIC)
+target_include_directories(katherine_static
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${KATHERINE_GENERATED_INCLUDE_DIR}>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+if(WIN32 OR MINGW)
+  target_link_libraries(katherine_static PUBLIC ws2_32)
+endif()
+
+if(KATHERINE_BUILD_TRANSPORT_USB)
+    target_link_libraries(katherine_static PUBLIC katherine::libusb)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherine.pc.in katherine.pc @ONLY)
 
 # On Windows the DLL is a RUNTIME artifact and the import library an ARCHIVE

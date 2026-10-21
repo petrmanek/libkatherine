@@ -4,7 +4,9 @@
 # SPDX-License-Identifier: MIT
 
 add_executable(ksim main.c)
-target_link_libraries(ksim PRIVATE katherine katherine::private)
+# The archive: ksim drives the UDP backend directly, and the shared object
+# no longer publishes it.
+target_link_libraries(ksim PRIVATE katherine::static katherine::private)
 target_compile_features(ksim PRIVATE c_std_11)
 katherine_target_warnings(ksim)
 # ksim's strerror()/fopen() calls have no portable replacement that is also

@@ -597,7 +597,8 @@ err_out:
  * backend fills in.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if the transport is not open on the UDP link.
+ * \retval KATHERINE_E_UNSUPPORTED if the transport is open on a link with no
+ *   port space, which is every link but UDP.
  */
 katherine_error_t
 katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint16_t *port)
@@ -605,7 +606,7 @@ katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint1
     katherine_error_t res;
 
     if (transport->kind != KATHERINE_TRANSPORT_UDP) {
-        res = KATHERINE_E_INVAL;
+        res = KATHERINE_E_UNSUPPORTED;
         goto err_kind;
     }
 
