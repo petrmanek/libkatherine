@@ -10,6 +10,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+// For KATHERINE_DEVICE_ADDRESS_STR_SIZE, the buffer an address is written into.
+#include <katherine/device.h>
 #include <katherine/global.h>
 
 #ifdef KATHERINE_NIX

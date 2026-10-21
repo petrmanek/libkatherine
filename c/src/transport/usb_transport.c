@@ -13,6 +13,9 @@
 // For KATHERINE_MD_SIZE: the stream this transport carries is measurement
 // data, and the bridge's framing is described in terms of its words.
 #include <katherine/acquisition.h>
+// katherine_device_discover_usb() is defined here, and its result type
+// and the address buffer it fills are the device's.
+#include <katherine/device.h>
 #include <katherine/global.h>
 
 #ifdef KATHERINE_FEATURE_USB

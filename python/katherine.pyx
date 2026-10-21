@@ -84,7 +84,7 @@ cdef str _snprint_repr(snprint_fn_t fn, const void *v):
 __version__ = cversion.katherine_version_string().decode('UTF-8')
 
 
-DISCOVER_MIN_PORT = ctransport.KATHERINE_DISCOVER_MIN_PORT
+DISCOVER_MIN_PORT = cdevice.KATHERINE_DISCOVER_MIN_PORT
 
 
 IF KATHERINE_FEATURE_UDP:
@@ -103,19 +103,19 @@ IF KATHERINE_FEATURE_UDP:
         one without a scheme is a UDP address.
         """
         cdef bytes address_b = address.encode('UTF-8')
-        cdef ctransport.katherine_discovered_t *out
+        cdef cdevice.katherine_discovered_t *out
         cdef size_t count = capacity
 
         if capacity == 0:
             raise ValueError('capacity must be positive')
 
-        out = <ctransport.katherine_discovered_t *> PyMem_Malloc(
-            capacity * sizeof(ctransport.katherine_discovered_t))
+        out = <cdevice.katherine_discovered_t *> PyMem_Malloc(
+            capacity * sizeof(cdevice.katherine_discovered_t))
         if out is NULL:
             raise MemoryError()
 
         try:
-            res = ctransport.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
+            res = cdevice.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
             check_return_code(res)
             return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
         finally:
@@ -135,19 +135,19 @@ IF KATHERINE_FEATURE_USB:
         describes how a firmware answered a discovery datagram, and no
         datagram is sent here.
         """
-        cdef ctransport.katherine_discovered_t *out
+        cdef cdevice.katherine_discovered_t *out
         cdef size_t count = capacity
 
         if capacity == 0:
             raise ValueError('capacity must be positive')
 
-        out = <ctransport.katherine_discovered_t *> PyMem_Malloc(
-            capacity * sizeof(ctransport.katherine_discovered_t))
+        out = <cdevice.katherine_discovered_t *> PyMem_Malloc(
+            capacity * sizeof(cdevice.katherine_discovered_t))
         if out is NULL:
             raise MemoryError()
 
         try:
-            res = ctransport.katherine_device_discover_usb(out, &count)
+            res = cdevice.katherine_device_discover_usb(out, &count)
             check_return_code(res)
             return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
         finally:

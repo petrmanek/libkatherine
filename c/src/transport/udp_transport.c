@@ -14,6 +14,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+// katherine_device_discover_udp() is defined here, and its result type
+// and the address buffer it fills are the device's.
+#include <katherine/device.h>
 #include <katherine/transport.h>
 #include "udp.h"
 #include "repr_append.h"

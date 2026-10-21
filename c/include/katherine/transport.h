@@ -35,25 +35,6 @@
 extern "C" {
 #endif
 
-/**
- * Buffer an address needs, counting the terminator. Long enough for the
- * longest form a transport writes: a scheme, "://", a bus number and a chain
- * of up to seven USB port numbers.
- */
-#define KATHERINE_DEVICE_ADDRESS_STR_SIZE 64
-
-/**
- * One readout that answered a discovery.
- *
- * Common to every link: what differs is how a transport goes looking, not
- * what it finds. See katherine_device_discover_udp() and
- * katherine_device_discover_usb().
- */
-typedef struct katherine_discovered {
-    char address[KATHERINE_DEVICE_ADDRESS_STR_SIZE]; ///< Address it answered from, naming the link too: "udp://192.168.1.42" or "usb://4-1". Ready to hand to katherine_device_init().
-    bool legacy;                                     ///< True if the firmware ignored the reply port and answered on the standard one. UDP's; false on a link with no such notion.
-} katherine_discovered_t;
-
 /** Kind of link carrying a readout's traffic. */
 typedef enum katherine_transport_kind {
     KATHERINE_TRANSPORT_UDP = 0, ///< UDP datagrams over an IP network, typically 1 Gbps Ethernet. May be lossy in high-flux conditions.
@@ -157,24 +138,6 @@ katherine_transport_snprint(char *buf, size_t cap, const katherine_transport_t *
 
 KATHERINE_EXPORTED void
 katherine_transport_fini(katherine_transport_t *transport);
-
-/**
- * Lowest port a readout will answer a discovery on. The firmware reads the
- * reply port out of the request's first two bytes and falls back to its own
- * default below this, which would send every answer to the port a running
- * session is already using.
- */
-#define KATHERINE_DISCOVER_MIN_PORT 32
-
-#ifdef KATHERINE_FEATURE_UDP
-KATHERINE_EXPORTED katherine_error_t
-katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count);
-#endif /* KATHERINE_FEATURE_UDP */
-
-#ifdef KATHERINE_FEATURE_USB
-KATHERINE_EXPORTED katherine_error_t
-katherine_device_discover_usb(katherine_discovered_t *out, size_t *count);
-#endif /* KATHERINE_FEATURE_USB */
 
 #ifdef __cplusplus
 }

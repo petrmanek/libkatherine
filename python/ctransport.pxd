@@ -14,10 +14,3 @@ cdef extern from 'katherine/transport.h':
         uint64_t stray_command_responses
 
     void katherine_transport_set_strict_ack(katherine_transport_t *transport, bint strict)
-
-    ctypedef struct katherine_discovered_t:
-        char *address
-        bint legacy
-    cdef int KATHERINE_DISCOVER_MIN_PORT
-    int katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
-    int katherine_device_discover_usb(katherine_discovered_t *out, size_t *count)
