@@ -72,7 +72,7 @@ endif()
 if(KATHERINE_BUILD_TRANSPORT_UDP)
     list(APPEND KATHERINE_SOURCES
         "src/transport/udp_nix.c"
-        "src/transport/udp_transport.c"
+        "src/transport/transport_udp.c"
         "src/transport/udp_win.c"
         "src/transport/udp.h"
     )
@@ -81,7 +81,7 @@ endif()
 # The USB transport is optional: without libusb its source is not compiled.
 if(KATHERINE_BUILD_TRANSPORT_USB)
     list(APPEND KATHERINE_SOURCES
-        "src/transport/usb_transport.c"
+        "src/transport/transport_usb.c"
         "src/transport/usb.h"
     )
 endif()

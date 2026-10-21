@@ -63,7 +63,7 @@ jobs:
         run: sudo ifconfig lo0 alias 127.0.0.2 up
 
       # The USB transport is only built where libusb is, so a job without it
-      # compiles none of c/src/transport/usb_transport.c and runs none of its
+      # compiles none of c/src/transport/transport_usb.c and runs none of its
       # tests. Installed here rather than left to auto-detection so that a
       # runner image dropping the package shows up as a configure failure
       # instead of as silently reduced coverage.

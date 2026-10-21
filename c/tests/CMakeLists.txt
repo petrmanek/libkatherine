@@ -141,9 +141,9 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
     katherine_add_test(NAME test_usb_ring
                        SOURCES test_usb_ring.c
                                fake_libusb/fake_libusb.c
-                               ../src/transport/usb_transport.c
+                               ../src/transport/transport_usb.c
                                ../src/transport/transport.c
-                               ../src/transport/udp_transport.c
+                               ../src/transport/transport_udp.c
                                ../src/transport/udp_nix.c
                                ../src/transport/udp_win.c
                                ../src/error.c
@@ -157,7 +157,7 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
     katherine_add_test(NAME test_usb_address
                        SOURCES test_usb_address.c
                                fake_libusb/fake_libusb.c
-                               ../src/transport/usb_transport.c
+                               ../src/transport/transport_usb.c
                                ../src/transport/transport.c
                        LABELS unit
                        STANDALONE)

@@ -25,8 +25,8 @@
 //
 // The \retval lists below give only what this layer can say. Which codes a
 // call actually produces belongs to the transport behind it, and gathering
-// those from udp_transport.c -- and from usb_transport.c once it exists --
-// into these blocks is work still to do.
+// those from transport_udp.c and transport_usb.c into these blocks is work
+// still to do.
 
 /**
  * Send one command.
