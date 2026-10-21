@@ -16,6 +16,7 @@
 
 #include <katherine/transport.h>
 #include "udp.h"
+#include "repr_append.h"
 
 #include "address.h"
 #include "monoclock.h"
@@ -618,4 +619,41 @@ katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint1
 
 err_kind:
     return res;
+}
+
+// Hand-formats "A.B.C.D:port" from a sockaddr_in, without inet_ntop() (which
+// Windows declares in a different header than POSIX does): sin_addr and
+// sin_port are named the same on both platforms, and are the only members
+// katherine_udp_snprint() needs. buf must be at least 22 bytes
+// ("255.255.255.255:65535" plus the NUL); the caller below sizes it
+// generously.
+static void
+format_ipv4_port(char *buf, size_t cap, const struct sockaddr_in *address)
+{
+    uint32_t host_address = ntohl(address->sin_addr.s_addr);
+    uint16_t host_port    = ntohs(address->sin_port);
+
+    snprintf(buf, cap, "%u.%u.%u.%u:%u", (unsigned) ((host_address >> 24) & 0xFFu), (unsigned) ((host_address >> 16) & 0xFFu),
+        (unsigned) ((host_address >> 8) & 0xFFu), (unsigned) (host_address & 0xFFu), (unsigned) host_port);
+}
+
+/**
+ * Render a UDP session's endpoints, pin state and command-response
+ * correlation state. The socket handle and the mutex are omitted: neither is
+ * meaningful in a log line.
+ * \copydetails katherine_tpx3_coord_snprint
+ */
+int
+katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v)
+{
+    char local[24];
+    char remote[24];
+    size_t off = 0;
+
+    format_ipv4_port(local, sizeof(local), &v->address_local);
+    format_ipv4_port(remote, sizeof(remote), &v->address_remote);
+
+    REPR_APPENDF(buf, cap, off, "udp{local: %s, remote: %s, pinned: %s, last_os_error: %d}", local, remote,
+        katherine_str_bool(v->remote_pinned), v->last_os_error);
+    return (int) off;
 }
