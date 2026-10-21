@@ -543,15 +543,15 @@ def check_discovery(tap, katherine):
     tap.check_eq('DISCOVER_MIN_PORT is the firmware\'s floor',
                  katherine.DISCOVER_MIN_PORT, 32)
 
-    found = katherine.discover('udp://127.0.0.1', 42700, 50)
+    found = katherine.discover_udp('udp://127.0.0.1', 42700, 50)
     tap.check_eq('discovering nothing returns nothing', found, [])
 
     tap.check_raises('discovery rejects no room for an answer', ValueError,
-                     katherine.discover, '127.0.0.1', 42700, 50, 0)
+                     katherine.discover_udp, '127.0.0.1', 42700, 50, 0)
     # ValueError rather than OSError: the library refuses the argument before
     # a socket is involved, and check_return_code maps that to ValueError.
     tap.check_raises('discovery rejects a reply port the firmware would ignore',
-                     ValueError, katherine.discover, '127.0.0.1', 31, 50)
+                     ValueError, katherine.discover_udp, '127.0.0.1', 31, 50)
 
 
 def check_usb_discovery(tap, katherine):

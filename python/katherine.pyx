@@ -88,7 +88,7 @@ DISCOVER_MIN_PORT = cdevice.KATHERINE_DISCOVER_MIN_PORT
 
 
 IF KATHERINE_FEATURE_UDP:
-    def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
+    def discover_udp(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
         """Ask every readout reachable at an address to identify itself.
 
         One echo-chip-id command, then whatever answers arrive until the
@@ -127,7 +127,7 @@ IF KATHERINE_FEATURE_USB:
 
         Nothing is opened: the walk reads descriptors and topology only, so
         it works before a udev rule grants access. That is the difference
-        from discover(), which has to put a datagram on the wire.
+        from discover_udp(), which has to put a datagram on the wire.
 
         Returns (address, legacy) pairs, one per readout attached. Each
         address names its link -- "usb://2-3" -- so one can be passed
