@@ -320,7 +320,7 @@ test_the_factories_open_both_transports(void)
     KT_REQUIRE(katherine_transport_init_for_control(HOST_LOCAL_ADDRESS, true, &control) == KATHERINE_E_OK);
 
     uint16_t control_port = 0;
-    KT_REQUIRE(katherine_udp_transport_bound_port(&control, &control_port) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_udp_bound_port(&control, &control_port) == KATHERINE_E_OK);
     KT_CHECK(control_port != 0);
     KT_CHECK(control_port != KATHERINE_UDP_CONTROL_PORT);
 
@@ -331,7 +331,7 @@ test_the_factories_open_both_transports(void)
     KT_CHECK_EQ(data.kind, KATHERINE_TRANSPORT_UDP);
 
     uint16_t data_port = 0;
-    KT_CHECK_EQ(katherine_udp_transport_bound_port(&data, &data_port), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_udp_bound_port(&data, &data_port), KATHERINE_E_OK);
     KT_CHECK(data_port != 0);
     KT_CHECK(data_port != control_port);
 
@@ -442,11 +442,11 @@ static void
 test_the_inflight_count_tolerates_nothing(void)
 {
     uint32_t inflight = 1;
-    KT_CHECK_EQ(katherine_usb_transport_get_inflight_transfers(NULL, &inflight), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_usb_get_inflight_transfers(NULL, &inflight), KATHERINE_E_INVAL);
 
     katherine_transport_t empty;
     memset(&empty, 0, sizeof(empty));
-    KT_CHECK_EQ(katherine_usb_transport_get_inflight_transfers(&empty, &inflight), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_usb_get_inflight_transfers(&empty, &inflight), KATHERINE_E_INVAL);
 }
 
 #endif /* KATHERINE_FEATURE_USB */

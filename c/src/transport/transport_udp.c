@@ -663,7 +663,7 @@ err_out:
  *   port space, which is every link but UDP.
  */
 katherine_error_t
-katherine_udp_transport_bound_port(const katherine_transport_t *transport, uint16_t *port)
+katherine_transport_udp_bound_port(const katherine_transport_t *transport, uint16_t *port)
 {
     katherine_error_t res;
 

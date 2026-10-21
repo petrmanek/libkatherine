@@ -138,10 +138,10 @@ KATHERINE_NOT_EXPORTED katherine_error_t
 katherine_usb_config_borrow_device(katherine_usb_config_t *config, const katherine_transport_t *from);
 
 KATHERINE_NOT_EXPORTED katherine_error_t
-katherine_usb_transport_get_framing_errors(const katherine_transport_t *transport, uint64_t *count);
+katherine_transport_usb_get_framing_errors(const katherine_transport_t *transport, uint64_t *count);
 
 KATHERINE_NOT_EXPORTED katherine_error_t
-katherine_usb_transport_get_inflight_transfers(const katherine_transport_t *transport, uint32_t *count);
+katherine_transport_usb_get_inflight_transfers(const katherine_transport_t *transport, uint32_t *count);
 
 
 #ifdef __cplusplus

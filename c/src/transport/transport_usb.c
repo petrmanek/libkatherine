@@ -94,7 +94,7 @@ struct katherine_transport_usb {
     enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
     bool owns_device;                        ///< True if this transport opened and claimed the readout, and so closes it.
-    uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_usb_transport_get_framing_errors().
+    uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_transport_usb_get_framing_errors().
 };
 
 /**
@@ -1621,7 +1621,7 @@ err_out:
  *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_usb_transport_get_inflight_transfers(const katherine_transport_t *transport, uint32_t *count)
+katherine_transport_usb_get_inflight_transfers(const katherine_transport_t *transport, uint32_t *count)
 {
     katherine_error_t res;
 
@@ -1662,7 +1662,7 @@ err_args:
  *   does not frame its stream, which is every link but USB.
  */
 katherine_error_t
-katherine_usb_transport_get_framing_errors(const katherine_transport_t *transport, uint64_t *count)
+katherine_transport_usb_get_framing_errors(const katherine_transport_t *transport, uint64_t *count)
 {
     katherine_error_t res;
 
