@@ -39,6 +39,7 @@ namespace katherine {
  */
 using discovered = katherine_discovered_t;
 
+#ifdef KATHERINE_FEATURE_UDP
 /**
  * Ask every readout reachable at an address to identify itself.
  *
@@ -81,6 +82,7 @@ discover(const std::string& address, uint16_t reply_port, std::chrono::duration<
     out.resize(count);
     return out;
 }
+#endif /* KATHERINE_FEATURE_UDP */
 
 class device {
     katherine_device_t dev_;

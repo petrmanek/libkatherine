@@ -113,6 +113,7 @@ typedef struct katherine_transport {
     uint64_t stray_command_responses;
 } katherine_transport_t;
 
+#ifdef KATHERINE_FEATURE_UDP
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 typedef struct katherine_udp katherine_udp_t;
 typedef struct katherine_udp_config katherine_udp_config_t;
@@ -120,6 +121,7 @@ typedef struct katherine_udp_config katherine_udp_config_t;
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_init_udp(katherine_transport_t *transport, const katherine_udp_config_t *config);
+#endif /* KATHERINE_FEATURE_UDP */
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count);
@@ -174,8 +176,10 @@ katherine_transport_fini(katherine_transport_t *transport);
  */
 #define KATHERINE_DISCOVER_MIN_PORT 32
 
+#ifdef KATHERINE_FEATURE_UDP
 KATHERINE_EXPORTED katherine_error_t
 katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count);
+#endif /* KATHERINE_FEATURE_UDP */
 
 #ifdef KATHERINE_FEATURE_USB
 KATHERINE_EXPORTED katherine_error_t

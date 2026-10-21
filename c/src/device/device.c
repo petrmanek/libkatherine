@@ -14,7 +14,9 @@
 #include <string.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
+#ifdef KATHERINE_FEATURE_UDP
 #include "../transport/udp.h"
+#endif
 #include <katherine/acquisition.h>
 #include <katherine/status.h>
 #include "../address.h"
@@ -23,10 +25,12 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef KATHERINE_FEATURE_UDP
 // What the legacy probe waits for an answer. Its own rather than a session's:
 // it runs before any transport exists, and what a broadcast probe should wait
 // is not what a command should.
 static const uint32_t DISCOVER_TIMEOUT = 100; // ms
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -194,6 +198,8 @@ err_kind:
     return res;
 }
 
+#ifdef KATHERINE_FEATURE_UDP
+
 // Tell the readout to answer on the ports the sessions actually got, which
 // is what frees the standard pair for somebody else.
 static katherine_error_t
@@ -241,6 +247,27 @@ restore_standard_ports(katherine_device_t *device)
     (void) katherine_cmd_change_udp_ports(&device->control_transport, KATHERINE_UDP_CONTROL_PORT, KATHERINE_UDP_DATA_PORT);
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 }
+
+#else
+
+// A build with no UDP transport has no ports to move off, and so none to put
+// back. Both helpers keep their signatures and do nothing, rather than one
+// of them disappearing and the other not.
+static katherine_error_t
+claim_private_ports(katherine_device_t *device)
+{
+    (void) device;
+
+    return KATHERINE_E_OK;
+}
+
+static void
+restore_standard_ports(katherine_device_t *device)
+{
+    (void) device;
+}
+
+#endif /* KATHERINE_FEATURE_UDP */
 
 /**
  * Initialize Katherine device.
@@ -298,9 +325,11 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     katherine_error_t res;
 
     // Ensure the pointer is zeroed and not garbage.
-    device->acquisition       = NULL;
+    device->acquisition = NULL;
+#ifdef KATHERINE_FEATURE_UDP
     device->udp_ports_changed = false;
     device->udp_data_port     = KATHERINE_UDP_DATA_PORT;
+#endif /* KATHERINE_FEATURE_UDP */
 
     // An acquisition opens its own link from this, after the caller's string
     // may be gone.
@@ -321,6 +350,7 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     if ((res = katherine_address_split(address, &kind, &host)) != KATHERINE_E_OK) {
         goto err_address;
     }
+
     // Before the main control and data channels are open, run a quick check that
     // determines whether a readout is a legacy firmware or not. This requires the
     // main control port to be 1555, which would clash with the default control
@@ -335,6 +365,7 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // readout that drops it.
     bool legacy = true;
 
+#ifdef KATHERINE_FEATURE_UDP
     if (kind == KATHERINE_TRANSPORT_UDP && (flags & KATHERINE_DEVICE_DONT_ENUMERATE) == 0) {
         katherine_discovered_t found;
         size_t count = 1;
@@ -348,6 +379,17 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // A firmware that ignores the reply port cannot be moved off the standard
     // pair, and a caller may have its own reason to stay there.
     const bool should_change_ports = kind == KATHERINE_TRANSPORT_UDP && (flags & KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS) == 0 && !legacy;
+#else
+    // Does not make sense to change ports in a no-UDP world.
+    const bool should_change_ports = false;
+#endif /* KATHERINE_FEATURE_UDP */
+
+#ifdef KATHERINE_FEATURE_USB
+    // All USB-capable devices trivially use modern firmware.
+    if (kind == KATHERINE_TRANSPORT_USB) {
+        legacy = false;
+    }
+#endif
 
     // Before katherine_device_enumerate() below, which is the first thing
     // here that takes the control lock.
@@ -362,7 +404,9 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
             goto err_ports;
         }
 
+#ifdef KATHERINE_FEATURE_UDP
         device->udp_ports_changed = true;
+#endif /* KATHERINE_FEATURE_UDP */
     }
 
     // 2. Gen2 answers orders of magnitude faster once it has been told which
@@ -380,7 +424,10 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         }
 
         // Propagate the result of the legacy check into the device info.
-        if (kind == KATHERINE_TRANSPORT_UDP) device->info.legacy = legacy;
+        // Written for every link, not just the one the probe runs on: a USB
+        // readout is never legacy, and saying so here is what makes that a
+        // statement rather than a field nobody assigned.
+        device->info.legacy = legacy;
     }
 
     return KATHERINE_E_OK;

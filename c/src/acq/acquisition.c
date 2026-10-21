@@ -313,7 +313,15 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // Opened here rather than with the device: nothing reads from one that is
     // not acquiring. A link claimed once is driven through the control
     // transport's claim, which is why that one outlives this.
-    res = katherine_transport_init_for_data(device->address, &device->control_transport, device->udp_data_port, &acq->data_transport);
+#ifdef KATHERINE_FEATURE_UDP
+    const uint16_t data_port = device->udp_data_port;
+
+#else
+    // No link with a port space was built in, so there is no number to name.
+    const uint16_t data_port = 0;
+#endif /* KATHERINE_FEATURE_UDP */
+
+    res = katherine_transport_init_for_data(device->address, &device->control_transport, data_port, &acq->data_transport);
     if (res) goto err_no_transport;
 
     acq->md_buffer_size = md_buffer_size;

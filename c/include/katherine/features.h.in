@@ -29,6 +29,9 @@
 // which is what lets a consumer reached through pkg-config, or through no
 // build system at all, see the same declarations the library has.
 
+/// Defined where the UDP transport was built; see katherine_transport_init_udp().
+#cmakedefine KATHERINE_FEATURE_UDP
+
 /// Defined where the USB transport was built; see katherine_transport_init_usb().
 #cmakedefine KATHERINE_FEATURE_USB
 

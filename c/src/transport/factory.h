@@ -19,7 +19,9 @@
 #include <katherine/error.h>
 #include <katherine/global.h>
 #include <katherine/transport.h>
+#ifdef KATHERINE_FEATURE_UDP
 #include "udp.h"
+#endif /* KATHERINE_FEATURE_UDP */
 
 #include "../address.h"
 
@@ -79,6 +81,11 @@ katherine_transport_init_for_control(const char *address, bool private_udp_ports
 {
     katherine_error_t res;
 
+#ifndef KATHERINE_FEATURE_UDP
+    // Only a link with a port space reads this, and none was built in.
+    (void) private_udp_ports;
+#endif /* KATHERINE_FEATURE_UDP */
+
     if (address == NULL || control == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_args;
@@ -93,6 +100,7 @@ katherine_transport_init_for_control(const char *address, bool private_udp_ports
     }
 
     switch (kind) {
+#ifdef KATHERINE_FEATURE_UDP
     case KATHERINE_TRANSPORT_UDP: {
         const katherine_udp_config_t session = {
             .local_port     = private_udp_ports ? 0 : KATHERINE_UDP_CONTROL_PORT,
@@ -105,6 +113,7 @@ katherine_transport_init_for_control(const char *address, bool private_udp_ports
         res = katherine_transport_init_udp(control, &session);
         break;
     }
+#endif /* KATHERINE_FEATURE_UDP */
 
 #ifdef KATHERINE_FEATURE_USB
     case KATHERINE_TRANSPORT_USB: {
@@ -168,6 +177,11 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
 {
     katherine_error_t res;
 
+#ifndef KATHERINE_FEATURE_UDP
+    // Only a link with a port space reads this, and none was built in.
+    (void) local_udp_port;
+#endif /* KATHERINE_FEATURE_UDP */
+
     if (address == NULL || control == NULL || data == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_args;
@@ -187,6 +201,7 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
     }
 
     switch (kind) {
+#ifdef KATHERINE_FEATURE_UDP
     case KATHERINE_TRANSPORT_UDP: {
         const katherine_udp_config_t session = {
             .local_port     = local_udp_port,
@@ -200,6 +215,7 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
         res = katherine_transport_init_udp(data, &session);
         break;
     }
+#endif /* KATHERINE_FEATURE_UDP */
 
 #ifdef KATHERINE_FEATURE_USB
     case KATHERINE_TRANSPORT_USB: {

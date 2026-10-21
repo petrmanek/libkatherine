@@ -105,15 +105,17 @@ katherine_device_derived_info_recognize(uint8_t hw_type);
 
 
 /**
- * An open connection to a readout: its two UDP sessions, what it reported
- * about itself, and what this library derives from that.
+ * An open connection to a readout: its communication channel, what it
+ * reported about itself, and what this library derives from that.
  */
 typedef struct katherine_device {
     char address[KATHERINE_DEVICE_ADDRESS_STR_SIZE]; ///< Address this device was opened with, which an acquisition opens its own link from.
     katherine_transport_t control_transport;         ///< Slow control channel, used to send commands and receive acknowledgements. Owned by the device.
 
+#ifdef KATHERINE_FEATURE_UDP
     uint16_t udp_data_port; ///< Port the readout was told to send measurement data to, which an acquisition binds. Valid only for udp:// transport.
     bool udp_ports_changed; ///< True where this device moved the readout off the standard UDP ports, so that katherine_device_fini() knows to put it back. Valid only for udp:// transport.
+#endif
 
     void *acquisition; ///< The acquisition measuring on this device, or NULL when none is. Opaque by design.
 

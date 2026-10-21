@@ -16,9 +16,6 @@ set(KATHERINE_SOURCES
     "src/repr.c"
     "src/device/status.c"
     "src/transport/transport.c"
-    "src/transport/udp_nix.c"
-    "src/transport/udp_transport.c"
-    "src/transport/udp_win.c"
     "src/version.c"
     "src/protocol/crd.h"
     "src/address.h"
@@ -28,7 +25,6 @@ set(KATHERINE_SOURCES
     "src/msleep.h"
     "src/monoclock.h"
     "src/mutex.h"
-    "src/transport/udp.h"
     "src/transport/factory.h"
     "src/protocol/md.h"
 )
@@ -64,6 +60,24 @@ if(KATHERINE_BUILD_EMULATOR)
     )
 endif()
 
+# Both transports are optional, and the library is useless without one, so
+# the configuration refuses a build with neither.
+if(NOT KATHERINE_BUILD_TRANSPORT_UDP AND NOT KATHERINE_BUILD_TRANSPORT_USB)
+    message(FATAL_ERROR "no transport selected: enable at least one of "
+                        "KATHERINE_BUILD_TRANSPORT_UDP or "
+                        "KATHERINE_BUILD_TRANSPORT_USB")
+endif()
+
+# The UDP transport, and the sockets it is the only user of.
+if(KATHERINE_BUILD_TRANSPORT_UDP)
+    list(APPEND KATHERINE_SOURCES
+        "src/transport/udp_nix.c"
+        "src/transport/udp_transport.c"
+        "src/transport/udp_win.c"
+        "src/transport/udp.h"
+    )
+endif()
+
 # The USB transport is optional: without libusb its source is not compiled.
 if(KATHERINE_BUILD_TRANSPORT_USB)
     list(APPEND KATHERINE_SOURCES
@@ -83,7 +97,9 @@ configure_file(include/katherine/version.h.in "${KATHERINE_VERSION_HEADER}" @ONL
 # library was built with however it found the headers.
 #
 # #cmakedefine tests a variable of the macro's own name, so each feature is
-# named here rather than read from its KATHERINE_BUILD_* option directly.
+# named here rather than read from its KATHERINE_BUILD_* option directly --
+# one line per transport, in the order the transports are listed everywhere.
+set(KATHERINE_FEATURE_UDP ${KATHERINE_BUILD_TRANSPORT_UDP})
 set(KATHERINE_FEATURE_USB ${KATHERINE_BUILD_TRANSPORT_USB})
 
 set(KATHERINE_FEATURES_HEADER "${KATHERINE_GENERATED_INCLUDE_DIR}/katherine/features.h")
@@ -130,8 +146,9 @@ target_include_directories(katherine
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-# On Windows, link to ws2_32
-if(WIN32 OR MINGW)
+# On Windows, link to ws2_32. Only the UDP transport calls a socket
+# function, so a build without it needs no Winsock.
+if((WIN32 OR MINGW) AND KATHERINE_BUILD_TRANSPORT_UDP)
   target_link_libraries(katherine PRIVATE ws2_32)
 endif()
 
@@ -175,7 +192,7 @@ target_include_directories(katherine_static
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-if(WIN32 OR MINGW)
+if((WIN32 OR MINGW) AND KATHERINE_BUILD_TRANSPORT_UDP)
   target_link_libraries(katherine_static PUBLIC ws2_32)
 endif()
 

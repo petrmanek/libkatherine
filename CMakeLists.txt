@@ -49,8 +49,27 @@ katherine_declare_feature(BUILD_DOXYGEN       "build API documentation" DEFAULT 
 katherine_declare_feature(BUILD_TESTS         "build unit tests"        DEFAULT ON)
 katherine_declare_feature(BUILD_BENCHMARKS    "build benchmark suite"   DEFAULT ON)
 katherine_declare_feature(BUILD_EMULATOR      "build protocol emulator" DEFAULT ON)
+katherine_declare_feature(BUILD_TRANSPORT_UDP "build UDP transport"     DEFAULT ON)
 katherine_declare_feature(BUILD_TRANSPORT_USB "build USB transport"     DEFAULT OFF AUTO_DETECTED)
 katherine_feature_summary()
+
+# What is built around the library, rather than the library itself, still
+# assumes the UDP transport: the emulator hosts the protocol on sockets, and
+# the examples and the test suite address readouts by host. Each is skipped
+# rather than failed, so that turning the transport off needs no other flag.
+# The Python binding is not among them: it drops the one wrapper that needs
+# the transport and is built either way.
+#
+# This is why a build without UDP currently has no tests. Gating the suite
+# per test, so the USB ones still run, is worth doing and is not done here.
+if(NOT KATHERINE_BUILD_TRANSPORT_UDP)
+    foreach(part EMULATOR EXAMPLES TESTS BENCHMARKS)
+        if(KATHERINE_BUILD_${part})
+            message(STATUS "katherine: skipping ${part}, which needs the UDP transport")
+            set(KATHERINE_BUILD_${part} OFF)
+        endif()
+    endforeach()
+endif()
 
 # The dialect this project's own binaries are built with. The guarded
 # defaults are the language floors themselves, so any newer standard can be
@@ -128,6 +147,7 @@ add_subdirectory(c)
 if(KATHERINE_BUILD_CXX)
     add_subdirectory(cxx)
 endif()
+
 
 if(KATHERINE_BUILD_PYTHON)
     add_subdirectory(python)

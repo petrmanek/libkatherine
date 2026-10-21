@@ -87,39 +87,39 @@ __version__ = cversion.katherine_version_string().decode('UTF-8')
 DISCOVER_MIN_PORT = ctransport.KATHERINE_DISCOVER_MIN_PORT
 
 
-def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
-    """Ask every readout reachable at an address to identify itself.
+IF KATHERINE_FEATURE_UDP:
+    def discover(address, uint16_t reply_port, uint32_t timeout_ms, size_t capacity=32):
+        """Ask every readout reachable at an address to identify itself.
 
-    One echo-chip-id command, then whatever answers arrive until the
-    timeout. Returns (address, legacy) pairs in the order they arrived,
-    where legacy is True for a firmware that ignored the reply port and
-    answered on the standard one; an empty list means nothing answered,
-    which is not an error. The reply port must be at least
-    DISCOVER_MIN_PORT and may not be the standard port.
+        One echo-chip-id command, then whatever answers arrive until the
+        timeout. Returns (address, legacy) pairs in the order they arrived,
+        where legacy is True for a firmware that ignored the reply port and
+        answered on the standard one; an empty list means nothing answered,
+        which is not an error. The reply port must be at least
+        DISCOVER_MIN_PORT and may not be the standard port.
 
-    Each address names its link -- "udp://192.168.1.42" -- so one can be
-    passed straight to Device(). The address asked may name its link too;
-    one without a scheme is a UDP address.
-    """
-    cdef bytes address_b = address.encode('UTF-8')
-    cdef ctransport.katherine_discovered_t *out
-    cdef size_t count = capacity
+        Each address names its link -- "udp://192.168.1.42" -- so one can be
+        passed straight to Device(). The address asked may name its link too;
+        one without a scheme is a UDP address.
+        """
+        cdef bytes address_b = address.encode('UTF-8')
+        cdef ctransport.katherine_discovered_t *out
+        cdef size_t count = capacity
 
-    if capacity == 0:
-        raise ValueError('capacity must be positive')
+        if capacity == 0:
+            raise ValueError('capacity must be positive')
 
-    out = <ctransport.katherine_discovered_t *> PyMem_Malloc(
-        capacity * sizeof(ctransport.katherine_discovered_t))
-    if out is NULL:
-        raise MemoryError()
+        out = <ctransport.katherine_discovered_t *> PyMem_Malloc(
+            capacity * sizeof(ctransport.katherine_discovered_t))
+        if out is NULL:
+            raise MemoryError()
 
-    try:
-        res = ctransport.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
-        check_return_code(res)
-        return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
-    finally:
-        PyMem_Free(out)
-
+        try:
+            res = ctransport.katherine_device_discover_udp(address_b, reply_port, timeout_ms, out, &count)
+            check_return_code(res)
+            return [(out[i].address.decode('UTF-8'), out[i].legacy) for i in range(count)]
+        finally:
+            PyMem_Free(out)
 
 def version():
     return cversion.katherine_version()

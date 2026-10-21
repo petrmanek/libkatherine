@@ -544,6 +544,10 @@ katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
     size_t off = 0;
     REPR_APPENDF(buf, cap, off, "device{address: \"%s\", control_transport: ", v->address);
     REPR_NEST(buf, cap, off, katherine_transport_snprint, &v->control_transport);
+#ifdef KATHERINE_FEATURE_UDP
     REPR_APPENDF(buf, cap, off, ", udp_data_port: %u}", (unsigned) v->udp_data_port);
+#else
+    REPR_APPENDF(buf, cap, off, "}");
+#endif /* KATHERINE_FEATURE_UDP */
     return (int) off;
 }
