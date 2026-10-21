@@ -329,7 +329,7 @@ err_submit:
  * \return KATHERINE_E_OK once every byte is on the bus.
  */
 static katherine_error_t
-usb_send_cmd(void *ctx, const void *data, size_t count)
+usb_t_send_cmd(void *ctx, const void *data, size_t count)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -363,7 +363,7 @@ err_write:
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_recv_crd(void *ctx, void *crd, size_t *len)
+usb_t_recv_crd(void *ctx, void *crd, size_t *len)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -392,7 +392,7 @@ err_read:
  * \return KATHERINE_E_OK once the endpoint is quiet.
  */
 static katherine_error_t
-usb_flush_incoming(void *ctx, uint32_t *discarded)
+usb_t_flush_incoming(void *ctx, uint32_t *discarded)
 {
     struct katherine_usb *u = ctx;
     uint8_t scratch[512];
@@ -421,7 +421,7 @@ usb_flush_incoming(void *ctx, uint32_t *discarded)
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_acquire_sync(void *ctx, void **buf, size_t *len)
+usb_t_acquire_data_buf_sync(void *ctx, void **buf, size_t *len)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -467,7 +467,7 @@ err_read:
  * \return KATHERINE_E_OK always.
  */
 static katherine_error_t
-usb_release_sync(void *ctx, void *buf)
+usb_t_release_data_buf_sync(void *ctx, void *buf)
 {
     (void) ctx;
     (void) buf;
@@ -486,7 +486,7 @@ usb_release_sync(void *ctx, void *buf)
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_acquire_async(void *ctx, void **buf, size_t *len)
+usb_t_acquire_data_buf_async(void *ctx, void **buf, size_t *len)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -585,7 +585,7 @@ err_lock:
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_release_async(void *ctx, void *buf)
+usb_t_release_data_buf_async(void *ctx, void *buf)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -624,7 +624,7 @@ usb_release_async(void *ctx, void *buf)
     return KATHERINE_E_OK;
 
 err_foreign:
-    // See usb_acquire_async(): an error is already on its way out.
+    // See usb_t_acquire_data_buf_async(): an error is already on its way out.
     if (held) (void) katherine_mutex_unlock(&u->lock);
 err_unlock:
 err_lock:
@@ -638,7 +638,7 @@ err_lock:
  * \return KATHERINE_E_OK always.
  */
 static katherine_error_t
-usb_set_timeout(void *ctx, uint32_t timeout_ms)
+usb_t_set_timeout(void *ctx, uint32_t timeout_ms)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -668,7 +668,7 @@ err_lock:
  * \return KATHERINE_E_OK always.
  */
 static katherine_error_t
-usb_get_dropped_input(void *ctx, uint64_t *count)
+usb_t_get_dropped_input(void *ctx, uint64_t *count)
 {
     (void) ctx;
     (void) count;
@@ -685,7 +685,7 @@ usb_get_dropped_input(void *ctx, uint64_t *count)
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_mutex_lock(void *ctx)
+usb_t_mutex_lock(void *ctx)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -699,12 +699,12 @@ err_lock:
 }
 
 /**
- * Release the lock usb_mutex_lock() took.
+ * Release the lock usb_t_mutex_lock() took.
  * \param ctx Link to unlock.
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_mutex_unlock(void *ctx)
+usb_t_mutex_unlock(void *ctx)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -723,7 +723,7 @@ err_unlock:
  * \return The code, or 0 if nothing failed.
  */
 static int
-usb_get_last_os_error(void *ctx)
+usb_t_get_last_os_error(void *ctx)
 {
     struct katherine_usb *u = ctx;
 
@@ -811,7 +811,7 @@ drain_inflight(struct katherine_usb *u)
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
-usb_set_buffer_size(void *ctx, size_t size)
+usb_t_set_buffer_size(void *ctx, size_t size)
 {
     katherine_error_t res;
     struct katherine_usb *u = ctx;
@@ -903,7 +903,7 @@ err_size:
  * \param ctx Link to close.
  */
 static void
-usb_fini(void *ctx)
+usb_t_fini(void *ctx)
 {
     struct katherine_usb *u = ctx;
     if (u == NULL) return;
@@ -940,39 +940,39 @@ usb_fini(void *ctx)
 // carry is left out rather than stubbed: answering it would make that answer
 // one every command in the library could return, and so would have to document.
 static const katherine_transport_ops_t usb_ops_messages = {
-    .send_cmd          = usb_send_cmd,
-    .recv_crd          = usb_recv_crd,
-    .flush_incoming    = usb_flush_incoming,
-    .set_timeout       = usb_set_timeout,
-    .get_dropped_input = usb_get_dropped_input,
-    .mutex_lock        = usb_mutex_lock,
-    .mutex_unlock      = usb_mutex_unlock,
-    .get_last_os_error = usb_get_last_os_error,
-    .fini              = usb_fini,
+    .send_cmd          = usb_t_send_cmd,
+    .recv_crd          = usb_t_recv_crd,
+    .flush_incoming    = usb_t_flush_incoming,
+    .set_timeout       = usb_t_set_timeout,
+    .get_dropped_input = usb_t_get_dropped_input,
+    .mutex_lock        = usb_t_mutex_lock,
+    .mutex_unlock      = usb_t_mutex_unlock,
+    .get_last_os_error = usb_t_get_last_os_error,
+    .fini              = usb_t_fini,
 };
 
 static const katherine_transport_ops_t usb_ops_stream_sync = {
-    .acquire_data_buf  = usb_acquire_sync,
-    .release_data_buf  = usb_release_sync,
-    .set_timeout       = usb_set_timeout,
-    .set_buffer_size   = usb_set_buffer_size,
-    .get_dropped_input = usb_get_dropped_input,
-    .mutex_lock        = usb_mutex_lock,
-    .mutex_unlock      = usb_mutex_unlock,
-    .get_last_os_error = usb_get_last_os_error,
-    .fini              = usb_fini,
+    .acquire_data_buf  = usb_t_acquire_data_buf_sync,
+    .release_data_buf  = usb_t_release_data_buf_sync,
+    .set_timeout       = usb_t_set_timeout,
+    .set_buffer_size   = usb_t_set_buffer_size,
+    .get_dropped_input = usb_t_get_dropped_input,
+    .mutex_lock        = usb_t_mutex_lock,
+    .mutex_unlock      = usb_t_mutex_unlock,
+    .get_last_os_error = usb_t_get_last_os_error,
+    .fini              = usb_t_fini,
 };
 
 static const katherine_transport_ops_t usb_ops_stream_async = {
-    .acquire_data_buf  = usb_acquire_async,
-    .release_data_buf  = usb_release_async,
-    .set_timeout       = usb_set_timeout,
-    .set_buffer_size   = usb_set_buffer_size,
-    .get_dropped_input = usb_get_dropped_input,
-    .mutex_lock        = usb_mutex_lock,
-    .mutex_unlock      = usb_mutex_unlock,
-    .get_last_os_error = usb_get_last_os_error,
-    .fini              = usb_fini,
+    .acquire_data_buf  = usb_t_acquire_data_buf_async,
+    .release_data_buf  = usb_t_release_data_buf_async,
+    .set_timeout       = usb_t_set_timeout,
+    .set_buffer_size   = usb_t_set_buffer_size,
+    .get_dropped_input = usb_t_get_dropped_input,
+    .mutex_lock        = usb_t_mutex_lock,
+    .mutex_unlock      = usb_t_mutex_unlock,
+    .get_last_os_error = usb_t_get_last_os_error,
+    .fini              = usb_t_fini,
 };
 
 // ------------------------------------------------------------------
@@ -1449,7 +1449,7 @@ err_submit:
     if (u->slots != NULL) drain_inflight(u);
 err_buffers:
     // Before the handle and the context go: libusb_free_transfer() reads the
-    // transfer's handle and takes the context lock. usb_fini() does the same.
+    // transfer's handle and takes the context lock. usb_t_fini() does the same.
     for (uint32_t i = 0; u->slots != NULL && i < slots; ++i) {
         if (u->slots[i].xfer != NULL) libusb_free_transfer(u->slots[i].xfer);
         free(u->slots[i].buf);
