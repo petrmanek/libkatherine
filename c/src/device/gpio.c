@@ -165,13 +165,13 @@ gpio_terminable(const katherine_device_t *device, unsigned channel)
  *   declared, so its channel count is unknown.
  * \retval KATHERINE_E_INVAL if a mapping is outside the enumeration, or a
  *   channel without a connector is to be terminated, or the control link
- *   rejected an argument; see katherine_transport_last_os_error().
+ *   rejected an argument; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge a write
  *   within the control link's receive timeout, which is the answer while an
  *   acquisition is armed or running.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while
@@ -180,7 +180,7 @@ gpio_terminable(const katherine_device_t *device, unsigned channel)
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_config_t *config)
@@ -276,13 +276,13 @@ err_enumerated:
  *   declared, so its channel count is unknown.
  * \retval KATHERINE_E_INVAL if a role is outside the enumeration, or the
  *   control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
  *   control link's receive timeout, which is the answer while an acquisition
  *   is armed or running.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if the acknowledgement never arrived while
@@ -291,7 +291,7 @@ err_enumerated:
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if the send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_gpio_config_t *config)
@@ -367,18 +367,18 @@ err_enumerated:
  *   is armed or running.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response, or answered for another register.
  * \retval KATHERINE_E_STRAY if an answer never arrived while responses to
  *   other commands kept coming.
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state)

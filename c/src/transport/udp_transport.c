@@ -194,7 +194,7 @@ udp_t_mutex_unlock(void *ctx)
 
 
 static int
-udp_t_last_os_error(void *ctx)
+udp_t_get_last_os_error(void *ctx)
 {
     struct udp_transport *t = ctx;
 
@@ -259,7 +259,7 @@ static const katherine_transport_ops_t udp_ops = {
     .get_dropped_input = udp_t_get_dropped_input,
     .mutex_lock        = udp_t_mutex_lock,
     .mutex_unlock      = udp_t_mutex_unlock,
-    .last_os_error     = udp_t_last_os_error,
+    .get_last_os_error = udp_t_get_last_os_error,
     .fini              = udp_t_fini,
 };
 
@@ -282,13 +282,13 @@ static const katherine_transport_ops_t udp_ops = {
  * \retval KATHERINE_E_IO if opening the socket, sizing its receive queue or
  *   reading back the port it was given failed at the OS level for a reason
  *   none of the other codes name; see socket(2), setsockopt(2) and
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if one of those calls reported that it would
  *   have blocked, which this backend renders as a timeout whatever raised it;
- *   see katherine_transport_last_os_error() for the errno itself.
+ *   see katherine_transport_get_last_os_error() for the errno itself.
  * \retval KATHERINE_E_SYSTEM if the session's lock could not be created, or
  *   the socket failed for a reason outside the map; see
- *   pthread_mutex_init(3) and katherine_transport_last_os_error().
+ *   pthread_mutex_init(3) and katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_transport_init_udp(katherine_transport_t *transport, const katherine_udp_config_t *config)

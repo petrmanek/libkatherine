@@ -819,11 +819,11 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  *   timestamp at a guessed scale.
  * \retval KATHERINE_E_SYSTEM if the data link's lock, which the read holds for
  *   its whole duration, could not be taken; see
- *   katherine_transport_last_os_error(). That same lock failing with an errno
+ *   katherine_transport_get_last_os_error(). That same lock failing with an errno
  *   the transport maps specially is reported as KATHERINE_E_NOMEM,
  *   KATHERINE_E_INVAL or KATHERINE_E_TIMEOUT instead.
  * \retval KATHERINE_E_NOMEM if taking the data link's lock ran out of memory;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  *
  * \note The codes below are returned from the per-generation dispatch macros,
  *   which the error indexer cannot follow, so it reports them as unreachable:
@@ -891,14 +891,14 @@ err_unsupported:
  *   time stamping is not coherent, or a configuration value out of range, the
  *   test-pulse count, period and phase among them. Also reported if one of the
  *   configuration commands failed with an invalid argument at the OS level;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   configuration commands within the control link's receive timeout. Sending
  *   stops at the first such failure, so the device is left partly configured
  *   and not measuring.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a configuration command was answered by a
  *   response that was not exactly the fixed size the protocol defines.
  * \retval KATHERINE_E_STRAY if non-correlating responses kept arriving on the
@@ -906,12 +906,12 @@ err_unsupported:
  *   of a configuration command did.
  * \retval KATHERINE_E_IO if any of the control-plane sends or receives failed
  *   at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if taking the control link's lock, or any of the
  *   control-plane sends and receives, ran out of memory; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, or is one this version cannot drive. Refused here rather than at
  *   the first katherine_acquisition_read(), so a caller learns before the
@@ -1019,22 +1019,22 @@ err:
  *   it or that the measurement has ended.
  * \retval KATHERINE_E_IO if sending the stop command failed at the OS level
  *   for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if taking the control link's lock, or sending the
  *   stop command, reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if taking the control link's lock or sending the
- *   stop command ran out of memory; see katherine_transport_last_os_error().
+ *   stop command ran out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the control link's lock could not be taken
  *   for lack of a non-memory system resource -- never because the readout
  *   stayed silent, since this command carries no acknowledgement to wait for;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_acquisition_stop(katherine_acquisition_t *acq)
@@ -1078,22 +1078,22 @@ err:
  *   with nothing to end it and must be repeated.
  * \retval KATHERINE_E_IO if sending the stop command failed at the OS level
  *   for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if taking the control link's lock, or sending the
  *   stop command, reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if taking the control link's lock or sending the
- *   stop command ran out of memory; see katherine_transport_last_os_error().
+ *   stop command ran out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the control link's lock could not be taken
  *   for lack of a non-memory system resource -- never because the readout
  *   stayed silent, since this command carries no acknowledgement to wait for;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  *
  * Sends the same command as katherine_acquisition_stop() -- opcode 0x06 with
  * the read mode -- so neither is distinguishable from the other on the wire.

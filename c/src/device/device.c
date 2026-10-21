@@ -150,16 +150,16 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * \retval KATHERINE_E_UNSUPPORTED if the link this device was opened over has
  *   no encoding the readout would recognize.
  * \retval KATHERINE_E_INVAL if the send or the lock rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
- *   of the other codes cover; see katherine_transport_last_os_error().
+ *   of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_device_select_interface(katherine_device_t *device)
@@ -294,7 +294,7 @@ restore_standard_ports(katherine_device_t *device)
  *   options, or telling the readout which interface drives it failed at the OS
  *   level for a reason none of the other codes cover; see socket(2),
  *   setsockopt(2) and katherine_udp_last_os_error() for the sockets this call
- *   opens, and katherine_transport_last_os_error() for the command it sends.
+ *   opens, and katherine_transport_get_last_os_error() for the command it sends.
  * \retval KATHERINE_E_INVAL if opening the socket, setting its options, or
  *   initializing its mutex reported an invalid argument; see socket(2),
  *   setsockopt(2), pthread_mutex_init(3), and katherine_udp_last_os_error().
@@ -310,10 +310,10 @@ restore_standard_ports(katherine_device_t *device)
  *   not be initialized for lack of a non-memory system resource, or if telling
  *   the readout which interface drives it would have blocked; see
  *   pthread_mutex_init(3) and katherine_udp_last_os_error() for the mutex, and
- *   katherine_transport_last_os_error() for the command.
+ *   katherine_transport_get_last_os_error() for the command.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \note Unreachable here: KATHERINE_E_STATE.
  *   katherine_device_select_interface() returns it, but this call makes it
  *   only on a readout already known to be supported and of the second
@@ -544,23 +544,23 @@ err_info_null:
  *   link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the status reply was not exactly the fixed
  *   response size the protocol defines.
  * \retval KATHERINE_E_STRAY if non-correlating datagrams kept arriving until
  *   the discard budget ran out before the status reply did.
  * \retval KATHERINE_E_INVAL if sending the status request, receiving its
  *   reply, or taking the control link's lock reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the status request or receiving its reply
  *   failed at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the status request or receiving its
- *   reply ran out of memory; see katherine_transport_last_os_error(). Taking
+ *   reply ran out of memory; see katherine_transport_get_last_os_error(). Taking
  *   the control link's lock cannot produce this through the UDP transport:
  *   pthread_mutex_lock(3) does not document ENOMEM.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_device_enumerate(katherine_device_t *device)

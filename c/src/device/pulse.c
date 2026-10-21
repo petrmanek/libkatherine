@@ -89,12 +89,12 @@ katherine_pulse_source_str(katherine_pulse_source_t source)
  *   enumeration, a length or a delay is negative, not a number or longer than
  *   the readout can hold, an oscillator rate is one it cannot stand in at, or
  *   the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge a write
  *   within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while
@@ -103,7 +103,7 @@ katherine_pulse_source_str(katherine_pulse_source_t source)
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_config_t *config)
@@ -254,18 +254,18 @@ err_enumerated:
  *   control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if an answer never arrived while responses to
  *   other commands kept coming.
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse_counts_t *counts)
@@ -335,18 +335,18 @@ err_enumerated:
  *   within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
  *   response.
  * \retval KATHERINE_E_STRAY if an answer never arrived while responses to
  *   other commands kept coming.
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_reset_pulse_generator_counts(katherine_device_t *device)

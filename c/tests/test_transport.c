@@ -293,7 +293,7 @@ test_the_os_error_comes_through(void)
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
-    KT_CHECK_EQ(katherine_transport_last_os_error(&t), 0);
+    KT_CHECK_EQ(katherine_transport_get_last_os_error(&t), 0);
 
     const size_t oversized = 200000;
     char *payload          = (char *) calloc(1, oversized);
@@ -301,7 +301,7 @@ test_the_os_error_comes_through(void)
     KT_CHECK(katherine_transport_send_cmd(&t, payload, oversized) != KATHERINE_E_OK);
     free(payload);
 
-    KT_CHECK(katherine_transport_last_os_error(&t) != 0);
+    KT_CHECK(katherine_transport_get_last_os_error(&t) != 0);
 
     katherine_transport_fini(&t);
 }

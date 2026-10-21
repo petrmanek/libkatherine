@@ -238,7 +238,7 @@ expect_link_quiet(katherine_transport_t *t)
     size_t count = sizeof(buf);
 
     KT_CHECK_EQ(katherine_transport_recv_crd(t, buf, &count), KATHERINE_E_TIMEOUT);
-    KT_CHECK_EQ(katherine_transport_last_os_error(t), 0);
+    KT_CHECK_EQ(katherine_transport_get_last_os_error(t), 0);
 }
 
 // ------------------------------------------------------------------

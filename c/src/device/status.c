@@ -31,21 +31,21 @@
  *   hosts kept arriving until the pinned session's discard budget ran out.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
  *   kept arriving until the discard budget ran out before this one's did.
  * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
  *   status request, or receiving its reply reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the status request or receiving its reply
  *   failed at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the status request or receiving its
- *   reply ran out of memory; see katherine_transport_last_os_error().
+ *   reply ran out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status)
@@ -95,21 +95,21 @@ err:
  *   ran out.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
  *   kept arriving until the discard budget ran out before this one's did.
  * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
  *   request, or receiving its reply reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
  *   at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
- *   out of memory; see katherine_transport_last_os_error().
+ *   out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status)
@@ -179,7 +179,7 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
  *   discard budget ran out.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -192,14 +192,14 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
  *   comment at the check.
  * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
  *   request, or receiving its reply reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
  *   at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
- *   out of memory; see katherine_transport_last_os_error().
+ *   out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
@@ -265,21 +265,21 @@ err:
  *   out.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
  *   kept arriving until the discard budget ran out before this one's did.
  * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
  *   request, or receiving its reply reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
  *   at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
- *   out of memory; see katherine_transport_last_os_error().
+ *   out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_readout_temperature(katherine_device_t *device, float *temperature)
@@ -340,21 +340,21 @@ err:
  *   out.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
  *   kept arriving until the discard budget ran out before this one's did.
  * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
  *   request, or receiving its reply reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
  *   at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
- *   out of memory; see katherine_transport_last_os_error().
+ *   out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
@@ -419,21 +419,21 @@ err_busy:
  *   hosts kept arriving until the pinned session's discard budget ran out.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
  *   kept arriving until the discard budget ran out before this one's did.
  * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
  *   request, or receiving its reply reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
  *   at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
- *   out of memory; see katherine_transport_last_os_error().
+ *   out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_tpx3_perform_digital_test(katherine_device_t *device)
@@ -487,7 +487,7 @@ err:
  *   out.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not exactly the
  *   KATHERINE_CMD_CRD_SIZE bytes the protocol fixes a command response at.
  * \retval KATHERINE_E_STRAY if responses identified as some other command's
@@ -495,14 +495,14 @@ err:
  * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
  *   request, or receiving its reply reported an invalid argument -- never for
  *   an out-of-range \p channel_id, which is not validated here; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
  *   at the OS level for a reason none of the other codes cover; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
- *   out of memory; see katherine_transport_last_os_error().
+ *   out of memory; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
@@ -546,20 +546,20 @@ err:
  *   link's receive timeout, or strays exhausted the discard budget.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
  * \retval KATHERINE_E_INVAL if \p bias_id is not one this readout provides, or
  *   if the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so how many bias supplies it has is unknown.
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
@@ -627,18 +627,18 @@ err_enumerated:
  *   acquisition dispatcher.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
  * \retval KATHERINE_E_INVAL if \p bias_id is not one this readout provides, or
  *   if the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *current)
@@ -726,12 +726,12 @@ err_enumerated:
  *   not what it could hold.
  * \retval KATHERINE_E_INVAL if the monitor is outside the enumeration, or if
  *   the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
  *   link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
@@ -739,7 +739,7 @@ err_enumerated:
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  * \see katherine_tpx3_dac_to_si
  */
 katherine_error_t
@@ -826,18 +826,18 @@ err_unsupported:
  *   the sequence, or did not start.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_BAD_CRD if an answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out, or if the session is in strict acknowledgement
  *   mode; see the note above.
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
  *   reason none of the other codes cover.
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  * \see katherine_tpx3_get_dac_monitor_voltage
  */
 katherine_error_t

@@ -40,13 +40,13 @@
  *   katherine_transport_set_timeout().
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the link failed at the OS level for a reason
- *   none of the other codes cover; see katherine_transport_last_os_error().
+ *   none of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the link rejected an argument of the
- *   transfer; see katherine_transport_last_os_error().
+ *   transfer; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count)
@@ -69,13 +69,13 @@ katherine_transport_send_cmd(katherine_transport_t *transport, const void *data,
  *   katherine_transport_set_timeout().
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the link failed at the OS level for a reason
- *   none of the other codes cover; see katherine_transport_last_os_error().
+ *   none of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the link rejected an argument of the
- *   transfer; see katherine_transport_last_os_error().
+ *   transfer; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t *len)
@@ -119,13 +119,13 @@ katherine_transport_flush_incoming(katherine_transport_t *transport)
  *   katherine_transport_set_timeout().
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_last_os_error().
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the link failed at the OS level for a reason
- *   none of the other codes cover; see katherine_transport_last_os_error().
+ *   none of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the link rejected an argument of the
- *   transfer; see katherine_transport_last_os_error().
+ *   transfer; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_STATE if the link has no read outstanding and cannot
  *   post one, so waiting could only ever time out. A transport that keeps a
  *   ring of reads going reports this when the whole of it has come back
@@ -133,7 +133,7 @@ katherine_transport_flush_incoming(katherine_transport_t *transport)
  *   state to be in.
  * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
  *   released, which a transport serializing its own access can report;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **buf, size_t *len)
@@ -150,7 +150,7 @@ katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **bu
  * \retval KATHERINE_E_INVAL if the buffer is not one this transport lent.
  * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
  *   released, which a transport serializing its own access can report;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  * \note Giving a buffer back does not put it back to work. A transport that
  *   keeps reads outstanding posts the next one when something asks for the
  *   next buffer, not here, so a submission's failures belong to
@@ -169,16 +169,16 @@ katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if the link rejected the limit; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if setting it failed at the OS level for a reason
- *   none of the other codes cover; see katherine_transport_last_os_error().
+ *   none of the other codes cover; see katherine_transport_get_last_os_error().
  *
  * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT, which
  *   reach this list only through the shared error map; neither setsockopt(2)
  *   nor its Winsock counterpart documents a condition mapping to them.
  * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
  *   released, which a transport serializing its own access can report;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms)
@@ -207,7 +207,7 @@ katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeo
  *   reports it unreachable until then, which is the honest state.
  * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
  *   released, which a transport serializing its own access can report;
- *   see katherine_transport_last_os_error().
+ *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t size)
@@ -245,9 +245,9 @@ katherine_transport_get_dropped_input(const katherine_transport_t *transport, ui
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if the link's lock was not in a lockable
  *   state, which on a session means one never opened or already
- *   finalized; see katherine_transport_last_os_error().
+ *   finalized; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason
- *   none of the other codes cover; see katherine_transport_last_os_error().
+ *   none of the other codes cover; see katherine_transport_get_last_os_error().
  * \note Unreachable through the UDP transport: KATHERINE_E_NOMEM and
  *   KATHERINE_E_TIMEOUT. pthread_mutex_lock(3) documents EBUSY, EDEADLK,
  *   EINVAL and EPERM and no more, so neither can arrive however the map
@@ -266,9 +266,9 @@ katherine_transport_mutex_lock(katherine_transport_t *transport)
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if the link's lock was not in a releasable
  *   state, which on a session means one never opened or already
- *   finalized; see katherine_transport_last_os_error().
+ *   finalized; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the lock could not be released for a reason
- *   none of the other codes cover; see katherine_transport_last_os_error().
+ *   none of the other codes cover; see katherine_transport_get_last_os_error().
  * \note Unreachable through the UDP transport: KATHERINE_E_NOMEM and
  *   KATHERINE_E_TIMEOUT. pthread_mutex_unlock(3) documents EBUSY, EDEADLK,
  *   EINVAL and EPERM and no more, so neither can arrive however the map
@@ -291,9 +291,9 @@ katherine_transport_mutex_unlock(katherine_transport_t *transport)
  * \return The code, or 0 where the transport has recorded none.
  */
 int
-katherine_transport_last_os_error(const katherine_transport_t *transport)
+katherine_transport_get_last_os_error(const katherine_transport_t *transport)
 {
-    return transport->ops->last_os_error(transport->ctx);
+    return transport->ops->get_last_os_error(transport->ctx);
 }
 
 /**

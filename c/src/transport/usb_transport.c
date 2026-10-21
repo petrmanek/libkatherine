@@ -99,7 +99,7 @@ struct katherine_usb {
     uint32_t ready_count; ///< How many of ready hold a slot.
     uint32_t inflight;    ///< Reads the bus has not answered yet.
 
-    int last_os_error;                       ///< What katherine_transport_last_os_error() reports: a libusb code, or an errno from a mutex.
+    int last_os_error;                       ///< What katherine_transport_get_last_os_error() reports: a libusb code, or an errno from a mutex.
     enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
     bool owns_device;                        ///< True if this transport opened and claimed the readout, and so closes it.
@@ -648,7 +648,7 @@ err_unlock:
 }
 
 static int
-usb_last_os_error(void *ctx)
+usb_get_last_os_error(void *ctx)
 {
     struct katherine_usb *u = ctx;
 
@@ -884,7 +884,7 @@ static const katherine_transport_ops_t usb_ops_messages = {
     .get_dropped_input = usb_get_dropped_input,
     .mutex_lock        = usb_mutex_lock,
     .mutex_unlock      = usb_mutex_unlock,
-    .last_os_error     = usb_last_os_error,
+    .get_last_os_error = usb_get_last_os_error,
     .fini              = usb_fini,
 };
 
@@ -896,7 +896,7 @@ static const katherine_transport_ops_t usb_ops_stream_sync = {
     .get_dropped_input = usb_get_dropped_input,
     .mutex_lock        = usb_mutex_lock,
     .mutex_unlock      = usb_mutex_unlock,
-    .last_os_error     = usb_last_os_error,
+    .get_last_os_error = usb_get_last_os_error,
     .fini              = usb_fini,
 };
 
@@ -908,7 +908,7 @@ static const katherine_transport_ops_t usb_ops_stream_async = {
     .get_dropped_input = usb_get_dropped_input,
     .mutex_lock        = usb_mutex_lock,
     .mutex_unlock      = usb_mutex_unlock,
-    .last_os_error     = usb_last_os_error,
+    .get_last_os_error = usb_get_last_os_error,
     .fini              = usb_fini,
 };
 
@@ -1216,10 +1216,10 @@ katherine_usb_config_default(void)
  *   vendor and product identifiers.
  * \retval KATHERINE_E_CLOSED if the interface the configuration names does
  *   not exist on the device, or the device went away between being opened
- *   and its interface being claimed; see katherine_transport_last_os_error()
+ *   and its interface being claimed; see katherine_transport_get_last_os_error()
  *   for the libusb code behind it.
  * \retval KATHERINE_E_IO if the device could not be opened or its interface
- *   claimed; see katherine_transport_last_os_error().
+ *   claimed; see katherine_transport_get_last_os_error().
  * \note Unreachable here: KATHERINE_E_TIMEOUT. The three calls in this
  *   function that reach the error mapper are libusb_init_context(),
  *   libusb_claim_interface() and libusb_submit_transfer(), and none of
@@ -1227,7 +1227,7 @@ katherine_usb_config_default(void)
  *   mapper, not through this caller.
  * \retval KATHERINE_E_SYSTEM if one of the ring's locks could not be created,
  *   taken or released; see pthread_mutex_init(3) and
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_transport_init_usb(katherine_transport_t *transport, const katherine_usb_config_t *config)
@@ -1534,7 +1534,7 @@ err_out:
  *   \a count is NULL.
  * \retval KATHERINE_E_SYSTEM if the ring's lock could not be taken or
  *   released; see pthread_mutex_lock(3) and
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
 katherine_usb_inflight(const katherine_transport_t *transport, uint32_t *count)

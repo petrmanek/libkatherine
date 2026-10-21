@@ -158,7 +158,7 @@ stream(const katherine_usb_config_t *config, uint64_t per_hit_ns, double seconds
             // printed beside it where there is one. On a bench that is the
             // difference between "permissions" and "wrong endpoint", which
             // otherwise read alike.
-            const int code = katherine_transport_last_os_error(&t);
+            const int code = katherine_transport_get_last_os_error(&t);
             if (code != 0) {
                 fprintf(stderr, "stream ended: %s (libusb: %s)\n", katherine_strerror(r),
                     libusb_strerror(code));
