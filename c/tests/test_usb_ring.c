@@ -659,6 +659,33 @@ test_padding_that_is_not_padding_is_counted(void)
     katherine_transport_fini(&t);
 }
 
+/* A caller that wants only the verdict, not the number, passes no storage for
+ * it. The call then still does its work -- the inflight count is read under
+ * the ring's lock either way -- and simply keeps nothing. */
+static void
+test_an_accessor_takes_no_storage_for_its_answer(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    katherine_transport_t t;
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(katherine_transport_usb_get_inflight_transfers(&t, NULL), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_usb_get_framing_errors(&t, NULL), KATHERINE_E_OK);
+
+    /* And the answer is unchanged for a caller that does want it. */
+    uint32_t inflight = 0;
+    uint64_t framing  = 1;
+    KT_CHECK_EQ(katherine_transport_usb_get_inflight_transfers(&t, &inflight), KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_usb_get_framing_errors(&t, &framing), KATHERINE_E_OK);
+    KT_CHECK_EQ(inflight, (uint32_t) RING);
+    KT_CHECK_EQ(framing, (uint64_t) 0);
+
+    katherine_transport_fini(&t);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -683,6 +710,7 @@ main(void)
     KT_RUN(test_the_bridge_padding_and_filler_are_stripped);
     KT_RUN(test_a_short_read_does_not_shift_the_next);
     KT_RUN(test_padding_that_is_not_padding_is_counted);
+    KT_RUN(test_an_accessor_takes_no_storage_for_its_answer);
     KT_RUN(test_the_control_factory_opens_a_usb_address);
     KT_RUN(test_the_data_factory_adopts_the_control_transport);
 

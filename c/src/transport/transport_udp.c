@@ -652,7 +652,8 @@ err_out:
 /**
  * The local port a UDP transport's session is bound to.
  * \param transport Transport to ask, open on the UDP link.
- * \param port Storage for the port, in host byte order.
+ * \param port Storage for the port, in host byte order, or NULL to ask only
+ *   whether the link has one.
  *
  * Off the generic interface because no other link has a port space, and an
  * operation only one backend can answer does not belong in a table every
@@ -674,7 +675,9 @@ katherine_transport_udp_bound_port(const katherine_transport_t *transport, uint1
 
     const katherine_transport_udp_t *t = transport->ctx;
 
-    *port = ntohs(t->udp.address_local.sin_port);
+    if (port != NULL) {
+        *port = ntohs(t->udp.address_local.sin_port);
+    }
 
     return KATHERINE_E_OK;
 

@@ -1611,11 +1611,11 @@ err_out:
 /**
  * Reads outstanding on the measurement-data endpoint.
  * \param transport Transport to ask.
- * \param count Reads outstanding, zero for a synchronous transport.
+ * \param count Reads outstanding, zero for a synchronous transport, or NULL
+ *   to take the lock and read without keeping the answer.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if \a transport is not an open transport, or
- *   \a count is NULL.
+ * \retval KATHERINE_E_INVAL if \a transport is not an open transport.
  * \retval KATHERINE_E_SYSTEM if the ring's lock could not be taken or
  *   released; see pthread_mutex_lock(3) and
  *   katherine_transport_get_last_os_error().
@@ -1625,7 +1625,7 @@ katherine_transport_usb_get_inflight_transfers(const katherine_transport_t *tran
 {
     katherine_error_t res;
 
-    if (transport == NULL || transport->ctx == NULL || count == NULL) {
+    if (transport == NULL || transport->ctx == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_args;
     }
@@ -1634,9 +1634,13 @@ katherine_transport_usb_get_inflight_transfers(const katherine_transport_t *tran
 
     if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_lock;
 
-    *count = u->inflight;
+    const uint32_t inflight = u->inflight;
 
     if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_unlock;
+
+    if (count != NULL) {
+        *count = inflight;
+    }
 
     return KATHERINE_E_OK;
 
@@ -1651,7 +1655,8 @@ err_args:
 /**
  * Data frames whose padding was not the four zero bytes it must be.
  * \param transport Transport to ask, open on the USB link.
- * \param count Storage for the running total.
+ * \param count Storage for the running total, or NULL to ask only whether the
+ *   link is one that counts them.
  *
  * Nonzero means a read did not begin where a data frame does, so words are
  * being read shifted. Off the generic interface because only this link
@@ -1673,7 +1678,9 @@ katherine_transport_usb_get_framing_errors(const katherine_transport_t *transpor
 
     const katherine_transport_usb_t *u = transport->ctx;
 
-    *count = u->framing_errors;
+    if (count != NULL) {
+        *count = u->framing_errors;
+    }
 
     return KATHERINE_E_OK;
 
