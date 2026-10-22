@@ -42,3 +42,11 @@ target_link_libraries(kinfoxx PRIVATE katherinexx)
 target_compile_options(kinfoxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(kinfoxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 katherine_target_warnings(kinfoxx)
+
+add_executable(kdacxx kdacxx.cpp)
+target_link_libraries(kdacxx PRIVATE katherinexx)
+# See the kfindxx target above: same /EHsc and single-threaded
+# katherine::error requirements.
+target_compile_options(kdacxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
+target_compile_definitions(kdacxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+katherine_target_warnings(kdacxx)

@@ -166,6 +166,22 @@ public:
     {
         return dev_.control_transport.stray_command_responses;
     }
+    /// What the readout said it is. Zeroed until it has answered, and
+    /// constructing a device succeeds either way, the enumeration inside it
+    /// being best-effort.
+    const katherine_device_info_t& info() const
+    {
+        return dev_.info;
+    }
+
+    /// What this library derives from katherine_device_info_t. Its
+    /// `supported` member is also how a caller learns the readout never
+    /// answered.
+    const katherine_device_derived_info_t& derived_info() const
+    {
+        return dev_.derived_info;
+    }
+
     // Always false for now: this asks the readout, not a hardware-type table,
     // because the answer also depends on firmware; wiring up the real query
     // is future work. See katherine_device_can_correct_timestamp_phase().
@@ -555,7 +571,32 @@ public:
     void
     set_dacs(const katherine::tpx3::dacs& dacs)
     {
-        int res = katherine_tpx3_set_dacs(&dev_, 0, &dacs);
+        set_dacs(0, dacs);
+    }
+
+    /// Writes the whole DAC block to one chip of the readout.
+    void
+    set_dacs(std::uint8_t chip_index, const katherine::tpx3::dacs& dacs)
+    {
+        int res = katherine_tpx3_set_dacs(&dev_, chip_index, &dacs);
+
+        if (res != 0) {
+            throw katherine::system_error{res};
+        }
+    }
+
+    /// Writes one DAC of chip zero, leaving the other seventeen alone.
+    void
+    set_dac(katherine_tpx3_dac_t dac, std::uint16_t value)
+    {
+        set_dac(0, dac, value);
+    }
+
+    /// Writes one DAC of one chip, leaving the other seventeen alone.
+    void
+    set_dac(std::uint8_t chip_index, katherine_tpx3_dac_t dac, std::uint16_t value)
+    {
+        int res = katherine_tpx3_set_dac(&dev_, chip_index, dac, value);
 
         if (res != 0) {
             throw katherine::system_error{res};
