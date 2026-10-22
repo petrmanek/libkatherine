@@ -358,7 +358,8 @@ err_enumerated:
  * only where the signal really repeats.
  *
  * \param device Katherine device
- * \param state Channel states to fill. Must not be NULL.
+ * \param state Channel states to fill, or NULL to make the reads and discard
+ *   what they returned
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
@@ -391,7 +392,9 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
         goto err_enumerated;
     }
 
-    memset(state, 0, sizeof(*state));
+    if (state != NULL) {
+        memset(state, 0, sizeof(*state));
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
@@ -408,22 +411,29 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
     const uint32_t timed  = word >> 28;
 
     for (uint8_t i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
-        state->channel[i].level = (levels & (1u << i)) != 0;
+        if (state != NULL) state->channel[i].level = (levels & (1u << i)) != 0;
 
         if (i >= KATHERINE_ACQ_UNIT_GPIO_TIMED_CHANNELS) continue;
 
         if ((timed & (1u << i)) == 0) {
-            state->channel[i].signal = KATHERINE_GPIO_MONITOR_SIGNAL_CONSTANT;
+            if (state != NULL) state->channel[i].signal = KATHERINE_GPIO_MONITOR_SIGNAL_CONSTANT;
             continue;
         }
 
-        state->channel[i].signal = KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC;
+        if (state != NULL) state->channel[i].signal = KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC;
 
-        res = katherine_cmd_acq_unit_read(&device->control_transport, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i), &state->channel[i].high_ticks);
+        uint32_t high_ticks, low_ticks;
+
+        res = katherine_cmd_acq_unit_read(&device->control_transport, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i), &high_ticks);
         if (res) goto err_ticks;
 
-        res = katherine_cmd_acq_unit_read(&device->control_transport, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i + 1), &state->channel[i].low_ticks);
+        res = katherine_cmd_acq_unit_read(&device->control_transport, (katherine_acq_unit_reg_t) (KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0 + 2 * i + 1), &low_ticks);
         if (res) goto err_ticks;
+
+        if (state != NULL) {
+            state->channel[i].high_ticks = high_ticks;
+            state->channel[i].low_ticks  = low_ticks;
+        }
     }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);

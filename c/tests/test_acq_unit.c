@@ -817,6 +817,37 @@ test_k_the_generator_reports_its_own_clock(void)
     katherine_transport_fini(&device.control_transport);
 }
 
+// A caller that wants the registers read but not the values passes NULL, and
+// every register is still read off the link: one left behind would be handed
+// to whichever command came next. The same contract katherine_get_tdc_counts()
+// has carried all along, and the transport accessors took in R14.
+static void
+test_a_null_out_parameter_discards_what_was_read(void)
+{
+    katherine_device_t device;
+    kthread_t thread;
+
+    memset(g_reg, 0, sizeof(g_reg));
+    g_reg[0x0A] = 1234;
+    g_reg[0x0B] = 5678;
+    g_reg[0x0C] = 42;
+    g_reg[0x0D] = 100;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 4);
+
+    KT_CHECK_EQ(katherine_get_pulse_generator_counts(&device, NULL), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+
+    // Four answers asked for, four taken. One left behind would be handed to
+    // whichever command came next, so the link has to be empty here.
+    uint8_t leftover[KATHERINE_CMD_CRD_SIZE];
+    size_t count = sizeof(leftover);
+    KT_CHECK_EQ(katherine_transport_recv_crd(&device.control_transport, leftover, &count), KATHERINE_E_TIMEOUT);
+
+    katherine_transport_fini(&device.control_transport);
+}
+
 // l) And the counter is reset by writing zero to the register it is read
 // from, which is why the call takes no value.
 static void
@@ -858,6 +889,7 @@ main(void)
     KT_RUN(test_i2_channels_the_generator_lacks_take_their_defaults);
     KT_RUN(test_j_the_generator_refuses_what_it_cannot_carry);
     KT_RUN(test_k_the_generator_reports_its_own_clock);
+    KT_RUN(test_a_null_out_parameter_discards_what_was_read);
     KT_RUN(test_l_the_edge_counter_is_reset_by_writing_zero);
 #ifdef KATHERINE_TEST_EMULATOR
     KT_RUN(test_g_the_emulated_unit_composes_the_level_register);

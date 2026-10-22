@@ -241,7 +241,8 @@ err_enumerated:
  * frequency of the generator's own clock.
  *
  * \param device Katherine device
- * \param counts Measurements to fill. Must not be NULL.
+ * \param counts Measurements to fill, or NULL to make the reads and discard
+ *   what they returned
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
@@ -293,7 +294,9 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
         goto err_generation;
     }
 
-    memset(counts, 0, sizeof(*counts));
+    if (counts != NULL) {
+        memset(counts, 0, sizeof(*counts));
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
@@ -305,10 +308,12 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
         if (res) goto err_read;
     }
 
-    counts->low_seconds  = (double) raw[0] * tick_ns * 1e-9;
-    counts->high_seconds = (double) raw[1] * tick_ns * 1e-9;
-    counts->rising_edges = raw[2];
-    counts->clock_mhz    = raw[3];
+    if (counts != NULL) {
+        counts->low_seconds  = (double) raw[0] * tick_ns * 1e-9;
+        counts->high_seconds = (double) raw[1] * tick_ns * 1e-9;
+        counts->rising_edges = raw[2];
+        counts->clock_mhz    = raw[3];
+    }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
