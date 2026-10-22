@@ -131,18 +131,19 @@ katherine_gpio_channel_duty_cycle(const katherine_gpio_channel_monitor_t *v)
     return (double) v->high_ticks / (double) period;
 }
 
-/**
- * Presence of a channel on this readout, and its ability to terminate one.
- * The two counts differ: not every channel reaches a connector.
- */
+/** Presence of a channel on this readout. */
 static bool
-gpio_present(const katherine_device_t *device, unsigned channel)
+gpio_present(const katherine_device_t *device, uint8_t channel)
 {
     return channel < device->derived_info.all_gpio_count;
 }
 
+/**
+ * Ability of a channel to terminate its line, which not every channel has:
+ * the two counts differ because not every channel reaches a connector.
+ */
 static bool
-gpio_terminable(const katherine_device_t *device, unsigned channel)
+gpio_terminable(const katherine_device_t *device, uint8_t channel)
 {
     return channel < device->derived_info.accessible_gpio_count;
 }
@@ -201,7 +202,7 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
     uint32_t terminations                  = 0;
     uint32_t mux[KATHERINE_MAX_GPIO_COUNT] = {0};
 
-    for (unsigned i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+    for (uint8_t i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
         const katherine_gpio_channel_config_t *ch = &config->channel[i];
 
         if (!gpio_present(device, i)) break;
@@ -224,7 +225,7 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
     low |= mux[1] << (16 + KATHERINE_ACQ_UNIT_GPIO_MUX_BITS);
 
     uint32_t high = 0;
-    for (unsigned i = 2; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+    for (uint8_t i = 2; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
         high |= mux[i] << ((i - 2) * KATHERINE_ACQ_UNIT_GPIO_MUX_BITS);
     }
 
@@ -305,7 +306,7 @@ katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_
 
     uint32_t word = 0;
 
-    for (unsigned i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+    for (uint8_t i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
         if (!gpio_present(device, i)) break;
 
         if (config->channel[i].ready > KATHERINE_GPIO_READY_WHEN_LOW) {
@@ -406,7 +407,7 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
     const uint32_t levels = word & 0xFFu;
     const uint32_t timed  = word >> 28;
 
-    for (unsigned i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+    for (uint8_t i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
         state->channel[i].level = (levels & (1u << i)) != 0;
 
         if (i >= KATHERINE_ACQ_UNIT_GPIO_TIMED_CHANNELS) continue;
