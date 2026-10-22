@@ -1091,8 +1091,8 @@ katherine_cmd_acq_unit_read(katherine_transport_t *transport, katherine_acq_unit
 
     if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != (uint8_t) reg) return KATHERINE_E_BAD_CRD;
 
-    const unsigned char *b = (const unsigned char *) crd;
-    *value                 = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+    const uint8_t *b = (const uint8_t *) crd;
+    *value           = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
 
     return KATHERINE_E_OK;
 }
@@ -1208,8 +1208,8 @@ katherine_cmd_pulse_generator_read(katherine_transport_t *transport, katherine_p
 
     if ((uint8_t) crd[KATHERINE_CMD_SUBIDX_BYTE] != reg) return KATHERINE_E_BAD_CRD;
 
-    const unsigned char *b = (const unsigned char *) crd;
-    *value                 = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+    const uint8_t *b = (const uint8_t *) crd;
+    *value           = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
 
     return KATHERINE_E_OK;
 }

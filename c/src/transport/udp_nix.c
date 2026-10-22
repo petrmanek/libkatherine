@@ -31,7 +31,7 @@
 
 #ifdef KATHERINE_DEBUG_UDP
 static inline void
-dump_buffer(const char *msg, const unsigned char *buf, size_t count)
+dump_buffer(const char *msg, const uint8_t *buf, size_t count)
 {
     printf("%-10s ", msg);
 

@@ -201,7 +201,7 @@ katherine1_set_no_frames(katherine_device_t *device, int no_frames)
 /** \legacy1{katherine_set_bias} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
+katherine1_set_bias(katherine_device_t *device, uint8_t bias_id, float bias_value)
 {
     return katherine1_map_result(katherine_set_bias(device, bias_id, bias_value));
 }
@@ -377,7 +377,7 @@ katherine1_perform_digital_test(katherine_device_t *device)
 /** \legacy1{katherine_get_adc_voltage} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
+katherine1_get_adc_voltage(katherine_device_t *device, uint8_t channel_id, float *voltage)
 {
     return katherine1_map_result(katherine_get_adc_voltage(device, channel_id, voltage));
 }

@@ -696,7 +696,7 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias_value)
+katherine_set_bias(katherine_device_t *device, uint8_t bias_id, float bias_value)
 {
     (void) bias_id;
 

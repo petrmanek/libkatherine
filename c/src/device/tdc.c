@@ -240,8 +240,8 @@ katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_M
 
         if (counts == NULL) continue;
 
-        const unsigned char *b = (const unsigned char *) crd;
-        counts[i]              = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+        const uint8_t *b = (const uint8_t *) crd;
+        counts[i]        = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
     }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);

@@ -167,8 +167,8 @@ katherine_tpx3_px_config_load_bmc_data(katherine_tpx3_px_config_t *px_config, co
     memset(&px_config->words, 0, 65536);
 
     int x, y;
-    uint32_t *dest           = (uint32_t *) px_config->words;
-    const unsigned char *src = (const unsigned char *) bmc->px_config;
+    uint32_t *dest     = (uint32_t *) px_config->words;
+    const uint8_t *src = (const uint8_t *) bmc->px_config;
 
     // Parse data from BMC format.
     for (int i = 0; i < 65536; ++i) {
@@ -271,14 +271,14 @@ katherine_tpx3_px_config_load_bpc_data(katherine_tpx3_px_config_t *px_config, co
     memset(&px_config->words, 0, 65536);
 
     int x, y;
-    uint32_t *dest           = (uint32_t *) px_config->words;
-    const unsigned char *src = (const unsigned char *) bpc->px_config;
-    unsigned char val;
+    uint32_t *dest     = (uint32_t *) px_config->words;
+    const uint8_t *src = (const uint8_t *) bpc->px_config;
+    uint8_t val;
 
     for (int i = 0; i < 65536; ++i) {
         y   = i / 256;
         x   = i % 256;
-        val = (unsigned char) ((src[i] & 0x21) | (reverse_nibble((uint8_t) ((src[i] & 0x1E) >> 1)) << 1));
+        val = (uint8_t) ((src[i] & 0x21) | (reverse_nibble((uint8_t) ((src[i] & 0x1E) >> 1)) << 1));
 
         y = 255 - y;
         dest[(64 * x) + (y >> 2)] |= (uint32_t) (val << (8 * (3 - (y % 4))));

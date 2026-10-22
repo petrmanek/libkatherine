@@ -531,7 +531,7 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, float *voltage)
+katherine_get_adc_voltage(katherine_device_t *device, uint8_t channel_id, float *voltage)
 {
     katherine_error_t res;
 

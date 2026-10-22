@@ -42,7 +42,7 @@ extern "C" {
 // }) katherine_tpx3_bmc_px_t;
 
 /// One pixel's settings in the BMC layout: the bitfield commented out above.
-typedef unsigned char katherine_tpx3_bmc_px_t;
+typedef uint8_t katherine_tpx3_bmc_px_t;
 
 /** A whole matrix in the BMC layout, one byte per pixel, as a BurdaMan .bmc file holds it. */
 typedef struct katherine_tpx3_bmc {
@@ -65,7 +65,7 @@ KATHERINE_EXPORTED int
 katherine_tpx3_px_config_snprint(char *buf, size_t cap, const katherine_tpx3_px_config_t *v);
 
 /// One pixel's settings in the BPC layout: the same bits as katherine_tpx3_bmc_px_t with the four threshold bits in the opposite order.
-typedef unsigned char katherine_tpx3_bpc_px_t;
+typedef uint8_t katherine_tpx3_bpc_px_t;
 
 /** A whole matrix in the BPC layout, one byte per pixel, as a Pixet .bpc file holds it. */
 typedef struct katherine_tpx3_bpc {

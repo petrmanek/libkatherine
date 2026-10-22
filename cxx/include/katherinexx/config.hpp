@@ -13,6 +13,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 
 #include <katherine/config.h>
 
@@ -112,8 +113,8 @@ public:
     void set_pixel_config(const katherine::px_config& pixel_config) { conf_.pixel_config = pixel_config; }
     void set_pixel_config(katherine::px_config&& pixel_config) { conf_.pixel_config = pixel_config; }
 
-    unsigned char bias_id() const { return conf_.bias_id; }
-    void set_bias_id(unsigned char val) { conf_.bias_id = val; }
+    std::uint8_t bias_id() const { return conf_.bias_id; }
+    void set_bias_id(std::uint8_t val) { conf_.bias_id = val; }
 
     // The trailing return type (rather than a C++14 deduced one) is what
     // keeps this header valid C++11.

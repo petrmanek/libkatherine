@@ -277,7 +277,7 @@ public:
     }
 
     float
-    adc_voltage(unsigned char channel_id)
+    adc_voltage(std::uint8_t channel_id)
     {
         float voltage;
         int res = katherine_get_adc_voltage(&dev_, channel_id, &voltage);
@@ -290,7 +290,7 @@ public:
     }
 
     float
-    bias(unsigned char bias_id)
+    bias(std::uint8_t bias_id)
     {
         float voltage;
         int res = katherine_get_bias(&dev_, bias_id, &voltage);
@@ -303,7 +303,7 @@ public:
     }
 
     float
-    bias_leakage(unsigned char bias_id)
+    bias_leakage(std::uint8_t bias_id)
     {
         float voltage;
         int res = katherine_get_bias_leakage(&dev_, bias_id, &voltage);
@@ -499,7 +499,7 @@ public:
     }
 
     void
-    set_bias(unsigned char bias_id, float bias_value)
+    set_bias(std::uint8_t bias_id, float bias_value)
     {
         int res = katherine_set_bias(&dev_, bias_id, bias_value);
 
