@@ -462,13 +462,14 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     { \
         static const int PIXEL_SIZE = sizeof(katherine_tpx3_px_##SUFFIX##_t); \
 \
-        int lock_res = katherine_transport_mutex_lock(&acq->data_transport); \
-        if (lock_res != 0) return lock_res; \
+        katherine_error_t lock_res = katherine_transport_mutex_lock(&acq->data_transport); \
+        if (lock_res != KATHERINE_E_OK) return lock_res; \
 \
         uint64_t last_data_received = katherine_clock_monotonic_ns(); \
         double duration; \
         double kill_off_time = acq->fail_timeout <= 0 ? -1 : acq->requested_frames * acq->requested_frame_duration + (double) acq->fail_timeout / 1000.0; \
-        int res; \
+        katherine_error_t res; \
+        katherine_error_t link_failure = KATHERINE_E_OK; \
 \
         size_t i; \
         size_t received; \
@@ -481,6 +482,17 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             res        = katherine_transport_acquire_data_buf(&acq->data_transport, &lent, &received); \
 \
             if (res) { \
+                /* A timeout is the stream being quiet, and the wait it cost \
+                   is what paces this loop. Any other code is the link \
+                   itself failing -- gone, or refusing to lend a buffer -- \
+                   which no number of retries can mend, and which on USB \
+                   returns at once, so retrying it is a spin. */ \
+                if (res != KATHERINE_E_TIMEOUT) { \
+                    link_failure = res; \
+                    acq->state   = KATHERINE_ACQUISITION_STATE_TIMED_OUT; \
+                    continue; \
+                } \
+\
                 duration = (double) (katherine_clock_monotonic_ns() - last_data_received) / 1000000.0; \
                 if (acq->report_timeout > 0 && duration > acq->report_timeout && acq->pixel_buffer_valid > 0) { \
                     flush_buffer(acq); \
@@ -538,6 +550,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
         } \
 \
         (void) katherine_transport_mutex_unlock(&acq->data_transport); \
+        /* What the link failed with, where it failed: more precise than the \
+           timeout the state alone can express, and the state is the one the \
+           caller already handles. */ \
+        if (link_failure != KATHERINE_E_OK) return link_failure; \
+\
         switch (acq->state) { \
         case KATHERINE_ACQUISITION_STATE_SUCCEEDED: return KATHERINE_E_OK; \
         case KATHERINE_ACQUISITION_STATE_TIMED_OUT: return KATHERINE_E_TIMEOUT; \

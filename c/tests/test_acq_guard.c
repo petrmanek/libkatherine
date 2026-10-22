@@ -212,6 +212,70 @@ test_aborting_an_unreachable_readout_still_ends_the_run(void)
 }
 
 
+// A data link that has gone away: every attempt to borrow a buffer fails at
+// once, as a USB ring does when the readout is unplugged. The count is the
+// point of the case -- a loop that retried such a link would call this
+// hundreds of thousands of times in a tenth of a second.
+static int g_gone_calls;
+
+static katherine_error_t
+stub_acquire_gone(void *ctx, void **buf, size_t *len)
+{
+    (void) ctx;
+    (void) buf;
+    (void) len;
+
+    ++g_gone_calls;
+    return KATHERINE_E_CLOSED;
+}
+
+static katherine_error_t
+stub_release(void *ctx, void *buf)
+{
+    (void) ctx;
+    (void) buf;
+    return KATHERINE_E_OK;
+}
+
+static const katherine_transport_ops_t stub_gone_data_ops = {
+    .acquire_data_buf = stub_acquire_gone,
+    .release_data_buf = stub_release,
+    .mutex_lock       = stub_lock,
+    .mutex_unlock     = stub_lock,
+};
+
+// A link that is gone is not a stream that is quiet: retrying it cannot mend
+// it, and on USB the attempt returns at once, so the read loop used to spin
+// at full speed for as long as fail_timeout allowed -- for ever, where that
+// was left at 0. One attempt is enough to know.
+static void
+test_a_failed_link_ends_the_read_instead_of_being_retried(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+    device.derived_info.supported = true;
+    device.derived_info.gen       = 2;
+
+    katherine_acquisition_t acq;
+    memset(&acq, 0, sizeof(acq));
+    acq.device                        = &device;
+    acq.state                         = KATHERINE_ACQUISITION_STATE_RUNNING;
+    acq.readout_mode                  = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+    acq.px_mode                       = KATHERINE_TPX3_PX_TOA_TOT;
+    acq.toa_coarse_tick_to_fine_shift = 4;
+    /* Bounded, so the behaviour this replaces ends the test rather than
+       hanging it. In the field this was commonly 0, where the old loop
+       had no exit at all. */
+    acq.fail_timeout        = 100;
+    acq.data_transport.ops  = &stub_gone_data_ops;
+    acq.data_transport.kind = KATHERINE_TRANSPORT_USB;
+
+    g_gone_calls = 0;
+    KT_CHECK_EQ(katherine_acquisition_read(&acq), KATHERINE_E_CLOSED);
+    KT_CHECK_EQ(g_gone_calls, 1);
+}
+
+
 int
 main(void)
 {
@@ -220,5 +284,6 @@ main(void)
     KT_RUN(test_failed_begin_leaves_the_device_idle);
     KT_RUN(test_fast_vco_refused_where_incoherent);
     KT_RUN(test_aborting_an_unreachable_readout_still_ends_the_run);
+    KT_RUN(test_a_failed_link_ends_the_read_instead_of_being_retried);
     return kt_summary();
 }
