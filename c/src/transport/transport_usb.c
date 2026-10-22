@@ -93,7 +93,7 @@ struct katherine_transport_usb {
     int last_os_error;                       ///< What katherine_transport_get_last_os_error() reports: a libusb code, or an errno from a mutex.
     enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
-    bool owns_device;                        ///< True if this transport opened and claimed the readout, and so closes it.
+    bool owns_device;                        ///< True if this transport opened the readout itself, and so tears down whichever of the context, handle and claim it got as far as. False where it adopted another transport's.
     uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_transport_usb_get_framing_errors().
 };
 
@@ -1372,6 +1372,12 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
         u->ctx    = config->ctx;
         u->handle = config->handle;
     } else {
+        // Set before the first step rather than after the last: the flag is
+        // what the error labels below test to decide whether to tear a step
+        // down, so it has to mean "this transport is the owner" from the
+        // moment it starts owning anything.
+        u->owns_device = true;
+
         // A private session, so that code elsewhere in the process handling
         // events on the default context cannot reach these transfers.
         int code = libusb_init_context(&u->ctx, NULL, 0);
@@ -1390,8 +1396,6 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
             res = map_usb_error(u, code);
             goto err_claim;
         }
-
-        u->owns_device = true;
     }
 
     for (uint32_t i = 0; wants_ring && i < slots; ++i) {

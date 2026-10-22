@@ -27,6 +27,8 @@ struct pending {
 static struct pending g_outstanding[FAKE_MAX_TRANSFERS];
 static int g_outstanding_count;
 static int g_submit_count;
+static int g_inits;
+static int g_exits;
 static int g_opens;
 static int g_closes;
 static int g_claims;
@@ -74,6 +76,8 @@ fake_usb_reset(void)
     g_bulk_code          = LIBUSB_SUCCESS;
     g_bulk_transferred   = 0;
     g_device_count       = 0;
+    g_inits              = 0;
+    g_exits              = 0;
     g_opens              = 0;
     g_closes             = 0;
     g_claims             = 0;
@@ -275,6 +279,7 @@ libusb_init_context(libusb_context **ctx, const struct libusb_init_option *optio
 {
     (void) options;
     (void) num;
+    ++g_inits;
     *ctx = (libusb_context *) &g_context_token;
     return LIBUSB_SUCCESS;
 }
@@ -283,6 +288,19 @@ void
 libusb_exit(libusb_context *ctx)
 {
     (void) ctx;
+    ++g_exits;
+}
+
+int
+fake_usb_inits(void)
+{
+    return g_inits;
+}
+
+int
+fake_usb_exits(void)
+{
+    return g_exits;
 }
 
 libusb_device_handle *

@@ -686,6 +686,47 @@ test_an_accessor_takes_no_storage_for_its_answer(void)
     katherine_transport_fini(&t);
 }
 
+/* Whatever an open got as far as, it gives back. factory.h promises that
+ * nothing is left open on failure, and the two ways an open fails leave
+ * different amounts standing: a device that is not there fails after the
+ * context exists, and a device whose interface is held fails after the handle
+ * is open too. Both are leaks that no test could see before, the stand-in
+ * having counted opens and closes but not contexts. */
+static void
+test_a_failed_open_gives_back_what_it_took(void)
+{
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+
+    /* Not there: the context was created, so it must be freed. */
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+    fake_usb_set_present(0);
+
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &config), KATHERINE_E_ADDRESS);
+    KT_CHECK_EQ(fake_usb_exits(), fake_usb_inits());
+    KT_CHECK_EQ(fake_usb_closes(), fake_usb_opens());
+
+    /* Held by another transport: the handle was opened as well, and the claim
+     * is the step that failed, so handle and context both come back. */
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t first;
+    KT_REQUIRE(katherine_transport_init_usb(&first, &config) == KATHERINE_E_OK);
+
+    const int inits_before  = fake_usb_inits();
+    const int opens_before  = fake_usb_opens();
+    const int exits_before  = fake_usb_exits();
+    const int closes_before = fake_usb_closes();
+
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &config), KATHERINE_E_IO);
+    KT_CHECK_EQ(fake_usb_inits() - inits_before, fake_usb_exits() - exits_before);
+    KT_CHECK_EQ(fake_usb_opens() - opens_before, fake_usb_closes() - closes_before);
+
+    katherine_transport_fini(&first);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -701,6 +742,7 @@ main(void)
     KT_RUN(test_a_failing_repost_is_reported);
     KT_RUN(test_the_synchronous_shape_reads_on_demand);
     KT_RUN(test_an_absent_device_is_reported);
+    KT_RUN(test_a_failed_open_gives_back_what_it_took);
     KT_RUN(test_a_ring_that_cannot_be_posted_unwinds);
     KT_RUN(test_opening_defines_every_field);
     KT_RUN(test_a_message_transport_lends_no_buffers);

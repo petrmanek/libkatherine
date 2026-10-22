@@ -199,7 +199,14 @@ fake_usb_fail_next_submit(int code);
 int
 fake_usb_submitted(void);
 
-/// Times the stand-in was asked to open, close, claim and release.
+/// Times the stand-in was asked to create and free a context, and to open,
+/// close, claim and release the device.
+int
+fake_usb_inits(void);
+
+int
+fake_usb_exits(void);
+
 int
 fake_usb_opens(void);
 
