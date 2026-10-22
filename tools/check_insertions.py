@@ -27,7 +27,17 @@ CODE = re.compile(r"^\s*\S")
 BLANK = re.compile(r"^\s*$")
 
 
+# A line that opens with a block comment and then carries code is code: the
+# designated-initializer annotations this tree uses (`/* .edge = */ VALUE,`)
+# and any statement beginning with a dereference (`*ctx = ...;`) both start
+# with a character the pattern above claims, and neither introduces what
+# follows it.
+CODE_AFTER_COMMENT = re.compile(r"^\s*(/\*.*\*/\s*\S|\*\s*\w[\w.\[\]()>-]*\s*(<<=|>>=|\+\+|--|[-+*/%&|^]?=|\)))")
+
+
 def looks_like_comment(line: str) -> bool:
+    if CODE_AFTER_COMMENT.match(line):
+        return False
     return bool(COMMENT_END.match(line))
 
 
