@@ -1059,16 +1059,17 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&acq->device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
-    if (res) goto err;
+    if (res) goto err_send;
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_send:
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+err_lock:
     return res;
 }
 
