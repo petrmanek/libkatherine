@@ -171,9 +171,9 @@ fill_config(katherine_tdc_config_t *config, bool include_fifth)
 {
     memset(config, 0, sizeof(*config));
 
-    config->channel[0].enabled          = true;
-    config->channel[0].source           = KATHERINE_TDC_SOURCE_GPIO_1;
-    config->channel[0].use_falling_edge = true;
+    config->channel[0].enabled = true;
+    config->channel[0].source  = KATHERINE_TDC_SOURCE_GPIO_1;
+    config->channel[0].edge    = KATHERINE_TRIGGER_EDGE_FALLING;
 
     config->channel[2].enabled = true;
     config->channel[2].source  = KATHERINE_TDC_SOURCE_CHIP_3_FEEDBACK;

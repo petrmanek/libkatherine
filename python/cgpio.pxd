@@ -9,6 +9,7 @@
 from libcpp cimport bool
 from libc.stdint cimport uint32_t
 from cdevice cimport katherine_device_t
+from cconfig cimport katherine_trigger_edge_t
 
 cdef extern from 'katherine/gpio.h':
     cdef int KATHERINE_MAX_GPIO_COUNT

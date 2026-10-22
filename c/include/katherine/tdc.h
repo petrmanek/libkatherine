@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
+#include <katherine/config.h>
 
 /**
  * \defgroup katherine_tdc Timing unit
@@ -66,7 +67,7 @@ typedef enum katherine_tdc_source {
 typedef struct katherine_tdc_channel_config {
     bool enabled;                  ///< True to timestamp edges on this channel.
     katherine_tdc_source_t source; ///< Signal source for timestamping. Not transmitted on the first generation, whose firmware has no field for it.
-    bool use_falling_edge;         ///< True to timestamp falling edges, false for rising ones.
+    katherine_trigger_edge_t edge; ///< Rising or falling edge of the source.
 } katherine_tdc_channel_config_t;
 
 /** Configuration of all timing channels in a readout. */

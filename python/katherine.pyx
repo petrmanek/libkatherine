@@ -363,14 +363,14 @@ class TdcChannelConfig:
     """One timing channel's setting. The source does not reach a
     first-generation readout, whose firmware has no field for it."""
 
-    def __init__(self, enabled=False, source=None, use_falling_edge=False):
+    def __init__(self, enabled=False, source=None, edge=None):
         self.enabled = enabled
         self.source = TdcSource.GPIO_0 if source is None else source
-        self.use_falling_edge = use_falling_edge
+        self.edge = TriggerEdge.RISING if edge is None else TriggerEdge(edge)
 
     def __repr__(self):
-        return 'TdcChannelConfig(enabled=%r, source=%s, use_falling_edge=%r)' % (
-            self.enabled, self.source, self.use_falling_edge)
+        return 'TdcChannelConfig(enabled=%r, source=%s, edge=%s)' % (
+            self.enabled, self.source, self.edge)
 
 
 cdef void _fill_gpio_config(cgpio.katherine_gpio_config_t *config, channels) except *:
@@ -392,7 +392,7 @@ cdef void _fill_tdc_config(ctdc.katherine_tdc_config_t *config, channels) except
     for i in range(len(channels)):
         config.channel[i].enabled = channels[i].enabled
         config.channel[i].source = channels[i].source.value
-        config.channel[i].use_falling_edge = channels[i].use_falling_edge
+        config.channel[i].edge = TriggerEdge(channels[i].edge).value
 
 
 cdef class GpioMonitor:

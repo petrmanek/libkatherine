@@ -8,6 +8,7 @@
 
 from libcpp cimport bool
 from libc.stdint cimport uint32_t
+from cconfig cimport katherine_trigger_edge_t
 from cdevice cimport katherine_device_t
 
 cdef extern from 'katherine/tdc.h':
@@ -26,7 +27,7 @@ cdef extern from 'katherine/tdc.h':
     ctypedef struct katherine_tdc_channel_config_t:
         bool enabled
         katherine_tdc_source_t source
-        bool use_falling_edge
+        katherine_trigger_edge_t edge
 
     ctypedef struct katherine_tdc_config_t:
         katherine_tdc_channel_config_t *channel

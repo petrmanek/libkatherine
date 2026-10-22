@@ -131,14 +131,14 @@ katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_
 
         for (uint8_t i = 0; i < have; ++i) {
             const uint32_t field = (uint32_t) config->channel[i].source
-                | (config->channel[i].use_falling_edge ? gen2_falling_edge : 0u);
+                | (config->channel[i].edge == KATHERINE_TRIGGER_EDGE_FALLING ? gen2_falling_edge : 0u);
             word |= field << (gen2_field_shift + i * gen2_field_bits);
         }
     } else {
         // Bit 3 of the enables selects the chip's own feedback. Not exposed,
         // its semantics being unestablished.
         for (uint8_t i = 0; i < have; ++i) {
-            if (config->channel[i].use_falling_edge) word |= UINT32_C(1) << (i + gen1_edge_shift);
+            if (config->channel[i].edge == KATHERINE_TRIGGER_EDGE_FALLING) word |= UINT32_C(1) << (i + gen1_edge_shift);
         }
     }
 
