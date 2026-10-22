@@ -26,3 +26,18 @@ target_link_libraries(kinfo PRIVATE katherine)
 # See the krun target above: same single-threaded strerror() usage.
 target_compile_definitions(kinfo PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 katherine_target_warnings(kinfo)
+
+add_executable(kdac kdac.c)
+target_link_libraries(kdac PRIVATE katherine)
+katherine_target_warnings(kdac)
+
+# kdac list needs no readout, so it is the one subcommand CI can cover. The
+# JSON form is checked rather than the table, being what the three
+# implementations are compared through.
+if(KATHERINE_BUILD_TESTS)
+    add_test(NAME test_kdac_list COMMAND kdac list --json)
+    set_tests_properties(test_kdac_list PROPERTIES
+        LABELS "unit"
+        PASS_REGULAR_EXPRESSION "\"name\":\"Vthreshold_fine\",\"max\":511"
+    )
+endif()
