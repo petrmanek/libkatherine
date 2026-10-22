@@ -21,6 +21,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <limits.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -727,6 +728,30 @@ test_a_failed_open_gives_back_what_it_took(void)
     katherine_transport_fini(&first);
 }
 
+/* A transfer's length is an int to libusb and a uint32_t in the ring, so a
+ * size past INT_MAX cannot be carried and is refused rather than stored as
+ * some other number. Zero is refused for the same reason it always was. */
+static void
+test_an_unreachable_buffer_size_is_refused(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, 0), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, (size_t) INT_MAX + 1), KATHERINE_E_INVAL);
+
+    /* And the ring still reads at the size it had. */
+    uint32_t inflight = 0;
+    KT_CHECK_EQ(katherine_transport_usb_get_inflight_transfers(&t, &inflight), KATHERINE_E_OK);
+    KT_CHECK_EQ(inflight, (uint32_t) RING);
+
+    katherine_transport_fini(&t);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -743,6 +768,7 @@ main(void)
     KT_RUN(test_the_synchronous_shape_reads_on_demand);
     KT_RUN(test_an_absent_device_is_reported);
     KT_RUN(test_a_failed_open_gives_back_what_it_took);
+    KT_RUN(test_an_unreachable_buffer_size_is_refused);
     KT_RUN(test_a_ring_that_cannot_be_posted_unwinds);
     KT_RUN(test_opening_defines_every_field);
     KT_RUN(test_a_message_transport_lends_no_buffers);

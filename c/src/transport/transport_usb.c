@@ -15,6 +15,7 @@
 #ifdef KATHERINE_FEATURE_USB
 
 #include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -809,8 +810,18 @@ drain_inflight(katherine_transport_usb_t *u)
  * Replacements are allocated before any original is given up, so running out
  * leaves the transport reading at the size it already had.
  * \param ctx Link to resize.
- * \param size Bytes one read is to carry.
- * \return KATHERINE_E_OK on success.
+ * \param size Bytes one read is to carry, at most INT_MAX.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if \a size is zero, or larger than the int a
+ *   libusb transfer's length is.
+ * \retval KATHERINE_E_STATE if a buffer is lent out, the ring being the
+ *   lender's for as long as it holds one.
+ * \retval KATHERINE_E_NOMEM if the replacement table or any buffer in it
+ *   could not be allocated; the ring is left reading at the size it had.
+ * \retval KATHERINE_E_SYSTEM if the ring's lock could not be taken or
+ *   released; see pthread_mutex_lock(3) and
+ *   katherine_transport_get_last_os_error().
  */
 static katherine_error_t
 usb_t_set_buffer_size(void *ctx, size_t size)
@@ -820,7 +831,10 @@ usb_t_set_buffer_size(void *ctx, size_t size)
     uint8_t **fresh              = NULL;
     uint32_t allocated           = 0;
 
-    if (size == 0) {
+    // A transfer's length is an int to libusb, and the ring keeps the size in
+    // a uint32_t, so anything past INT_MAX would be stored and submitted as
+    // some other number entirely.
+    if (size == 0 || size > (size_t) INT_MAX) {
         res = KATHERINE_E_INVAL;
         goto err_size;
     }
