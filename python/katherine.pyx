@@ -168,6 +168,7 @@ GPIO_TICK_NS = cgpio.KATHERINE_GPIO_TICK_NS
 TDC_CHANNEL_COUNT = ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT
 PULSE_CHANNEL_COUNT = cpulse.KATHERINE_MAX_PULSE_CHANNEL_COUNT
 TPX3_DAC_MONITOR_COUNT = cconfig.KATHERINE_TPX3_DAC_MONITOR_COUNT
+TPX3_DAC_COUNT = cconfig.KATHERINE_TPX3_DAC_COUNT
 
 
 @_unique
@@ -272,6 +273,55 @@ class PulseOutput(_Enum):
     def __str__(self):
         """Render as the C library does, e.g. 'pulse_inverted'."""
         return cpulse.katherine_pulse_output_str(self.value).decode('UTF-8')
+
+
+@_unique
+class DacUnit(_Enum):
+    """The physical quantity a DAC sets."""
+    AMP  = cconfig.katherine_dac_unit_t.KATHERINE_DAC_UNIT_AMP
+    VOLT = cconfig.katherine_dac_unit_t.KATHERINE_DAC_UNIT_VOLT
+
+    def __str__(self):
+        return 'A' if self is DacUnit.AMP else 'V'
+
+
+@_unique
+class Tpx3Dac(_Enum):
+    """The chip's eighteen DACs, in the order katherine_tpx3_dacs_t stores
+    them. The first eighteen DAC monitors are these unchanged."""
+    IBIAS_PREAMP_ON    = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON
+    IBIAS_PREAMP_OFF   = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_PREAMP_OFF
+    VPREAMP_NCAS       = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_VPREAMP_NCAS
+    IBIAS_IKRUM        = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_IKRUM
+    VFBK               = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_VFBK
+    VTHRESHOLD_FINE    = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_VTHRESHOLD_FINE
+    VTHRESHOLD_COARSE  = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE
+    IBIAS_DISCS1_ON    = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_DISCS1_ON
+    IBIAS_DISCS1_OFF   = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_DISCS1_OFF
+    IBIAS_DISCS2_ON    = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_DISCS2_ON
+    IBIAS_DISCS2_OFF   = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_DISCS2_OFF
+    IBIAS_PIXELDAC     = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_PIXELDAC
+    IBIAS_TPBUFFERIN   = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_TPBUFFERIN
+    IBIAS_TPBUFFEROUT  = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_TPBUFFEROUT
+    VTP_COARSE         = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_VTP_COARSE
+    VTP_FINE           = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_VTP_FINE
+    IBIAS_CP_PLL       = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_IBIAS_CP_PLL
+    PLL_VCNTRL         = cconfig.katherine_tpx3_dac_t.KATHERINE_TPX3_DAC_PLL_VCNTRL
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'Vthreshold_fine'."""
+        return cconfig.katherine_tpx3_dac_name(self.value).decode('UTF-8')
+
+    @property
+    def max(self):
+        """Largest code this DAC's register holds."""
+        return cconfig.katherine_tpx3_dac_max(self.value)
+
+    def to_si(self, uint16_t value):
+        """The quantity a code sets, as (magnitude, DacUnit)."""
+        cdef cconfig.katherine_dac_unit_t unit
+        magnitude = cconfig.katherine_tpx3_dac_to_si(self.value, value, &unit)
+        return magnitude, DacUnit(unit)
 
 
 @_unique
@@ -452,6 +502,47 @@ cdef class Tpx3DacVoltages:
          return cconfig.katherine_tpx3_dac_monitor_name(<cconfig.katherine_tpx3_dac_monitor_t> monitor).decode('UTF-8')
 
 
+cdef class DeviceDerivedInfo:
+    """What a readout's reported hardware type means. Zeroed, with supported
+    false, until the readout has been asked or a caller has declared it."""
+    cdef cdevice.katherine_device_derived_info_t _c_info
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_derived_info_snprint, &self._c_info)
+
+    @property
+    def name(self):
+         """Human-readable readout name, or None where the type is unknown."""
+         return self._c_info.name.decode('UTF-8') if self._c_info.name is not NULL else None
+
+    @property
+    def gen(self):
+         return self._c_info.gen
+
+    @property
+    def max_chip_count(self):
+         return self._c_info.max_chip_count
+
+    @property
+    def bias_supply_count(self):
+         return self._c_info.bias_supply_count
+
+    @property
+    def accessible_gpio_count(self):
+         return self._c_info.accessible_gpio_count
+
+    @property
+    def all_gpio_count(self):
+         return self._c_info.all_gpio_count
+
+    @property
+    def supported(self):
+         """Whether this library can drive this readout. Also how a caller
+         learns the readout never answered: constructing a Device succeeds
+         either way, the enumeration inside it being best-effort."""
+         return self._c_info.supported
+
+
 cdef class Device:
     cdef cdevice.katherine_device_t* _c_device
     def __cinit__(self, address):
@@ -591,8 +682,28 @@ cdef class Device:
          res = cconfig.katherine_tpx3_timer_set(self._c_device)
          check_return_code(res)
 
-    def set_dacs(self, Tpx3Dacs dacs):
-         res = cconfig.katherine_tpx3_set_dacs(self._c_device, 0, &dacs._c_dacs)
+    @property
+    def derived_info(self):
+         """What this readout is, as recognized from its hardware type."""
+         cdef DeviceDerivedInfo info = DeviceDerivedInfo()
+         info._c_info = self._c_device.derived_info
+         return info
+
+    def set_dacs(self, Tpx3Dacs dacs, uint8_t chip_index=0):
+         """Write all eighteen DACs and latch them into the chip.
+
+         chip_index trails the values here, rather than leading them as it
+         does in C, so that callers written against 1.x keep working."""
+         res = cconfig.katherine_tpx3_set_dacs(self._c_device, chip_index, &dacs._c_dacs)
+         check_return_code(res)
+
+    def set_dac(self, dac, uint16_t value, uint8_t chip_index=0):
+         """Write one DAC and latch it into the chip.
+
+         The other seventeen keep whatever the readout last held, which is
+         its own memory and is lost on a power cycle; set_dacs() is how a
+         caller establishes a baseline it knows."""
+         res = cconfig.katherine_tpx3_set_dac(self._c_device, chip_index, dac.value, value)
          check_return_code(res)
 
     def get_bias(self, unsigned char bias_id):
@@ -829,6 +940,24 @@ cdef class Tpx3Dacs:
 
     def __repr__(self):
          return _snprint_repr(<snprint_fn_t> cconfig.katherine_tpx3_dacs_snprint, &self._c_dacs)
+
+    def __len__(self):
+         return TPX3_DAC_COUNT
+
+    def __getitem__(self, int dac):
+         if dac < 0 or dac >= TPX3_DAC_COUNT:
+             raise IndexError('DAC out of range')
+         return self._c_dacs.array[dac]
+
+    def __setitem__(self, int dac, uint16_t value):
+         if dac < 0 or dac >= TPX3_DAC_COUNT:
+             raise IndexError('DAC out of range')
+         self._c_dacs.array[dac] = value
+
+    def name(self, int dac):
+         if dac < 0 or dac >= TPX3_DAC_COUNT:
+             raise IndexError('DAC out of range')
+         return cconfig.katherine_tpx3_dac_name(<cconfig.katherine_tpx3_dac_t> dac).decode('UTF-8')
 
     @property
     def Ibias_Preamp_ON(self):

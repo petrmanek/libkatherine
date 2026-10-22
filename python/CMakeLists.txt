@@ -137,3 +137,20 @@ if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_EMULATOR)
         TIMEOUT 120
         SKIP_RETURN_CODE 77)
 endif()
+
+# The three kdac implementations against one another, which is the first real
+# test the bindings have: a wrapper converting a value wrongly, or an
+# enumeration whose order drifted, shows up as a diff. Needs all three built,
+# so it is guarded by the features that bring them in and skips rather than
+# fails when any is absent.
+if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_EMULATOR AND KATHERINE_BUILD_EXAMPLES AND KATHERINE_BUILD_CXX)
+    add_test(NAME test_kdac_parity
+             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/kdac_parity.py"
+                     "$<TARGET_FILE:ksim>" "$<TARGET_FILE:kdac>" "$<TARGET_FILE:kdacxx>"
+                     "$<TARGET_FILE_DIR:pykatherine>")
+    set_tests_properties(test_kdac_parity PROPERTIES
+        LABELS "e2e;python"
+        RUN_SERIAL TRUE
+        TIMEOUT 180
+        SKIP_RETURN_CODE 77)
+endif()

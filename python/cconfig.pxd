@@ -61,6 +61,35 @@ cdef extern from 'katherine/config.h':
     int katherine_tpx3_dacs_snprint(char *buf, size_t cap, const katherine_tpx3_dacs_t *v)
 
     cdef int KATHERINE_TPX3_DAC_MONITOR_COUNT
+    cdef int KATHERINE_TPX3_DAC_COUNT
+
+    ctypedef enum katherine_tpx3_dac_t:
+        KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON
+        KATHERINE_TPX3_DAC_IBIAS_PREAMP_OFF
+        KATHERINE_TPX3_DAC_VPREAMP_NCAS
+        KATHERINE_TPX3_DAC_IBIAS_IKRUM
+        KATHERINE_TPX3_DAC_VFBK
+        KATHERINE_TPX3_DAC_VTHRESHOLD_FINE
+        KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE
+        KATHERINE_TPX3_DAC_IBIAS_DISCS1_ON
+        KATHERINE_TPX3_DAC_IBIAS_DISCS1_OFF
+        KATHERINE_TPX3_DAC_IBIAS_DISCS2_ON
+        KATHERINE_TPX3_DAC_IBIAS_DISCS2_OFF
+        KATHERINE_TPX3_DAC_IBIAS_PIXELDAC
+        KATHERINE_TPX3_DAC_IBIAS_TPBUFFERIN
+        KATHERINE_TPX3_DAC_IBIAS_TPBUFFEROUT
+        KATHERINE_TPX3_DAC_VTP_COARSE
+        KATHERINE_TPX3_DAC_VTP_FINE
+        KATHERINE_TPX3_DAC_IBIAS_CP_PLL
+        KATHERINE_TPX3_DAC_PLL_VCNTRL
+
+    ctypedef enum katherine_dac_unit_t:
+        KATHERINE_DAC_UNIT_AMP
+        KATHERINE_DAC_UNIT_VOLT
+
+    const char *katherine_tpx3_dac_name(katherine_tpx3_dac_t dac)
+    uint16_t katherine_tpx3_dac_max(katherine_tpx3_dac_t dac)
+    double katherine_tpx3_dac_to_si(katherine_tpx3_dac_t dac, uint16_t value, katherine_dac_unit_t *unit)
 
     ctypedef enum katherine_tpx3_dac_monitor_t:
         KATHERINE_TPX3_DAC_MONITOR_BANDGAP_OUTPUT
@@ -149,5 +178,6 @@ cdef extern from 'katherine/config.h':
     int katherine_tpx3_output_block_config_update(katherine_device_t *device)
     int katherine_tpx3_timer_set(katherine_device_t *device)
     int katherine_tpx3_set_dacs(katherine_device_t *device, unsigned char chip_index, const katherine_tpx3_dacs_t *dacs)
+    int katherine_tpx3_set_dac(katherine_device_t *device, unsigned char chip_index, katherine_tpx3_dac_t dac, uint16_t value)
     int katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *test_pulse_config)
     int katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)

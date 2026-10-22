@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-from libc.stdint cimport uint16_t, uint32_t
+from libc.stdint cimport uint8_t, uint16_t, uint32_t
 from libcpp cimport bool
 
 cimport ctransport
@@ -19,8 +19,30 @@ cdef extern from 'katherine/device.h':
     int katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
     int katherine_device_discover_usb(katherine_discovered_t *out, size_t *count)
 
+    ctypedef struct katherine_device_info_t:
+        uint8_t hw_type
+        uint8_t hw_revision
+        uint16_t serial_number
+        uint16_t fw_version
+        uint8_t chip_count
+        bool legacy
+
+    ctypedef struct katherine_device_derived_info_t:
+        const char *name
+        uint8_t gen
+        uint8_t max_chip_count
+        uint8_t bias_supply_count
+        uint8_t accessible_gpio_count
+        uint8_t all_gpio_count
+        bool supported
+
     ctypedef struct katherine_device_t:
         ctransport.katherine_transport_t control_transport
+        katherine_device_info_t info
+        katherine_device_derived_info_t derived_info
+
+    int katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info_t *v)
+    int katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_device_derived_info_t *v)
 
     int katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
 
