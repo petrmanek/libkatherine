@@ -991,7 +991,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     // zeroed, which is what lets the decoder add unconditionally.
     memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
     if (acq->phase_correction == KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE) {
-        for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
+        for (uint16_t x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
             acq->phase_offsets[x] = katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, (uint8_t) x);
         }
     }

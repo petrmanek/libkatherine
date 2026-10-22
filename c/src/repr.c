@@ -352,7 +352,7 @@ katherine_tpx3_dac_voltages_snprint(char *buf, size_t cap, const katherine_tpx3_
     size_t off = 0;
 
     REPR_APPENDF(buf, cap, off, "dac_voltages{");
-    for (unsigned monitor = 0; monitor < KATHERINE_TPX3_DAC_MONITOR_COUNT; ++monitor) {
+    for (uint8_t monitor = 0; monitor < KATHERINE_TPX3_DAC_MONITOR_COUNT; ++monitor) {
         REPR_APPENDF(buf, cap, off, "%s%s: %.4f", monitor == 0 ? "" : ", ",
             katherine_tpx3_dac_monitor_name((katherine_tpx3_dac_monitor_t) monitor),
             (double) v->array[monitor]);
@@ -395,8 +395,8 @@ katherine_gpio_monitor_snprint(char *buf, size_t cap, const katherine_gpio_monit
     size_t off = 0;
 
     REPR_APPENDF(buf, cap, off, "gpio_monitor{");
-    for (unsigned i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
-        REPR_APPENDF(buf, cap, off, "%schannel%u: ", i == 0 ? "" : ", ", i);
+    for (uint8_t i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+        REPR_APPENDF(buf, cap, off, "%schannel%u: ", i == 0 ? "" : ", ", (unsigned) i);
         REPR_NEST(buf, cap, off, katherine_gpio_channel_monitor_snprint, &v->channel[i]);
     }
     REPR_APPENDF(buf, cap, off, "}");

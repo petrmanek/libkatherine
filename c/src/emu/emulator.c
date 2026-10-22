@@ -291,10 +291,10 @@ acq_unit_readback(const katherine_emu_t *emu, uint8_t reg)
     case 0x09: {
         uint32_t out = written & 0x03FF0000u; /* the multiplexer bits, as written */
 
-        for (unsigned i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
+        for (uint8_t i = 0; i < KATHERINE_MAX_GPIO_COUNT; ++i) {
             if (emu->profile.gpio[i].level) out |= 1u << i;
         }
-        for (unsigned i = 0; i < 4; ++i) {
+        for (uint8_t i = 0; i < 4; ++i) {
             const bool timed = emu->profile.gpio[i].high_ticks != 0 || emu->profile.gpio[i].low_ticks != 0;
             if (timed) out |= 1u << (28 + i);
         }
@@ -575,7 +575,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         // One datagram per counter register, five of them, carrying the
         // count alone: the firmware repeats neither an index nor anything
         // else, so their order is all that ties a count to its channel.
-        for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
+        for (uint8_t i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
             queue_word(emu, (uint8_t) opcode, 0, emu->profile.tdc_counts[i]);
         }
         break;
