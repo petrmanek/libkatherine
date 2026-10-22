@@ -2,8 +2,8 @@ Katherine Control Library
 =========================
 
 The Katherine control library contains a working implementation of
-UDP-based communication protocol. It may be used to control and receive
-data from Timepix3 using Katherine readouts.
+UDP- and USB-based communication protocol. It may be used to control and
+receive data from Timepix3 using Katherine readouts.
 
 This git repository contains 3 libraries in total:
 
@@ -76,6 +76,25 @@ them -- becomes a `RuntimeError` carrying the library's message. Beware that
 `TimeoutError` is an `OSError` and `RuntimeError` is not, so `except OSError`
 catches the timeout alone. The exception does not carry the error code.
 
+### Device Addresses
+
+Device address strings are composed like URL's: `transport://address`. At the
+present time, two transports are supported:
+
+1. UDP transport (`udp://`), which expects the address to be an IPv4 unicast
+   address, e.g. `udp://192.168.1.142`. This offers up to 1 Gbps bandwidth.
+2. USB transport (`usb://`), which expects the address to be follow the syntax
+   adopted by the Linux kernel (bus number followed by a dash, then a sequence
+   of up to 7 port numbers separated by dots), e.g. `usb://2-3.7.1.1`. There
+   exists a special address `usb://auto`, which matches exactly one supported
+   Katherine device, so that the user does not have to assert a specific point
+   of connection in the hardware tree. However, by design this address refuses
+   to match if zero or more than one devices are detected to avoid ambiguity.
+   This offers up to 5 Gbps bandwidth (assuming USB 3 SuperSpeed).
+
+For backward compatibility reasons, an address with no `transport://` prefix is
+assumed to use the `udp://` transport.
+
 ### More Examples
 
 To show advanced usage of all provided libraries, several commented example
@@ -88,6 +107,7 @@ in the `examples/` subdirectory for each library, or in the table below:
 | [krun](./c/examples/krun.c)   | [krunxx](./cxx/examples/krunxx.cpp)   | [krun.py](./python/examples/krun.py)             | Configure & perform data-driven acquisition.                 |
 | [ktemp](./c/examples/ktemp.c) | [ktempxx](./cxx/examples/ktempxx.cpp) | [ktemp.py](./python/examples/ktemp.py)           | Monitor readout & chip temperature periodically.             |
 | [kinfo](./c/examples/kinfo.c) | [kinfoxx](./cxx/examples/kinfoxx.cpp) | [kinfo.py](./python/examples/kinfo.py)           | Enumerate a readout: chip ID, readout & comm status.         |
+| [kdac](./c/examples/kdac.c)   | [kdacxx](./cxx/examples/kdacxx.cpp)   | [kdac.py](./python/examples/kdac.py)             | List, set, monitor and scan chip's DACs.                     |
 |                               |                                       | [tot_hitmap.py](./python/examples/tot_hitmap.py) | Plot an integrated frame in a pixel matrix from krun output. |
 
 ### Trying Without Hardware
@@ -100,6 +120,8 @@ emulated readout that the examples can talk to over loopback:
 ./ksim --listen 127.0.0.2 &
 ./krun 127.0.0.2
 ./kfind 127.0.0.1-5
+./kinfo 127.0.0.2
+./kdac monitor --address 127.0.0.2
 ```
 
 The daemon also offers deterministic seeding, rate shaping and fault
@@ -208,10 +230,12 @@ The C library uses the following dependencies:
  - C11 standard library,
  - Version for \*nix systems:
    - POSIX threads (pthread),
-   - BSD socket interface,
+   - UDP support: BSD socket interface,
+   - USB support: libusb 1.0.27,
  - Version for Win32 systems:
-   - Windows Sockets API (WSA) 2.2 (in ws2_32.dll),
-   - Windows Synchronization Primitives (in kernel32.dll).
+   - Windows Synchronization Primitives (in kernel32.dll),
+   - UDP support: Windows Sockets API (WSA) 2.2 (in ws2_32.dll),
+   - USB support: libusb 1.0.27.
 
 
 ### C++ wrapper
@@ -300,8 +324,8 @@ in the development of this library:
  - Simon Spannagel, Deutsches Elektronen-Synchrotron (DESY),
  - Stephine Yearley, University of Alberta,
  - Paul Schütze, Deutsches Elektronen-Synchrotron (DESY),
- - Antonio Bartalesi, Freelance Automation Engineer.
- - Tomáš Čelko, Institute of Experimental and Applied Physics CTU,
+ - Antonio Bartalesi, Freelance Automation Engineer,
+ - Tomáš Čelko, Institute of Experimental and Applied Physics CTU.
 
 
 [thesis]: http://hdl.handle.net/20.500.11956/101404
