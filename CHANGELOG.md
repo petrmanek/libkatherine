@@ -28,7 +28,8 @@ carries and addresses. The stringifiers named after the renamed types
 follow. No value moved; every 1.x spelling is aliased in
 `katherine/katherine1.h`.
 
-One field is renamed without an alias, deliberately. `katherine_config_t`'s
+One field is renamed without an alias because the two spellings disagree
+about what a value means. `katherine_config_t`'s
 `bool polarity_holes` becomes `katherine_polarity_t polarity`, with
 `KATHERINE_POLARITY_HOLES` zero and `KATHERINE_POLARITY_ELECTRONS` one --
 the Polarity[0] bit of GeneralConfig itself, so the setting can be compared
@@ -50,6 +51,22 @@ while `polarity = false` selects holes. A 1.x source under an alias would
 keep compiling and bias the wrong way, so instead it fails to compile at
 every site, and each has to be read and converted by hand. The wire encoding
 is unchanged for anyone who set the field explicitly.
+
+The shutter's triggers are restructured, which breaks source as well.
+`katherine_trigger_t::use_falling_edge` becomes `katherine_trigger_edge_t
+edge`, and the timing unit's channel configuration takes the same type.
+Zero still means a rising edge, so a zeroed structure behaves exactly as it
+did and only the spelling has to change.
+
+The same structure gains `delayed` and `delay_seconds`, which is where a
+trigger's delay now lives. `katherine_config_t::delayed_start` and
+`katherine_set_shutter_delays()` go away with it, and
+`katherine_set_acquisition_triggers()` drops its `delayed_start` argument.
+This reaches the stop delay, which nothing reached before: the second
+generation's trigger word carries a delay flag in each of its two bytes,
+and only the start one was ever set. The 1.x spelling keeps its four
+arguments, the shim copying the start trigger and setting the flag from
+its own.
 
 Command responses are now correlated with the request that provoked them,
 instead of the next datagram to arrive being taken as the answer: a
