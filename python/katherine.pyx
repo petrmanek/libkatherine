@@ -592,7 +592,7 @@ cdef class Device:
          check_return_code(res)
 
     def set_dacs(self, Tpx3Dacs dacs):
-         res = cconfig.katherine_tpx3_set_dacs(self._c_device, &dacs._c_dacs)
+         res = cconfig.katherine_tpx3_set_dacs(self._c_device, 0, &dacs._c_dacs)
          check_return_code(res)
 
     def get_bias(self, unsigned char bias_id):

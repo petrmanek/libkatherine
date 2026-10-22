@@ -148,6 +148,6 @@ cdef extern from 'katherine/config.h':
     int katherine_tpx3_update_sensor_registers(katherine_device_t *device)
     int katherine_tpx3_output_block_config_update(katherine_device_t *device)
     int katherine_tpx3_timer_set(katherine_device_t *device)
-    int katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
+    int katherine_tpx3_set_dacs(katherine_device_t *device, unsigned char chip_index, const katherine_tpx3_dacs_t *dacs)
     int katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *test_pulse_config)
     int katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)

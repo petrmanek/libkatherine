@@ -555,7 +555,7 @@ public:
     void
     set_dacs(const katherine::tpx3::dacs& dacs)
     {
-        int res = katherine_tpx3_set_dacs(&dev_, &dacs);
+        int res = katherine_tpx3_set_dacs(&dev_, 0, &dacs);
 
         if (res != 0) {
             throw katherine::system_error{res};

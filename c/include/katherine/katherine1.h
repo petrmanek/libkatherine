@@ -259,7 +259,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
 {
-    return katherine1_map_result(katherine_tpx3_set_dacs(device, dacs));
+    return katherine1_map_result(katherine_tpx3_set_dacs(device, 0, dacs));
 }
 
 /** \legacy1{katherine_tpx3_set_test_pulses} */

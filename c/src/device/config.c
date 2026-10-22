@@ -99,7 +99,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_tpx3_timer_set(device);
     if (res) goto err;
 
-    res = katherine_tpx3_set_dacs(device, &config->dacs);
+    res = katherine_tpx3_set_dacs(device, 0, &config->dacs);
     if (res) goto err;
 
     // The test-pulse command carries the enable flag as well as the pulse
@@ -1233,10 +1233,13 @@ err:
  * not been given.
  *
  * \param device Katherine device
+ * \param chip_index Chip to address, counting from zero
  * \param dacs DAC register values to set
  *
  * \retval KATHERINE_E_OK on success, once all eighteen writes and the update
  *   command have been acknowledged.
+ * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout
+ *   can address; see katherine_device_derived_info_t::max_chip_count.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   writes, or the update command, within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
@@ -1258,12 +1261,17 @@ err:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs)
+katherine_tpx3_set_dacs(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_dacs_t *dacs)
 {
     katherine_error_t res;
 
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
+
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     // Nineteen exchanges under one lock, flushed once: each of them
     // correlates its own response, so a flush before every send would only
@@ -1271,15 +1279,16 @@ katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t 
     katherine_transport_flush_incoming(&device->control_transport);
 
     for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
-        res = katherine_cmd_send64_i64(
-            &device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i]);
+        res = katherine_cmd_send64_i64_chip(
+            &device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i], chip_index);
         if (res) goto err;
 
         res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS);
         if (res) goto err;
     }
 
-    res = katherine_cmd_hw_internal_dac_update(&device->control_transport);
+    res = katherine_cmd_send60_chip(
+        &device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_UPDATE, chip_index);
     if (res) goto err;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
@@ -1290,6 +1299,8 @@ katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t 
 
 err:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
+err_chip:
     return res;
 }
 
@@ -1309,18 +1320,21 @@ err:
  * the number that produced it.
  *
  * \param device Katherine device
+ * \param chip_index Chip to address, counting from zero
  * \param dac DAC to set
  * \param value Register value to write, in the same units as the
  *   corresponding katherine_tpx3_dacs_t member
  *
  * \retval KATHERINE_E_OK on success, once both the write and the update
  *   command have been acknowledged.
+ * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout
+ *   can address; see katherine_device_derived_info_t::max_chip_count.
  * \retval KATHERINE_E_INVAL if \a dac is not one of the chip's DACs. A value
  *   too large for the DAC is not reported: like katherine_tpx3_set_dacs(),
  *   this transmits it unchecked, and katherine_tpx3_dacs_validate() is the
  *   opt-in check.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the write or
- *   the update command within the control session's receive timeout.
+ *   the update command within the control link's receive timeout.
  * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
  *   not that of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
@@ -1339,9 +1353,14 @@ err:
  *   katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_tpx3_set_dac(katherine_device_t *device, katherine_tpx3_dac_t dac, uint16_t value)
+katherine_tpx3_set_dac(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_t dac, uint16_t value)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
 
     if ((int) dac < 0 || (int) dac >= KATHERINE_TPX3_DAC_COUNT) {
         res = KATHERINE_E_INVAL;
@@ -1353,13 +1372,15 @@ katherine_tpx3_set_dac(katherine_device_t *device, katherine_tpx3_dac_t dac, uin
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) dac, value);
+    res = katherine_cmd_send64_i64_chip(
+        &device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) dac, value, chip_index);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS);
     if (res) goto err_ack;
 
-    res = katherine_cmd_hw_internal_dac_update(&device->control_transport);
+    res = katherine_cmd_send60_chip(
+        &device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_UPDATE, chip_index);
     if (res) goto err_update;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
@@ -1375,6 +1396,7 @@ err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_dac:
+err_chip:
     return res;
 }
 

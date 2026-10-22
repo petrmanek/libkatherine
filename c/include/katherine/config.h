@@ -418,10 +418,10 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_timer_set(katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_set_dac(katherine_device_t *device, katherine_tpx3_dac_t dac, uint16_t value);
+katherine_tpx3_set_dac(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_t dac, uint16_t value);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs);
+katherine_tpx3_set_dacs(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_dacs_t *dacs);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *tp_config);
