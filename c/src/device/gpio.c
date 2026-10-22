@@ -357,7 +357,7 @@ err_enumerated:
  * only where the signal really repeats.
  *
  * \param device Katherine device
- * \param state Channel states to fill
+ * \param state Channel states to fill. Must not be NULL.
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor

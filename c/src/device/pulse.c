@@ -241,7 +241,7 @@ err_enumerated:
  * frequency of the generator's own clock.
  *
  * \param device Katherine device
- * \param counts Measurements to fill
+ * \param counts Measurements to fill. Must not be NULL.
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor

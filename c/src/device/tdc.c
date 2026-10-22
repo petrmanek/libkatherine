@@ -182,7 +182,8 @@ err_enumerated:
  * tell how far the sequence got by zeroing the array first.
  *
  * \param device Katherine device
- * \param counts Counts to fill (allocate KATHERINE_MAX_TDC_CHANNEL_COUNT)
+ * \param counts Counts to fill (allocate KATHERINE_MAX_TDC_CHANNEL_COUNT), or
+ *   NULL to read the sequence off the link and discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
