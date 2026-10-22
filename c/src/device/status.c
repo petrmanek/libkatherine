@@ -69,11 +69,15 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_READOUT_STATUS, crd);
     if (res) goto err;
 
-    const uint64_t *status_crd = (const uint64_t *) &crd;
-    status->hw_type            = EXTRACT(*status_crd, readout_status_crd, hw_type);
-    status->hw_revision        = EXTRACT(*status_crd, readout_status_crd, hw_revision);
-    status->hw_serial_number   = EXTRACT(*status_crd, readout_status_crd, hw_serial_number);
-    status->fw_version         = EXTRACT(*status_crd, readout_status_crd, fw_version);
+    // Copied rather than aliased: the response is a char array, and reading
+    // one through a uint64_t * is both a strict-aliasing violation and an
+    // unaligned load on a target that minds. The copy costs nothing here.
+    uint64_t status_crd;
+    memcpy(&status_crd, crd, sizeof(status_crd));
+    status->hw_type          = EXTRACT(status_crd, readout_status_crd, hw_type);
+    status->hw_revision      = EXTRACT(status_crd, readout_status_crd, hw_revision);
+    status->hw_serial_number = EXTRACT(status_crd, readout_status_crd, hw_serial_number);
+    status->fw_version       = EXTRACT(status_crd, readout_status_crd, fw_version);
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
@@ -128,16 +132,20 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_COMMUNICATION_STATUS, crd);
     if (res) goto err;
 
-    const uint64_t *status_crd = (const uint64_t *) &crd;
-    status->comm_lines_mask    = EXTRACT(*status_crd, comm_status_crd, comm_lines_mask);
+    // Copied rather than aliased: the response is a char array, and reading
+    // one through a uint64_t * is both a strict-aliasing violation and an
+    // unaligned load on a target that minds. The copy costs nothing here.
+    uint64_t status_crd;
+    memcpy(&status_crd, crd, sizeof(status_crd));
+    status->comm_lines_mask = EXTRACT(status_crd, comm_status_crd, comm_lines_mask);
     // The register counts megabytes per second, so eight bits per byte give
     // the megabits the field is documented in. The readout manual says to
     // scale by five instead, which cannot be right: a Gen1 readout reporting
     // 160 here has an output-block register of 0x0981, i.e. two active links
     // at 320 MHz dual-edge, and two links of 640 Mb/s are 1280 Mb/s, not 800.
     // Nor can 1280 be reached by fives from any 8-bit value at all.
-    status->data_rate  = 8u * EXTRACT(*status_crd, comm_status_crd, total_data_rate);
-    status->chip_count = EXTRACT(*status_crd, comm_status_crd, chip_count);
+    status->data_rate  = 8u * EXTRACT(status_crd, comm_status_crd, total_data_rate);
+    status->chip_count = EXTRACT(status_crd, comm_status_crd, chip_count);
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
