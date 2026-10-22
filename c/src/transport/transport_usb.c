@@ -667,13 +667,18 @@ err_lock:
 }
 
 /**
- * Input this link lost before the library read it, which is none.
+ * Input this link lost for want of room in a receive queue, which it keeps
+ * none of.
  *
  * The ring is posted before the readout is told to send, so nothing arrives
- * unread. What the readout dropped is reported in the measurement data.
+ * unread, and there is no queue behind it that could overflow. What the
+ * readout dropped is reported in the measurement data; a read the bus itself
+ * spoiled is counted by
+ * katherine_transport_usb_get_discarded_transfers().
  * \param ctx Link to ask.
- * \param count Out-parameter, always zero.
- * \return KATHERINE_E_OK always.
+ * \param count Out-parameter, left alone.
+ *
+ * \return KATHERINE_E_UNSUPPORTED always, this link keeping no such queue.
  */
 static katherine_error_t
 usb_t_get_dropped_input(void *ctx, uint64_t *count)
