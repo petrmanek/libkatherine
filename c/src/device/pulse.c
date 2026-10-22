@@ -236,11 +236,9 @@ err_enumerated:
 /**
  * Read the generator's measurements of its trigger.
  *
- * Four read-only registers: how long the trigger last spent low and high,
- * how many rising edges it has counted since
- * katherine_reset_pulse_generator_counts(), and the clock the generator
- * times with -- which is what makes its resolution self-describing rather
- * than a constant taken on trust.
+ * Fills in how long the trigger last spent low and high, how many rising
+ * edges have arrived since katherine_reset_pulse_generator_counts(), and the
+ * frequency of the generator's own clock.
  *
  * \param device Katherine device
  * \param counts Measurements to fill
@@ -276,6 +274,11 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
         KATHERINE_PULSE_REG_EDGE_COUNT,
         KATHERINE_PULSE_REG_CLOCK,
     };
+    // The intervals are converted with the ten-nanosecond tick rather than
+    // with the clock reported alongside them. The two agree on every readout
+    // measured so far -- a reported 100 MHz is that same tick -- and a
+    // readout answering zero would otherwise make the conversion meaningless.
+    // The reported clock is handed back unconverted so a caller can check.
     static const double tick_ns = 10.0;
 
     katherine_error_t res;
