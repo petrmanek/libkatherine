@@ -317,6 +317,37 @@ test_fini_leaves_another_acquisitions_registration_alone(void)
     KT_CHECK(device.acquisition == NULL);
 }
 
+// The device holds exactly one acquisition pointer, and that pointer is what
+// katherine_device_fini() refuses to tear down under. Asserting the
+// invariant rather than the refusal: the refusal behaves differently by
+// build -- an assertion where they are live, a leaked link where they are
+// not -- while the invariant is the thing a regression would break, and it
+// holds either way.
+static void
+test_a_device_knows_which_acquisition_is_live(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+
+    katherine_acquisition_t acq;
+    memset(&acq, 0, sizeof(acq));
+    acq.device = &device;
+
+    // Registered the way katherine_acquisition_begin() leaves it.
+    device.acquisition = &acq;
+    KT_CHECK(device.acquisition == &acq);
+
+    // And the guard that reads it is closed while it is held.
+    float temperature = 0.0f;
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &temperature), KATHERINE_E_STATE);
+
+    // Finalising the acquisition is what gives the device back: only then is
+    // katherine_device_fini() safe, which is the order the headers state.
+    katherine_acquisition_fini(&acq);
+    KT_CHECK(device.acquisition == NULL);
+}
+
+
 int
 main(void)
 {
@@ -326,6 +357,7 @@ main(void)
     KT_RUN(test_fast_vco_refused_where_incoherent);
     KT_RUN(test_aborting_an_unreachable_readout_still_ends_the_run);
     KT_RUN(test_a_failed_link_ends_the_read_instead_of_being_retried);
+    KT_RUN(test_a_device_knows_which_acquisition_is_live);
 
     KT_RUN(test_fini_leaves_another_acquisitions_registration_alone);
     return kt_summary();

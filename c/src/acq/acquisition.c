@@ -359,6 +359,12 @@ err_no_transport:
 /**
  * Finalize acquisition
  * \param acq Acquisition to finalize
+ *
+ * Runs before katherine_device_fini() on the device this was initialized
+ * against. An acquisition points into that device's transports while it
+ * lives, so the device cannot be finalized under it; katherine_device_fini()
+ * asserts on a device still holding one, and leaks its link rather than
+ * tearing it down.
  */
 void
 katherine_acquisition_fini(katherine_acquisition_t *acq)

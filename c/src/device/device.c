@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <katherine/device.h>
@@ -473,16 +474,26 @@ katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)
 /**
  * Finalize Katherine device.
  * \param device Device to finalize.
+ *
+ * Every acquisition started on this device must be finalized first. An
+ * acquisition points into the device's transports for as long as it lives:
+ * on USB its data transport drives the libusb handle this one owns, and on
+ * UDP its operations table is this one's. Tearing those down underneath it
+ * is a use-after-free in the first case and a null dereference in the
+ * second, so a device still holding an acquisition is left standing
+ * instead, leaking its link rather than corrupting it. Debug builds fail
+ * the assertion; release builds return, and the readout stays open until
+ * the process ends.
  */
 void
 katherine_device_fini(katherine_device_t *device)
 {
-    // Last-ditch failsafe: if an acquisition has been started by this point and forgotten, abort and disown it.
-    if (device->acquisition != NULL) {
-        katherine_acquisition_t *acq = (katherine_acquisition_t *) device->acquisition;
-        (void) katherine_acquisition_abort(acq);
-        device->acquisition = NULL;
-    }
+    // The order is the caller's to get right and cannot be rescued here: an
+    // abort would still leave the acquisition pointing at transports this
+    // call is about to free. Leaking the link is the one outcome that is
+    // defined in both builds.
+    assert(device->acquisition == NULL);
+    if (device->acquisition != NULL) return;
 
     // Put the readout back on the standard pair, or the next client finds it
     // apparently dead.

@@ -154,7 +154,7 @@ typedef struct katherine_device {
     bool udp_ports_changed; ///< True where this device moved the readout off the standard UDP ports, so that katherine_device_fini() knows to put it back. Valid only for udp:// transport.
 #endif
 
-    void *acquisition; ///< The acquisition measuring on this device, or NULL when none is. Opaque by design.
+    void *acquisition; ///< The acquisition measuring on this device, or NULL when none is. Opaque by design. It points into this device's transports while it lives, so katherine_acquisition_fini() must run before katherine_device_fini().
 
     katherine_device_info_t info;                 ///< Self-reported information about the device, or what a caller declared. Zeroed until katherine_device_enumerate() or katherine_device_declare() has run.
     katherine_device_derived_info_t derived_info; ///< More useful attributes, automatically derived from \p info. \see katherine_device_declare
