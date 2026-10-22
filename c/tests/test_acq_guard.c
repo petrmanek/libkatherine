@@ -32,6 +32,7 @@
 
 #include <katherine/katherine.h>
 
+#include "atomic.h"
 #include "ktest.h"
 
 static void
@@ -161,6 +162,56 @@ test_fast_vco_refused_where_incoherent(void)
 // a zeroed device does not have. The predicate itself is covered by
 // test_clock_phases.c.
 
+// A transport that answers the lock and refuses the wire, so that the abort
+// below fails its command without a socket, a bus or a readout. Only the
+// three operations abort reaches are filled in; a stub for the rest would
+// claim coverage this case does not have.
+static katherine_error_t
+stub_lock(void *ctx)
+{
+    (void) ctx;
+    return KATHERINE_E_OK;
+}
+
+static katherine_error_t
+stub_send_cmd(void *ctx, const void *data, size_t count)
+{
+    (void) ctx;
+    (void) data;
+    (void) count;
+    return KATHERINE_E_CLOSED;
+}
+
+static const katherine_transport_ops_t stub_gone_ops = {
+    .send_cmd     = stub_send_cmd,
+    .mutex_lock   = stub_lock,
+    .mutex_unlock = stub_lock,
+};
+
+// Aborting a readout that has gone away. The command cannot land and the call
+// says so, but the flag it exists to raise is the read loop's only way out of
+// a stream that will never produce anything again, so it goes up anyway.
+// Raising it only after a command that landed left an unreachable readout
+// unabortable: on USB the read loop then spins, since nothing there paces a
+// failing acquire.
+static void
+test_aborting_an_unreachable_readout_still_ends_the_run(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+    device.control_transport.ops  = &stub_gone_ops;
+    device.control_transport.kind = KATHERINE_TRANSPORT_USB;
+
+    katherine_acquisition_t acq;
+    memset(&acq, 0, sizeof(acq));
+    acq.device       = &device;
+    acq.readout_mode = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+
+    KT_CHECK_EQ(katherine_acquisition_abort(&acq), KATHERINE_E_CLOSED);
+    KT_CHECK(katherine_atomic_load_bool(&acq.aborted));
+}
+
+
 int
 main(void)
 {
@@ -168,5 +219,6 @@ main(void)
     KT_RUN(test_guard_is_the_first_thing_the_call_does);
     KT_RUN(test_failed_begin_leaves_the_device_idle);
     KT_RUN(test_fast_vco_refused_where_incoherent);
+    KT_RUN(test_aborting_an_unreachable_readout_still_ends_the_run);
     return kt_summary();
 }

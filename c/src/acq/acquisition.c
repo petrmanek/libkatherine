@@ -1099,7 +1099,9 @@ err:
  * the read mode -- so neither is distinguishable from the other on the wire.
  * What this one adds is local: it raises katherine_acquisition_t::aborted, and
  * that flag is tested inside the receive-timeout branch of the read loop
- * rather than on its own. So it does not end a run by itself; it changes what
+ * rather than on its own. The flag goes up whether or not the command
+ * reaches the readout, so a returned error says the readout was not told,
+ * never that the run was left running. So it does not end a run by itself; it changes what
  * a stream running dry is taken to mean.
  *
  * On Gen2 those compose into a working abort. Measured on hw_type 3 /
@@ -1118,19 +1120,23 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&acq->device->control_transport);
-    if (res) return res;
+    // Before the command, not after it succeeds: the flag is this call's local
+    // half, and a readout that can no longer be told to stop is exactly when
+    // the read loop most needs to know the run is over. Raising it only on a
+    // command that landed left an unreachable readout unabortable.
+    katherine_atomic_store_bool(&acq->aborted, true);
+
+    if ((res = katherine_transport_mutex_lock(&acq->device->control_transport)) != KATHERINE_E_OK) goto err_lock;
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
-    if (res) goto err;
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+    if (res) goto err_stop;
 
-    katherine_atomic_store_bool(&acq->aborted, true);
     return KATHERINE_E_OK;
 
-err:
-    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+err_stop:
+err_lock:
     return res;
 }
 
