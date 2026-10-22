@@ -67,7 +67,7 @@ function(_katherine_feature_default name fallback out_var)
                 set(default ON)
             endif()
         endif()
-    elseif(name STREQUAL "BUILD_TRANSPORT_USB")
+    elseif(name STREQUAL "TRANSPORT_USB")
         # The same lookup the build uses, so a host where libusb is findable
         # only through LIBUSB_ROOT still detects as ON.
         katherine_find_libusb(found)

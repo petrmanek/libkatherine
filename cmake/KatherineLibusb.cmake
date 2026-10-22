@@ -18,14 +18,14 @@ directory the headers actually live in -- ``/usr/include/libusb-1.0`` on most
 distributions, which ``#include <libusb.h>`` needs on the path. It is not
 required, because the binary release for Windows ships no ``.pc`` file and
 Visual Studio hosts have no pkg-config to read one: requiring it made
-``-DKATHERINE_BUILD_TRANSPORT_USB=ON`` a configure failure there rather than
+``-DKATHERINE_TRANSPORT_USB=ON`` a configure failure there rather than
 a build.
 
 Set ``LIBUSB_ROOT`` to the unpacked binary release to use the fallback,
 either as a CMake variable or in the environment:
 
-  cmake -DKATHERINE_BUILD_TRANSPORT_USB=ON -DLIBUSB_ROOT=C:/libusb-1.0.30
-  LIBUSB_ROOT=C:/libusb-1.0.30 cmake -DKATHERINE_BUILD_TRANSPORT_USB=ON
+  cmake -DKATHERINE_TRANSPORT_USB=ON -DLIBUSB_ROOT=C:/libusb-1.0.30
+  LIBUSB_ROOT=C:/libusb-1.0.30 cmake -DKATHERINE_TRANSPORT_USB=ON
 #]=======================================================================]
 
 function(katherine_find_libusb out_var)

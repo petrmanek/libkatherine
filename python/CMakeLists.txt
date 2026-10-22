@@ -42,13 +42,13 @@ set(PYKATHERINE_SOURCES
 
 # Cython evaluates this as Python, so the option becomes True or False
 # rather than CMake's ON or OFF.
-if(KATHERINE_BUILD_TRANSPORT_UDP)
+if(KATHERINE_TRANSPORT_UDP)
     set(KATHERINE_PY_FEATURE_UDP True)
 else()
     set(KATHERINE_PY_FEATURE_UDP False)
 endif()
 
-if(KATHERINE_BUILD_TRANSPORT_USB)
+if(KATHERINE_TRANSPORT_USB)
     set(KATHERINE_PY_FEATURE_USB True)
 else()
     set(KATHERINE_PY_FEATURE_USB False)

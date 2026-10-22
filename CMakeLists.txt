@@ -42,15 +42,15 @@ set(KATHERINE_DOXYGEN_MINIMUM_VERSION 1.8.13)
 set(KATHERINE_PYTHON_MINIMUM_VERSION 3.8)
 set(KATHERINE_CYTHON_MINIMUM_VERSION 3.0)
 
-katherine_declare_feature(BUILD_CXX           "build C++ binaries"      DEFAULT ON  LEGACY BUILD_CXX)
-katherine_declare_feature(BUILD_PYTHON        "build Python 3 bindings" DEFAULT OFF LEGACY BUILD_PYTHON AUTO_DETECTED)
-katherine_declare_feature(BUILD_EXAMPLES      "build example programs"  DEFAULT ON  LEGACY BUILD_EXAMPLES)
-katherine_declare_feature(BUILD_DOXYGEN       "build API documentation" DEFAULT OFF AUTO_DETECTED)
-katherine_declare_feature(BUILD_TESTS         "build unit tests"        DEFAULT ON)
-katherine_declare_feature(BUILD_BENCHMARKS    "build benchmark suite"   DEFAULT ON)
-katherine_declare_feature(BUILD_EMULATOR      "build protocol emulator" DEFAULT ON)
-katherine_declare_feature(BUILD_TRANSPORT_UDP "build UDP transport"     DEFAULT ON)
-katherine_declare_feature(BUILD_TRANSPORT_USB "build USB transport"     DEFAULT OFF AUTO_DETECTED)
+katherine_declare_feature(BUILD_CXX           "build C++ binaries"                         DEFAULT ON  LEGACY BUILD_CXX)
+katherine_declare_feature(BUILD_PYTHON        "build Python 3 bindings"                    DEFAULT OFF LEGACY BUILD_PYTHON AUTO_DETECTED)
+katherine_declare_feature(BUILD_EXAMPLES      "build example programs"                     DEFAULT ON  LEGACY BUILD_EXAMPLES)
+katherine_declare_feature(BUILD_DOXYGEN       "build API documentation"                    DEFAULT OFF AUTO_DETECTED)
+katherine_declare_feature(BUILD_TESTS         "build unit tests"                           DEFAULT ON)
+katherine_declare_feature(BUILD_BENCHMARKS    "build benchmark suite"                      DEFAULT ON)
+katherine_declare_feature(BUILD_EMULATOR      "build protocol emulator"                    DEFAULT ON)
+katherine_declare_feature(TRANSPORT_UDP       "enable UDP transport"                       DEFAULT ON)
+katherine_declare_feature(TRANSPORT_USB       "enable USB transport (requires libusb)"     DEFAULT OFF AUTO_DETECTED)
 katherine_feature_summary()
 
 # What is built around the library, rather than the library itself, still
@@ -62,7 +62,7 @@ katherine_feature_summary()
 #
 # This is why a build without UDP currently has no tests. Gating the suite
 # per test, so the USB ones still run, is worth doing and is not done here.
-if(NOT KATHERINE_BUILD_TRANSPORT_UDP)
+if(NOT KATHERINE_TRANSPORT_UDP)
     foreach(part EMULATOR EXAMPLES TESTS BENCHMARKS)
         if(KATHERINE_BUILD_${part})
             message(STATUS "katherine: skipping ${part}, which needs the UDP transport")

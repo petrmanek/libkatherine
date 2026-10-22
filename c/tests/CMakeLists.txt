@@ -136,7 +136,7 @@ katherine_add_test(NAME test_fini_idempotent SOURCES test_fini_idempotent.c LABE
 # include directory shadows the real <libusb.h> for this target only, and the
 # backend's source is compiled into the test rather than taken from the
 # library, which is linked against the real one.
-if(KATHERINE_BUILD_TRANSPORT_USB)
+if(KATHERINE_TRANSPORT_USB)
     # The factory reaches both backends, so the UDP half is compiled in too.
     katherine_add_test(NAME test_usb_ring
                        SOURCES test_usb_ring.c

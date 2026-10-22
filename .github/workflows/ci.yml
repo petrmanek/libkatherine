@@ -96,7 +96,7 @@ jobs:
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_EXAMPLES=ON
           -DKATHERINE_BUILD_PYTHON=${{ matrix.python && 'ON' || 'OFF' }}
-          -DKATHERINE_BUILD_TRANSPORT_USB=ON
+          -DKATHERINE_TRANSPORT_USB=ON
 
       - name: Build
         # --config is required by multi-config generators (Visual Studio on
@@ -183,8 +183,8 @@ jobs:
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_EXAMPLES=ON
           -DKATHERINE_BUILD_PYTHON=OFF
-          -DKATHERINE_BUILD_TRANSPORT_UDP=${{ matrix.udp }}
-          -DKATHERINE_BUILD_TRANSPORT_USB=${{ matrix.usb }}
+          -DKATHERINE_TRANSPORT_UDP=${{ matrix.udp }}
+          -DKATHERINE_TRANSPORT_USB=${{ matrix.usb }}
 
       - name: Build
         run: cmake --build build --parallel --config Release
@@ -210,7 +210,7 @@ jobs:
       - name: Configure must refuse
         shell: bash
         run: |
-          if cmake -B build -DKATHERINE_BUILD_TRANSPORT_UDP=OFF -DKATHERINE_BUILD_TRANSPORT_USB=OFF > configure.log 2>&1; then
+          if cmake -B build -DKATHERINE_TRANSPORT_UDP=OFF -DKATHERINE_TRANSPORT_USB=OFF > configure.log 2>&1; then
             echo "the configure succeeded with no transport enabled"
             cat configure.log
             exit 1
@@ -244,7 +244,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_DOXYGEN=ON
-          -DKATHERINE_BUILD_TRANSPORT_USB=ON
+          -DKATHERINE_TRANSPORT_USB=ON
 
       # The point of the job: the documentation has to build at all, on a
       # doxygen this project has never seen.
@@ -325,7 +325,7 @@ jobs:
         run: >
           cmake -B build
           -DCMAKE_BUILD_TYPE=Release
-          -DKATHERINE_BUILD_TRANSPORT_USB=ON
+          -DKATHERINE_TRANSPORT_USB=ON
           -DCMAKE_C_STANDARD=${{ matrix.c_standard }}
           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }}
           -DCMAKE_C_EXTENSIONS=${{ matrix.extensions }}
@@ -393,7 +393,7 @@ jobs:
           -DKATHERINE_BUILD_CXX=ON
           -DKATHERINE_BUILD_EXAMPLES=ON
           -DKATHERINE_BUILD_PYTHON=OFF
-          -DKATHERINE_BUILD_TRANSPORT_USB=ON
+          -DKATHERINE_TRANSPORT_USB=ON
 
       - name: Build
         run: cmake --build build --parallel

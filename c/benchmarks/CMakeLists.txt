@@ -23,7 +23,7 @@ target_include_directories(bench_udp PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tes
 # included, so CTest does run it -- with no arguments, which lists the bus and
 # returns rather than measuring anything. Measuring needs a readout and an
 # address on the command line.
-if(KATHERINE_BUILD_TRANSPORT_USB)
+if(KATHERINE_TRANSPORT_USB)
     katherine_add_bench(NAME bench_usb SOURCES bench_usb.c)
     target_link_libraries(bench_usb PRIVATE katherine::libusb)
 endif()

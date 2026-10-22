@@ -62,14 +62,14 @@ endif()
 
 # Both transports are optional, and the library is useless without one, so
 # the configuration refuses a build with neither.
-if(NOT KATHERINE_BUILD_TRANSPORT_UDP AND NOT KATHERINE_BUILD_TRANSPORT_USB)
+if(NOT KATHERINE_TRANSPORT_UDP AND NOT KATHERINE_TRANSPORT_USB)
     message(FATAL_ERROR "no transport selected: enable at least one of "
-                        "KATHERINE_BUILD_TRANSPORT_UDP or "
-                        "KATHERINE_BUILD_TRANSPORT_USB")
+                        "KATHERINE_TRANSPORT_UDP or "
+                        "KATHERINE_TRANSPORT_USB")
 endif()
 
 # The UDP transport, and the sockets it is the only user of.
-if(KATHERINE_BUILD_TRANSPORT_UDP)
+if(KATHERINE_TRANSPORT_UDP)
     list(APPEND KATHERINE_SOURCES
         "src/transport/udp_nix.c"
         "src/transport/transport_udp.c"
@@ -79,7 +79,7 @@ if(KATHERINE_BUILD_TRANSPORT_UDP)
 endif()
 
 # The USB transport is optional: without libusb its source is not compiled.
-if(KATHERINE_BUILD_TRANSPORT_USB)
+if(KATHERINE_TRANSPORT_USB)
     list(APPEND KATHERINE_SOURCES
         "src/transport/transport_usb.c"
         "src/transport/usb.h"
@@ -99,8 +99,8 @@ configure_file(include/katherine/version.h.in "${KATHERINE_VERSION_HEADER}" @ONL
 # #cmakedefine tests a variable of the macro's own name, so each feature is
 # named here rather than read from its KATHERINE_BUILD_* option directly --
 # one line per transport, in the order the transports are listed everywhere.
-set(KATHERINE_FEATURE_UDP ${KATHERINE_BUILD_TRANSPORT_UDP})
-set(KATHERINE_FEATURE_USB ${KATHERINE_BUILD_TRANSPORT_USB})
+set(KATHERINE_FEATURE_UDP ${KATHERINE_TRANSPORT_UDP})
+set(KATHERINE_FEATURE_USB ${KATHERINE_TRANSPORT_USB})
 
 set(KATHERINE_FEATURES_HEADER "${KATHERINE_GENERATED_INCLUDE_DIR}/katherine/features.h")
 configure_file(include/katherine/features.h.in "${KATHERINE_FEATURES_HEADER}")
@@ -148,14 +148,14 @@ target_include_directories(katherine
 
 # On Windows, link to ws2_32. Only the UDP transport calls a socket
 # function, so a build without it needs no Winsock.
-if((WIN32 OR MINGW) AND KATHERINE_BUILD_TRANSPORT_UDP)
+if((WIN32 OR MINGW) AND KATHERINE_TRANSPORT_UDP)
   target_link_libraries(katherine PRIVATE ws2_32)
 endif()
 
-if(KATHERINE_BUILD_TRANSPORT_USB)
+if(KATHERINE_TRANSPORT_USB)
     katherine_find_libusb(found)
     if(NOT found)
-        message(FATAL_ERROR "KATHERINE_BUILD_TRANSPORT_USB is ON but libusb-1.0 "
+        message(FATAL_ERROR "KATHERINE_TRANSPORT_USB is ON but libusb-1.0 "
                             "was not found; set LIBUSB_ROOT to point at it")
     endif()
     target_link_libraries(katherine PRIVATE katherine::libusb)
@@ -192,11 +192,11 @@ target_include_directories(katherine_static
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-if((WIN32 OR MINGW) AND KATHERINE_BUILD_TRANSPORT_UDP)
+if((WIN32 OR MINGW) AND KATHERINE_TRANSPORT_UDP)
   target_link_libraries(katherine_static PUBLIC ws2_32)
 endif()
 
-if(KATHERINE_BUILD_TRANSPORT_USB)
+if(KATHERINE_TRANSPORT_USB)
     target_link_libraries(katherine_static PUBLIC katherine::libusb)
 endif()
 
