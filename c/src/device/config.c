@@ -221,7 +221,7 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     // This upload is the one exchange whose data travels between the command
     // and its acknowledgement, so it flushes and correlates by hand rather
@@ -294,30 +294,35 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
     }
 
     // Here the result is either zero (pixel data trasmitted and acknowledged) or non-zero (all attempts exhausted).
-    if (res) goto err;
+    if (res) goto err_upload;
 
     // Execute HW command 5. Every hardware command is acknowledged under the
     // dispatch opcode, not under its sub-command number: the readout echoes
     // the operation code of the request it answers, and the sub-command
     // travels in the payload.
     res = katherine_cmd_hw_reset_matrix_sequential(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_reset_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err;
+    if (res) goto err_reset_recv;
 
     // Execute HW command 9.
     res = katherine_cmd_hw_load_pixel_register_configuration(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_load_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err;
+    if (res) goto err_load_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_load_recv:
+err_load_send:
+err_reset_recv:
+err_reset_send:
+err_upload:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -357,7 +362,7 @@ katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
@@ -367,23 +372,27 @@ katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
 
     // Set LSB.
     res = katherine_cmd_set_acqtime_lsb(&device->control_transport, lsb);
-    if (res) goto err;
+    if (res) goto err_lsb_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
-    if (res) goto err;
+    if (res) goto err_lsb_recv;
 
     // Set MSB.
     res = katherine_cmd_set_acqtime_msb(&device->control_transport, msb);
-    if (res) goto err;
+    if (res) goto err_msb_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_ACQUISITION_TIME_SETTING_MSB);
-    if (res) goto err;
+    if (res) goto err_msb_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_msb_recv:
+err_msb_send:
+err_lsb_recv:
+err_lsb_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -425,21 +434,23 @@ katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_set_acqtime_seconds(&device->control_transport, (float) (ns / 1e9));
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -560,21 +571,23 @@ katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_set_token_count(&device->control_transport, token_count);
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_NUMBER_OF_TOKENS_SETTING);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -611,7 +624,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
@@ -627,7 +640,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     cmd[1] |= fast_vco_enabled;
 
     res = katherine_cmd_transact(&device->control_transport, cmd, sizeof(cmd), NULL);
-    if (res) goto err;
+    if (res) goto err_registers;
 
     // The merge above only touches the readout's image; the sensor needs the
     // image flushed to it. Skipping the flush leaves the chip in whatever
@@ -635,16 +648,19 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     // oscillator on -- so every acquisition silently yielded ToA+ToT data
     // regardless of the mode asked for.
     res = katherine_cmd_hw_sensor_config_registers_update(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_update_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err;
+    if (res) goto err_update_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_update_recv:
+err_update_send:
+err_registers:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -687,23 +703,25 @@ katherine_set_bias(katherine_device_t *device, unsigned char bias_id, float bias
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     // TODO use bias_id
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_set_bias_settings(&device->control_transport, bias_value);
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_BIAS_SETTINGS);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -740,21 +758,23 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_set_number_of_frames(&device->control_transport, no_frames);
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_NUMBER_OF_FRAMES);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -791,20 +811,21 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_set_seq_readout_start(&device->control_transport, arg);
-    if (res) goto err;
+    if (res) goto err_send;
 
     // Note: this command does _not_ produce an acknowledgement.
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -955,7 +976,8 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
             if (tp_config->count == 0
                 || tp_config->period < 65 || tp_config->period > 16321
                 || tp_config->phase > 15) {
-                return KATHERINE_E_INVAL;
+                res = KATHERINE_E_INVAL;
+                goto err_check;
             }
 
             cmd[0] = tp_config->count & 0xFF;
@@ -970,7 +992,7 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
     }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     // Sent and awaited by hand rather than through katherine_cmd_transact(),
     // whose single wait this command outlives: the retrying wait below has to
@@ -978,7 +1000,7 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_send(&device->control_transport, cmd, sizeof(cmd));
-    if (res) goto err;
+    if (res) goto err_send;
 
     // The readout applies this command before acknowledging it, and its
     // firmware sleeps for a full second while doing so. A single wait is
@@ -991,13 +1013,16 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
         --attempts;
         res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_TEST_PULSE_SETTING);
     } while (res == KATHERINE_E_TIMEOUT && attempts > 0);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
+err_check:
     return res;
 }
 
@@ -1044,22 +1069,24 @@ katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_send64_i64(
         &device->control_transport, CMD_TYPE_SENSOR_REGISTER_SETTING, (uint8_t) reg_idx, reg_value);
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_SENSOR_REGISTER_SETTING);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -1103,21 +1130,23 @@ katherine_tpx3_update_sensor_registers(katherine_device_t *device)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_hw_sensor_config_registers_update(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -1152,21 +1181,23 @@ katherine_tpx3_output_block_config_update(katherine_device_t *device)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_hw_output_block_config_update(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -1201,21 +1232,23 @@ katherine_tpx3_timer_set(katherine_device_t *device)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_hw_timer_set(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -1279,25 +1312,28 @@ katherine_tpx3_set_dacs(katherine_device_t *device, uint8_t chip_index, const ka
     katherine_transport_flush_incoming(&device->control_transport);
 
     for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
-        res = katherine_cmd_send64_i64_chip(
-            &device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i], chip_index);
-        if (res) goto err;
+        res = katherine_cmd_send64_i64_chip(&device->control_transport,
+            CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) i, dacs->array[i], chip_index);
+        if (res) goto err_dac_send;
 
         res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS);
-        if (res) goto err;
+        if (res) goto err_dac_recv;
     }
 
-    res = katherine_cmd_send60_chip(
-        &device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_INTERNAL_DAC_UPDATE, chip_index);
-    if (res) goto err;
+    res = katherine_cmd_send60_chip(&device->control_transport, CMD_TYPE_HW_COMMAND_START,
+        CMD_START_INTERNAL_DAC_UPDATE, chip_index);
+    if (res) goto err_update_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err;
+    if (res) goto err_update_recv;
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_update_recv:
+err_update_send:
+err_dac_recv:
+err_dac_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
 err_chip:
