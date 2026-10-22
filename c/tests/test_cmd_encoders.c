@@ -470,9 +470,9 @@ test_general_config_word(void)
 
 static void
 check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const katherine_trigger_t *start,
-    bool delayed_start, const katherine_trigger_t *end, unsigned char b0, unsigned char b1)
+    const katherine_trigger_t *end, unsigned char b0, unsigned char b1)
 {
-    KT_CHECK_EQ(katherine_set_acquisition_triggers(dev, start, delayed_start, end), KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(dev, start, end), KATHERINE_E_TIMEOUT);
 
     unsigned char got[8];
     size_t n = sizeof(got);
@@ -562,34 +562,37 @@ test_acquisition_setup_word(void)
 
     // Every field at its maximum in-range value: on the first generation
     // channel 7 fills bits 1..3 exactly, so a mask regression (channel
-    // bleeding into the edge or delayed-start flags) cannot hide.
+    // bleeding into the edge flag above it) cannot hide. No delay is armed
+    // here: a trigger that arms one writes that register first, and this peer
+    // never acknowledges, so the word under test would never be reached. The
+    // delay flags are covered where the mock answers, in test_acq_unit.
     katherine_trigger_t start = {.enabled = true, .channel = 7, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
     katherine_trigger_t end   = {.enabled = false, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING};
     KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
-    check_setup_word(&dev, &capture, &start, true, &end, 0x3F, 0x00);
+    check_setup_word(&dev, &capture, &start, &end, 0x1F, 0x00);
 
     // The same triggers on the second generation, whose channel is a bit
     // wider and whose flags therefore sit a bit higher: the edge moves from
-    // bit 4 to 5 and the delay from 5 to 6, so 0x3F becomes 0x6F.
+    // bit 4 to 5, so 0x1F becomes 0x2F.
     KT_REQUIRE(katherine_device_declare(&dev, &gen2) == 0);
-    check_setup_word(&dev, &capture, &start, true, &end, 0x6F, 0x00);
+    check_setup_word(&dev, &capture, &start, &end, 0x2F, 0x00);
 
     // Out-of-range channels truncate instead of corrupting the flags above
     // the field: on the first generation 9 -> 1 and 10 -> 2.
     start = (katherine_trigger_t) {.enabled = false, .channel = 9, .edge = KATHERINE_TRIGGER_EDGE_RISING};
     end   = (katherine_trigger_t) {.enabled = true, .channel = 10, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
     KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
-    check_setup_word(&dev, &capture, &start, false, &end, 0x02, 0x15);
+    check_setup_word(&dev, &capture, &start, &end, 0x02, 0x15);
 
     // Where the second generation keeps a bit more of them: 9 stays 9 and 10
     // stays 10, and the falling edge of the second sits at bit 5.
     KT_REQUIRE(katherine_device_declare(&dev, &gen2) == 0);
-    check_setup_word(&dev, &capture, &start, false, &end, 0x12, 0x35);
+    check_setup_word(&dev, &capture, &start, &end, 0x12, 0x35);
 
     // And a readout of unknown generation is refused, there being no layout
     // to choose.
     memset(&dev.derived_info, 0, sizeof(dev.derived_info));
-    KT_CHECK_EQ(katherine_set_acquisition_triggers(&dev, &start, false, &end), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&dev, &start, &end), KATHERINE_E_STATE);
 
     katherine_transport_fini(&dev.control_transport);
     katherine_udp_fini(&capture);

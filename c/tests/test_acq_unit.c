@@ -516,23 +516,25 @@ test_g_the_emulated_unit_composes_the_level_register(void)
 
 #endif /* KATHERINE_TEST_EMULATOR */
 
-// h) The shutter delays are two registers of their own. The caller gives
-// seconds and the library turns them into the counts the readout keeps, so
-// the check is that a microsecond and two and a half milliseconds arrive as
-// 100 and 250000 -- which is the ten-nanosecond tick, asserted through the
-// API rather than against a constant the caller can no longer see.
+// h) A delay travels with the trigger that arms it. Each goes in its own
+//    register, the word that arms them goes last, and a trigger that does not
+//    arm its delay puts nothing extra on the wire -- so a configuration that
+//    wants no delay sends exactly what it always sent.
 static void
-test_h_the_shutter_delays_are_two_registers(void)
+test_h_a_delay_travels_with_its_trigger(void)
 {
     katherine_device_t device;
     kthread_t thread;
 
-    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
-    mock_start(&thread, 2);
+    katherine_trigger_t start = {.enabled = true, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = true, .delay_seconds = 1e-6};
+    katherine_trigger_t stop  = {.enabled = true, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = true, .delay_seconds = 2.5e-3};
 
-    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 1e-6, 2.5e-3), 0);
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 3);
+
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), 0);
     KT_CHECK_EQ(kthread_join(&thread), 0);
-    KT_REQUIRE(g_captured_count == 2);
+    KT_REQUIRE(g_captured_count == 3);
 
     KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], 0x21);
     KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x06);
@@ -541,33 +543,102 @@ test_h_the_shutter_delays_are_two_registers(void)
     KT_CHECK_EQ(g_captured[1][KATHERINE_CMD_SUBIDX_BYTE], 0x07);
     KT_CHECK_EQ(load_word(g_captured[1]), 250000);
 
+    // Last, and carrying the flag in each byte that makes the readout read
+    // the registers above: bit 6 of the start byte, bit 6 of the end byte.
+    KT_CHECK_EQ(g_captured[2][KATHERINE_CMD_SUBIDX_BYTE], 0x05);
+    KT_CHECK_EQ(load_word(g_captured[2]) & 0x40, 0x40);
+    KT_CHECK_EQ(load_word(g_captured[2]) & 0x4000, 0x4000);
+
     katherine_transport_fini(&device.control_transport);
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 3);
 
     // Rounding is to the nearest count, not towards zero: four nanoseconds
     // more than a microsecond is still 100 counts, six more is 101.
-    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
-    mock_start(&thread, 2);
-    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 1.004e-6, 1.006e-6), 0);
+    start.delay_seconds = 1.004e-6;
+    stop.delay_seconds  = 1.006e-6;
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), 0);
     KT_CHECK_EQ(kthread_join(&thread), 0);
-    KT_REQUIRE(g_captured_count == 2);
+    KT_REQUIRE(g_captured_count == 3);
     KT_CHECK_EQ(load_word(g_captured[0]), 100);
     KT_CHECK_EQ(load_word(g_captured[1]), 101);
 
     katherine_transport_fini(&device.control_transport);
 
-    // A delay the register cannot hold is refused before anything is sent,
-    // and so is a negative one and a NaN. The widest it holds is 2^32-1
-    // counts of ten nanoseconds, a touch under 43 seconds.
+    // Neither delay armed: one word on the wire, and an interval left in the
+    // structure is disregarded rather than refused.
+    start.delayed       = false;
+    stop.delayed        = false;
+    start.delay_seconds = 43.0;
+    stop.delay_seconds  = (double) NAN;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 1);
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_REQUIRE(g_captured_count == 1);
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x05);
+    KT_CHECK_EQ(load_word(g_captured[0]) & 0x4040, 0);
+
+    katherine_transport_fini(&device.control_transport);
+
+    // An armed delay the register cannot hold is refused before anything is
+    // sent, and so is a negative one and a NaN. The widest it holds is
+    // 2^32-1 counts of ten nanoseconds, a touch under 43 seconds.
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
 
-    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 43.0, 0.0), KATHERINE_E_INVAL);
+    start.delayed       = true;
+    start.delay_seconds = 43.0;
+    stop.delayed        = false;
+    stop.delay_seconds  = 0.0;
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), KATHERINE_E_INVAL);
     expect_nothing_sent();
 
-    KT_CHECK_EQ(katherine_set_shutter_delays(&device, -1e-9, 0.0), KATHERINE_E_INVAL);
+    start.delay_seconds = -1e-9;
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), KATHERINE_E_INVAL);
     expect_nothing_sent();
 
-    KT_CHECK_EQ(katherine_set_shutter_delays(&device, 0.0, (double) NAN), KATHERINE_E_INVAL);
+    start.delayed      = false;
+    stop.delayed       = true;
+    stop.delay_seconds = (double) NAN;
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), KATHERINE_E_INVAL);
     expect_nothing_sent();
+
+    katherine_transport_fini(&device.control_transport);
+    katherine_transport_fini(&device.control_transport);
+
+    // The first generation's end byte has no delay flag, so a delayed stop
+    // is refused there rather than dropped. Its start delay is unaffected.
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+
+    start.delayed      = false;
+    stop.delayed       = true;
+    stop.delay_seconds = 1e-6;
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), KATHERINE_E_UNSUPPORTED);
+    expect_nothing_sent();
+
+    katherine_transport_fini(&device.control_transport);
+
+    // Its start delay is carried, and the flag sits a bit lower than on the
+    // second generation: bit 5 of the start byte rather than bit 6.
+    start.delayed       = true;
+    start.delay_seconds = 1e-6;
+    stop.delayed        = false;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 2);
+
+    KT_CHECK_EQ(katherine_set_acquisition_triggers(&device, &start, &stop), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_REQUIRE(g_captured_count == 2);
+
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_SUBIDX_BYTE], 0x06);
+    KT_CHECK_EQ(load_word(g_captured[0]), 100);
+
+    KT_CHECK_EQ(g_captured[1][KATHERINE_CMD_SUBIDX_BYTE], 0x05);
+    KT_CHECK_EQ(load_word(g_captured[1]) & 0x20, 0x20);
+    KT_CHECK_EQ(load_word(g_captured[1]) & 0x40, 0);
 
     katherine_transport_fini(&device.control_transport);
 }
@@ -782,7 +853,7 @@ main(void)
     KT_RUN(test_d_the_ready_signal_is_one_word_of_two_masks);
     KT_RUN(test_e_settings_the_readout_cannot_carry_are_refused);
     KT_RUN(test_f_a_probe_reads_levels_and_only_the_valid_counters);
-    KT_RUN(test_h_the_shutter_delays_are_two_registers);
+    KT_RUN(test_h_a_delay_travels_with_its_trigger);
     KT_RUN(test_i_the_generator_is_enabled_last);
     KT_RUN(test_i2_channels_the_generator_lacks_take_their_defaults);
     KT_RUN(test_j_the_generator_refuses_what_it_cannot_carry);

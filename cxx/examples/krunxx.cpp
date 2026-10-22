@@ -85,7 +85,6 @@ configure(katherine::config& config)
     config.set_no_frames(1);
     config.set_bias(230); // V
 
-    config.set_delayed_start(false);
 
     config.set_start_trigger(katherine::no_trigger);
     config.set_stop_trigger(katherine::no_trigger);

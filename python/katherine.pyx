@@ -662,8 +662,8 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_seq_readout_start(self._c_device, arg)
          check_return_code(res)
 
-    def set_acquisition_triggers(self, Trigger start_trigger, bool delayed_start, Trigger end_trigger):
-         res = cconfig.katherine_set_acquisition_triggers(self._c_device, &start_trigger._c_trigger, delayed_start, &end_trigger._c_trigger)
+    def set_acquisition_triggers(self, Trigger start_trigger, Trigger end_trigger):
+         res = cconfig.katherine_set_acquisition_triggers(self._c_device, &start_trigger._c_trigger, &end_trigger._c_trigger)
          check_return_code(res)
 
     def set_sensor_register(self, reg_idx, int32_t reg_value):
@@ -731,11 +731,6 @@ cdef class Device:
          res = cstatus.katherine_tpx3_get_dac_monitor_voltages(self._c_device, chip_index, &voltages._c_voltages)
          check_return_code(res)
          return voltages
-
-    def set_shutter_delays(self, double start_seconds, double stop_seconds):
-         """Both delays in seconds, honoured to 10 ns or better."""
-         res = cconfig.katherine_set_shutter_delays(self._c_device, start_seconds, stop_seconds)
-         check_return_code(res)
 
     def set_gpio_config(self, channels):
          """Takes a sequence of GpioChannelConfig, one per channel."""
@@ -829,11 +824,13 @@ cdef class CommStatus:
 cdef class Trigger:
     cdef cconfig.katherine_trigger_t _c_trigger
 
-    def __init__(self, enabled=False, channel=0, edge=None, cdata=None):
+    def __init__(self, enabled=False, channel=0, edge=None, delayed=False, delay_seconds=0.0, cdata=None):
          if cdata is None:
              self._c_trigger.enabled = enabled
              self._c_trigger.channel = channel
              self._c_trigger.edge = TriggerEdge.RISING.value if edge is None else TriggerEdge(edge).value
+             self._c_trigger.delayed = delayed
+             self._c_trigger.delay_seconds = delay_seconds
          else:
              self._c_trigger = cdata
 
@@ -863,6 +860,22 @@ cdef class Trigger:
     @edge.setter
     def edge(self, val):
          self._c_trigger.edge = TriggerEdge(val).value
+
+    @property
+    def delayed(self):
+         return self._c_trigger.delayed
+
+    @delayed.setter
+    def delayed(self, val):
+         self._c_trigger.delayed = val
+
+    @property
+    def delay_seconds(self):
+         return self._c_trigger.delay_seconds
+
+    @delay_seconds.setter
+    def delay_seconds(self, val):
+         self._c_trigger.delay_seconds = val
 
 
 cdef class Tpx3TestPulseConfig:
@@ -1317,14 +1330,6 @@ cdef class Config:
     @start_trigger.setter
     def start_trigger(self, val):
          self._set_start_trigger(val)
-
-    @property
-    def delayed_start(self):
-       return self._c_config.delayed_start
-
-    @delayed_start.setter
-    def delayed_start(self, val):
-       self._c_config.delayed_start = val
 
     @property
     def stop_trigger(self):

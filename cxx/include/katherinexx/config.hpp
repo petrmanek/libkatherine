@@ -34,6 +34,8 @@ constexpr trigger no_trigger{
     /* .enabled = */ false,
     /* .channel = */ 0,
     /* .edge = */ KATHERINE_TRIGGER_EDGE_RISING,
+    /* .delayed = */ false,
+    /* .delay_seconds = */ 0.0,
 };
 
 
@@ -141,8 +143,6 @@ public:
     void set_start_trigger(const trigger& t) { conf_.start_trigger = t; }
     void set_start_trigger(trigger&& t) { conf_.start_trigger = t; }
 
-    bool delayed_start() const { return conf_.delayed_start; }
-    void set_delayed_start(bool val) { conf_.delayed_start = val; }
 
     const trigger& stop_trigger() const { return conf_.stop_trigger; }
     trigger& stop_trigger() { return conf_.stop_trigger; }

@@ -246,7 +246,6 @@ def build_config(katherine):
 
     c.start_trigger = katherine.Trigger(enabled=False)
     c.stop_trigger = katherine.Trigger(enabled=False)
-    c.delayed_start = False
 
     c.gray_disable = False
     c.polarity = katherine.Polarity.ELECTRONS
@@ -334,7 +333,7 @@ def check_reprs(tap, katherine, device):
 
     trig = katherine.Trigger(enabled=True, channel=3, edge=katherine.TriggerEdge.RISING)
     tap.check_eq('Trigger repr matches the C golden byte-for-byte', repr(trig),
-        'trigger{enabled: true, channel: 3, edge: rising}')
+        'trigger{enabled: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}')
 
     px = katherine.Tpx3PxConfig()
     tap.check_eq('Tpx3PxConfig repr matches the C golden byte-for-byte (all-zero matrix)', repr(px),

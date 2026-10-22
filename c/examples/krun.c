@@ -91,8 +91,6 @@ configure(katherine_config_t *config)
     config->no_frames = 1;
     config->bias      = 230; // V
 
-    config->delayed_start = false;
-
     config->start_trigger.enabled = false;
     config->start_trigger.channel = 0;
     config->start_trigger.edge    = KATHERINE_TRIGGER_EDGE_RISING;

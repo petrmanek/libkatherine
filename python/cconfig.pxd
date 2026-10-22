@@ -27,6 +27,8 @@ cdef extern from 'katherine/config.h':
         bool enabled
         char channel
         katherine_trigger_edge_t edge
+        bool delayed
+        double delay_seconds
 
     int katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 
@@ -141,7 +143,6 @@ cdef extern from 'katherine/config.h':
 
         float bias
         katherine_trigger_t start_trigger
-        bool delayed_start
         katherine_trigger_t stop_trigger
 
         bool gray_disable
@@ -178,7 +179,7 @@ cdef extern from 'katherine/config.h':
     int katherine_set_no_frames(katherine_device_t *device, int no_frames)
     int katherine_set_bias(katherine_device_t *device, uint8_t bias_id, float bias_value)
     int katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
-    int katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
+    int katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *end_trigger)
     int katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
     int katherine_tpx3_update_sensor_registers(katherine_device_t *device)
     int katherine_tpx3_output_block_config_update(katherine_device_t *device)
@@ -186,4 +187,3 @@ cdef extern from 'katherine/config.h':
     int katherine_tpx3_set_dacs(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_dacs_t *dacs)
     int katherine_tpx3_set_dac(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_t dac, uint16_t value)
     int katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *test_pulse_config)
-    int katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)

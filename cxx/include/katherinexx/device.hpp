@@ -375,16 +375,6 @@ public:
     }
 
     void
-    set_shutter_delays(double start_seconds, double stop_seconds)
-    {
-        int res = katherine_set_shutter_delays(&dev_, start_seconds, stop_seconds);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
-    }
-
-    void
     set_tdc_config(const katherine::tdc_config& config)
     {
         int res = katherine_set_tdc_config(&dev_, &config);
@@ -519,9 +509,9 @@ public:
     }
 
     void
-    set_acquisition_triggers(const katherine::trigger& start_trigger, bool delayed_start, const katherine::trigger& end_trigger)
+    set_acquisition_triggers(const katherine::trigger& start_trigger, const katherine::trigger& end_trigger)
     {
-        int res = katherine_set_acquisition_triggers(&dev_, &start_trigger, delayed_start, &end_trigger);
+        int res = katherine_set_acquisition_triggers(&dev_, &start_trigger, &end_trigger);
 
         if (res != 0) {
             throw katherine::system_error{res};

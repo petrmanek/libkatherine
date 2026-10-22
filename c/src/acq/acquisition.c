@@ -199,13 +199,16 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("Bias:                   %0.3f V\n", config->bias);
     printf("\n");
 
-    printf("Delay Start:            %s\n",      config->delayed_start ? "true" : "false");
     printf("Start Trigger:          %s\n",      config->start_trigger.enabled ? "true" : "false");
     printf("Start Trigger Channel:  %d\n",      config->start_trigger.channel);
     printf("Start Trigger Signal:   %s edge\n", katherine_str_trigger_edge(config->start_trigger.edge));
+    printf("Start Trigger Delay:    %s\n",      config->start_trigger.delayed ? "true" : "false");
+    printf("Start Trigger Delay s:  %g\n",      config->start_trigger.delay_seconds);
     printf("Stop Trigger:           %s\n",      config->stop_trigger.enabled ? "true" : "false");
     printf("Stop Trigger Channel:   %d\n",      config->stop_trigger.channel);
     printf("Stop Trigger Signal:    %s edge\n", katherine_str_trigger_edge(config->stop_trigger.edge));
+    printf("Stop Trigger Delay:     %s\n",      config->stop_trigger.delayed ? "true" : "false");
+    printf("Stop Trigger Delay s:   %g\n",      config->stop_trigger.delay_seconds);
     printf("\n");
 
     printf("Gray Coding:            %s\n",      config->gray_disable ? "disabled" : "enabled");
@@ -933,6 +936,8 @@ err_unsupported:
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the end trigger's delay is armed on a
+ *   readout of the first generation; see katherine_set_acquisition_triggers().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, or is one this version cannot drive. Refused here rather than at
  *   the first katherine_acquisition_read(), so a caller learns before the

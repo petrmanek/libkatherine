@@ -321,8 +321,9 @@ int
 katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "trigger{enabled: %s, channel: %d, edge: %s}", katherine_str_bool(v->enabled),
-        (int) v->channel, katherine_str_trigger_edge(v->edge));
+    REPR_APPENDF(buf, cap, off, "trigger{enabled: %s, channel: %d, edge: %s, delayed: %s, delay_seconds: %g}",
+        katherine_str_bool(v->enabled), (int) v->channel, katherine_str_trigger_edge(v->edge),
+        katherine_str_bool(v->delayed), v->delay_seconds);
     return (int) off;
 }
 
@@ -458,7 +459,7 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     REPR_APPENDF(buf, cap, off, ", bias_id: %u, acq_time: %g, no_frames: %d, bias: %g, start_trigger: ", (unsigned) v->bias_id,
         v->acq_time, v->no_frames, (double) v->bias);
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->start_trigger);
-    REPR_APPENDF(buf, cap, off, ", delayed_start: %s, stop_trigger: ", katherine_str_bool(v->delayed_start));
+    REPR_APPENDF(buf, cap, off, ", stop_trigger: ");
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->stop_trigger);
     REPR_APPENDF(buf, cap, off, ", gray_disable: %s, polarity: %s, phase: %s, freq: %s, dacs: ",
         katherine_str_bool(v->gray_disable), katherine_str_polarity(v->polarity), katherine_str_phase(v->phase),

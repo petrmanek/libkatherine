@@ -71,6 +71,8 @@ typedef struct katherine_trigger {
     bool enabled;                  ///< Whether this trigger is armed at all.
     char channel;                  ///< The trigger's input channel.
     katherine_trigger_edge_t edge; ///< Rising or falling edge of the input.
+    bool delayed;                  ///< True to hold the shutter for delay_seconds after the trigger.
+    double delay_seconds;          ///< Interval between the trigger and the shutter, honoured to 10 ns or better. Disregarded unless delayed.
 } katherine_trigger_t;
 
 KATHERINE_EXPORTED int
@@ -296,7 +298,6 @@ typedef struct katherine_config {
 
     float bias;                        ///< Sensor bias voltage, in volts. Its sign must match the carriers the sensor collects.
     katherine_trigger_t start_trigger; ///< What starts the acquisition.
-    bool delayed_start;                ///< True to hold the shutter closed until the start trigger rather than opening at once.
     katherine_trigger_t stop_trigger;  ///< What stops it.
 
     bool gray_disable; ///< True to turn off the sensor's Gray-coded counters, which then count in plain binary.
@@ -384,10 +385,7 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg);
  */
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger);
-
-KATHERINE_EXPORTED katherine_error_t
-katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds);
+katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *end_trigger);
 
 /** \} */
 

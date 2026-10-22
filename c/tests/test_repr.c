@@ -107,8 +107,10 @@ test_px_event_count_itot(void)
 }
 
 // Both bool states, across the two triggers used again in test_config().
-static katherine_trigger_t g_start_trigger = {true, 3, false};
-static katherine_trigger_t g_stop_trigger  = {false, 0, true};
+static katherine_trigger_t g_start_trigger = {
+    .enabled = true, .channel = 3, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = false, .delay_seconds = 0.0};
+static katherine_trigger_t g_stop_trigger = {
+    .enabled = false, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_FALLING, .delayed = false, .delay_seconds = 0.0};
 
 static void
 test_trigger(void)
@@ -116,10 +118,10 @@ test_trigger(void)
     char buf[128];
 
     int n1 = katherine_trigger_snprint(buf, sizeof(buf), &g_start_trigger);
-    CHECK_GOLDEN(n1, buf, "trigger{enabled: true, channel: 3, edge: rising}");
+    CHECK_GOLDEN(n1, buf, "trigger{enabled: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}");
 
     int n2 = katherine_trigger_snprint(buf, sizeof(buf), &g_stop_trigger);
-    CHECK_GOLDEN(n2, buf, "trigger{enabled: false, channel: 0, edge: falling}");
+    CHECK_GOLDEN(n2, buf, "trigger{enabled: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}");
 }
 
 // The approved example from the design: exact format, str_bool in place of
@@ -482,9 +484,8 @@ test_str_enums(void)
 
 static const char *CONFIG_GOLDEN = "config{pixel_config: px_config{words: 16384, xor64: 0x1111111122222222}, "
                                    "bias_id: 7, acq_time: 400000, no_frames: 1, bias: 230, "
-                                   "start_trigger: trigger{enabled: true, channel: 3, edge: rising}, "
-                                   "delayed_start: false, "
-                                   "stop_trigger: trigger{enabled: false, channel: 0, edge: falling}, "
+                                   "start_trigger: trigger{enabled: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}, "
+                                   "stop_trigger: trigger{enabled: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}, "
                                    "gray_disable: true, polarity: electrons, phase: phase_1, freq: freq_40, "
                                    "dacs: dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, Vpreamp_NCAS: 128, "
                                    "Ibias_Ikrum: 15, Vfbk: 164, Vthreshold_fine: 476, Vthreshold_coarse: 8, "
@@ -506,7 +507,6 @@ build_config(katherine_config_t *c)
     c->no_frames     = 1;
     c->bias          = 230.0f;
     c->start_trigger = g_start_trigger;
-    c->delayed_start = false;
     c->stop_trigger  = g_stop_trigger;
     c->gray_disable  = true;
     c->polarity      = KATHERINE_POLARITY_ELECTRONS;

@@ -56,8 +56,6 @@ def configure():
     c.no_frames         = 1
     c.bias              = 230 # V
 
-    c.delayed_start     = False
-
     c.start_trigger     = k.Trigger(enabled=False)
     c.stop_trigger      = k.Trigger(enabled=False)
 

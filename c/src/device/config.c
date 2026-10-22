@@ -51,6 +51,8 @@
  *   receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the end trigger's delay is armed on a
+ *   readout of the first generation; see katherine_set_acquisition_triggers().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, or is one this version cannot drive: the acquisition time's
  *   encoding depends on the readout generation, which is then not known. See
@@ -73,7 +75,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_bias(device, config->bias_id, config->bias);
     if (res) goto err;
 
-    res = katherine_set_acquisition_triggers(device, &config->start_trigger, config->delayed_start, &config->stop_trigger);
+    res = katherine_set_acquisition_triggers(device, &config->start_trigger, &config->stop_trigger);
     if (res) goto err;
 
     res = katherine_tpx3_set_sensor_register(device, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
@@ -830,10 +832,18 @@ err_lock:
 }
 
 /**
- * Set the start and end triggers of an acquisition.
+ * Set the start and end triggers of an acquisition, and their delays.
+ *
+ * A trigger whose delay is not armed is applied at once, and its
+ * katherine_trigger_t::delay_seconds is disregarded rather than refused, so
+ * that a caller may arm and disarm the delay without clearing the interval.
+ *
+ * The first generation can delay the start of an acquisition but not its
+ * end, its trigger word having no flag for the second; a delayed end trigger
+ * is refused there.
+ *
  * \param device Katherine device
  * \param start_trigger I/O trigger signalling acquisition start
- * \param delayed_start Flag indicating whether acquisition start is delayed
  * \param end_trigger I/O trigger signalling acquisition end
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
@@ -852,16 +862,19 @@ err_lock:
  *   codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
  *   the receive; see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
- *   exchange; see katherine_transport_get_last_os_error(). An out-of-range trigger
- *   channel is masked rather than rejected.
+ * \retval KATHERINE_E_INVAL if an armed delay is negative, not a number or
+ *   longer than this readout can hold, or the control link rejected an
+ *   argument of the exchange; see katherine_transport_get_last_os_error(). An
+ *   out-of-range trigger channel is masked rather than rejected.
+ * \retval KATHERINE_E_UNSUPPORTED if the end trigger's delay is armed on a
+ *   readout of the first generation.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so its generation is unknown.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
+katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *end_trigger)
 {
     katherine_error_t res;
 
@@ -887,14 +900,42 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     const int edge_shift    = gen2 ? 5 : 4;
     const int delayed_shift = gen2 ? 6 : 5;
 
+    // Both bytes of the second generation's word carry the delay flag, and
+    // the shutter generator tests each of them; the first generation's end
+    // byte has no such bit, so there is nowhere to put the request.
+    if (end_trigger->delayed && !gen2) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_generation;
+    }
+
+    // What the delay registers count in, which is the readout's business and
+    // not the caller's: seconds go in, and the width of the register is what
+    // bounds them. A delay too long to hold is refused rather than truncated,
+    // and a comparison that rejects a NaN is written the way round that does.
+    static const double tick_ns = 10.0;
+
+    const double start_f = start_trigger->delay_seconds * 1e9 / tick_ns;
+    const double stop_f  = end_trigger->delay_seconds * 1e9 / tick_ns;
+
+    if (start_trigger->delayed && !(start_f >= 0.0 && start_f <= (double) UINT32_MAX)) {
+        res = KATHERINE_E_INVAL;
+        goto err_start_delay;
+    }
+
+    if (end_trigger->delayed && !(stop_f >= 0.0 && stop_f <= (double) UINT32_MAX)) {
+        res = KATHERINE_E_INVAL;
+        goto err_stop_delay;
+    }
+
     uint32_t start = (uint32_t) start_trigger->enabled;
     start |= (uint32_t) (start_trigger->channel & channel_mask) << 1;
     start |= (uint32_t) (start_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
-    start |= (uint32_t) delayed_start << delayed_shift;
+    start |= (uint32_t) start_trigger->delayed << delayed_shift;
 
     uint32_t end = (uint32_t) end_trigger->enabled;
     end |= (uint32_t) (end_trigger->channel & channel_mask) << 1;
     end |= (uint32_t) (end_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
+    end |= (uint32_t) end_trigger->delayed << delayed_shift;
 
     // One register of the acquisition unit, the start trigger in its low byte
     // and the end trigger in the next.
@@ -905,6 +946,22 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
 
     katherine_transport_flush_incoming(&device->control_transport);
 
+    // A delay register is written only for a trigger that arms it, so a
+    // configuration that asks for none puts exactly the one word on the wire
+    // that it always did.
+    if (start_trigger->delayed) {
+        res = katherine_cmd_acq_unit_write(
+            &device->control_transport, KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY, (uint32_t) (start_f + 0.5));
+        if (res) goto err_start_write;
+    }
+
+    if (end_trigger->delayed) {
+        res = katherine_cmd_acq_unit_write(
+            &device->control_transport, KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY, (uint32_t) (stop_f + 0.5));
+        if (res) goto err_stop_write;
+    }
+
+    // Last, because it is what arms the delays above.
     res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_TRIGGER_SETUP, word);
     if (res) goto err_write;
 
@@ -912,8 +969,13 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     return KATHERINE_E_OK;
 
 err_write:
+err_stop_write:
+err_start_write:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_stop_delay:
+err_start_delay:
+err_generation:
 err_enumerated:
     return res;
 }
@@ -1676,97 +1738,6 @@ katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
     return "unknown";
 }
 
-/**
- * Set how long the readout waits after a trigger before it opens or closes
- * the shutter.
- *
- * Both delays are set together; there is no way to change one alone. Which
- * of them the readout acts on is the delayed-start flag of
- * katherine_acquisition_setup(). A delay is honoured to 10 ns or better.
- *
- * \note Nothing in that call's parameters arms the stop delay, so setting it
- *   alone changes nothing yet.
- *
- * \param device Katherine device
- * \param start_seconds Delay between the start trigger and the shutter
- *   opening, in seconds
- * \param stop_seconds Delay between the stop trigger and the shutter
- *   closing, in seconds
- *
- * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared.
- * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge a write
- *   within the control link's receive timeout.
- * \retval KATHERINE_E_BAD_CRD if a response was not the length of a command
- *   response.
- * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while
- *   responses to other commands kept coming.
- * \retval KATHERINE_E_INVAL if a delay is negative, not a number, or longer
- *   than this readout can hold, or the control link rejected an argument; see
- *   katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
- *   reason none of the other codes cover.
- * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
- * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
- *   see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
- *   removable one can do and a socket cannot: a USB readout unplugged or
- *   reset out from under the session; see katherine_transport_get_last_os_error().
- */
-katherine_error_t
-katherine_set_shutter_delays(katherine_device_t *device, double start_seconds, double stop_seconds)
-{
-    katherine_error_t res;
-
-    if (!device->derived_info.supported) {
-        res = KATHERINE_E_STATE;
-        goto err_enumerated;
-    }
-
-    // What the registers count in, which is the readout's business and not
-    // the caller's: seconds go in, and the width of the register is what
-    // bounds them. A delay too long to hold is refused rather than truncated,
-    // and a comparison that rejects a NaN is written the way round that does.
-    static const double tick_ns = 10.0;
-
-    const double start_f = start_seconds * 1e9 / tick_ns;
-    const double stop_f  = stop_seconds * 1e9 / tick_ns;
-
-    if (!(start_f >= 0.0 && start_f <= (double) UINT32_MAX)
-        || !(stop_f >= 0.0 && stop_f <= (double) UINT32_MAX)) {
-        res = KATHERINE_E_INVAL;
-        goto err_range;
-    }
-
-    const uint32_t start_ticks = (uint32_t) (start_f + 0.5);
-    const uint32_t stop_ticks  = (uint32_t) (stop_f + 0.5);
-
-    res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) goto err_lock;
-
-    katherine_transport_flush_incoming(&device->control_transport);
-
-    // The second generation's trigger word carries a flag that arms the stop
-    // delay. Nothing in this library's trigger parameters sets it, so the
-    // register is written and waits for one.
-    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY, start_ticks);
-    if (res) goto err_start;
-
-    res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY, stop_ticks);
-    if (res) goto err_stop;
-
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
-    return KATHERINE_E_OK;
-
-err_stop:
-err_start:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
-err_lock:
-err_range:
-err_enumerated:
-    return res;
-}
 
 /**
  * Ask the readout whether the chip is still holding the configuration it was

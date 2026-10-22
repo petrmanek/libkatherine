@@ -113,10 +113,6 @@ test_config_round_trip(void)
     c.set_bias(150.0f);
     KT_CHECK_CLOSE(c.bias(), 150.0f);
 
-    c.set_delayed_start(true);
-    KT_CHECK(c.delayed_start());
-    c.set_delayed_start(false);
-    KT_CHECK(!c.delayed_start());
 
     c.set_gray_disable(true);
     KT_CHECK(c.gray_disable());
