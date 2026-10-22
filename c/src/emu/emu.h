@@ -54,11 +54,12 @@ extern "C" {
 // ramp: the emulator models no analog front end, only the protocol.
 #define KATHERINE_EMU_DAC_SCAN_VOLT     0.001f
 
-// What the four monitoring outputs read. The manual states a nominal value
-// for three of them (Tpx3 Table 11); the band-gap temperature voltage it
-// does not, so that one is a plausible constant.
+// What the four monitoring outputs read. Three are the manual's nominal
+// values (Tpx3 Table 11). For the band-gap temperature voltage the manual
+// states none, so this one is measured: 0.6427 V on I8-W0036 at 68.7 C
+// sensor temperature, which is where a plausible-looking 0.550 f had been.
 #define KATHERINE_EMU_BANDGAP_OUTPUT_V  0.637f
-#define KATHERINE_EMU_BANDGAP_TEMP_V    0.550f
+#define KATHERINE_EMU_BANDGAP_TEMP_V    0.643f
 #define KATHERINE_EMU_IBIAS_DAC_V       1.160f
 #define KATHERINE_EMU_IBIAS_DAC_CAS_V   0.950f
 
