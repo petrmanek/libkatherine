@@ -53,7 +53,7 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     // Every inquiry below opens the same way: the session is flushed before
     // the command goes out, so a response an earlier exchange left behind
@@ -63,11 +63,11 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_get_readout_status(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_READOUT_STATUS, crd);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     // Copied rather than aliased: the response is a char array, and reading
     // one through a uint64_t * is both a strict-aliasing violation and an
@@ -82,8 +82,10 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -121,16 +123,16 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_get_comm_status(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_COMMUNICATION_STATUS, crd);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     // Copied rather than aliased: the response is a char array, and reading
     // one through a uint64_t * is both a strict-aliasing violation and an
@@ -150,8 +152,10 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -215,16 +219,16 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_echo_chip_id(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_ECHO_CHIP_ID, crd);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     uint32_t chip_id;
     memcpy(&chip_id, crd, sizeof(chip_id));
@@ -243,7 +247,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     // reported as one.
     if (chip_id == 0) {
         res = KATHERINE_E_PROTO;
-        goto err;
+        goto err_echo;
     }
 
     katherine_chip_id_format(s_chip_id, chip_id);
@@ -251,8 +255,11 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_echo:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -295,24 +302,26 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_get_readout_temperature(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_HW_READOUT_TEMPERATURE, crd);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     memcpy(temperature, crd, sizeof(*temperature));
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -382,24 +391,26 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_get_sensor_temperature(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_SENSOR_TEMPERATURE, crd);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     memcpy(temperature, crd, sizeof(*temperature));
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
 err_no_chip:
 err_busy:
     return res;
@@ -449,12 +460,12 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device)
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_digital_test(&device->control_transport);
-    if (res) goto err;
+    if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     int attempts = 100; // 10 seconds
@@ -465,20 +476,23 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device)
         --attempts;
     } while (res && attempts);
 
-    if (res) goto err;
+    if (res) goto err_recv;
 
     if (crd[0] != 64) {
         // The test did not go well: the sensor answered, but not with the
         // expected result, and no enumerator names the specific failure.
         res = KATHERINE_E_HW_UNKNOWN;
-        goto err;
+        goto err_result;
     }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_result:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
@@ -518,24 +532,26 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
     katherine_error_t res;
 
     res = katherine_transport_mutex_lock(&device->control_transport);
-    if (res) return res;
+    if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_get_adc_voltage(&device->control_transport, channel_id);
-    if (res) goto err;
+    if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_ADC_VOLTAGE, crd);
-    if (res) goto err;
+    if (res) goto err_recv;
 
     memcpy(voltage, crd, sizeof(*voltage));
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
 
-err:
+err_recv:
+err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
     return res;
 }
 
