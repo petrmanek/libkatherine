@@ -96,6 +96,7 @@ struct katherine_transport_usb {
     bool draining;                           ///< Set while closing, so a completion reposts nothing.
     bool owns_device;                        ///< True if this transport opened the readout itself, and so tears down whichever of the context, handle and claim it got as far as. False where it adopted another transport's.
     uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_transport_usb_get_framing_errors().
+    uint64_t discarded_transfers;            ///< Reads whose completion was neither success, timeout nor cancellation, and whose bytes were therefore dropped; read through katherine_transport_usb_get_discarded_transfers().
 };
 
 /**
@@ -271,9 +272,13 @@ on_transfer_done(struct libusb_transfer *xfer)
         s->state = KATHERINE_RING_SLOT_IDLE;
         break;
 
+    // Anything else -- a stall, an overflow, a device that went away -- ends
+    // the transfer with its bytes unusable, so the slot goes back empty. The
+    // count is the only trace: the stream simply has a hole in it otherwise.
     default:
         u->last_status = xfer->status;
-        s->state       = KATHERINE_RING_SLOT_IDLE;
+        u->discarded_transfers += 1;
+        s->state = KATHERINE_RING_SLOT_IDLE;
         break;
     }
 
@@ -1669,6 +1674,44 @@ err_args:
 }
 
 #endif /* KATHERINE_FEATURE_USB */
+
+/**
+ * Reads the bus ended in a way that made their bytes unusable.
+ * \param transport Transport to ask, open on the USB link.
+ * \param count Storage for the running total, or NULL to ask only whether the
+ *   link is one that counts them.
+ *
+ * A completion that is neither success, timeout nor cancellation -- a stall,
+ * an overflow, a device that went away -- carries no data the library can
+ * trust, so the slot is reposted empty. Nonzero therefore means the stream
+ * has holes in it, of a size this cannot report. Off the generic interface
+ * because only this link reads in transfers.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_UNSUPPORTED if the transport is open on a link that
+ *   does not read in transfers, which is every link but USB.
+ */
+katherine_error_t
+katherine_transport_usb_get_discarded_transfers(const katherine_transport_t *transport, uint64_t *count)
+{
+    katherine_error_t res;
+
+    if (transport->kind != KATHERINE_TRANSPORT_USB) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_kind;
+    }
+
+    const katherine_transport_usb_t *u = transport->ctx;
+
+    if (count != NULL) {
+        *count = u->discarded_transfers;
+    }
+
+    return KATHERINE_E_OK;
+
+err_kind:
+    return res;
+}
 
 /**
  * Data frames whose padding was not the four zero bytes it must be.

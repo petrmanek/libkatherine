@@ -752,6 +752,44 @@ test_an_unreachable_buffer_size_is_refused(void)
     katherine_transport_fini(&t);
 }
 
+/* A completion that is neither success, timeout nor cancellation leaves its
+ * bytes unusable, so the slot goes back on the bus empty and the stream has a
+ * hole in it. Nothing used to record that: the status was written to a field
+ * with no reader, and every counter stayed at zero. */
+static void
+test_a_discarded_transfer_is_counted(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t t;
+    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
+
+    uint64_t discarded = 1;
+    KT_CHECK_EQ(katherine_transport_usb_get_discarded_transfers(&t, &discarded), KATHERINE_E_OK);
+    KT_CHECK_EQ(discarded, (uint64_t) 0);
+
+    /* More arrived than the slot could hold: libusb reports the buffer as
+     * undefined, so the bytes are not the stream's. A completion is only
+     * taken up when somebody pumps events, which is what acquiring does. */
+    KT_REQUIRE(fake_usb_complete_oldest(LIBUSB_TRANSFER_OVERFLOW, BUF_BYTES) == 0);
+
+    void *buf  = NULL;
+    size_t len = 0;
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_TIMEOUT);
+
+    KT_CHECK_EQ(katherine_transport_usb_get_discarded_transfers(&t, &discarded), KATHERINE_E_OK);
+    KT_CHECK_EQ(discarded, (uint64_t) 1);
+
+    /* And the slot was reposted rather than lent, so the ring is whole. */
+    uint32_t inflight = 0;
+    KT_CHECK_EQ(katherine_transport_usb_get_inflight_transfers(&t, &inflight), KATHERINE_E_OK);
+    KT_CHECK_EQ(inflight, (uint32_t) RING);
+
+    katherine_transport_fini(&t);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -769,6 +807,7 @@ main(void)
     KT_RUN(test_an_absent_device_is_reported);
     KT_RUN(test_a_failed_open_gives_back_what_it_took);
     KT_RUN(test_an_unreachable_buffer_size_is_refused);
+    KT_RUN(test_a_discarded_transfer_is_counted);
     KT_RUN(test_a_ring_that_cannot_be_posted_unwinds);
     KT_RUN(test_opening_defines_every_field);
     KT_RUN(test_a_message_transport_lends_no_buffers);
