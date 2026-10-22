@@ -164,6 +164,7 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
     target_include_directories(test_usb_address BEFORE PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
 endif()
+katherine_add_test(NAME test_set_dac SOURCES test_set_dac.c LABELS unit)
 
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
 # call sites unchanged and drives one real failure through each target of

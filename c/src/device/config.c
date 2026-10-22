@@ -1294,6 +1294,91 @@ err:
 }
 
 /**
+ * Set one DAC on the chip, and have the chip take it.
+ *
+ * The same exchange katherine_tpx3_set_dacs() makes for each of the eighteen,
+ * for a caller changing one: a write into the readout's shadow of the chip's
+ * registers, then the update command that loads all of them into the chip and
+ * latches them. The other seventeen keep whatever was last written, so this
+ * is not a way to set a DAC on a chip that was never configured -- the shadow
+ * starts at whatever the readout was holding.
+ *
+ * The chip has no path for reading a DAC setpoint back, so a caller tracking
+ * what it has set must remember it. katherine_tpx3_read_dac_monitor() reports
+ * the voltage at the multiplexer, which is the analogue result rather than
+ * the number that produced it.
+ *
+ * \param device Katherine device
+ * \param dac DAC to set
+ * \param value Register value to write, in the same units as the
+ *   corresponding katherine_tpx3_dacs_t member
+ *
+ * \retval KATHERINE_E_OK on success, once both the write and the update
+ *   command have been acknowledged.
+ * \retval KATHERINE_E_INVAL if \a dac is not one of the chip's DACs. A value
+ *   too large for the DAC is not reported: like katherine_tpx3_set_dacs(),
+ *   this transmits it unchecked, and katherine_tpx3_dacs_validate() is the
+ *   opt-in check.
+ * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the write or
+ *   the update command within the control session's receive timeout.
+ * \retval KATHERINE_E_BAD_CRD if a response datagram arrived whose length is
+ *   not that of a command response.
+ * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
+ *   session kept delivering responses belonging to other commands.
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_IO if a command could not be sent, or its
+ *   acknowledgement could not be received, for a reason none of the other
+ *   codes cover; see sendto(2), recvfrom(2) and
+ *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
+ *   receive; see sendto(2) and recvfrom(2).
+ * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
+ *   taken; see pthread_mutex_lock(3) and
+ *   katherine_transport_get_last_os_error().
+ */
+katherine_error_t
+katherine_tpx3_set_dac(katherine_device_t *device, katherine_tpx3_dac_t dac, uint16_t value)
+{
+    katherine_error_t res;
+
+    if ((int) dac < 0 || (int) dac >= KATHERINE_TPX3_DAC_COUNT) {
+        res = KATHERINE_E_INVAL;
+        goto err_dac;
+    }
+
+    res = katherine_transport_mutex_lock(&device->control_transport);
+    if (res) goto err_lock;
+
+    katherine_transport_flush_incoming(&device->control_transport);
+
+    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS, (uint8_t) dac, value);
+    if (res) goto err_send;
+
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_INTERNAL_DAC_SETTINGS);
+    if (res) goto err_ack;
+
+    res = katherine_cmd_hw_internal_dac_update(&device->control_transport);
+    if (res) goto err_update;
+
+    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
+    if (res) goto err_update_ack;
+
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    return KATHERINE_E_OK;
+
+err_update_ack:
+err_update:
+err_ack:
+err_send:
+    (void) katherine_transport_mutex_unlock(&device->control_transport);
+err_lock:
+err_dac:
+    return res;
+}
+
+/**
  * Per-DAC metadata, in katherine_tpx3_dacs_named_t / array order, i.e. chip DAC
  * Code minus one.
  *

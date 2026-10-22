@@ -418,6 +418,9 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_timer_set(katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
+katherine_tpx3_set_dac(katherine_device_t *device, katherine_tpx3_dac_t dac, uint16_t value);
+
+KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_dacs(katherine_device_t *device, const katherine_tpx3_dacs_t *dacs);
 
 KATHERINE_EXPORTED katherine_error_t
