@@ -165,6 +165,7 @@ if(KATHERINE_BUILD_TRANSPORT_USB)
         "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
 endif()
 katherine_add_test(NAME test_set_dac SOURCES test_set_dac.c LABELS unit)
+katherine_add_test(NAME test_status_null SOURCES test_status_null.c LABELS unit)
 
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
 # call sites unchanged and drives one real failure through each target of

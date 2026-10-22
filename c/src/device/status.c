@@ -23,7 +23,7 @@
 /**
  * Inquire the status of the readout.
  * \param device Katherine device
- * \param status Retrieved status information
+ * \param status Retrieved status information, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer the status request
@@ -74,10 +74,12 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     // unaligned load on a target that minds. The copy costs nothing here.
     uint64_t status_crd;
     memcpy(&status_crd, crd, sizeof(status_crd));
-    status->hw_type          = EXTRACT(status_crd, readout_status_crd, hw_type);
-    status->hw_revision      = EXTRACT(status_crd, readout_status_crd, hw_revision);
-    status->hw_serial_number = EXTRACT(status_crd, readout_status_crd, hw_serial_number);
-    status->fw_version       = EXTRACT(status_crd, readout_status_crd, fw_version);
+    if (status != NULL) {
+        status->hw_type          = EXTRACT(status_crd, readout_status_crd, hw_type);
+        status->hw_revision      = EXTRACT(status_crd, readout_status_crd, hw_revision);
+        status->hw_serial_number = EXTRACT(status_crd, readout_status_crd, hw_serial_number);
+        status->fw_version       = EXTRACT(status_crd, readout_status_crd, fw_version);
+    }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
@@ -92,7 +94,7 @@ err_lock:
 /**
  * Inquire the communication status of the readout.
  * \param device Katherine device
- * \param status Retrieve status information
+ * \param status Retrieved communication status, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer the communication-
@@ -139,15 +141,17 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
     // unaligned load on a target that minds. The copy costs nothing here.
     uint64_t status_crd;
     memcpy(&status_crd, crd, sizeof(status_crd));
-    status->comm_lines_mask = EXTRACT(status_crd, comm_status_crd, comm_lines_mask);
-    // The register counts megabytes per second, so eight bits per byte give
-    // the megabits the field is documented in. The readout manual says to
-    // scale by five instead, which cannot be right: a Gen1 readout reporting
-    // 160 here has an output-block register of 0x0981, i.e. two active links
-    // at 320 MHz dual-edge, and two links of 640 Mb/s are 1280 Mb/s, not 800.
-    // Nor can 1280 be reached by fives from any 8-bit value at all.
-    status->data_rate  = 8u * EXTRACT(status_crd, comm_status_crd, total_data_rate);
-    status->chip_count = EXTRACT(status_crd, comm_status_crd, chip_count);
+    if (status != NULL) {
+        status->comm_lines_mask = EXTRACT(status_crd, comm_status_crd, comm_lines_mask);
+        // The register counts megabytes per second, so eight bits per byte give
+        // the megabits the field is documented in. The readout manual says to
+        // scale by five instead, which cannot be right: a Gen1 readout reporting
+        // 160 here has an output-block register of 0x0981, i.e. two active links
+        // at 320 MHz dual-edge, and two links of 640 Mb/s are 1280 Mb/s, not 800.
+        // Nor can 1280 be reached by fives from any 8-bit value at all.
+        status->data_rate  = 8u * EXTRACT(status_crd, comm_status_crd, total_data_rate);
+        status->chip_count = EXTRACT(status_crd, comm_status_crd, chip_count);
+    }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
@@ -182,7 +186,7 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
 /**
  * Retrieve Timepix3 chip identifier.
  * \param device Katherine device
- * \param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`
+ * \param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`, or NULL to discard the identifier
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer the chip-
@@ -250,7 +254,7 @@ katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
         goto err_echo;
     }
 
-    katherine_chip_id_format(s_chip_id, chip_id);
+    if (s_chip_id != NULL) katherine_chip_id_format(s_chip_id, chip_id);
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
@@ -271,7 +275,7 @@ err_lock:
  * acquisition is running and is the one to poll during a measurement.
  *
  * \param device Katherine device
- * \param temperature Measured temperature in Celsius.
+ * \param temperature Measured temperature in Celsius, or NULL to discard it.
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer the temperature
@@ -313,7 +317,7 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_HW_READOUT_TEMPERATURE, crd);
     if (res) goto err_recv;
 
-    memcpy(temperature, crd, sizeof(*temperature));
+    if (temperature != NULL) memcpy(temperature, crd, sizeof(*temperature));
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
@@ -339,7 +343,7 @@ err_lock:
  * reads a readout-side sensor and never touches the chip.
  *
  * \param device Katherine device
- * \param temperature Measured temperature in Celsius.
+ * \param temperature Measured temperature in Celsius, or NULL to discard it.
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_BAD_CHIP if the readout carries no chip, the sensor
@@ -402,7 +406,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_SENSOR_TEMPERATURE, crd);
     if (res) goto err_recv;
 
-    memcpy(temperature, crd, sizeof(*temperature));
+    if (temperature != NULL) memcpy(temperature, crd, sizeof(*temperature));
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
@@ -500,7 +504,7 @@ err_lock:
  * Measure ADC voltage.
  * \param device Katherine device
  * \param channel_id Index of the measured ADC channel
- * \param voltage Retrieved voltage
+ * \param voltage Retrieved voltage, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer the voltage
@@ -543,7 +547,7 @@ katherine_get_adc_voltage(katherine_device_t *device, unsigned char channel_id, 
     res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_GET_ADC_VOLTAGE, crd);
     if (res) goto err_recv;
 
-    memcpy(voltage, crd, sizeof(*voltage));
+    if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
     return KATHERINE_E_OK;
@@ -563,7 +567,7 @@ err_lock:
  *
  * \param device Katherine device
  * \param bias_id Index of the bias supply
- * \param voltage Retrieved voltage, in Volts
+ * \param voltage Retrieved voltage, in Volts, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer within the control
@@ -636,7 +640,7 @@ err_enumerated:
  *
  * \param device Katherine device
  * \param bias_id Index of the bias supply
- * \param current Retrieved leakage current, in microamperes
+ * \param current Retrieved leakage current, in microamperes, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_UNSUPPORTED if the device is not known to answer this
@@ -740,7 +744,7 @@ err_enumerated:
  * \param device Katherine device
  * \param chip_index Index of the chip to read
  * \param monitor Monitor to select
- * \param voltage Retrieved voltage, in Volts
+ * \param voltage Retrieved voltage, in Volts, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
