@@ -174,6 +174,10 @@ err_enumerated:
  * current device is katherine_device_derived_info_t::tdc_channel_count.
  * The remaining counters will be filled with constant zeros.
  *
+ * The readout clears the counters when a shutter opens and advances them
+ * only while a measurement drains its timestamps, so an idle readout answers
+ * with zeros whatever its channels have seen.
+ *
  * Counts not received are left unchanged, so a caller holding an error can
  * tell how far the sequence got by zeroing the array first.
  *
