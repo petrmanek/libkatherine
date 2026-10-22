@@ -286,6 +286,37 @@ test_a_failed_link_ends_the_read_instead_of_being_retried(void)
 }
 
 
+// Finalising one acquisition must not disown another. The device holds a
+// single registration and the guard above reads exactly it, so clearing it on
+// behalf of an acquisition that does not own it lets inquiries through in the
+// middle of someone else's measurement. Reachable without a readout: a zeroed
+// acquisition owns no transport and no buffers, so fini() frees nothing.
+static void
+test_fini_leaves_another_acquisitions_registration_alone(void)
+{
+    katherine_device_t device;
+    katherine_acquisition_t running, other;
+
+    memset(&device, 0, sizeof(device));
+    memset(&running, 0, sizeof(running));
+    memset(&other, 0, sizeof(other));
+
+    running.device     = &device;
+    other.device       = &device;
+    device.acquisition = &running;
+
+    katherine_acquisition_fini(&other);
+    KT_CHECK(device.acquisition == &running);
+
+    // And the guard is still closed, which is the reason the pointer matters.
+    float temperature = 0.0f;
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &temperature), KATHERINE_E_STATE);
+
+    // Its owner still clears it.
+    katherine_acquisition_fini(&running);
+    KT_CHECK(device.acquisition == NULL);
+}
+
 int
 main(void)
 {
@@ -295,5 +326,7 @@ main(void)
     KT_RUN(test_fast_vco_refused_where_incoherent);
     KT_RUN(test_aborting_an_unreachable_readout_still_ends_the_run);
     KT_RUN(test_a_failed_link_ends_the_read_instead_of_being_retried);
+
+    KT_RUN(test_fini_leaves_another_acquisitions_registration_alone);
     return kt_summary();
 }

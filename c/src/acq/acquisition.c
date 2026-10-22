@@ -362,9 +362,13 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 {
     if (acq->device == NULL) return;
 
-    // Prevent a dangling pointer to invalid memory.
-    acq->device->acquisition = NULL;
-    acq->device              = NULL;
+    // Prevent a dangling pointer to invalid memory -- but only this
+    // acquisition's own registration. The device holds one, the
+    // mid-acquisition guard reads it, and clearing it on behalf of an
+    // acquisition that does not own it would open that guard in the middle of
+    // another measurement.
+    if (acq->device->acquisition == acq) acq->device->acquisition = NULL;
+    acq->device = NULL;
 
     free(acq->pixel_buffer);
     acq->pixel_buffer = NULL;
@@ -867,7 +871,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 #undef ACQ_DISPATCH
 
 err_unsupported:
-    acq->device->acquisition = NULL;
+    if (acq->device->acquisition == acq) acq->device->acquisition = NULL;
     return res;
 }
 
