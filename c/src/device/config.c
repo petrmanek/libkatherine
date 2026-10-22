@@ -613,6 +613,8 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
 
+    katherine_transport_flush_incoming(&device->control_transport);
+
     char cmd[8] = {0};
     cmd[6]      = CMD_TYPE_ACQUISITION_MODE_SETTING;
 
@@ -790,6 +792,8 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) return res;
+
+    katherine_transport_flush_incoming(&device->control_transport);
 
     res = katherine_cmd_set_seq_readout_start(&device->control_transport, arg);
     if (res) goto err;

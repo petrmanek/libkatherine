@@ -184,6 +184,8 @@ katherine_device_select_interface(katherine_device_t *device)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
+    katherine_transport_flush_incoming(&device->control_transport);
+
     // Unacknowledged, so nothing waits for a reply.
     res = katherine_cmd_send60(&device->control_transport, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[kind]);
     if (res) goto err_send;

@@ -162,10 +162,11 @@ test_fast_vco_refused_where_incoherent(void)
 // a zeroed device does not have. The predicate itself is covered by
 // test_clock_phases.c.
 
-// A transport that answers the lock and refuses the wire, so that the abort
-// below fails its command without a socket, a bus or a readout. Only the
-// three operations abort reaches are filled in; a stub for the rest would
-// claim coverage this case does not have.
+// A transport that answers the lock and the drain and refuses the wire, so
+// that the abort below fails its command without a socket, a bus or a
+// readout. Only the operations abort reaches are filled in; a stub for the
+// rest would claim coverage this case does not have. The drain is one of
+// them because every call that takes the control lock now empties it first.
 static katherine_error_t
 stub_lock(void *ctx)
 {
@@ -182,10 +183,19 @@ stub_send_cmd(void *ctx, const void *data, size_t count)
     return KATHERINE_E_CLOSED;
 }
 
+static katherine_error_t
+stub_flush(void *ctx, uint32_t *discarded)
+{
+    (void) ctx;
+    (void) discarded;
+    return KATHERINE_E_OK;
+}
+
 static const katherine_transport_ops_t stub_gone_ops = {
-    .send_cmd     = stub_send_cmd,
-    .mutex_lock   = stub_lock,
-    .mutex_unlock = stub_lock,
+    .send_cmd       = stub_send_cmd,
+    .flush_incoming = stub_flush,
+    .mutex_lock     = stub_lock,
+    .mutex_unlock   = stub_lock,
 };
 
 // Aborting a readout that has gone away. The command cannot land and the call

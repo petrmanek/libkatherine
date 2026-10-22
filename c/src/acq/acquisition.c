@@ -1001,6 +1001,8 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) goto err;
 
+    katherine_transport_flush_incoming(&acq->device->control_transport);
+
     acq->acq_start_time = katherine_clock_monotonic_ns();
 
     res = katherine_cmd_start_acquisition(&acq->device->control_transport, readout_mode);
@@ -1060,6 +1062,8 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
 
     res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) goto err_lock;
+
+    katherine_transport_flush_incoming(&acq->device->control_transport);
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
     if (res) goto err_send;
@@ -1145,6 +1149,8 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     katherine_atomic_store_bool(&acq->aborted, true);
 
     if ((res = katherine_transport_mutex_lock(&acq->device->control_transport)) != KATHERINE_E_OK) goto err_lock;
+
+    katherine_transport_flush_incoming(&acq->device->control_transport);
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
 
