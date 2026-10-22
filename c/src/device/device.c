@@ -509,26 +509,37 @@ katherine_device_fini(katherine_device_t *device)
  * derive it differently.
  *
  * \param device Device to describe
- * \param info What the readout is; the caller owns being right
+ * \param info What the readout is; the caller owns being right, chip_count
+ *   included: it is taken as given, and a device declared with none has no
+ *   chip a per-chip call will accept.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if info is NULL.
+ * \retval KATHERINE_E_INVAL if info is NULL, or if its chip_count exceeds
+ *   what this hardware type can carry.
  */
 katherine_error_t
 katherine_device_declare(katherine_device_t *device, const katherine_device_info_t *info)
 {
-    katherine_error_t res = 0;
+    katherine_error_t res;
 
     if (info == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_info_null;
     }
 
+    const katherine_device_derived_info_t derived = katherine_device_derived_info_recognize(info->hw_type);
+
+    if (derived.max_chip_count != 0 && info->chip_count > derived.max_chip_count) {
+        res = KATHERINE_E_INVAL;
+        goto err_chip_count;
+    }
+
     device->info         = *info;
-    device->derived_info = katherine_device_derived_info_recognize(info->hw_type);
+    device->derived_info = derived;
 
     return KATHERINE_E_OK;
 
+err_chip_count:
 err_info_null:
     return res;
 }

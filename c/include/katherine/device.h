@@ -106,8 +106,8 @@ typedef struct katherine_device_info {
     uint8_t hw_revision;    ///< Reported hardware revision.
     uint16_t serial_number; ///< Reported hardware serial number.
     uint16_t fw_version;    ///< Reported firmware version.
-    uint8_t chip_count;     ///< Chips answering when this was taken. A snapshot, not identity: the readout reports a count while idle and a 0/1 flag while measuring, so read katherine_get_comm_status() for a live value. Compare against katherine_device_derived_info_t::max_chip_count for what the hardware could carry.
-    bool legacy;            ///< Whether the firmware ignores the echo-port extension, and so does not honour a port change either.
+    uint8_t chip_count;     ///< The number of chips answering when this was taken. Compare against katherine_device_derived_info_t::max_chip_count for what the hardware could possibly carry.
+    bool legacy;            ///< Whether the firmware ignores the UDP echo-port extension, and so does not honour a port change either.
 } katherine_device_info_t;
 
 KATHERINE_EXPORTED int
@@ -125,7 +125,7 @@ typedef struct katherine_device_derived_info {
     const char *name;                ///< Human-readable readout name, or NULL when the hardware type is unknown.
     katherine_chip_type_t chip_type; ///< Timepix chip this readout drives.
     uint8_t gen;                     ///< Katherine readout generation (indexed from 1), or 0 where it is not applicable.
-    uint8_t max_chip_count;          ///< Chips this readout can carry. Not how many are attached, see katherine_device_info_t::chip_count for that.
+    uint8_t max_chip_count;          ///< The number of chips this readout hardware can possibly drive. Not necessarily how many are presently attached, see katherine_device_info_t::chip_count for that.
     uint8_t bias_supply_count;       ///< Bias supplies this readout provides, addressed from 0.
     uint8_t accessible_gpio_count;   ///< GPIO channels brought out where a user can reach them.
     uint8_t all_gpio_count;          ///< GPIO channels the readout has, reachable or not. At least accessible_gpio_count.

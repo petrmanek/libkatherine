@@ -243,6 +243,34 @@ test_declaring_fills_both_records(void)
     KT_CHECK(dev.info.chip_count <= dev.derived_info.max_chip_count);
 }
 
+// A declared count is taken as given. The caller owns being right about it,
+// so zero means no chip a per-chip call will accept rather than a full
+// complement -- a device nobody described is the caller's to describe.
+static void
+test_a_declared_chip_count_is_taken_as_given(void)
+{
+    katherine_device_t dev;
+    memset(&dev, 0, sizeof(dev));
+
+    // Said nothing about chips, so there are none to address.
+    const katherine_device_info_t gen2 = {.hw_type = 0x03};
+    KT_CHECK_EQ(katherine_device_declare(&dev, &gen2), KATHERINE_E_OK);
+    KT_CHECK_EQ(dev.info.chip_count, 0u);
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&dev, 0, NULL), KATHERINE_E_BAD_CHIP);
+
+    // Said two, so the third is the first refused.
+    const katherine_device_info_t two = {.hw_type = 0x03, .chip_count = 2};
+    KT_CHECK_EQ(katherine_device_declare(&dev, &two), KATHERINE_E_OK);
+    KT_CHECK_EQ(dev.info.chip_count, 2u);
+    KT_CHECK_EQ(katherine_tpx3_verify_config(&dev, 2, NULL), KATHERINE_E_BAD_CHIP);
+
+    // More than the hardware carries is refused, and the description already
+    // held survives the refusal.
+    const katherine_device_info_t too_many = {.hw_type = 0x03, .chip_count = 9};
+    KT_CHECK_EQ(katherine_device_declare(&dev, &too_many), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(dev.info.chip_count, 2u);
+}
+
 static void
 test_asic_names(void)
 {
@@ -283,6 +311,7 @@ main(void)
     KT_RUN(test_only_driveable_rows_claim_support);
     KT_RUN(test_generation_dependent_calls_refuse_an_undeclared_device);
     KT_RUN(test_declaring_fills_both_records);
+    KT_RUN(test_a_declared_chip_count_is_taken_as_given);
     KT_RUN(test_asic_names);
     KT_RUN(test_unpopulated_prints_as_such);
     return kt_summary();
