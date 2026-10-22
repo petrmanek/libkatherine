@@ -52,11 +52,25 @@ KATHERINE_EXPORTED const char *
 katherine_str_px_mode(katherine_tpx3_px_mode_t mode);
 
 
+/**
+ * Rising or falling edge of a trigger's input.
+ *
+ * A rising edge is zero, so a zeroed configuration fires on it.
+ */
+typedef enum katherine_trigger_edge {
+    KATHERINE_TRIGGER_EDGE_RISING = 0, ///< Rising edge.
+    KATHERINE_TRIGGER_EDGE_FALLING,    ///< Falling edge.
+} katherine_trigger_edge_t;
+
+KATHERINE_EXPORTED const char *
+katherine_str_trigger_edge(katherine_trigger_edge_t edge);
+
+
 /** One trigger condition, used for both starting and stopping an acquisition. */
 typedef struct katherine_trigger {
-    bool enabled;          ///< Whether this trigger is armed at all.
-    char channel;          ///< Input the trigger listens on.
-    bool use_falling_edge; ///< True to fire on the falling edge, false on the rising.
+    bool enabled;                  ///< Whether this trigger is armed at all.
+    char channel;                  ///< The trigger's input channel.
+    katherine_trigger_edge_t edge; ///< Rising or falling edge of the input.
 } katherine_trigger_t;
 
 KATHERINE_EXPORTED int

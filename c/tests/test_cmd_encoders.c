@@ -563,8 +563,8 @@ test_acquisition_setup_word(void)
     // Every field at its maximum in-range value: on the first generation
     // channel 7 fills bits 1..3 exactly, so a mask regression (channel
     // bleeding into the edge or delayed-start flags) cannot hide.
-    katherine_trigger_t start = {.enabled = true, .channel = 7, .use_falling_edge = true};
-    katherine_trigger_t end   = {.enabled = false, .channel = 0, .use_falling_edge = false};
+    katherine_trigger_t start = {.enabled = true, .channel = 7, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
+    katherine_trigger_t end   = {.enabled = false, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING};
     KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
     check_setup_word(&dev, &capture, &start, true, &end, 0x3F, 0x00);
 
@@ -576,8 +576,8 @@ test_acquisition_setup_word(void)
 
     // Out-of-range channels truncate instead of corrupting the flags above
     // the field: on the first generation 9 -> 1 and 10 -> 2.
-    start = (katherine_trigger_t) {.enabled = false, .channel = 9, .use_falling_edge = false};
-    end   = (katherine_trigger_t) {.enabled = true, .channel = 10, .use_falling_edge = true};
+    start = (katherine_trigger_t) {.enabled = false, .channel = 9, .edge = KATHERINE_TRIGGER_EDGE_RISING};
+    end   = (katherine_trigger_t) {.enabled = true, .channel = 10, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
     KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
     check_setup_word(&dev, &capture, &start, false, &end, 0x02, 0x15);
 

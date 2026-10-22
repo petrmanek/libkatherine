@@ -889,12 +889,12 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
 
     uint32_t start = (uint32_t) start_trigger->enabled;
     start |= (uint32_t) (start_trigger->channel & channel_mask) << 1;
-    start |= (uint32_t) start_trigger->use_falling_edge << edge_shift;
+    start |= (uint32_t) (start_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
     start |= (uint32_t) delayed_start << delayed_shift;
 
     uint32_t end = (uint32_t) end_trigger->enabled;
     end |= (uint32_t) (end_trigger->channel & channel_mask) << 1;
-    end |= (uint32_t) end_trigger->use_falling_edge << edge_shift;
+    end |= (uint32_t) (end_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
 
     // One register of the acquisition unit, the start trigger in its low byte
     // and the end trigger in the next.

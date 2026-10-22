@@ -33,7 +33,7 @@ constexpr trigger no_trigger{
     // TODO: uncomment in C++2a
     /* .enabled = */ false,
     /* .channel = */ 0,
-    /* .use_falling_edge = */ 0,
+    /* .edge = */ KATHERINE_TRIGGER_EDGE_RISING,
 };
 
 

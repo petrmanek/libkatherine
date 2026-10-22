@@ -184,6 +184,21 @@ katherine_str_phase(katherine_tpx3_phase_t phase)
 }
 
 /**
+ * Get stable, lowercase description of a trigger edge.
+ * \param edge Edge to describe
+ * \return Null-terminated string. "unknown" for a value outside the enum.
+ */
+const char *
+katherine_str_trigger_edge(katherine_trigger_edge_t edge)
+{
+    switch (edge) {
+    case KATHERINE_TRIGGER_EDGE_RISING:  return "rising";
+    case KATHERINE_TRIGGER_EDGE_FALLING: return "falling";
+    default:                             return "unknown";
+    }
+}
+
+/**
  * Get stable, lowercase description of a carrier polarity.
  * \param polarity Polarity to describe
  * \return Null-terminated string. "unknown" for a value outside the enum.
@@ -306,8 +321,8 @@ int
 katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "trigger{enabled: %s, channel: %d, use_falling_edge: %s}", katherine_str_bool(v->enabled),
-        (int) v->channel, katherine_str_bool(v->use_falling_edge));
+    REPR_APPENDF(buf, cap, off, "trigger{enabled: %s, channel: %d, edge: %s}", katherine_str_bool(v->enabled),
+        (int) v->channel, katherine_str_trigger_edge(v->edge));
     return (int) off;
 }
 

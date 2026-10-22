@@ -202,10 +202,10 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("Delay Start:            %s\n",      config->delayed_start ? "true" : "false");
     printf("Start Trigger:          %s\n",      config->start_trigger.enabled ? "true" : "false");
     printf("Start Trigger Channel:  %d\n",      config->start_trigger.channel);
-    printf("Start Trigger Signal:   %s\n",      config->start_trigger.use_falling_edge ? "falling edge" : "rising edge");
+    printf("Start Trigger Signal:   %s edge\n", katherine_str_trigger_edge(config->start_trigger.edge));
     printf("Stop Trigger:           %s\n",      config->stop_trigger.enabled ? "true" : "false");
     printf("Stop Trigger Channel:   %d\n",      config->stop_trigger.channel);
-    printf("Stop Trigger Signal:    %s\n",      config->stop_trigger.use_falling_edge ? "falling edge" : "rising edge");
+    printf("Stop Trigger Signal:    %s edge\n", katherine_str_trigger_edge(config->stop_trigger.edge));
     printf("\n");
 
     printf("Gray Coding:            %s\n",      config->gray_disable ? "disabled" : "enabled");

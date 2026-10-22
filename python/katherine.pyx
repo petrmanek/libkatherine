@@ -829,11 +829,11 @@ cdef class CommStatus:
 cdef class Trigger:
     cdef cconfig.katherine_trigger_t _c_trigger
 
-    def __init__(self, enabled=False, channel=0, use_falling_edge=False, cdata=None):
+    def __init__(self, enabled=False, channel=0, edge=None, cdata=None):
          if cdata is None:
              self._c_trigger.enabled = enabled
              self._c_trigger.channel = channel
-             self._c_trigger.use_falling_edge = use_falling_edge
+             self._c_trigger.edge = TriggerEdge.RISING.value if edge is None else TriggerEdge(edge).value
          else:
              self._c_trigger = cdata
 
@@ -857,12 +857,12 @@ cdef class Trigger:
          self._c_trigger.channel = val
 
     @property
-    def use_falling_edge(self):
-         return self._c_trigger.use_falling_edge
+    def edge(self):
+         return TriggerEdge(self._c_trigger.edge)
 
-    @use_falling_edge.setter
-    def use_falling_edge(self, val):
-         self._c_trigger.use_falling_edge = val
+    @edge.setter
+    def edge(self, val):
+         self._c_trigger.edge = TriggerEdge(val).value
 
 
 cdef class Tpx3TestPulseConfig:
@@ -1177,6 +1177,16 @@ cdef class Tpx3PxConfig:
 
     def get_loc_thl(self, int x, int y):
       return cpx_config.katherine_tpx3_px_config_get_loc_thl(&self._c_px_config, Tpx3PxConfig._coord(x, y))
+
+@_unique
+class TriggerEdge(_Enum):
+    RISING  = cconfig.katherine_trigger_edge_t.KATHERINE_TRIGGER_EDGE_RISING
+    FALLING = cconfig.katherine_trigger_edge_t.KATHERINE_TRIGGER_EDGE_FALLING
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'rising'."""
+        return cconfig.katherine_str_trigger_edge(self.value).decode('UTF-8')
+
 
 @_unique
 class Polarity(_Enum):

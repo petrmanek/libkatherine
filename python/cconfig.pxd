@@ -17,10 +17,16 @@ cdef extern from 'katherine/config.h':
         KATHERINE_TPX3_PX_ONLY_TOA
         KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 
+    ctypedef enum katherine_trigger_edge_t:
+        KATHERINE_TRIGGER_EDGE_RISING
+        KATHERINE_TRIGGER_EDGE_FALLING
+
+    const char *katherine_str_trigger_edge(katherine_trigger_edge_t edge)
+
     ctypedef struct katherine_trigger_t:
         bool enabled
         char channel
-        bool use_falling_edge
+        katherine_trigger_edge_t edge
 
     int katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 

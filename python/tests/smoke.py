@@ -332,9 +332,9 @@ def check_reprs(tap, katherine, device):
     tap.check_eq('Tpx3TestPulseConfig repr matches the C golden byte-for-byte', repr(tp),
         'test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}')
 
-    trig = katherine.Trigger(enabled=True, channel=3, use_falling_edge=False)
+    trig = katherine.Trigger(enabled=True, channel=3, edge=katherine.TriggerEdge.RISING)
     tap.check_eq('Trigger repr matches the C golden byte-for-byte', repr(trig),
-        'trigger{enabled: true, channel: 3, use_falling_edge: false}')
+        'trigger{enabled: true, channel: 3, edge: rising}')
 
     px = katherine.Tpx3PxConfig()
     tap.check_eq('Tpx3PxConfig repr matches the C golden byte-for-byte (all-zero matrix)', repr(px),

@@ -116,10 +116,10 @@ test_trigger(void)
     char buf[128];
 
     int n1 = katherine_trigger_snprint(buf, sizeof(buf), &g_start_trigger);
-    CHECK_GOLDEN(n1, buf, "trigger{enabled: true, channel: 3, use_falling_edge: false}");
+    CHECK_GOLDEN(n1, buf, "trigger{enabled: true, channel: 3, edge: rising}");
 
     int n2 = katherine_trigger_snprint(buf, sizeof(buf), &g_stop_trigger);
-    CHECK_GOLDEN(n2, buf, "trigger{enabled: false, channel: 0, use_falling_edge: true}");
+    CHECK_GOLDEN(n2, buf, "trigger{enabled: false, channel: 0, edge: falling}");
 }
 
 // The approved example from the design: exact format, str_bool in place of
@@ -482,9 +482,9 @@ test_str_enums(void)
 
 static const char *CONFIG_GOLDEN = "config{pixel_config: px_config{words: 16384, xor64: 0x1111111122222222}, "
                                    "bias_id: 7, acq_time: 400000, no_frames: 1, bias: 230, "
-                                   "start_trigger: trigger{enabled: true, channel: 3, use_falling_edge: false}, "
+                                   "start_trigger: trigger{enabled: true, channel: 3, edge: rising}, "
                                    "delayed_start: false, "
-                                   "stop_trigger: trigger{enabled: false, channel: 0, use_falling_edge: true}, "
+                                   "stop_trigger: trigger{enabled: false, channel: 0, edge: falling}, "
                                    "gray_disable: true, polarity: electrons, phase: phase_1, freq: freq_40, "
                                    "dacs: dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, Vpreamp_NCAS: 128, "
                                    "Ibias_Ikrum: 15, Vfbk: 164, Vthreshold_fine: 476, Vthreshold_coarse: 8, "

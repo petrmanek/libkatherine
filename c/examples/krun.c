@@ -93,12 +93,12 @@ configure(katherine_config_t *config)
 
     config->delayed_start = false;
 
-    config->start_trigger.enabled          = false;
-    config->start_trigger.channel          = 0;
-    config->start_trigger.use_falling_edge = false;
-    config->stop_trigger.enabled           = false;
-    config->stop_trigger.channel           = 0;
-    config->stop_trigger.use_falling_edge  = false;
+    config->start_trigger.enabled = false;
+    config->start_trigger.channel = 0;
+    config->start_trigger.edge    = KATHERINE_TRIGGER_EDGE_RISING;
+    config->stop_trigger.enabled  = false;
+    config->stop_trigger.channel  = 0;
+    config->stop_trigger.edge     = KATHERINE_TRIGGER_EDGE_RISING;
 
     config->gray_disable = false;
     config->polarity     = KATHERINE_POLARITY_ELECTRONS;
