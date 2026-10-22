@@ -177,7 +177,7 @@ katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v);
 typedef enum katherine_device_flags {
     KATHERINE_DEVICE_DONT_ENUMERATE        = 1u << 0, ///< Do not ask the readout what it is. Every generation-dependent call then fails with KATHERINE_E_STATE until katherine_device_enumerate() or katherine_device_declare() has run. Without this flag, a readout that does not answer fails the open.
     KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS = 1u << 1, ///< Do not move this session to a private pair of local UDP ports. Moving them is what lets one host drive several readouts, so suppress it only where something else owns the port assignment. Not attempted on a firmware that ignores the reply port, which cannot be moved; see katherine_device_info_t::legacy.
-    KATHERINE_DEVICE_DONT_SELECT_INTERFACE = 1u << 2, ///< Do not tell the readout which interface drives it. On a readout that wants it, every later command answers orders of magnitude more slowly. See katherine_device_select_interface().
+    KATHERINE_DEVICE_DONT_SELECT_INTERFACE = 1u << 2, ///< Do not tell the readout which interface drives it. On a readout that wants it, every later command answers orders of magnitude more slowly, and an acquisition over UDP does not start at all: katherine_acquisition_begin() times out. Over USB the selection changes nothing but that latency. See katherine_device_select_interface().
 } katherine_device_flags_t;
 
 KATHERINE_EXPORTED katherine_error_t
