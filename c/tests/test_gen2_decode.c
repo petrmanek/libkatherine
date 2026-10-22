@@ -107,7 +107,7 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     // here instead, which is what a caller with no readout to ask does, and
     // which reaches derived_info by the same single path enumeration uses --
     // hardware type 0x01 is the Gen1 Katherine, 0x03 the Gen2.
-    const katherine_device_info_t id = {.hw_type = (gen >= 2) ? 0x03 : 0x01};
+    const katherine_device_info_t id = {.hw_type = (gen >= 2) ? 0x03 : 0x01, .chip_count = 1};
     KT_CHECK(katherine_device_declare(&dev, &id) == KATHERINE_E_OK);
     KT_CHECK_EQ(dev.derived_info.gen, gen);
 

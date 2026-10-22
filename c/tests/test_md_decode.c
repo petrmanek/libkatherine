@@ -196,7 +196,7 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
 
     // Hand-built, so nothing enumerated it: declare a Gen1 Katherine, which
     // is what the header map these vectors were written against expects.
-    const katherine_device_info_t id = {.hw_type = 0x01};
+    const katherine_device_info_t id = {.hw_type = 0x01, .chip_count = 1};
     KT_CHECK(katherine_device_declare(&dev, &id) == KATHERINE_E_OK);
     memset(probe, 0, sizeof(*probe));
 
