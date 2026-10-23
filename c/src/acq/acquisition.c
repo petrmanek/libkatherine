@@ -314,14 +314,16 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
 katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
 {
-    // The phase state has to be defined before begin() runs: the offset
-    // accessor is readable on an initialized acquisition, and a stray
-    // HARDWARE value there would shift by an indeterminate amount. begin()
-    // resolves these properly; this only makes the in-between state honest.
-    acq->phase_correction              = KATHERINE_TPX3_PHASE_CORRECTION_NONE;
-    acq->phase_count                   = 0;
-    acq->toa_coarse_tick_to_fine_shift = 0;
-    memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
+    // Before the first thing that can fail, and before anything is read back.
+    // Three things turn on it: the phase state has to be defined before
+    // begin() runs, since the offset accessor is readable on an initialized
+    // acquisition and a stray HARDWARE value there would shift by an
+    // indeterminate amount; the handlers are optional, so a caller who
+    // registers some must not leave the rest pointing at indeterminate
+    // values; and katherine_acquisition_fini() frees pixel_buffer, which the
+    // transport failure below returns before assigning -- finalising then
+    // used to free whatever the caller's object happened to hold.
+    memset(acq, 0, sizeof(*acq));
 
     katherine_error_t res;
 
@@ -329,13 +331,6 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->user_ctx = ctx;
     acq->state    = KATHERINE_ACQUISITION_STATE_NOT_STARTED;
     katherine_atomic_store_bool(&acq->aborted, false);
-    acq->frame_active = false;
-
-    acq->truncated_measurement_data = 0;
-
-    // Handlers are optional. Clear them so that a caller which registers only
-    // some of them does not leave the rest pointing at indeterminate values.
-    acq->handlers = (katherine_acquisition_handlers_t) {0};
 
     // Opened here rather than with the device: nothing reads from one that is
     // not acquiring. A link claimed once is driven through the control

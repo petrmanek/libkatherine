@@ -327,11 +327,17 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 {
     katherine_error_t res;
 
-    // Ensure the pointer is zeroed and not garbage.
-    device->acquisition = NULL;
+    // Before the first thing that can fail. A caller's device is an
+    // uninitialized object until this runs, and katherine_device_fini() reads
+    // control_transport.ops to decide whether there is anything to release --
+    // so an address rejected by the check below used to return with that
+    // field still holding the caller's stack, and finalising afterwards
+    // dereferenced it.
+    memset(device, 0, sizeof(*device));
+
 #ifdef KATHERINE_FEATURE_UDP
-    device->udp_ports_changed = false;
-    device->udp_data_port     = KATHERINE_UDP_DATA_PORT;
+    // Not zero, so it survives the clear above.
+    device->udp_data_port = KATHERINE_UDP_DATA_PORT;
 #endif /* KATHERINE_FEATURE_UDP */
 
     // An acquisition opens its own link from this, after the caller's string
@@ -340,11 +346,6 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         return KATHERINE_E_ADDRESS;
     }
     strcpy(device->address, address);
-
-    // Zeroed before the probe below, so a readout that never answers leaves
-    // hw_type 0 rather than whatever the caller's stack held.
-    memset(&device->info, 0, sizeof(device->info));
-    memset(&device->derived_info, 0, sizeof(device->derived_info));
 
     // The address names the link as well as the readout, and only the part
     // after the scheme is the transport's to read.

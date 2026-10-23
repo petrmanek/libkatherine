@@ -164,6 +164,50 @@ test_a_device_can_be_finalized_twice(void)
     KT_CHECK(stdin_is_open());
 }
 
+/* A finalizer called on an object whose initializer FAILED, which is the
+ * other half of the same trap: an error path that does not know how far
+ * setup got, and a wrapper destructor that runs anyway.
+ *
+ * Both of these used to crash, and the caller's object is poisoned rather
+ * than zeroed here because that is what makes them crash -- a zeroed one
+ * passes whether or not the initializer clears it.
+ *
+ * Python reached the device case: katherine.Device('x' * 300) segfaulted the
+ * interpreter, because Cython runs __dealloc__ even when __cinit__ raised and
+ * the block it frees came from PyMem_Malloc. */
+static void
+test_a_device_whose_init_failed_can_be_finalized(void)
+{
+    katherine_device_t device;
+    memset(&device, 0xA5, sizeof(device));
+
+    char too_long[KATHERINE_DEVICE_ADDRESS_STR_SIZE + 8];
+    memset(too_long, 'x', sizeof(too_long) - 1);
+    too_long[sizeof(too_long) - 1] = '\0';
+
+    /* Refused at the first check, before any link is opened. */
+    KT_CHECK_EQ(katherine_device_init(&device, too_long, 0), KATHERINE_E_ADDRESS);
+
+    katherine_device_fini(&device);
+}
+
+static void
+test_an_acquisition_whose_init_failed_can_be_finalized(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+
+    katherine_acquisition_t acq;
+    memset(&acq, 0xA5, sizeof(acq));
+
+    /* The device carries no link, so opening the data one fails before
+     * pixel_buffer is assigned -- which is what the finalizer frees. */
+    KT_CHECK(katherine_acquisition_init(&acq, &device, NULL, 65536, 4096, 10, 10)
+        != KATHERINE_E_OK);
+
+    katherine_acquisition_fini(&acq);
+}
+
 int
 main(void)
 {
@@ -172,5 +216,7 @@ main(void)
     KT_RUN(test_a_transport_can_be_finalized_twice);
     KT_RUN(test_an_acquisition_can_be_finalized_twice);
     KT_RUN(test_a_device_can_be_finalized_twice);
+    KT_RUN(test_a_device_whose_init_failed_can_be_finalized);
+    KT_RUN(test_an_acquisition_whose_init_failed_can_be_finalized);
     return kt_summary();
 }
