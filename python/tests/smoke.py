@@ -152,6 +152,11 @@ def wait_ready(ksim, katherine):
     (device, None) once ready, or (None, reason) if the environment cannot
     host the daemon -- the only condition this script treats as a skip.
 
+    Opening the device is itself an attempt, not a precondition: since the
+    open enumerates, a daemon that has not bound its address yet makes
+    katherine.Device() time out, and that is the ordinary first iteration
+    rather than a reason to give up.
+
     Readiness is the *content* of the answer, not merely a successful
     receive, and the device is torn down and recreated between attempts: a
     command sent before the daemon has bound its address is not lost (every
@@ -166,7 +171,22 @@ def wait_ready(ksim, katherine):
         try:
             device = katherine.Device(KSIM_DEVICE_ADDRESS)
         except KATHERINE_ERRORS as e:
-            return None, 'cannot bind the local control/data ports 1555/1556: %s' % e
+            # Two different conditions arrive here and only one is a skip.
+            # The ports being taken by something else is an environment this
+            # script cannot run in; the daemon not answering yet is the race
+            # this loop exists for, and used to end it on the first attempt
+            # with the wrong reason. They are told apart by the code the
+            # exception carries, which is why it carries one.
+            code = getattr(e, 'code', None)
+            if code == katherine.ErrorCode.ADDRESS:
+                return None, 'cannot bind the local control/data ports 1555/1556: %s' % e
+
+            if ksim.poll() is not None:
+                return None, ('ksim exited during startup: it could not bind %s (not aliased by default '
+                              'on macOS), or could not be executed at all' % KSIM_LISTEN_ADDRESS)
+
+            time.sleep(READY_SLEEP_S)
+            continue
 
         try:
             chip_id = device.get_chip_id()
