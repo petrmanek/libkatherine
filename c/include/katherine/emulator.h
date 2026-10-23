@@ -87,10 +87,10 @@ typedef struct katherine_emu_profile {
      * whose edges it has not seen.
      */
     struct {
-        bool level;          ///< Level the channel reads
-        uint32_t high_ticks; ///< Ticks spent high; see KATHERINE_GPIO_TICK_NS
-        uint32_t low_ticks;  ///< Ticks spent low
-    } gpio[KATHERINE_MAX_GPIO_COUNT];
+        bool level;                   ///< Level the channel reads
+        uint32_t high_ticks;          ///< Ticks spent high; see KATHERINE_GPIO_TICK_NS
+        uint32_t low_ticks;           ///< Ticks spent low
+    } gpio[KATHERINE_MAX_GPIO_COUNT]; ///< One entry per GPIO channel, answered to a probe.
 
     /**
      * Edges the timing unit reports having timestamped on each channel. The

@@ -37,17 +37,24 @@
  */
 #define DEFAULT_BUFFER_SIZE 4096
 
-// One buffer is enough, which is the whole difference from the USB transport:
-// a socket keeps filling SO_RCVBUF whether or not the application is inside
-// recv(), so the kernel already does what a ring does there.
-//
-// Allocated a whole word past its capacity: a decoder reads the last six-byte
-// item through an eight-byte load, which reaches two bytes past what arrived.
+/**
+ * The UDP transport's own state: one session and the one buffer it reads into.
+ *
+ * One buffer is enough, which is the whole difference from the USB
+ * transport: a socket keeps filling SO_RCVBUF whether or not the
+ * application is inside recv(), so the kernel already does what a ring does
+ * there.
+ */
 typedef struct katherine_transport_udp {
-    katherine_udp_t udp;
+    katherine_udp_t udp; ///< The session every operation here delegates to.
+    /**
+     * The one buffer a lent datagram lands in. Allocated a whole word past
+     * #capacity: a decoder reads the last six-byte item through an
+     * eight-byte load, which reaches two bytes past what arrived.
+     */
     char *buffer;
-    size_t capacity;
-    bool lent; ///< True if the one buffer is in the caller's hands.
+    size_t capacity; ///< Bytes of #buffer a datagram may fill; katherine_transport_set_buffer_size() is what changes it.
+    bool lent;       ///< True if the one buffer is in the caller's hands.
 } katherine_transport_udp_t;
 
 /**
