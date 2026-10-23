@@ -222,6 +222,20 @@ test_a_transport_resizes_exactly(void)
 
     KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, 0), KATHERINE_E_INVAL);
 
+    /* And a size within a word of SIZE_MAX, which the transport adds its
+     * read-ahead headroom to. The sum wraps to zero, realloc() reads that as
+     * a request for nothing and FREES the buffer, and the code that believes
+     * it is handling an allocation failure then leaves a pointer the next
+     * finalize frees again. Refused before any of that can happen. */
+    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, SIZE_MAX - sizeof(uint64_t) + 1),
+        KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, SIZE_MAX), KATHERINE_E_INVAL);
+
+    /* The largest size the addition survives is still accepted, so the bound
+     * is the wrap and not a round number somebody picked. */
+    KT_CHECK(katherine_transport_set_buffer_size(&t, SIZE_MAX - sizeof(uint64_t))
+        != KATHERINE_E_INVAL);
+
     katherine_transport_fini(&t);
     katherine_udp_fini(&sender);
 }

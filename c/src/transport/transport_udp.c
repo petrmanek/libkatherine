@@ -364,7 +364,13 @@ udp_t_set_buffer_size(void *ctx, size_t size)
     katherine_error_t res;
     katherine_transport_udp_t *t = ctx;
 
-    if (size == 0) {
+    // The headroom below is added to this, and a size within a word of
+    // SIZE_MAX makes that sum wrap. Rejecting it here rather than relying on
+    // the allocator: a sum that wraps to zero reaches realloc() as a request
+    // for nothing, which frees the buffer and returns NULL -- indistinguishable
+    // from the failure the code below believes it is handling, and a double
+    // free at the next finalize.
+    if (size == 0 || size > SIZE_MAX - sizeof(uint64_t)) {
         res = KATHERINE_E_INVAL;
         goto err_size;
     }
