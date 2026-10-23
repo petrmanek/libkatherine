@@ -42,8 +42,8 @@ cdef extern from 'katherine/pulse.h':
         uint32_t rising_edges
         uint32_t clock_mhz
 
-    const char *katherine_pulse_output_str(katherine_pulse_output_t output)
-    const char *katherine_pulse_source_str(katherine_pulse_source_t source)
+    const char *katherine_str_pulse_output(katherine_pulse_output_t output)
+    const char *katherine_str_pulse_source(katherine_pulse_source_t source)
 
     int katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_config_t *config)
     int katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse_counts_t *counts)

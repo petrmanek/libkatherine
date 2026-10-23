@@ -262,25 +262,25 @@ operator<<(std::ostream& os, katherine_gpio_monitor_signal_t v)
     return os << katherine_str_gpio_monitor_signal(v);
 }
 
-/** Renders a katherine_tdc_source_t (via katherine_tdc_source_str()). */
+/** Renders a katherine_tdc_source_t (via katherine_str_tdc_source()). */
 inline std::ostream&
 operator<<(std::ostream& os, katherine_tdc_source_t v)
 {
-    return os << katherine_tdc_source_str(v);
+    return os << katherine_str_tdc_source(v);
 }
 
-/** Renders a katherine_pulse_source_t (via katherine_pulse_source_str()). */
+/** Renders a katherine_pulse_source_t (via katherine_str_pulse_source()). */
 inline std::ostream&
 operator<<(std::ostream& os, katherine_pulse_source_t v)
 {
-    return os << katherine_pulse_source_str(v);
+    return os << katherine_str_pulse_source(v);
 }
 
-/** Renders a katherine_pulse_output_t (via katherine_pulse_output_str()). */
+/** Renders a katherine_pulse_output_t (via katherine_str_pulse_output()). */
 inline std::ostream&
 operator<<(std::ostream& os, katherine_pulse_output_t v)
 {
-    return os << katherine_pulse_output_str(v);
+    return os << katherine_str_pulse_output(v);
 }
 
 /** Renders a katherine_tpx3_dac_monitor_t (via katherine_tpx3_dac_monitor_name()). */

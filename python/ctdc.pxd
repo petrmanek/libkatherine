@@ -32,7 +32,7 @@ cdef extern from 'katherine/tdc.h':
     ctypedef struct katherine_tdc_config_t:
         katherine_tdc_channel_config_t *channel
 
-    const char *katherine_tdc_source_str(katherine_tdc_source_t source)
+    const char *katherine_str_tdc_source(katherine_tdc_source_t source)
 
     int katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_t *config)
     int katherine_get_tdc_counts(katherine_device_t *device, uint32_t *counts)

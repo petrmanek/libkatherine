@@ -43,7 +43,7 @@ static const char *const KATHERINE_PULSE_SOURCE_NAME[] = {
  * \return Its name, or "unknown" outside the enumeration.
  */
 const char *
-katherine_pulse_output_str(katherine_pulse_output_t output)
+katherine_str_pulse_output(katherine_pulse_output_t output)
 {
     const size_t n = sizeof(KATHERINE_PULSE_OUTPUT_NAME) / sizeof(KATHERINE_PULSE_OUTPUT_NAME[0]);
 
@@ -58,7 +58,7 @@ katherine_pulse_output_str(katherine_pulse_output_t output)
  * \return Its name, or "unknown" outside the enumeration.
  */
 const char *
-katherine_pulse_source_str(katherine_pulse_source_t source)
+katherine_str_pulse_source(katherine_pulse_source_t source)
 {
     const size_t n = sizeof(KATHERINE_PULSE_SOURCE_NAME) / sizeof(KATHERINE_PULSE_SOURCE_NAME[0]);
 

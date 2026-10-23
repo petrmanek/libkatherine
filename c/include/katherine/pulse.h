@@ -104,10 +104,10 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_reset_pulse_generator_counts(katherine_device_t *device);
 
 KATHERINE_EXPORTED const char *
-katherine_pulse_output_str(katherine_pulse_output_t output);
+katherine_str_pulse_output(katherine_pulse_output_t output);
 
 KATHERINE_EXPORTED const char *
-katherine_pulse_source_str(katherine_pulse_source_t source);
+katherine_str_pulse_source(katherine_pulse_source_t source);
 
 #ifdef __cplusplus
 }

@@ -406,11 +406,11 @@ static void
 test_g_every_source_is_named(void)
 {
     for (unsigned s = 0; s <= KATHERINE_TDC_SOURCE_CHIP_3_FEEDBACK; ++s) {
-        KT_CHECK(strcmp(katherine_tdc_source_str((katherine_tdc_source_t) s), "unknown") != 0);
+        KT_CHECK(strcmp(katherine_str_tdc_source((katherine_tdc_source_t) s), "unknown") != 0);
     }
 
     KT_CHECK_STR_EQ(
-        katherine_tdc_source_str((katherine_tdc_source_t) (KATHERINE_TDC_SOURCE_CHIP_3_FEEDBACK + 1)),
+        katherine_str_tdc_source((katherine_tdc_source_t) (KATHERINE_TDC_SOURCE_CHIP_3_FEEDBACK + 1)),
         "unknown");
 }
 

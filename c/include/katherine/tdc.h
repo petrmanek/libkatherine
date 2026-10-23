@@ -82,7 +82,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_MAX_TDC_CHANNEL_COUNT]);
 
 KATHERINE_EXPORTED const char *
-katherine_tdc_source_str(katherine_tdc_source_t source);
+katherine_str_tdc_source(katherine_tdc_source_t source);
 
 #ifdef __cplusplus
 }

@@ -40,7 +40,7 @@ static const char *const KATHERINE_TDC_SOURCE_NAME[] = {
  * \return Its name, or "unknown" outside the enumeration.
  */
 const char *
-katherine_tdc_source_str(katherine_tdc_source_t source)
+katherine_str_tdc_source(katherine_tdc_source_t source)
 {
     const size_t n = sizeof(KATHERINE_TDC_SOURCE_NAME) / sizeof(KATHERINE_TDC_SOURCE_NAME[0]);
 

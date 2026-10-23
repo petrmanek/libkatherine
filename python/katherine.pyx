@@ -247,7 +247,7 @@ class TdcSource(_Enum):
 
     def __str__(self):
         """Render as the C library does, e.g. 'gpio_2'."""
-        return ctdc.katherine_tdc_source_str(self.value).decode('UTF-8')
+        return ctdc.katherine_str_tdc_source(self.value).decode('UTF-8')
 
 
 @_unique
@@ -260,7 +260,7 @@ class PulseSource(_Enum):
 
     def __str__(self):
         """Render as the C library does, e.g. 'oscillator'."""
-        return cpulse.katherine_pulse_source_str(self.value).decode('UTF-8')
+        return cpulse.katherine_str_pulse_source(self.value).decode('UTF-8')
 
 
 class PulseOutput(_Enum):
@@ -272,7 +272,7 @@ class PulseOutput(_Enum):
 
     def __str__(self):
         """Render as the C library does, e.g. 'pulse_inverted'."""
-        return cpulse.katherine_pulse_output_str(self.value).decode('UTF-8')
+        return cpulse.katherine_str_pulse_output(self.value).decode('UTF-8')
 
 
 @_unique
