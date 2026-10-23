@@ -968,6 +968,14 @@ cdef class Tpx3Dacs:
          if cdata is not None:
              self._c_dacs.named = cdata['named']
 
+    def validate(self):
+         """Check every DAC against its own width, Timepix3 manual Table 11.
+
+         Opt-in, as in C: Device.set_dacs() transmits what it is given, and a
+         value too wide for its DAC is truncated by the chip rather than
+         refused."""
+         check_return_code(cconfig.katherine_tpx3_dacs_validate(&self._c_dacs))
+
     def __repr__(self):
          return _snprint_repr(<snprint_fn_t> cconfig.katherine_tpx3_dacs_snprint, &self._c_dacs)
 
@@ -1252,6 +1260,19 @@ class Tpx3Freq(_Enum):
         """Render as the C library does, e.g. 'freq_40'."""
         return cconfig.katherine_str_freq(self.value).decode('UTF-8')
 
+
+
+def tpx3_actual_phases(freq, phase):
+    """Phases the clock divider actually grants, which is not what the
+    enumerator asks for: Timepix3 manual Table 17 clamps the count at the
+    faster frequencies."""
+    return cconfig.katherine_tpx3_actual_phases(freq.value, phase.value)
+
+
+def tpx3_freq_is_fast_vco_supported(freq):
+    """True where the fine oscillator can run, which only the slowest pixel
+    clock allows."""
+    return cconfig.katherine_tpx3_freq_is_fast_vco_supported(freq.value)
 
 
 def tpx3_toa_coarse_tick_to_fine_ticks(freq):

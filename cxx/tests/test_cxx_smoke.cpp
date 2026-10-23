@@ -245,6 +245,50 @@ test_px_config(void)
 // ------------------------------------------------------------------
 // 5. toa.hpp -- the #31 timestamp surface, which shipped with no C++ test.
 
+/* The three pure helpers of config.h, which no C++ caller could reach until
+ * they were bound. What they answer is pinned by the C suite
+ * (test_clock_phases.c, test_dacs_validate.c); what is asserted here is that
+ * the binding reaches the right function and converts the enum class to the C
+ * enumerator it stands for. */
+static void
+test_clock_helpers(void)
+{
+    // The divider only ever takes phases away, and it takes none at the
+    // slowest clock: Timepix3 manual Table 17.
+    KT_CHECK_EQ(katherine::tpx3::actual_phases(katherine::tpx3::freq::f40,
+                    katherine::tpx3::phase::p16),
+        16u);
+    KT_CHECK(katherine::tpx3::actual_phases(katherine::tpx3::freq::f160,
+                 katherine::tpx3::phase::p16)
+        < 16u);
+
+    // The fine oscillator runs at exactly one frequency.
+    KT_CHECK(katherine::tpx3::freq_is_fast_vco_supported(katherine::tpx3::freq::f40));
+    KT_CHECK(!katherine::tpx3::freq_is_fast_vco_supported(katherine::tpx3::freq::f20));
+    KT_CHECK(!katherine::tpx3::freq_is_fast_vco_supported(katherine::tpx3::freq::f80));
+    KT_CHECK(!katherine::tpx3::freq_is_fast_vco_supported(katherine::tpx3::freq::f160));
+
+    katherine::tpx3::dacs d{};
+    bool threw = false;
+    try {
+        katherine::tpx3::validate(d);
+    } catch (const katherine::system_error&) {
+        threw = true;
+    }
+    KT_CHECK(!threw);
+
+    // A value past its DAC's own width is refused, where set_dacs() would
+    // have transmitted it and let the chip truncate.
+    d.named.Vthreshold_fine = 0xFFFF;
+    katherine_error_t code  = KATHERINE_E_OK;
+    try {
+        katherine::tpx3::validate(d);
+    } catch (const katherine::system_error& e) {
+        code = e.code();
+    }
+    KT_CHECK_EQ(code, KATHERINE_E_INVAL);
+}
+
 static void
 test_timestamps(void)
 {
@@ -520,6 +564,7 @@ main(void)
     KT_RUN(test_enum_rendering);
     KT_RUN(test_config_round_trip);
     KT_RUN(test_px_config);
+    KT_RUN(test_clock_helpers);
     KT_RUN(test_timestamps);
     KT_RUN(test_errors);
     KT_RUN(test_error_mapping);

@@ -17,6 +17,7 @@
 
 #include <katherine/config.h>
 
+#include <katherinexx/error.hpp>
 #include <katherinexx/px_config.hpp>
 
 namespace katherine {
@@ -92,6 +93,37 @@ enum class px_mode : int {
     only_toa         = KATHERINE_TPX3_PX_ONLY_TOA,
     event_count_itot = KATHERINE_TPX3_PX_EVENT_COUNT_ITOT
 };
+
+/**
+ * Phases the clock divider actually grants, which is not what the enumerator
+ * asks for: Timepix3 manual Table 17 clamps the count at the faster
+ * frequencies. Anything dividing a coarse tick by the phase count has to
+ * divide by this.
+ */
+inline std::uint8_t
+actual_phases(freq f, phase p)
+{
+    return katherine_tpx3_actual_phases((katherine_tpx3_freq_t) f, (katherine_tpx3_phase_t) p);
+}
+
+/// True where the fine oscillator can run, which only the slowest pixel clock allows.
+inline bool
+freq_is_fast_vco_supported(freq f)
+{
+    return katherine_tpx3_freq_is_fast_vco_supported((katherine_tpx3_freq_t) f);
+}
+
+/**
+ * Checks every DAC against its own width, Timepix3 manual Table 11.
+ *
+ * Opt-in, as in C: device::set_dacs() transmits what it is given, and a value
+ * too wide for its DAC is truncated by the chip rather than refused.
+ */
+inline void
+validate(const dacs& v)
+{
+    katherine::detail::check(katherine_tpx3_dacs_validate(&v));
+}
 
 } // namespace tpx3
 

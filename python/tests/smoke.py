@@ -635,6 +635,53 @@ def check_timestamp_functions(tap, katherine):
               all(isinstance(v, int) for v in toa_ftoa))
 
 
+def check_clock_helpers(tap, katherine):
+    """The three pure helpers of config.h, which nothing could reach until now.
+
+    What they answer is pinned by the C suite (test_clock_phases.c,
+    test_dacs_validate.c), so nothing here restates a number the manual
+    supplies. These assert that the binding reaches the right function: the
+    phase count is clamped where Table 17 clamps it, the fine oscillator is
+    supported at exactly one frequency, and a DAC past its own width is
+    refused while the same value inside it is not.
+    """
+    for f in katherine.Tpx3Freq:
+        for p in katherine.Tpx3Phase:
+            granted = katherine.tpx3_actual_phases(f, p)
+            tap.check('actual phases of %s at %s is a positive int' % (p, f),
+                      isinstance(granted, int) and granted > 0)
+            # The divider only ever takes phases away.
+            tap.check('actual phases of %s at %s is at most what was asked' % (p, f),
+                      granted <= int(str(p).rsplit('_', 1)[1]))
+
+    # Clamped at the fast clocks and granted whole at the slow ones: the one
+    # relation that tells a correct binding from one reading the wrong table.
+    tap.check('the slowest clock grants all sixteen phases',
+              katherine.tpx3_actual_phases(katherine.Tpx3Freq.FREQ_40,
+                                           katherine.Tpx3Phase.PHASE_16) == 16)
+    tap.check('the fastest clock grants fewer',
+              katherine.tpx3_actual_phases(katherine.Tpx3Freq.FREQ_160,
+                                           katherine.Tpx3Phase.PHASE_16) < 16)
+
+    supported = [f for f in katherine.Tpx3Freq
+                 if katherine.tpx3_freq_is_fast_vco_supported(f)]
+    tap.check_eq('the fine oscillator runs at exactly one frequency',
+                 supported, [katherine.Tpx3Freq.FREQ_40])
+
+    dacs = katherine.Tpx3Dacs()
+    dacs.validate()
+    tap.check('an all-zero DAC block validates', True)
+
+    dacs = katherine.Tpx3Dacs()
+    dacs.Vthreshold_fine = 0xFFFF
+    threw = False
+    try:
+        dacs.validate()
+    except Exception:
+        threw = True
+    tap.check('a DAC past its own width is refused', threw)
+
+
 def check_pixel_types(tap, katherine):
     """Every pixel type, not only the one an acquisition happens to produce.
 
@@ -714,6 +761,7 @@ def run_checks(tap, katherine, device):
     check_usb_discovery(tap, katherine)
     check_module_surface(tap, katherine)
     check_timestamp_functions(tap, katherine)
+    check_clock_helpers(tap, katherine)
     check_pixel_types(tap, katherine)
     check_error_mapping(tap, katherine)
 
