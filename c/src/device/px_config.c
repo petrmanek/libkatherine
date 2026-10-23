@@ -390,6 +390,11 @@ katherine_tpx3_px_config_get_mask_bit(const katherine_tpx3_px_config_t *px_confi
  * this accessor wrote the nibble unreversed and so programmed a trim of 8 for
  * an argument of 1, disagreeing with the BPC loader, which had the order right.
  *
+ * The field is four bits wide, so a value above 15 cannot be stored. A debug
+ * build asserts on one; a build with NDEBUG keeps its low four bits, so 16
+ * programs a trim of 0 and 17 a trim of 1. Nothing reports it either way --
+ * this accessor writes into the caller's own matrix and has no return.
+ *
  * \param px_config Configuration matrix to modify.
  * \param coord Pixel coordinates.
  * \param loc_thl New threshold adjustment DAC value, 0 to 15.
