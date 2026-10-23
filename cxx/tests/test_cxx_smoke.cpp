@@ -283,6 +283,17 @@ test_clock_helpers(void)
     KT_CHECK(!katherine::tpx3::freq_is_fast_vco_supported(katherine::tpx3::freq::f80));
     KT_CHECK(!katherine::tpx3::freq_is_fast_vco_supported(katherine::tpx3::freq::f160));
 
+    // Per-DAC metadata, which Python had and C++ did not. Vthreshold_fine
+    // reaches 511, which is the case that matters: a working threshold of
+    // 388 is lost entirely if the width is ever read as a byte.
+    KT_CHECK_EQ(katherine::tpx3::dac_max(KATHERINE_TPX3_DAC_VTHRESHOLD_FINE), 511u);
+    KT_CHECK_EQ(katherine::tpx3::dac_max(KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE), 15u);
+
+    katherine_dac_unit_t unit = KATHERINE_DAC_UNIT_VOLT;
+    const double si           = katherine::tpx3::dac_to_si(KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON, 128, unit);
+    KT_CHECK(si > 0.0);
+    KT_CHECK_EQ(unit, KATHERINE_DAC_UNIT_AMP);
+
     katherine::tpx3::dacs d{};
     bool threw = false;
     try {
@@ -499,6 +510,25 @@ test_readout_peripherals(void)
     state.channel[0].signal = KATHERINE_GPIO_MONITOR_SIGNAL_CONSTANT;
     KT_CHECK(streamed(state).size() > 0);
     KT_CHECK(streamed(state.channel[0]).size() > 0);
+
+    // What the readout counted, read as a frequency and a duty cycle. Both
+    // are arithmetic over the probe's own tick counts rather than a second
+    // question for the readout, which is why they can be checked here with
+    // no readout at all. Python had both; C++ had neither.
+    katherine::gpio_channel_monitor square{};
+    square.signal     = KATHERINE_GPIO_MONITOR_SIGNAL_PERIODIC;
+    square.high_ticks = 50;
+    square.low_ticks  = 50;
+    KT_CHECK(katherine::gpio_channel_duty_cycle(square) > 0.49);
+    KT_CHECK(katherine::gpio_channel_duty_cycle(square) < 0.51);
+    KT_CHECK(katherine::gpio_channel_frequency(square) > 0.0);
+
+    // Twice the ticks is half the frequency, whatever the tick is worth.
+    katherine::gpio_channel_monitor slower = square;
+    slower.high_ticks                      = 100;
+    slower.low_ticks                       = 100;
+    KT_CHECK(katherine::gpio_channel_frequency(slower)
+        < katherine::gpio_channel_frequency(square));
 
     katherine_tpx3_dac_voltages_t voltages{};
     KT_CHECK(streamed(voltages).size() > 0);

@@ -113,6 +113,26 @@ freq_is_fast_vco_supported(freq f)
     return katherine_tpx3_freq_is_fast_vco_supported((katherine_tpx3_freq_t) f);
 }
 
+/// The largest value a DAC takes, Timepix3 manual Table 11.
+inline std::uint16_t
+dac_max(katherine_tpx3_dac_t dac)
+{
+    return katherine_tpx3_dac_max(dac);
+}
+
+/**
+ * A DAC's digital value in SI units.
+ *
+ * Which unit that is depends on the DAC -- some bias a current and some a
+ * voltage -- so it comes back alongside the number rather than being
+ * assumed.
+ */
+inline double
+dac_to_si(katherine_tpx3_dac_t dac, std::uint16_t value, katherine_dac_unit_t& unit)
+{
+    return katherine_tpx3_dac_to_si(dac, value, &unit);
+}
+
 /**
  * Checks every DAC against its own width, Timepix3 manual Table 11.
  *
