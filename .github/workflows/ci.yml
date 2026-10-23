@@ -256,17 +256,24 @@ jobs:
       # unpinned doxygen cuts both ways: a release that adds a diagnostic
       # reddens this job for a change that did not cause it, and that is
       # the cost of finding out early rather than at the next sweep.
+      # Warnings about DoxygenLayout.xml are not counted, and cannot be
+      # fixed by editing it: the `properties` entries in namespace and file
+      # scope are rejected by doxygen 1.9.8 as an unexpected tag and
+      # required by 1.18, which reports them missing. No text of that file
+      # is clean on both, and neither complaint is about this library's
+      # documentation -- both versions fall back to the default layout and
+      # say so. What this gate is for is the source warnings.
       - name: Build the documentation, and fail on a warning
         shell: bash
         run: |
           cmake --build build --target docs 2>&1 | tee doxygen.log
-          warnings=$(grep -c 'warning:' doxygen.log || true)
-          if [ "$warnings" -ne 0 ]; then
-            echo "doxygen emitted $warnings warning(s):"
-            grep 'warning:' doxygen.log
+          grep 'warning:' doxygen.log | grep -v '^DoxygenLayout\.xml:' > doxygen.warnings || true
+          if [ -s doxygen.warnings ]; then
+            echo "doxygen emitted $(wc -l < doxygen.warnings) warning(s):"
+            cat doxygen.warnings
             exit 1
           fi
-          echo "doxygen is clean"
+          echo "doxygen is clean; $(grep -c 'warning:' doxygen.log || true) layout warning(s) ignored"
 
       # The manual pages must be safe to install, and that is a property
       # rather than a number, so it is worth failing on. MAN_LINKS gives every
