@@ -91,12 +91,11 @@ struct katherine_transport_usb {
     uint32_t ready_count;         ///< How many of ready hold a slot.
     uint32_t inflight;            ///< Reads the bus has not answered yet.
 
-    int last_os_error;                       ///< What katherine_transport_get_last_os_error() reports: a libusb code, or an errno from a mutex.
-    enum libusb_transfer_status last_status; ///< Status of the last completion that was not success, for diagnosis.
-    bool draining;                           ///< Set while closing, so a completion reposts nothing.
-    bool owns_device;                        ///< True if this transport opened the readout itself, and so tears down whichever of the context, handle and claim it got as far as. False where it adopted another transport's.
-    uint64_t framing_errors;                 ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_transport_usb_get_framing_errors().
-    uint64_t discarded_transfers;            ///< Reads whose completion was neither success, timeout nor cancellation, and whose bytes were therefore dropped; read through katherine_transport_usb_get_discarded_transfers().
+    int last_os_error;            ///< What katherine_transport_get_last_os_error() reports: a libusb code, or an errno from a mutex.
+    bool draining;                ///< Set while closing, so a completion reposts nothing.
+    bool owns_device;             ///< True if this transport opened the readout itself, and so tears down whichever of the context, handle and claim it got as far as. False where it adopted another transport's.
+    uint64_t framing_errors;      ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_transport_usb_get_framing_errors().
+    uint64_t discarded_transfers; ///< Reads whose completion was neither success, timeout nor cancellation, and whose bytes were therefore dropped; read through katherine_transport_usb_get_discarded_transfers().
 };
 
 /**
@@ -276,7 +275,6 @@ on_transfer_done(struct libusb_transfer *xfer)
     // the transfer with its bytes unusable, so the slot goes back empty. The
     // count is the only trace: the stream simply has a hole in it otherwise.
     default:
-        u->last_status = xfer->status;
         u->discarded_transfers += 1;
         s->state = KATHERINE_RING_SLOT_IDLE;
         break;
