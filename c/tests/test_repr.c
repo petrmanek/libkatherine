@@ -19,6 +19,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -26,6 +27,7 @@
 
 #include "transport/udp.h"
 
+#include "kports.h"
 #include "ktest.h"
 
 // Requires the snprint call to have rendered exactly `expected`: the return
@@ -360,10 +362,10 @@ test_comm_status(void)
 // no serialization is needed.
 
 #define UDP_HOST       "127.0.0.1"
-#define UDP_TEST_PORT1 43601
-#define UDP_TEST_PORT2 43602
-#define UDP_TEST_PORT3 43603
-#define UDP_TEST_PORT4 43604
+#define UDP_TEST_PORT1 (KPORTS_REPR + 0)
+#define UDP_TEST_PORT2 (KPORTS_REPR + 1)
+#define UDP_TEST_PORT3 (KPORTS_REPR + 2)
+#define UDP_TEST_PORT4 (KPORTS_REPR + 3)
 
 // Pinned, so the one field a fresh session renders differently is rendered
 // away from its default and a stringifier reading the wrong one shows up.
@@ -376,7 +378,10 @@ test_udp(void)
 
     char buf[192];
     int n = katherine_udp_snprint(buf, sizeof(buf), &u);
-    CHECK_GOLDEN(n, buf, "udp{local: 127.0.0.1:43601, remote: 127.0.0.1:43602, pinned: true, last_os_error: 0}");
+    char want[192];
+    snprintf(want, sizeof(want), "udp{local: 127.0.0.1:%u, remote: 127.0.0.1:%u, pinned: true, last_os_error: 0}",
+        (unsigned) UDP_TEST_PORT1, (unsigned) UDP_TEST_PORT2);
+    CHECK_GOLDEN(n, buf, want);
 
     katherine_udp_fini(&u);
 }
@@ -435,10 +440,13 @@ test_device(void)
 
     char buf[384];
     int n = katherine_device_snprint(buf, sizeof(buf), &dev);
-    CHECK_GOLDEN(n, buf,
+    char want[384];
+    snprintf(want, sizeof(want),
         "device{address: \"udp://127.0.0.1\", "
         "control_transport: transport{kind: udp, strict_ack: false, stray_command_responses: 0}, "
-        "udp_data_port: 43604}");
+        "udp_data_port: %u}",
+        (unsigned) UDP_TEST_PORT4);
+    CHECK_GOLDEN(n, buf, want);
 
     katherine_device_fini(&dev);
 }

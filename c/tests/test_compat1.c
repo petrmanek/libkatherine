@@ -51,14 +51,15 @@
 
 #include <katherine/katherine1.h>
 
+#include "kports.h"
 #include "ktest.h"
 
 #define HOST            "127.0.0.1"
-#define PORT_SILENT     43700 // bound, never sent to: the timeout case
-#define PORT_BADADDRESS 43703 // bound only long enough to fail resolving its remote
-#define PORT_A          43701 // the round-trip pair
-#define PORT_B          43702
-#define PORT_NOMEM      43704 // the device the ENOMEM case reads through
+#define PORT_SILENT     (KPORTS_COMPAT1 + 0) // bound, never sent to: the timeout case
+#define PORT_BADADDRESS (KPORTS_COMPAT1 + 3) // bound only long enough to fail resolving its remote
+#define PORT_A          (KPORTS_COMPAT1 + 1) // the round-trip pair
+#define PORT_B          (KPORTS_COMPAT1 + 2)
+#define PORT_NOMEM      (KPORTS_COMPAT1 + 4) // the device the ENOMEM case reads through
 #define TIMEOUT_MS      100
 
 #define ROUND_TRIP_TEXT "compat1"
