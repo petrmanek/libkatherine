@@ -52,6 +52,7 @@
  * table has to be made twice and is noticed once. */
 #define SENSOR_REG_CHIP_BYTE 5
 #define HW_COMMAND_CHIP_BYTE 1
+#define BARE_CHIP_BYTE       0
 
 #define MAX_CAPTURED         4
 
@@ -60,6 +61,7 @@ static katherine_udp_t g_mock_quiet;
 static uint8_t g_captured[MAX_CAPTURED][KATHERINE_CMD_CRD_SIZE];
 static int g_captured_count;
 static int g_to_serve;
+static uint32_t g_reply_payload;
 
 // Answers g_to_serve commands, echoing each opcode back so the library's own
 // correlation accepts the acknowledgement, and keeping every datagram.
@@ -77,6 +79,7 @@ mock_readout(void *arg)
         g_captured_count += 1;
 
         crd[KATHERINE_CMD_OPCODE_BYTE] = g_captured[i][KATHERINE_CMD_OPCODE_BYTE];
+        memcpy(crd, &g_reply_payload, sizeof(g_reply_payload));
         if (katherine_udp_send_exact(&g_mock, crd, sizeof(crd)) != 0) break;
     }
 
@@ -176,6 +179,74 @@ test_a_hardware_command_keeps_its_sub_command(void)
     katherine_transport_fini(&device.control_transport);
 }
 
+/* The three bare reads -- chip identifier, sensor temperature, digital test
+ * -- carry their chip index in byte 0, which they otherwise leave empty. */
+static void
+test_the_bare_reads_name_their_chip(void)
+{
+    katherine_device_t device;
+    KT_REQUIRE(device_init(&device, PORT_DEVICE, PORT_MOCK) == KATHERINE_E_OK);
+
+    /* The chip-identifier read rejects an all-zero answer as the request
+     * echoed back at its sender, so the mock has to say something; the
+     * temperature read takes whatever arrives. Neither value is asserted
+     * here, only the byte that addressed the chip. */
+    char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
+    g_reply_payload = 0x00000111u;
+    SERVE_ONE(katherine_get_chip_id(&device, CHIP_PRESENT, chip_id));
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_ECHO_CHIP_ID);
+    KT_CHECK_EQ(g_captured[0][BARE_CHIP_BYTE], CHIP_PRESENT);
+
+    float temperature;
+    g_reply_payload = 0;
+    SERVE_ONE(katherine_get_sensor_temperature(&device, CHIP_PRESENT, &temperature));
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_GET_SENSOR_TEMPERATURE);
+    KT_CHECK_EQ(g_captured[0][BARE_CHIP_BYTE], CHIP_PRESENT);
+
+    /* 64 of 64 patterns correct is the one answer the digital test accepts. */
+    g_reply_payload = 64;
+    SERVE_ONE(katherine_tpx3_perform_digital_test(&device, CHIP_PRESENT));
+    KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], CMD_TYPE_DIGITAL_TEST);
+    KT_CHECK_EQ(g_captured[0][BARE_CHIP_BYTE], CHIP_PRESENT);
+
+    katherine_transport_fini(&device.control_transport);
+}
+
+/* Byte 0 of the chip-identifier read is overloaded: the firmware reads it as
+ * a reply port from 32 upwards. A readout reporting that many chips is not
+ * one this library has seen, but a declared device can claim it, and the
+ * request has to be refused rather than silently sent. */
+static void
+test_a_chip_index_too_wide_for_byte_zero(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+
+    const katherine_device_info_t info = {
+        .hw_type    = 0, /* unrecognized: no ceiling on the chip count */
+        .chip_count = 40,
+    };
+    KT_REQUIRE(katherine_device_declare(&device, &info) == KATHERINE_E_OK);
+
+    const katherine_udp_config_t config = {
+        .local_address  = "127.0.0.1",
+        .local_port     = PORT_DEVICE_QUIET,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_MOCK_QUIET,
+        .timeout_ms     = DEVICE_TIMEOUT_MS,
+    };
+    KT_REQUIRE(katherine_transport_init_udp(&device.control_transport, &config) == KATHERINE_E_OK);
+
+    char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
+    KT_CHECK_EQ(katherine_get_chip_id(&device, 32, chip_id), KATHERINE_E_INVAL);
+
+    uint8_t buf[KATHERINE_CMD_CRD_SIZE];
+    size_t count = sizeof(buf);
+    KT_CHECK_EQ(katherine_udp_recv(&g_mock_quiet, buf, &count), KATHERINE_E_TIMEOUT);
+
+    katherine_transport_fini(&device.control_transport);
+}
+
 /* A chip this readout does not carry is refused before anything is sent, so
  * the write cannot land on a different chip than the caller named. */
 static void
@@ -199,6 +270,14 @@ test_an_absent_chip_is_refused(void)
     memset(&px, 0, sizeof(px));
     KT_CHECK_EQ(
         katherine_tpx3_set_all_pixel_config(&device, CHIP_ABSENT, &px), KATHERINE_E_BAD_CHIP);
+
+    char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
+    float temperature;
+    KT_CHECK_EQ(katherine_get_chip_id(&device, CHIP_ABSENT, chip_id), KATHERINE_E_BAD_CHIP);
+    KT_CHECK_EQ(
+        katherine_get_sensor_temperature(&device, CHIP_ABSENT, &temperature), KATHERINE_E_BAD_CHIP);
+    KT_CHECK_EQ(
+        katherine_tpx3_perform_digital_test(&device, CHIP_ABSENT), KATHERINE_E_BAD_CHIP);
 
     uint8_t buf[KATHERINE_CMD_CRD_SIZE];
     size_t count = sizeof(buf);
@@ -227,6 +306,8 @@ main(void)
     KT_RUN(test_a_sensor_register_write_names_its_chip);
     KT_RUN(test_the_hardware_commands_name_their_chip);
     KT_RUN(test_a_hardware_command_keeps_its_sub_command);
+    KT_RUN(test_the_bare_reads_name_their_chip);
+    KT_RUN(test_a_chip_index_too_wide_for_byte_zero);
     KT_RUN(test_an_absent_chip_is_refused);
 
     katherine_udp_fini(&g_mock_quiet);

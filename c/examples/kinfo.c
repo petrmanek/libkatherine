@@ -49,7 +49,7 @@ print_info(katherine_device_t *device)
     katherine_comm_status_t comm_status;
     int err;
 
-    err = katherine_get_chip_id(device, chip_id);
+    err = katherine_get_chip_id(device, 0, chip_id);
     if (err != 0) {
         report_failure("katherine_get_chip_id", err);
         return false;

@@ -597,10 +597,11 @@ cdef class Device:
          res = cdevice.katherine_device_enumerate(self._c_device)
          check_return_code(res)
 
-    def get_chip_id(self):
+    def get_chip_id(self, uint8_t chip_index=0):
+         """Ask one chip of the readout for its own identifier."""
          cdef char[:] chip_id = _array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)
          cdef char *c_chip_id = &chip_id[0]
-         res = cstatus.katherine_get_chip_id(self._c_device, c_chip_id)
+         res = cstatus.katherine_get_chip_id(self._c_device, chip_index, c_chip_id)
          check_return_code(res)
          
          if chip_id[0] == 0:
@@ -614,14 +615,16 @@ cdef class Device:
          check_return_code(res)
          return temp
 
-    def get_sensor_temperature(self):
+    def get_sensor_temperature(self, uint8_t chip_index=0):
+         """Measure one chip's own on-die temperature sensor."""
          cdef float temp
-         res = cstatus.katherine_get_sensor_temperature(self._c_device, &temp)
+         res = cstatus.katherine_get_sensor_temperature(self._c_device, chip_index, &temp)
          check_return_code(res)
          return temp
 
-    def perform_digital_test(self):
-         res = cstatus.katherine_tpx3_perform_digital_test(self._c_device)
+    def perform_digital_test(self, uint8_t chip_index=0):
+         """Test the link between the readout and one of its chips."""
+         res = cstatus.katherine_tpx3_perform_digital_test(self._c_device, chip_index)
          check_return_code(res)
 
     def get_adc_voltage(self, unsigned char channel_id):

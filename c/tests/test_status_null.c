@@ -125,7 +125,7 @@ test_comm_status_can_be_discarded(void)
 static void
 test_a_chip_identifier_can_be_discarded(void)
 {
-    CHECK_DISCARDS(CHIP_ID_NONZERO, katherine_get_chip_id(&device, NULL));
+    CHECK_DISCARDS(CHIP_ID_NONZERO, katherine_get_chip_id(&device, 0, NULL));
 }
 
 static void
@@ -137,7 +137,7 @@ test_a_readout_temperature_can_be_discarded(void)
 static void
 test_a_sensor_temperature_can_be_discarded(void)
 {
-    CHECK_DISCARDS(0x41C80000u, katherine_get_sensor_temperature(&device, NULL));
+    CHECK_DISCARDS(0x41C80000u, katherine_get_sensor_temperature(&device, 0, NULL));
 }
 
 static void

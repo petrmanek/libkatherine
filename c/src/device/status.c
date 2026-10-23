@@ -185,10 +185,16 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
 
 /**
  * Retrieve Timepix3 chip identifier.
+ *
  * \param device Katherine device
+ * \param chip_index Chip to ask, counting from zero
  * \param s_chip_id Start of string buffer of size `KATHERINE_CHIP_ID_STR_SIZE`, or NULL to discard the identifier
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_TIMEOUT if the readout did not answer the chip-
  *   identifier request within the control link's receive timeout, or if
  *   datagrams from other hosts kept arriving until the pinned session's
@@ -206,9 +212,11 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
  *   itself delivered back to the sender, which response correlation cannot
  *   reject because the echo carries the request's own operation code; see the
  *   comment at the check.
- * \retval KATHERINE_E_INVAL if taking the control link's lock, sending the
- *   request, or receiving its reply reported an invalid argument; see
- *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_INVAL if the chip index is 32 or above, which this
+ *   command cannot carry -- the firmware reads byte 0 as a reply port rather
+ *   than a chip index from there upwards -- or if taking the control link's
+ *   lock, sending the request, or receiving its reply reported an invalid
+ *   argument; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if sending the request or receiving its reply failed
  *   at the OS level for a reason none of the other codes cover; see
  *   katherine_transport_get_last_os_error().
@@ -218,16 +226,31 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
+katherine_get_chip_id(katherine_device_t *device, uint8_t chip_index, char *s_chip_id)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
+
+    // This opcode's byte 0 is overloaded: the firmware reads a value below 32
+    // as a chip index and anything above as a UDP port to answer on. A readout
+    // reporting 32 chips or more is not one this library has seen, but a
+    // declared one can say so, and sending such an index would quietly
+    // reprogram the reply port instead of addressing a chip.
+    if (chip_index >= 32) {
+        res = KATHERINE_E_INVAL;
+        goto err_unaddressable;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_echo_chip_id(&device->control_transport);
+    res = katherine_cmd_send6_chip(&device->control_transport, CMD_TYPE_ECHO_CHIP_ID, chip_index);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
@@ -264,6 +287,8 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_unaddressable:
+err_chip:
     return res;
 }
 
@@ -343,11 +368,14 @@ err_lock:
  * reads a readout-side sensor and never touches the chip.
  *
  * \param device Katherine device
+ * \param chip_index Chip to measure, counting from zero
  * \param temperature Measured temperature in Celsius, or NULL to discard it.
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_BAD_CHIP if the readout carries no chip, the sensor
- *   being the chip's; see katherine_device_info_t::chip_count.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_STATE if an acquisition is currently started on this
  *   device. This is a precondition, not a communication failure: it is checked
  *   before the session lock is taken and before anything is sent, so the
@@ -378,7 +406,7 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
+katherine_get_sensor_temperature(katherine_device_t *device, uint8_t chip_index, float *temperature)
 {
     katherine_error_t res;
 
@@ -389,7 +417,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
         goto err_busy;
     }
 
-    if (device->info.chip_count == 0) {
+    if (chip_index >= device->info.chip_count) {
         res = KATHERINE_E_BAD_CHIP;
         goto err_no_chip;
     }
@@ -399,7 +427,8 @@ katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_get_sensor_temperature(&device->control_transport);
+    res = katherine_cmd_send6_chip(
+        &device->control_transport, CMD_TYPE_GET_SENSOR_TEMPERATURE, chip_index);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
@@ -429,8 +458,13 @@ err_busy:
  * seconds in, not at the first timeout.
  *
  * \param device Katherine device
+ * \param chip_index Chip to test, counting from zero
  *
  * \retval KATHERINE_E_OK on success, meaning the test ran and passed.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_HW_UNKNOWN if the test ran but did not pass. The sensor
  *   answered, and byte 0 of its answer carries the result: only the value 64,
  *   every one of the 64 matrix patterns returned correct, counts as a pass.
@@ -459,16 +493,21 @@ err_busy:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_tpx3_perform_digital_test(katherine_device_t *device)
+katherine_tpx3_perform_digital_test(katherine_device_t *device, uint8_t chip_index)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_digital_test(&device->control_transport);
+    res = katherine_cmd_send6_chip(&device->control_transport, CMD_TYPE_DIGITAL_TEST, chip_index);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
@@ -497,6 +536,7 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_chip:
     return res;
 }
 

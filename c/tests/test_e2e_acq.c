@@ -234,7 +234,7 @@ fixture_init_chips(const char *ksim_path, const char *profile, const char *chips
             return g_skip_reason;
         }
 
-        if (katherine_get_chip_id(&g_device, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
+        if (katherine_get_chip_id(&g_device, 0, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
             // Readiness is probed with the chip id, not with enumeration, so
             // the enumerate inside katherine_device_init() above may have run
             // before ksim was listening -- leaving a device that answers but
@@ -278,7 +278,7 @@ static void
 test_slow_control(void)
 {
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-    KT_CHECK_EQ(katherine_get_chip_id(&g_device, chip_id), 0);
+    KT_CHECK_EQ(katherine_get_chip_id(&g_device, 0, chip_id), 0);
     KT_CHECK(strcmp(chip_id, EXPECTED_CHIP_ID) == 0);
 
     katherine_readout_status_t readout;
@@ -301,7 +301,7 @@ test_slow_control(void)
     KT_CHECK(temperature == EXPECTED_READOUT_T);
 
     temperature = 0.0f;
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, &temperature), 0);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, 0, &temperature), 0);
     KT_CHECK(temperature == EXPECTED_SENSOR_T);
 
     float voltage = 0.0f;
@@ -310,7 +310,7 @@ test_slow_control(void)
 
     // The emulated readout reports all matrix patterns passing, which is
     // what the library requires to accept the result.
-    KT_CHECK_EQ(katherine_tpx3_perform_digital_test(&g_device), 0);
+    KT_CHECK_EQ(katherine_tpx3_perform_digital_test(&g_device, 0), 0);
 }
 
 // ------------------------------------------------------------------
@@ -573,7 +573,7 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     // it.
     KT_CHECK(g_device.acquisition == acq);
     float refused = 0.0f;
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, &refused), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, 0, &refused), KATHERINE_E_STATE);
 
     res = katherine_acquisition_read(acq);
 
@@ -781,7 +781,7 @@ test_control_timeout(void)
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     time_t started = time(NULL);
-    int res        = katherine_get_chip_id(&device, chip_id);
+    int res        = katherine_get_chip_id(&device, 0, chip_id);
     double elapsed = difftime(time(NULL), started);
 
     // Any nonzero code counts: a receive timeout on POSIX, but possibly
@@ -837,7 +837,7 @@ test_faux_echo_rejected(void)
     KT_REQUIRE(katherine_device_init(&device, SILENT_LOOPBACK_ADDRESS, KATHERINE_DEVICE_DONT_ENUMERATE) == 0);
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-    KT_CHECK(katherine_get_chip_id(&device, chip_id) != 0);
+    KT_CHECK(katherine_get_chip_id(&device, 0, chip_id) != 0);
 
     katherine_device_fini(&device);
 }

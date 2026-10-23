@@ -37,7 +37,7 @@ int main() {
   katherine_device_init(&dev, address, 0);   // Ignoring return code.
 
   char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-  katherine_get_chip_id(&dev, chip_id);   // Ignoring return code.
+  katherine_get_chip_id(&dev, 0, chip_id);   // Ignoring return code.
   printf("Device %s has chip id: %s\n", address, chip_id);
 
   katherine_device_fini(&dev);

@@ -56,7 +56,7 @@ test_ip_address(void)
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
 
-    res = katherine_get_chip_id(&device, chip_id);
+    res = katherine_get_chip_id(&device, 0, chip_id);
     if (res) {
         test_failed(address);
     } else {

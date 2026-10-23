@@ -50,7 +50,7 @@ test_sensor_temperature_refused_while_running(void)
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
     device.acquisition = &acq;
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &temperature), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, 0, &temperature), KATHERINE_E_STATE);
 
     // The out parameter is left alone when the call is refused.
     KT_CHECK_EXACT(temperature, 0.0f);
@@ -70,8 +70,8 @@ test_guard_is_the_first_thing_the_call_does(void)
     device.acquisition = &acq;
 
     float first = 0.0f, second = 0.0f;
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &first), KATHERINE_E_STATE);
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &second), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, 0, &first), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, 0, &second), KATHERINE_E_STATE);
 }
 
 // A begin that fails must not leave the device claiming a measurement. The
@@ -310,7 +310,7 @@ test_fini_leaves_another_acquisitions_registration_alone(void)
 
     // And the guard is still closed, which is the reason the pointer matters.
     float temperature = 0.0f;
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &temperature), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, 0, &temperature), KATHERINE_E_STATE);
 
     // Its owner still clears it.
     katherine_acquisition_fini(&running);
@@ -339,7 +339,7 @@ test_a_device_knows_which_acquisition_is_live(void)
 
     // And the guard that reads it is closed while it is held.
     float temperature = 0.0f;
-    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, &temperature), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&device, 0, &temperature), KATHERINE_E_STATE);
 
     // Finalising the acquisition is what gives the device back: only then is
     // katherine_device_fini() safe, which is the order the headers state.

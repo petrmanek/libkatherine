@@ -101,7 +101,7 @@ poll_temperatures(katherine_device_t *device, const ktemp_args_t *args, int *err
     }
 
     if (args->show_chip) {
-        *err = katherine_get_sensor_temperature(device, &chip_temp);
+        *err = katherine_get_sensor_temperature(device, 0, &chip_temp);
         if (*err != 0) return false;
     }
 

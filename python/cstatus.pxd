@@ -31,10 +31,10 @@ cdef extern from 'katherine/status.h':
 
     int katherine_get_readout_status(katherine_device_t *device, katherine_readout_status_t *status)
     int katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *status)
-    int katherine_get_chip_id(katherine_device_t *device, char *s_chip_id)
+    int katherine_get_chip_id(katherine_device_t *device, uint8_t chip_index, char *s_chip_id)
     int katherine_get_readout_temperature(katherine_device_t *device, float *temperature)
-    int katherine_get_sensor_temperature(katherine_device_t *device, float *temperature)
-    int katherine_tpx3_perform_digital_test(katherine_device_t *device)
+    int katherine_get_sensor_temperature(katherine_device_t *device, uint8_t chip_index, float *temperature)
+    int katherine_tpx3_perform_digital_test(katherine_device_t *device, uint8_t chip_index)
     int katherine_get_adc_voltage(katherine_device_t *device, uint8_t channel_id, float *voltage)
     int katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
     int katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *voltage)

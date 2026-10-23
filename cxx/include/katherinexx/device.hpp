@@ -220,8 +220,15 @@ public:
     std::string
     chip_id()
     {
+        return chip_id(0);
+    }
+
+    /// Asks one chip of the readout for its own identifier.
+    std::string
+    chip_id(std::uint8_t chip_index)
+    {
         char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-        int res = katherine_get_chip_id(&dev_, chip_id);
+        int res = katherine_get_chip_id(&dev_, chip_index, chip_id);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -246,8 +253,15 @@ public:
     float
     sensor_temperature()
     {
+        return sensor_temperature(0);
+    }
+
+    /// Measures one chip's own on-die temperature sensor.
+    float
+    sensor_temperature(std::uint8_t chip_index)
+    {
         float temp;
-        int res = katherine_get_sensor_temperature(&dev_, &temp);
+        int res = katherine_get_sensor_temperature(&dev_, chip_index, &temp);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -259,7 +273,14 @@ public:
     void
     perform_digital_test()
     {
-        int res = katherine_tpx3_perform_digital_test(&dev_);
+        perform_digital_test(0);
+    }
+
+    /// Tests the link between the readout and one of its chips.
+    void
+    perform_digital_test(std::uint8_t chip_index)
+    {
+        int res = katherine_tpx3_perform_digital_test(&dev_, chip_index);
 
         if (res != 0) {
             throw katherine::system_error{res};

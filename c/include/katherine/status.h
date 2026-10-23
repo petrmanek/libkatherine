@@ -71,16 +71,16 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
 #define KATHERINE_CHIP_ID_STR_SIZE 16
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_get_chip_id(katherine_device_t *device, char *s_chip_id);
+katherine_get_chip_id(katherine_device_t *device, uint8_t chip_index, char *s_chip_id);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_get_readout_temperature(katherine_device_t *device, float *temperature);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_get_sensor_temperature(katherine_device_t *device, float *temperature);
+katherine_get_sensor_temperature(katherine_device_t *device, uint8_t chip_index, float *temperature);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_perform_digital_test(katherine_device_t *device);
+katherine_tpx3_perform_digital_test(katherine_device_t *device, uint8_t chip_index);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_get_adc_voltage(katherine_device_t *device, uint8_t channel_id, float *voltage);

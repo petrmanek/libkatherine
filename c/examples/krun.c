@@ -263,7 +263,7 @@ void
 print_chip_id(katherine_device_t *device)
 {
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-    int res = katherine_get_chip_id(device, chip_id);
+    int res = katherine_get_chip_id(device, 0, chip_id);
     if (res != 0) {
         printf("Cannot get chip ID. Is Timepix3 connected to the readout?\n");
         printf("Reason: %s\n", katherine_strerror(res));

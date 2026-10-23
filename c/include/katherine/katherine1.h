@@ -350,7 +350,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_chip_id(katherine_device_t *device, char *s_chip_id)
 {
-    return katherine1_map_result(katherine_get_chip_id(device, s_chip_id));
+    return katherine1_map_result(katherine_get_chip_id(device, 0, s_chip_id));
 }
 
 /** \legacy1{katherine_get_readout_temperature} */
@@ -366,7 +366,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_get_sensor_temperature(katherine_device_t *device, float *temperature)
 {
-    return katherine1_map_result(katherine_get_sensor_temperature(device, temperature));
+    return katherine1_map_result(katherine_get_sensor_temperature(device, 0, temperature));
 }
 
 /** \legacy1{katherine_tpx3_perform_digital_test} */
@@ -374,7 +374,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_perform_digital_test(katherine_device_t *device)
 {
-    return katherine1_map_result(katherine_tpx3_perform_digital_test(device));
+    return katherine1_map_result(katherine_tpx3_perform_digital_test(device, 0));
 }
 
 /** \legacy1{katherine_get_adc_voltage} */

@@ -196,7 +196,7 @@ fixture_start(const char *ksim_path, uint32_t drop_chunk)
         }
         g_device_open = true;
 
-        if (katherine_get_chip_id(&g_device, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
+        if (katherine_get_chip_id(&g_device, 0, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
             // Readiness is probed with the chip id, not with enumeration, so
             // the enumerate inside katherine_device_init() above may have run
             // before ksim was listening. Ask again now that it is answering,
@@ -409,7 +409,7 @@ test_session_aligned_after_recovery(void)
 {
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
 
-    KT_CHECK_EQ(katherine_get_chip_id(&g_device, chip_id), 0);
+    KT_CHECK_EQ(katherine_get_chip_id(&g_device, 0, chip_id), 0);
     KT_CHECK(strcmp(chip_id, EXPECTED_CHIP_ID) == 0);
 
     float temperature = 0.0f;
