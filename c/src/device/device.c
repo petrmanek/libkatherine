@@ -499,15 +499,11 @@ katherine_device_fini(katherine_device_t *device)
     // apparently dead.
     if (device->control_transport.ops != NULL) restore_standard_ports(device);
 
-    // Before the session it drives, which is the order it was opened in, and
-    // only where there is one: a device assembled by hand rather than by
-    // katherine_device_init() carries a zeroed transport, and whether this
-    // device opened one is the device's own bookkeeping rather than
-    // something the transport layer should be asked to tolerate.
-    // Reverse order of acquisition, and each only where there is one: a device
-    // assembled by hand carries a zeroed transport. A link whose data
-    // transport drives what its control transport claimed needs this order,
-    // the claim outliving what points into it.
+    // Reverse order of acquisition, and only where there is one: a device
+    // assembled by hand rather than by katherine_device_init() carries a
+    // zeroed transport. A link whose data transport drives what its control
+    // transport claimed needs this order, the claim outliving what points
+    // into it.
     if (device->control_transport.ops != NULL) katherine_transport_fini(&device->control_transport);
 }
 
