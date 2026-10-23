@@ -145,6 +145,14 @@ documented. Since its programming interface models that of libkatherine,
 corresponding functions can be easily identified (usually just by adding the
 prefix `katherine_`).
 
+### Coming from 1.x
+
+[docs/migration-1.x.md](docs/migration-1.x.md) covers what changed and what
+it costs. The short version: including `<katherine/katherine1.h>` after
+`<katherine/katherine.h>` makes 1.x source compile unmodified, and four
+things deliberately stay broken until you look at them -- `polarity_holes`
+above all, whose replacement carries the opposite sense.
+
 
 ## Build Notes
 

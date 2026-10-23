@@ -19,10 +19,13 @@ endif()
 # Doxygen documents the same files that make up the library targets: the c/
 # and cxx/ directories export their file lists, so the documented set cannot
 # drift from the built set, and the C++ wrapper is only documented when it is
-# part of the build. The top-level README serves as the main page.
+# part of the build. The top-level README serves as the main page, and the
+# migration guide is listed because the README links to it -- a markdown link
+# to a file Doxygen has not read becomes an unresolvable \ref.
 set(KATHERINE_DOXYGEN_INPUTS
     ${KATHERINE_DOCUMENTED_FILES}
     "${PROJECT_SOURCE_DIR}/README.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/migration-1.x.md"
 )
 if(KATHERINE_BUILD_CXX)
     list(APPEND KATHERINE_DOXYGEN_INPUTS ${KATHERINEXX_DOCUMENTED_FILES})
