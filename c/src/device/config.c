@@ -1159,8 +1159,7 @@ err_check:
  * \see katherine_tpx3_update_sensor_registers
  */
 katherine_error_t
-katherine_tpx3_set_sensor_register(
-    katherine_device_t *device, uint8_t chip_index, char reg_idx, int32_t reg_value)
+katherine_tpx3_set_sensor_register(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_reg_t reg_idx, int32_t reg_value)
 {
     katherine_error_t res;
 

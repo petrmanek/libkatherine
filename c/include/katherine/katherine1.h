@@ -230,7 +230,10 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
 {
-    return katherine1_map_result(katherine_tpx3_set_sensor_register(device, 0, reg_idx, reg_value));
+    // The 1.x spelling took a char; the register index is an enumeration now,
+    // and MSVC will not convert the one to the other on its own.
+    return katherine1_map_result(
+        katherine_tpx3_set_sensor_register(device, 0, (katherine_tpx3_reg_t) reg_idx, reg_value));
 }
 
 /** \legacy1{katherine_tpx3_update_sensor_registers} */

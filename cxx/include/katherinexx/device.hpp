@@ -510,7 +510,8 @@ public:
     void
     set_sensor_register(std::uint8_t chip_index, katherine_tpx3_reg_t reg_idx, std::int32_t reg_value)
     {
-        katherine::detail::check(katherine_tpx3_set_sensor_register(&dev_, chip_index, (char) reg_idx, reg_value));
+        katherine::detail::check(
+            katherine_tpx3_set_sensor_register(&dev_, chip_index, reg_idx, reg_value));
     }
 
     void
