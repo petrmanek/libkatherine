@@ -502,6 +502,83 @@ cdef class Tpx3DacVoltages:
          return cconfig.katherine_tpx3_dac_monitor_name(<cconfig.katherine_tpx3_dac_monitor_t> monitor).decode('UTF-8')
 
 
+@_unique
+class ChipType(_Enum):
+    """Timepix chip a readout drives."""
+    UNKNOWN = cdevice.katherine_chip_type_t.KATHERINE_CHIP_UNKNOWN
+    TPX2    = cdevice.katherine_chip_type_t.KATHERINE_CHIP_TPX2
+    TPX3    = cdevice.katherine_chip_type_t.KATHERINE_CHIP_TPX3
+    TPX4    = cdevice.katherine_chip_type_t.KATHERINE_CHIP_TPX4
+
+    def __str__(self):
+        """Render as the C library does, e.g. 'tpx3'."""
+        return cdevice.katherine_str_chip_type(self.value).decode('UTF-8')
+
+
+class DeviceFlags:
+    """What opening a readout may be told not to do.
+
+    Combined with |. An open with all three sets up the two sockets and
+    nothing else, sending no command and waiting for no acknowledgement, so
+    it succeeds whether or not a readout is there.
+
+    A plain class rather than an enum.Flag: these are passed to C as a bare
+    uint32_t, and a caller writing DONT_ENUMERATE | DONT_SELECT_INTERFACE
+    should get an int back without a cast."""
+    DONT_ENUMERATE        = cdevice.katherine_device_flags_t.KATHERINE_DEVICE_DONT_ENUMERATE
+    DONT_CHANGE_UDP_PORTS = cdevice.katherine_device_flags_t.KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS
+    DONT_SELECT_INTERFACE = cdevice.katherine_device_flags_t.KATHERINE_DEVICE_DONT_SELECT_INTERFACE
+
+
+cdef class DeviceInfo:
+    """What a readout says it is: facts it reported, or that a caller
+    declared on its behalf. Nothing here is inferred."""
+    cdef cdevice.katherine_device_info_t _c_info
+
+    def __init__(self, hw_type=0, hw_revision=0, serial_number=0,
+                 fw_version=0, chip_count=0, legacy=False):
+         self._c_info.hw_type       = hw_type
+         self._c_info.hw_revision   = hw_revision
+         self._c_info.serial_number = serial_number
+         self._c_info.fw_version    = fw_version
+         self._c_info.chip_count    = chip_count
+         self._c_info.legacy        = legacy
+
+    def __repr__(self):
+         return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_info_snprint, &self._c_info)
+
+    @property
+    def hw_type(self):
+         """Reported hardware type. 0 means nothing has been enumerated or
+         declared yet."""
+         return self._c_info.hw_type
+
+    @property
+    def hw_revision(self):
+         return self._c_info.hw_revision
+
+    @property
+    def serial_number(self):
+         return self._c_info.serial_number
+
+    @property
+    def fw_version(self):
+         return self._c_info.fw_version
+
+    @property
+    def chip_count(self):
+         """The number of chips answering when this was taken. Compare
+         against DeviceDerivedInfo.max_chip_count for what the hardware could
+         possibly carry."""
+         return self._c_info.chip_count
+
+    @property
+    def legacy(self):
+         """Whether the firmware ignores the UDP echo-port extension, and so
+         does not honour a port change either."""
+         return self._c_info.legacy
+
+
 cdef class DeviceDerivedInfo:
     """What a readout's reported hardware type means. Zeroed, with supported
     false, until the readout has been asked or a caller has declared it."""
@@ -514,6 +591,11 @@ cdef class DeviceDerivedInfo:
     def name(self):
          """Human-readable readout name, or None where the type is unknown."""
          return self._c_info.name.decode('UTF-8') if self._c_info.name is not NULL else None
+
+    @property
+    def chip_type(self):
+         """Timepix chip this readout drives."""
+         return ChipType(self._c_info.chip_type)
 
     @property
     def gen(self):
@@ -536,6 +618,17 @@ cdef class DeviceDerivedInfo:
          return self._c_info.all_gpio_count
 
     @property
+    def tdc_channel_count(self):
+         """Channels watched by the readout's timing unit, each with a
+         counter of its own."""
+         return self._c_info.tdc_channel_count
+
+    @property
+    def pulse_channel_count(self):
+         """Channels driven by the readout's pulse generator."""
+         return self._c_info.pulse_channel_count
+
+    @property
     def supported(self):
          """Whether this library can drive this readout. Also how a caller
          learns the readout never answered: constructing a Device succeeds
@@ -545,12 +638,12 @@ cdef class DeviceDerivedInfo:
 
 cdef class Device:
     cdef cdevice.katherine_device_t* _c_device
-    def __cinit__(self, address):
+    def __cinit__(self, address, uint32_t flags=0):
          self._c_device = <cdevice.katherine_device_t*> PyMem_Malloc(sizeof(cdevice.katherine_device_t))
          if self._c_device is NULL:
              raise MemoryError()
 
-         res = cdevice.katherine_device_init(self._c_device, address.encode(), 0)
+         res = cdevice.katherine_device_init(self._c_device, address.encode(), flags)
          check_return_code(res)
 
     def __dealloc__(self):
@@ -595,6 +688,27 @@ cdef class Device:
          the readout is demonstrably answering.
          """
          res = cdevice.katherine_device_enumerate(self._c_device)
+         check_return_code(res)
+
+    def declare(self, DeviceInfo info):
+         """Take the caller's word for what this readout is, instead of
+         asking it.
+
+         The only way to run the generation-dependent calls on a device
+         opened with DeviceFlags.DONT_ENUMERATE, and the only way to drive a
+         readout that does not answer the enumeration at all."""
+         res = cdevice.katherine_device_declare(self._c_device, &info._c_info)
+         check_return_code(res)
+
+    def select_interface(self):
+         """Tell the readout which interface drives it.
+
+         katherine.Device() does this on construction unless
+         DeviceFlags.DONT_SELECT_INTERFACE was given. A readout that wants it
+         and has not been told answers every later command orders of
+         magnitude more slowly, and will not start an acquisition over UDP at
+         all."""
+         res = cdevice.katherine_device_select_interface(self._c_device)
          check_return_code(res)
 
     def get_chip_id(self, uint8_t chip_index=0):
@@ -715,6 +829,14 @@ cdef class Device:
          """Set one chip's timer."""
          res = cconfig.katherine_tpx3_timer_set(self._c_device, chip_index)
          check_return_code(res)
+
+    @property
+    def info(self):
+         """What this readout said it is, or what a caller declared on its
+         behalf. Zeroed until one of the two has happened."""
+         cdef DeviceInfo info = DeviceInfo()
+         info._c_info = self._c_device.info
+         return info
 
     @property
     def derived_info(self):

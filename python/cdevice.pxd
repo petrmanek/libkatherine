@@ -27,13 +27,29 @@ cdef extern from 'katherine/device.h':
         uint8_t chip_count
         bool legacy
 
+    ctypedef enum katherine_chip_type_t:
+        KATHERINE_CHIP_UNKNOWN
+        KATHERINE_CHIP_TPX2
+        KATHERINE_CHIP_TPX3
+        KATHERINE_CHIP_TPX4
+
+    const char *katherine_str_chip_type(katherine_chip_type_t v)
+
+    ctypedef enum katherine_device_flags_t:
+        KATHERINE_DEVICE_DONT_ENUMERATE
+        KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS
+        KATHERINE_DEVICE_DONT_SELECT_INTERFACE
+
     ctypedef struct katherine_device_derived_info_t:
         const char *name
+        katherine_chip_type_t chip_type
         uint8_t gen
         uint8_t max_chip_count
         uint8_t bias_supply_count
         uint8_t accessible_gpio_count
         uint8_t all_gpio_count
+        uint8_t tdc_channel_count
+        uint8_t pulse_channel_count
         bool supported
 
     ctypedef struct katherine_device_t:
@@ -49,4 +65,6 @@ cdef extern from 'katherine/device.h':
     int katherine_device_init(katherine_device_t *device, const char *address, uint32_t flags)
     void katherine_device_fini(katherine_device_t *device)
     int katherine_device_enumerate(katherine_device_t *device)
+    int katherine_device_declare(katherine_device_t *device, const katherine_device_info_t *info)
+    int katherine_device_select_interface(katherine_device_t *device)
     bool katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)

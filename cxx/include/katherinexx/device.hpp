@@ -171,6 +171,48 @@ public:
         return dev_.derived_info;
     }
 
+    /**
+     * Asks the readout what it is, filling in what the generation-dependent
+     * calls need.
+     *
+     * The constructor does this unless KATHERINE_DEVICE_DONT_ENUMERATE was
+     * given; a readout that was not yet listening then leaves it undone, and
+     * an un-enumerated device refuses those calls rather than guessing a
+     * generation.
+     */
+    void
+    enumerate()
+    {
+        katherine::detail::check(katherine_device_enumerate(&dev_));
+    }
+
+    /**
+     * Takes the caller's word for what this readout is, instead of asking it.
+     *
+     * The only way to run the generation-dependent calls on a device opened
+     * with KATHERINE_DEVICE_DONT_ENUMERATE, and the only way to drive a
+     * readout that does not answer the enumeration at all.
+     */
+    void
+    declare(const katherine_device_info_t& info)
+    {
+        katherine::detail::check(katherine_device_declare(&dev_, &info));
+    }
+
+    /**
+     * Tells the readout which interface drives it.
+     *
+     * The constructor does this unless KATHERINE_DEVICE_DONT_SELECT_INTERFACE
+     * was given. A readout that wants it and has not been told answers every
+     * later command orders of magnitude more slowly, and will not start an
+     * acquisition over UDP at all.
+     */
+    void
+    select_interface()
+    {
+        katherine::detail::check(katherine_device_select_interface(&dev_));
+    }
+
     // Always false for now: this asks the readout, not a hardware-type table,
     // because the answer also depends on firmware; wiring up the real query
     // is future work. See katherine_device_can_correct_timestamp_phase().

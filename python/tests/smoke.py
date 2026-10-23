@@ -682,6 +682,60 @@ def check_clock_helpers(tap, katherine):
     tap.check('a DAC past its own width is refused', threw)
 
 
+def check_device_declaration(tap, katherine):
+    """Opening a readout without asking it anything, and then saying what it is.
+
+    None of this was reachable from Python: the constructor passed flags=0,
+    so an address nothing answers could not be opened at all, and without
+    that there was nothing to declare. The C++ device test has leaned on the
+    same three flags since it was written; this is the Python equivalent.
+
+    Nothing here touches a readout. 127.0.0.3 is the address the C++ test
+    uses for the same reason -- bindable, and nobody is listening.
+    """
+    flags = (katherine.DeviceFlags.DONT_ENUMERATE
+             | katherine.DeviceFlags.DONT_CHANGE_UDP_PORTS
+             | katherine.DeviceFlags.DONT_SELECT_INTERFACE)
+
+    dev = katherine.Device('udp://127.0.0.3', flags)
+    tap.check('an unanswered address opens with all three flags', True)
+
+    # Zeroed until the readout is asked or a caller speaks for it, which is
+    # also how the generation-dependent calls know to refuse.
+    tap.check('a device nobody declared is unsupported', not dev.derived_info.supported)
+    tap.check_eq('a device nobody declared reports hardware type 0', dev.info.hw_type, 0)
+    tap.check('DeviceInfo renders', repr(dev.info).startswith('device_info{'))
+
+    # The second-generation row of the hardware-type table, reached without
+    # a readout: what declare() exists for.
+    dev.declare(katherine.DeviceInfo(hw_type=0x03, chip_count=4))
+
+    tap.check('a declared device is supported', dev.derived_info.supported)
+    tap.check_eq('the declared chip count is kept', dev.info.chip_count, 4)
+    tap.check_eq('the hardware type names its generation', dev.derived_info.gen, 2)
+    tap.check_eq('the hardware type names its chip', dev.derived_info.chip_type,
+                 katherine.ChipType.TPX3)
+
+    # The three fields DeviceDerivedInfo did not expose.
+    tap.check('max_chip_count is what the hardware could carry',
+              dev.derived_info.max_chip_count >= dev.info.chip_count)
+    tap.check('tdc_channel_count is reachable', isinstance(dev.derived_info.tdc_channel_count, int))
+    tap.check('pulse_channel_count is reachable', isinstance(dev.derived_info.pulse_channel_count, int))
+
+    # The one control call that succeeds without a peer: the readout never
+    # acknowledges it, so nothing waits for a reply.
+    dev.select_interface()
+    tap.check('select_interface() waits for nothing and so needs no readout', True)
+
+    # And the one that does wait.
+    raised = False
+    try:
+        dev.enumerate()
+    except Exception:
+        raised = True
+    tap.check('enumerate() fails where nothing answers', raised)
+
+
 def check_pixel_types(tap, katherine):
     """Every pixel type, not only the one an acquisition happens to produce.
 
@@ -762,6 +816,7 @@ def run_checks(tap, katherine, device):
     check_module_surface(tap, katherine)
     check_timestamp_functions(tap, katherine)
     check_clock_helpers(tap, katherine)
+    check_device_declaration(tap, katherine)
     check_pixel_types(tap, katherine)
     check_error_mapping(tap, katherine)
 

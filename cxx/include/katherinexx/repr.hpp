@@ -180,6 +180,20 @@ operator<<(std::ostream& os, const katherine_acquisition_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_acquisition_snprint);
 }
 
+/** Renders a katherine_device_info_t (via katherine_device_info_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_device_info_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_device_info_snprint);
+}
+
+/** Renders a katherine_device_derived_info_t (via katherine_device_derived_info_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_device_derived_info_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_device_derived_info_snprint);
+}
+
 /** Renders a katherine_tpx3_config_check_t (via katherine_tpx3_config_check_snprint()). */
 inline std::ostream&
 operator<<(std::ostream& os, const katherine_tpx3_config_check_t& v)

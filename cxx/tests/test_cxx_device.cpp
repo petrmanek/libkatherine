@@ -142,6 +142,53 @@ test_device_and_acquisition(void)
     }
     KT_CHECK(threw);
 
+    // declare() takes the caller's word where enumerate() would have to ask,
+    // and is the only way to reach the generation-dependent calls on a
+    // device opened with DONT_ENUMERATE. Nothing is on the wire for it.
+    KT_CHECK(!dev.derived_info().supported);
+    KT_CHECK(streamed(dev.info()).size() > 0);
+
+    katherine_device_info_t declared = {};
+    declared.hw_type                 = 0x03;
+    declared.chip_count              = 4;
+    dev.declare(declared);
+
+    KT_CHECK(dev.derived_info().supported);
+    KT_CHECK_EQ(dev.derived_info().gen, 2);
+    KT_CHECK_EQ(dev.derived_info().chip_type, KATHERINE_CHIP_TPX3);
+    KT_CHECK_EQ(dev.info().chip_count, 4);
+    KT_CHECK(streamed(dev.derived_info()).size() > 0);
+
+    // And now the same call that was KATHERINE_E_STATE above reaches the
+    // wire, where it fails on the timeout like every other one.
+    code = KATHERINE_E_OK;
+    try {
+        (void) dev.verify_config();
+    } catch (const katherine::system_error& e) {
+        code = e.code();
+    }
+    KT_CHECK_EQ(code, KATHERINE_E_TIMEOUT);
+
+    // Both of the calls the constructor makes unless told not to.
+    threw = false;
+    try {
+        dev.enumerate();
+    } catch (const katherine::error&) {
+        threw = true;
+    }
+    KT_CHECK(threw);
+
+    // select_interface() is the one control call that succeeds without a
+    // peer: the readout never acknowledges it, so nothing waits for a reply
+    // and a send into the void is a send.
+    threw = false;
+    try {
+        dev.select_interface();
+    } catch (const katherine::error&) {
+        threw = true;
+    }
+    KT_CHECK(!threw);
+
     // An acquisition constructs -- it allocates its buffers and takes its
     // timeouts, touching no socket -- and reports the state of one that has
     // not begun.
