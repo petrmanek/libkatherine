@@ -220,6 +220,25 @@ if(KATHERINE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+# Every installed header has to compile on its own. A consumer may include
+# any one of them first, and a header that quietly relies on another having
+# come before it breaks that consumer and nothing in this tree -- which is
+# how katherine1.h came to name a session type that went private with the
+# transport rework and went unnoticed. One translation unit per header, each
+# including nothing else; the compiler is the whole assertion, so there is no
+# runtime half and nothing to register with CTest.
+if(KATHERINE_BUILD_TESTS)
+    set(KATHERINE_STANDALONE_TUS "")
+    foreach(hdr IN LISTS KATHERINE_HEADERS)
+        get_filename_component(stem "${hdr}" NAME_WE)
+        set(tu "${CMAKE_CURRENT_BINARY_DIR}/standalone/${stem}.c")
+        file(WRITE "${tu}" "#include <katherine/${stem}.h>\n")
+        list(APPEND KATHERINE_STANDALONE_TUS "${tu}")
+    endforeach()
+    add_library(katherine_headers_standalone OBJECT ${KATHERINE_STANDALONE_TUS})
+    target_link_libraries(katherine_headers_standalone PRIVATE katherine)
+endif()
+
 if(KATHERINE_BUILD_TESTS)
     add_subdirectory(tests)
 endif()

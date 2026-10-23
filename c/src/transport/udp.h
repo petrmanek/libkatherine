@@ -56,8 +56,16 @@ extern "C" {
 /// actually holds is read through katherine_udp_rcvbuf().
 #define KATHERINE_UDP_RCVBUF_DEFAULT   4194304
 
+// The name and the contents are declared apart so that katherine1.h, whose
+// 1.x session shims name the type and are a public header, can forward
+// declare it without this private one. Either header may come first.
+#ifndef KATHERINE_UDP_T_DECLARED
+#define KATHERINE_UDP_T_DECLARED
+typedef struct katherine_udp katherine_udp_t;
+#endif
+
 /** One UDP session: a bound socket, the endpoint it talks to, and the lock serializing it. */
-typedef struct katherine_udp {
+struct katherine_udp {
 #ifdef KATHERINE_WIN
     SOCKET sock;                ///< The OS socket handle.
     SOCKADDR_IN address_local;  ///< Local endpoint this session is bound to.
@@ -80,7 +88,7 @@ typedef struct katherine_udp {
 
     bool remote_pinned; ///< True to keep address_remote fixed and discard datagrams from any other host; set through katherine_udp_pin_remote().
     int last_os_error;  ///< 0 unless the last transport operation failed with an OS-level error code; read through katherine_udp_last_os_error().
-} katherine_udp_t;
+};
 
 KATHERINE_NOT_EXPORTED int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);

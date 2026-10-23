@@ -433,6 +433,18 @@ katherine1_acquisition_read(katherine_acquisition_t *acq)
 // by address and opened with katherine_device_init(). These keep their
 // declarations so that code written against 1.x still compiles, and decline.
 
+// The session type went private with the transport rework, so the only thing
+// this header can say about it is its name. That is enough for the shims
+// below, which take a pointer and look at nothing through it; it is not
+// enough to declare a session, which 1.x code that opened one has to be
+// ported rather than recompiled.
+#ifndef KATHERINE_UDP_T_DECLARED
+/** Guard shared with the private transport header, whichever is read first. */
+#define KATHERINE_UDP_T_DECLARED
+/** A 1.x UDP session, by name only: an incomplete type nothing here reads through. */
+typedef struct katherine_udp katherine_udp_t;
+#endif
+
 /** \legacy1{katherine_udp_init} */
 KATHERINE1_DEPRECATED
 static inline int
