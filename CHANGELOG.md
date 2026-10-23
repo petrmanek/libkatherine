@@ -125,6 +125,110 @@ scales by eight, not by the five the readout manual specifies: a Gen1
 readout reporting 160 has two links active at 640 Mb/s each, which is the
 1280 Mb/s the vendor tool displays and not 800.
 
+**Per-chip addressing reaches the configuration calls.** A sweep of every
+function sending an opcode the firmware reads a chip index from found ten
+without one; only the DAC setters and the monitor reads ever placed it, and
+every other per-chip call addressed chip 0 whatever the readout carried. The
+sensor-register write and the three hardware commands that latch it, the
+pixel-matrix upload, the chip identifier, the sensor temperature and the
+digital test now take the index as their second argument, and refuse a chip
+the readout does not report before anything is sent. Where the index goes in
+the datagram is the firmware's answer rather than a guess: byte 5 for the
+register write, byte 1 for the hardware-command dispatch, byte 0 for the chip
+reads. `katherine_configure()` still addresses chip 0, which is what a
+single-chip caller had before; what a multi-chip configuration should look
+like is the restructure that follows this release.
+
+Two neighbours deliberately keep no index, both confirmed against the readout
+firmware. `katherine_tpx3_set_acq_mode()` sends an opcode with no chip-index
+slot at all, and the readout's own decoder takes its mode from chip 0's
+GeneralConfig for the whole data path, so readout-wide is the faithful model
+rather than a gap. `katherine_tpx3_set_seq_readout_start()` sends a command
+the firmware broadcasts by construction: it spends its first byte on the
+readout type and writes the chip-select register's broadcast value
+unconditionally, so a sequential readout cannot be started on one chip of
+several.
+
+**The C++ wrapper keeps the error code.** Forty-six call sites stored a
+`katherine_error_t` in an `int`, compared it to zero and threw it away. They
+are one `katherine::detail::check()` now, and `katherine::system_error` takes
+the enumerator and keeps it as `code()`, so a C++ caller can tell
+`KATHERINE_E_STATE` from `KATHERINE_E_INVAL` on the same call as a C caller
+can.
+
+**Python's exceptions carry the code too.** Every failure is a
+`katherine.Error`, a `RuntimeError` carrying `.code` -- a
+`katherine.ErrorCode`, the same enumeration the C library returns.
+`katherine.Timeout`, `katherine.InvalidArgument` and `katherine.OutOfMemory`
+derive from `TimeoutError`, `ValueError` and `MemoryError` as well, so code
+written against those keeps working. One consequence worth knowing: a timeout
+is now a `RuntimeError` as well as a `TimeoutError`, so a caller whose
+`except RuntimeError` clause comes first takes that branch instead.
+
+**A device and an acquisition cannot be copied.** `katherine::device` and
+`katherine::base_acquisition` delete their copy operations, which suppresses
+the moves with them. Copying a device shallow-copied sockets the original
+still owned and finalised them twice; moving an acquisition left the
+readout's data arriving at the address the object used to occupy, its
+constructor having handed `this` to the C callbacks. `katherine::config` is
+deliberately left copyable: it owns nothing but a `katherine_config_t`, and
+holding two configurations that differ in one setting is the ordinary use.
+
+**Two renames, both pre-2.0 and both of spelling only.**
+`katherine_tdc_source_str()`, `katherine_pulse_source_str()` and
+`katherine_pulse_output_str()` become `katherine_str_tdc_source()`,
+`katherine_str_pulse_source()` and `katherine_str_pulse_output()`, which is
+how the other thirteen renderers in this library are spelled; `tdc.h` and
+`pulse.h` are new in 2.0 and neither name has shipped.
+`katherine_tpx3_set_sensor_register()` takes `katherine_tpx3_reg_t` where it
+took a `char`, three lines below the enumeration that names the registers;
+the 1.x shim keeps the `char` it exists to preserve.
+
+**Both wrappers reach the rest of the surface.** C++ goes from 99 of the 143
+exported functions to 122, and Python from 104 to 120. What arrives: the pure
+helpers a caller previously had to reimplement
+(`katherine_tpx3_actual_phases()`,
+`katherine_tpx3_freq_is_fast_vco_supported()` and
+`katherine_tpx3_dacs_validate()`), `verify_config()` and `set_token_count()`,
+the device flags, `declare()`, `select_interface()` and the device's own
+`info`, the three transport accessors a device and an acquisition can now
+reach -- `last_os_error()`, `set_timeout()` and `dropped_input()`, which is
+what the hundreds of *"see katherine_transport_get_last_os_error()"* lines
+had been pointing at -- and five types that used to stream as their numbers.
+What stays unbound in both is the emulator and the transport data plane,
+which the device and the acquisition exist to drive.
+
+**Finalising an object whose initializer failed no longer crashes.** Both
+`katherine_device_init()` and `katherine_acquisition_init()` could return
+before the field their finalizer keys on was written, and the caller's object
+is uninitialized until the initializer runs, so finalising afterwards
+dereferenced whatever happened to be there. `katherine.Device` on an
+over-long address segfaulted the interpreter, Cython running `__dealloc__`
+even when `__cinit__` raised. Both initializers now clear the caller's
+storage before anything that can fail.
+
+The same shape was found in three more places and closed:
+`katherine_udp_init_bound()` left a closed socket's number in the session, so
+finalising a failed open closed a descriptor the process had since reused;
+and the two transport constructors wrote their operations table only on
+success.
+
+**A buffer size within a word of `SIZE_MAX` is refused.** The UDP transport
+allocates a word past the size it is asked for, because a decoder reads the
+last six-byte item through an eight-byte load. Nothing bounded the size, so
+that addition could wrap to zero -- and `realloc(p, 0)` frees `p` and returns
+NULL, which the code read as an allocation failure and so kept the freed
+pointer for the next finalize to free again. One integer through
+`katherine_acquisition_init()` reached it.
+
+**Moving from 1.x is written down.** `docs/migration-1.x.md` covers the
+return convention, the `tpx3_` stem, per-chip calls, opening a device, the
+four things with no shim, and linking. Four of those have no shim on purpose,
+`polarity_holes` foremost: an alias there would compile and bias the sensor
+for the carrier it does not collect. The guide also names the fourteen Python
+classes a 1.x script loses, each otherwise an `AttributeError` with nothing
+pointing at the replacement.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:
