@@ -165,15 +165,30 @@ be ported rather than recompiled.
 Fields marked `Internal:` in `acquisition.h` are not part of the interface
 and may move again.
 
-### C++ and Python have no shim, and Python renamed fourteen classes
+### Python renamed fourteen classes, and thirteen of them still answer
 
-`katherinexx` and the Python module follow the C renames, and the shim is a
-C header. C++ is the easy half: it has always tracked the C names rather
-than offering its own, so a caller following the C sections above is
-already following the C++ one.
+`katherinexx` and the Python module follow the C renames. C++ is the easy
+half: it has always tracked the C names rather than offering its own, so a
+caller following the C sections above is already following the C++ one.
 
-**Python is not.** Fourteen classes a 1.x script names are gone, and each
-one is an `AttributeError` with nothing naming the replacement:
+**Python has a shim of its own**, matching what `katherine/katherine1.h`
+does for C and carrying the same promise -- deprecated in 2.0, removed in
+3.0. Thirteen of the fourteen renamed classes resolve to their 2.0
+spelling and warn once per call site:
+
+```
+DeprecationWarning: katherine.Dacs is deprecated since 2.0 and becomes
+katherine.Tpx3Dacs; see docs/migration-1.x.md
+```
+
+The object you get back **is** the 2.0 class, not a wrapper around it, so
+`katherine.Dacs is katherine.Tpx3Dacs` and every `isinstance` check holds.
+Nothing else about the script has to change for it to keep running.
+
+Python shows `DeprecationWarning` by default only for code in `__main__`,
+which is where an analysis script lives. A program that reaches these
+names from inside a package of its own will not see the warning without
+`-W default`, and should consult the table rather than wait to be told.
 
 | 1.x | 2.0 |
 |---|---|
@@ -191,6 +206,11 @@ one is an `AttributeError` with nothing naming the replacement:
 | `katherine.AcquisitionMode` | `katherine.Tpx3PxMode` |
 | `katherine.ReadoutType` | `katherine.Tpx3ReadoutMode` |
 | `katherine.Udp` | nothing -- the session type went private, as above |
+
+`katherine.Udp` is the fourteenth and the only one with no replacement, so
+it raises rather than resolving, naming `katherine.Device('udp://...')` as
+what to open a readout with instead. A name that never existed in either
+version raises the ordinary `AttributeError`.
 
 The prefix is the same one the C and C++ sides carry, and it means the same
 thing: the class describes something Timepix3-specific, and a Timepix2 or

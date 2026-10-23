@@ -30,6 +30,7 @@ skip contract for CTest). Every later failure is a genuine assertion failure.
 import os
 import re
 import subprocess
+import warnings
 import sys
 import time
 
@@ -937,7 +938,47 @@ def check_error_mapping(tap, katherine):
     # which trades a reliable suite for one more asserted class.
     tap.comment('MemoryError is not provoked: see check_error_mapping()')
 
+def check_1x_names(tap, katherine):
+    """The 1.x class names resolve, warn, and are the 2.0 classes themselves.
+
+    A shim that returned a copy would pass an equality check and fail every
+    isinstance() a 1.x script makes, so identity is what is asserted.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        renamed = katherine.Dacs
+
+    tap.check('katherine.Dacs resolves to Tpx3Dacs', renamed is katherine.Tpx3Dacs)
+    tap.check('and warns once', len(caught) == 1 and issubclass(caught[0].category, DeprecationWarning))
+    tap.check('naming the replacement', 'Tpx3Dacs' in str(caught[0].message) if caught else False)
+
+    # Every renamed name, so one missing from the table is a failure rather
+    # than an AttributeError nobody runs into until a 1.x script does.
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        missing = [n for n in ('Dacs', 'PxConfig', 'TestPulseConfig', 'PxToaTot',
+                               'PxToaOnly', 'PxFastToaTot', 'PxFastToaOnly',
+                               'PxEventItot', 'PxFastEventItot', 'Freq', 'Phase',
+                               'AcquisitionMode', 'ReadoutType')
+                   if not hasattr(katherine, n)]
+    tap.check('all thirteen renamed names resolve', not missing, 'missing: %s' % missing)
+
+    # The fourteenth has no 2.0 equivalent and must say so rather than resolve.
+    try:
+        katherine.Udp
+        tap.check('katherine.Udp raises', False, 'it resolved to something')
+    except AttributeError as e:
+        tap.check('katherine.Udp raises, naming Device', 'Device' in str(e))
+
+    try:
+        katherine.NotAName
+        tap.check('an unknown name raises', False, 'it resolved to something')
+    except AttributeError:
+        tap.check('an unknown name raises', True)
+
+
 def run_checks(tap, katherine, device):
+    check_1x_names(tap, katherine)
     check_enums(tap, katherine)
     check_enum_rendering(tap, katherine)
     check_readout_peripherals(tap, katherine)

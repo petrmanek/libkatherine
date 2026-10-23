@@ -21,6 +21,7 @@ from libcpp cimport bool
 # which is the rule Python already applies.
 from enum import Enum as _Enum, IntEnum as _IntEnum, unique as _unique
 import array as _array
+import warnings as _warnings
 
 cimport cdevice
 cimport ctransport
@@ -2229,3 +2230,52 @@ cdef void _forward_pixels_received_event_count_itot(void *user_ctx, const void *
 
 def MD_SIZE():
    return cacquisition.KATHERINE_MD_SIZE
+
+
+# --- 1.x names ---------------------------------------------------------
+#
+# The C API keeps its 1.x spellings in katherine/katherine1.h; this is the
+# same courtesy for Python, and removal is planned for the same release.
+
+#: What each 1.x class is called now, or None where 2.0 has no equivalent.
+_RENAMED_IN_2_0 = {
+    'Dacs':             'Tpx3Dacs',
+    'PxConfig':         'Tpx3PxConfig',
+    'TestPulseConfig':  'Tpx3TestPulseConfig',
+    'PxToaTot':         'Tpx3PxToaTot',
+    'PxToaOnly':        'Tpx3PxToaOnly',
+    'PxFastToaTot':     'Tpx3PxFastToaTot',
+    'PxFastToaOnly':    'Tpx3PxFastToaOnly',
+    'PxEventItot':      'Tpx3PxEventCountItot',
+    'PxFastEventItot':  'Tpx3PxFastEventCountItot',
+    'Freq':             'Tpx3Freq',
+    'Phase':            'Tpx3Phase',
+    'AcquisitionMode':  'Tpx3PxMode',
+    'ReadoutType':      'Tpx3ReadoutMode',
+    'Udp':              None,
+}
+
+
+def __getattr__(name):
+    """Resolve a 1.x class name to its 2.0 spelling, with a warning.
+
+    Deprecated since 2.0 and planned for removal in 3.0, which is what
+    katherine/katherine1.h promises for the C names these follow.
+    """
+    if name not in _RENAMED_IN_2_0:
+        raise AttributeError("module 'katherine' has no attribute %r" % name)
+
+    renamed = _RENAMED_IN_2_0[name]
+    if renamed is None:
+        raise AttributeError(
+            "katherine.%s was removed in 2.0: the UDP session type is private "
+            "now, and a device is opened with katherine.Device('udp://...')" % name)
+
+    # stacklevel 1, not the usual 2: this __getattr__ is compiled and has no
+    # Python frame of its own, so 2 attributes the warning above the caller
+    # and the default filters then drop it.
+    _warnings.warn(
+        "katherine.%s is deprecated since 2.0 and becomes katherine.%s; "
+        "see docs/migration-1.x.md" % (name, renamed),
+        DeprecationWarning, stacklevel=1)
+    return globals()[renamed]
