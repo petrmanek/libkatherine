@@ -653,6 +653,23 @@ cdef class Device:
          res = cconfig.katherine_set_acq_time(self._c_device, ns)
          check_return_code(res)
 
+    def verify_config(self, uint8_t chip_index=0):
+         """Ask one chip what it kept of the configuration it was given.
+
+         Second generation only."""
+         cdef Tpx3ConfigCheck check = Tpx3ConfigCheck()
+         res = cconfig.katherine_tpx3_verify_config(self._c_device, chip_index, &check._c_check)
+         check_return_code(res)
+         return check
+
+    def set_token_count(self, uint8_t token_count):
+         """Set how many tokens the readout gives the chip per shutter.
+
+         Deliberately not part of configure(), which leaves whatever the
+         readout holds: this is the only way to choose it."""
+         res = cconfig.katherine_tpx3_set_token_count(self._c_device, token_count)
+         check_return_code(res)
+
     def set_acq_mode(self, px_mode, bool fast_vco_enabled):
          res = cconfig.katherine_tpx3_set_acq_mode(self._c_device, px_mode.value, fast_vco_enabled)
          check_return_code(res)
@@ -836,6 +853,26 @@ cdef class CommStatus:
     @property
     def chip_count(self):
        return self._c_status.chip_count
+
+
+cdef class Tpx3ConfigCheck:
+    """What a chip kept of the configuration it was given.
+
+    Both flags are the chip's own read-back, not this library's."""
+    cdef cconfig.katherine_tpx3_config_check_t _c_check
+
+    def __repr__(self):
+       return _snprint_repr(<snprint_fn_t> cconfig.katherine_tpx3_config_check_snprint, &self._c_check)
+
+    @property
+    def matrix_ok(self):
+       """True if the pixel matrix was read back without a parity error."""
+       return self._c_check.matrix_ok
+
+    @property
+    def dacs_ok(self):
+       """True if every DAC was read back as written."""
+       return self._c_check.dacs_ok
 
 
 cdef class Trigger:

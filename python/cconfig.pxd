@@ -179,6 +179,14 @@ cdef extern from 'katherine/config.h':
     uint8_t katherine_tpx3_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase)
     bint katherine_tpx3_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)
     int katherine_tpx3_dacs_validate(const katherine_tpx3_dacs_t *v)
+
+    ctypedef struct katherine_tpx3_config_check_t:
+        bint matrix_ok
+        bint dacs_ok
+
+    int katherine_tpx3_config_check_snprint(char *buf, size_t cap, const katherine_tpx3_config_check_t *v)
+    int katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_config_check_t *check)
+    int katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
     int katherine_set_no_frames(katherine_device_t *device, int no_frames)
     int katherine_set_bias(katherine_device_t *device, uint8_t bias_id, float bias_value)
     int katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)

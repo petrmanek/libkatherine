@@ -767,6 +767,24 @@ def run_checks(tap, katherine, device):
 
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
 
+    # Two calls nothing could reach from Python until they were bound.
+    # set_token_count() is deliberately left out of configure(), so this is
+    # the only way to choose it; verify_config() is second-generation only
+    # and the emulator presents a first-generation readout, which is exactly
+    # the refusal a caller would otherwise meet unexplained.
+    device.set_token_count(8)
+    tap.check('set_token_count() is accepted', True)
+
+    refused = False
+    try:
+        device.verify_config()
+    except Exception:
+        refused = True
+    tap.check('verify_config() is refused on a first-generation readout', refused)
+
+    check = katherine.Tpx3ConfigCheck()
+    tap.check('Tpx3ConfigCheck renders', repr(check).startswith('config_check{'))
+
     readout = device.get_readout_status()
     tap.check_eq('readout status: hw_type', readout.hw_type, EXPECTED_HW_TYPE)
     tap.check_eq('readout status: hw_revision', readout.hw_revision, EXPECTED_HW_REVISION)

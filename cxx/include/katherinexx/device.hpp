@@ -189,6 +189,41 @@ public:
         return ro_status;
     }
 
+    /// Asks chip 0 what it kept of the configuration it was given.
+    katherine_tpx3_config_check_t
+    verify_config()
+    {
+        return verify_config(0);
+    }
+
+    /**
+     * Asks one chip what it kept of the configuration it was given.
+     *
+     * The two flags are the chip's own read-back, not this library's: a
+     * matrix that came back with a parity error, or a DAC that did not read
+     * as written, is reported here and nowhere else. Second generation only.
+     */
+    katherine_tpx3_config_check_t
+    verify_config(std::uint8_t chip_index)
+    {
+        katherine_tpx3_config_check_t check;
+        katherine::detail::check(katherine_tpx3_verify_config(&dev_, chip_index, &check));
+
+        return check;
+    }
+
+    /**
+     * Sets how many tokens the readout gives the chip per shutter.
+     *
+     * Deliberately not part of configure(), which leaves whatever the readout
+     * holds: this is the only way to choose it.
+     */
+    void
+    set_token_count(std::uint8_t token_count)
+    {
+        katherine::detail::check(katherine_tpx3_set_token_count(&dev_, token_count));
+    }
+
     katherine_comm_status_t
     comm_status()
     {

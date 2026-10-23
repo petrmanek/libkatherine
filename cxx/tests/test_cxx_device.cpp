@@ -122,6 +122,26 @@ test_device_and_acquisition(void)
     }
     KT_CHECK(threw);
 
+    // Two calls C++ could not reach until they were bound. verify_config()
+    // refuses before the socket on a device nobody told what it is, which is
+    // a different failure from the timeouts above and worth separating:
+    // KATHERINE_E_STATE rather than KATHERINE_E_TIMEOUT.
+    katherine_error_t code = KATHERINE_E_OK;
+    try {
+        (void) dev.verify_config();
+    } catch (const katherine::system_error& e) {
+        code = e.code();
+    }
+    KT_CHECK_EQ(code, KATHERINE_E_STATE);
+
+    threw = false;
+    try {
+        dev.set_token_count(8);
+    } catch (const katherine::error&) {
+        threw = true;
+    }
+    KT_CHECK(threw);
+
     // An acquisition constructs -- it allocates its buffers and takes its
     // timeouts, touching no socket -- and reports the state of one that has
     // not begun.
