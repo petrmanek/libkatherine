@@ -106,12 +106,26 @@ discover_usb(std::size_t capacity = 32)
 }
 #endif /* KATHERINE_FEATURE_USB */
 
+/**
+ * One readout, open for the lifetime of the object.
+ *
+ * Every method here reaches the readout over its control link and throws
+ * katherine::system_error if it does not answer. The chip-addressed ones
+ * come in pairs: the short form takes chip 0, the long one takes an index.
+ */
 class device {
     katherine_device_t dev_;
 
 public:
-    // Flags are a bitmask, so they arrive as the C type rather than an enum
-    // class, which would need operators invented for it.
+    /**
+     * Opens a readout named by address, and by default asks it what it is.
+     *
+     * Flags are a bitmask, so they arrive as the C type rather than an enum
+     * class, which would need operators invented for it.
+     *
+     * \param address The readout's address, e.g. "udp://192.168.1.142" or "usb://auto".
+     * \param flags katherine_device_flags_t, each suppressing one thing the open does.
+     */
     device(std::string address, uint32_t flags = 0)
     {
         katherine::detail::check(katherine_device_init(&dev_, address.c_str(), flags));
@@ -122,11 +136,13 @@ public:
         katherine_device_fini(&dev_);
     }
 
+    /// The C structure this wraps, for the calls katherinexx does not bind.
     katherine_device_t *c_dev()
     {
         return &dev_;
     }
 
+    /// The C structure this wraps, for the calls katherinexx does not bind.
     const katherine_device_t *c_dev() const
     {
         return &dev_;
@@ -240,15 +256,21 @@ public:
         katherine::detail::check(katherine_device_select_interface(&dev_));
     }
 
-    // Always false for now: this asks the readout, not a hardware-type table,
-    // because the answer also depends on firmware; wiring up the real query
-    // is future work. See katherine_device_can_correct_timestamp_phase().
+    /**
+     * True on a readout that can apply the per-double-column phase
+     * correction itself, leaving the decoder nothing to do.
+     *
+     * Always false for now: this asks the readout, not a hardware-type
+     * table, because the answer also depends on firmware; wiring up the real
+     * query is future work. Costs no round trip either way.
+     */
     bool
     can_correct_timestamp_phase() const
     {
         return katherine_device_can_correct_timestamp_phase(&dev_);
     }
 
+    /// What the readout answers when asked to identify itself.
     katherine_readout_status_t
     readout_status()
     {
@@ -293,6 +315,7 @@ public:
         katherine::detail::check(katherine_tpx3_set_token_count(&dev_, token_count));
     }
 
+    /// How the readout's link to its chips is doing, and how many answered.
     katherine_comm_status_t
     comm_status()
     {
@@ -302,6 +325,7 @@ public:
         return comm_status;
     }
 
+    /// Asks chip 0 for its own identifier.
     std::string
     chip_id()
     {
@@ -318,6 +342,7 @@ public:
         return chip_id;
     }
 
+    /// The readout board's own temperature, in Celsius, which is safe to poll during an acquisition.
     float
     readout_temperature()
     {
@@ -327,6 +352,7 @@ public:
         return temp;
     }
 
+    /// Measures chip 0's own on-die temperature sensor.
     float
     sensor_temperature()
     {
@@ -343,6 +369,7 @@ public:
         return temp;
     }
 
+    /// Tests the link between the readout and chip 0.
     void
     perform_digital_test()
     {
@@ -356,12 +383,14 @@ public:
         katherine::detail::check(katherine_tpx3_perform_digital_test(&dev_, chip_index));
     }
 
+    /// Arms or disarms the chip's internal test-pulse generator.
     void
     set_test_pulses(const katherine::test_pulse_config& tp)
     {
         katherine::detail::check(katherine_tpx3_set_test_pulses(&dev_, &tp));
     }
 
+    /// One channel of the readout's analog-to-digital converter, in Volts.
     float
     adc_voltage(std::uint8_t channel_id)
     {
@@ -371,6 +400,7 @@ public:
         return voltage;
     }
 
+    /// What one bias supply is actually delivering, in Volts.
     float
     bias(std::uint8_t bias_id)
     {
@@ -380,6 +410,7 @@ public:
         return voltage;
     }
 
+    /// The current one bias supply is delivering, in Amperes.
     float
     bias_leakage(std::uint8_t bias_id)
     {
@@ -389,6 +420,7 @@ public:
         return voltage;
     }
 
+    /// One chip's analog output pad, pointed at one monitor and read, in Volts.
     float
     dac_monitor_voltage(std::uint8_t chip_index, katherine::tpx3::dac_monitor monitor)
     {
@@ -398,6 +430,7 @@ public:
         return voltage;
     }
 
+    /// Every monitor of one chip, read in one sweep.
     katherine::tpx3::dac_voltages
     dac_monitor_voltages(std::uint8_t chip_index)
     {
@@ -407,18 +440,21 @@ public:
         return voltages;
     }
 
+    /// Wires each GPIO channel to what it is to carry.
     void
     set_gpio_config(const katherine::gpio_config& config)
     {
         katherine::detail::check(katherine_set_gpio_config(&dev_, &config));
     }
 
+    /// Says which channels take part in the readout's composed ready signal.
     void
     set_composed_ready_signal(const katherine::gpio_config& config)
     {
         katherine::detail::check(katherine_set_composed_ready_signal(&dev_, &config));
     }
 
+    /// Samples every GPIO channel: its level, what the readout makes of it, and its tick counts.
     katherine::gpio_monitor
     probe_gpio()
     {
@@ -428,12 +464,14 @@ public:
         return state;
     }
 
+    /// Says what each channel of the timing unit watches.
     void
     set_tdc_config(const katherine::tdc_config& config)
     {
         katherine::detail::check(katherine_set_tdc_config(&dev_, &config));
     }
 
+    /// What each timing-unit channel has counted since it was last reset.
     katherine::tdc_counts
     tdc_counts()
     {
@@ -443,12 +481,14 @@ public:
         return counts;
     }
 
+    /// Says what each generator channel emits, and what clocks them.
     void
     set_pulse_generator(const katherine::pulse_config& config)
     {
         katherine::detail::check(katherine_set_pulse_generator(&dev_, &config));
     }
 
+    /// What each generator channel has emitted.
     katherine::pulse_counts
     pulse_generator_counts()
     {
@@ -458,6 +498,7 @@ public:
         return state;
     }
 
+    /// Zeroes those counts.
     void
     reset_pulse_generator_counts()
     {
@@ -470,12 +511,14 @@ public:
     // only models the parameter struct) to match where the Python wrapper
     // puts the equivalent calls: on the device.
 
+    /// Sends a whole configuration, step by step, addressing chip 0 throughout.
     void
     configure(const katherine::config& config)
     {
         katherine::detail::check(katherine_configure(&dev_, config.c_config()));
     }
 
+    /// Uploads a whole pixel matrix to chip 0.
     void
     set_all_pixel_config(const katherine::px_config& px_config)
     {
@@ -489,6 +532,7 @@ public:
         katherine::detail::check(katherine_tpx3_set_all_pixel_config(&dev_, chip_index, &px_config));
     }
 
+    /// How long one frame's shutter stays open.
     template<typename Rep, typename Period>
     void
     set_acq_time(std::chrono::duration<Rep, Period> val)
@@ -497,36 +541,42 @@ public:
         katherine::detail::check(katherine_set_acq_time(&dev_, (double) duration_cast<nanoseconds>(val).count()));
     }
 
+    /// What a pixel measures, and whether the fine oscillator runs.
     void
     set_acq_mode(katherine::tpx3::px_mode mode, bool fast_vco_enabled)
     {
         katherine::detail::check(katherine_tpx3_set_acq_mode(&dev_, (katherine_tpx3_px_mode_t) mode, fast_vco_enabled));
     }
 
+    /// How many frames the next acquisition runs for.
     void
     set_no_frames(int no_frames)
     {
         katherine::detail::check(katherine_set_no_frames(&dev_, no_frames));
     }
 
+    /// Asks one bias supply for a voltage. It arrives seconds later; the acknowledgement is of the command.
     void
     set_bias(std::uint8_t bias_id, float bias_value)
     {
         katherine::detail::check(katherine_set_bias(&dev_, bias_id, bias_value));
     }
 
+    /// Which readout mode the chip uses to deliver hits.
     void
     set_seq_readout_start(int arg)
     {
         katherine::detail::check(katherine_tpx3_set_seq_readout_start(&dev_, arg));
     }
 
+    /// What opens and closes the shutter.
     void
     set_acquisition_triggers(const katherine::trigger& start_trigger, const katherine::trigger& end_trigger)
     {
         katherine::detail::check(katherine_set_acquisition_triggers(&dev_, &start_trigger, &end_trigger));
     }
 
+    /// Writes one sensor register of chip 0 into the readout's register image.
     void
     set_sensor_register(katherine_tpx3_reg_t reg_idx, std::int32_t reg_value)
     {
@@ -541,6 +591,7 @@ public:
             katherine_tpx3_set_sensor_register(&dev_, chip_index, reg_idx, reg_value));
     }
 
+    /// Carries chip 0's register image to its sensor.
     void
     update_sensor_registers()
     {
@@ -554,6 +605,7 @@ public:
         katherine::detail::check(katherine_tpx3_update_sensor_registers(&dev_, chip_index));
     }
 
+    /// Latches chip 0's output block configuration.
     void
     output_block_config_update()
     {
@@ -567,6 +619,7 @@ public:
         katherine::detail::check(katherine_tpx3_output_block_config_update(&dev_, chip_index));
     }
 
+    /// Sets chip 0's timer.
     void
     timer_set()
     {
@@ -580,6 +633,7 @@ public:
         katherine::detail::check(katherine_tpx3_timer_set(&dev_, chip_index));
     }
 
+    /// Writes the whole DAC block to chip 0.
     void
     set_dacs(const katherine::tpx3::dacs& dacs)
     {
