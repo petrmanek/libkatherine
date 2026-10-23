@@ -24,10 +24,14 @@ namespace katherine {
  * \{
  */
 
-using tdc_source         = katherine_tdc_source_t;
+/// What one channel of the readout's timing unit watches.
+using tdc_source = katherine_tdc_source_t;
+/// One timing-unit channel: what it watches, and whether it is watching.
 using tdc_channel_config = katherine_tdc_channel_config_t;
-using tdc_config         = katherine_tdc_config_t;
+/// Every timing-unit channel at once, as katherine::device::set_tdc_config() takes it.
+using tdc_config = katherine_tdc_config_t;
 
+/// What each timing-unit channel has counted, one entry per channel.
 using tdc_counts = std::array<uint32_t, KATHERINE_MAX_TDC_CHANNEL_COUNT>;
 
 /** \} */

@@ -33,14 +33,14 @@ namespace tpx3 {
 
 /** katherine_tpx3_timestamp_to_seconds() split into whole seconds and the fractional remainder. */
 struct timestamp_seconds {
-    std::uint64_t sec;
-    double nsec;
+    std::uint64_t sec; ///< Whole seconds.
+    double nsec;       ///< The remainder, in nanoseconds.
 };
 
 /** katherine_tpx3_timestamp_to_toa_ftoa() recovered chip counters: coarse ticks since the epoch and the fine remainder. */
 struct toa_ftoa {
-    std::uint64_t toa;
-    std::uint8_t ftoa;
+    std::uint64_t toa; ///< Coarse pixel-clock ticks since the epoch.
+    std::uint8_t ftoa; ///< The remainder, in fine-oscillator ticks.
 };
 
 /**

@@ -24,13 +24,22 @@ namespace katherine {
  * \{
  */
 
+/**
+ * Base of every exception this wrapper throws.
+ *
+ * A caller that does not care which failure it was catches this; one that
+ * does catches katherine::system_error and reads its code.
+ */
 class error: public std::runtime_error {
 public:
+    /// \param what Message std::runtime_error::what() returns.
     error(std::string what) : runtime_error{what} { }
 };
 
+/// A failure the library reported, carrying the code it reported.
 class system_error: public error {
 public:
+    /// \param rc Code the library returned, which what() is rendered from.
     system_error(katherine_error_t rc) : error{katherine_strerror(rc)}, code_{rc} { }
 
     /**
