@@ -247,9 +247,26 @@ jobs:
           -DKATHERINE_TRANSPORT_USB=ON
 
       # The point of the job: the documentation has to build at all, on a
-      # doxygen this project has never seen.
-      - name: Build the documentation
-        run: cmake --build build --target docs
+      # doxygen this project has never seen -- which is why no version is
+      # pinned here, unlike the formatter.
+      #
+      # It must also build without a warning. The count reached 314 by
+      # nobody watching it, and went back to zero over five commits in
+      # October 2026; zero is only stable if something fails on one. The
+      # unpinned doxygen cuts both ways: a release that adds a diagnostic
+      # reddens this job for a change that did not cause it, and that is
+      # the cost of finding out early rather than at the next sweep.
+      - name: Build the documentation, and fail on a warning
+        shell: bash
+        run: |
+          cmake --build build --target docs 2>&1 | tee doxygen.log
+          warnings=$(grep -c 'warning:' doxygen.log || true)
+          if [ "$warnings" -ne 0 ]; then
+            echo "doxygen emitted $warnings warning(s):"
+            grep 'warning:' doxygen.log
+            exit 1
+          fi
+          echo "doxygen is clean"
 
       # The manual pages must be safe to install, and that is a property
       # rather than a number, so it is worth failing on. MAN_LINKS gives every
