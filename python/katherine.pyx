@@ -638,8 +638,12 @@ cdef class Device:
          res = cconfig.katherine_configure(self._c_device, &config._c_config)
          check_return_code(res)
 
-    def set_all_pixel_config(self, Tpx3PxConfig px_config):
-         res = cconfig.katherine_tpx3_set_all_pixel_config(self._c_device, &px_config._c_px_config)
+    def set_all_pixel_config(self, Tpx3PxConfig px_config, uint8_t chip_index=0):
+         """Upload a whole pixel matrix to one chip.
+
+         chip_index trails the matrix here, rather than leading it as it does
+         in C, so that callers written against 1.x keep working."""
+         res = cconfig.katherine_tpx3_set_all_pixel_config(self._c_device, chip_index, &px_config._c_px_config)
          check_return_code(res)
 
     def set_acq_time(self, double ns):

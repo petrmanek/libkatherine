@@ -215,6 +215,22 @@ test_primitive_cmd64_i64(void)
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) 0x04, (uint8_t) 0x04, (int64_t) 0), 0, 0, 0, 0, 0x04, 0, 0x04, 0);
 }
 
+/* The chip-addressed senders put the opcode where the plain ones do and the
+ * chip where the envelope says, and refuse an opcode that has nowhere to put
+ * a nonzero one rather than dropping it. */
+static void
+test_primitive_cmd6_chip(void)
+{
+    // 0x12 reads its chip index from byte 0.
+    CHECK_CMD(katherine_cmd_send6_chip(&g_sender_link, (uint8_t) 0x12, 0), 0, 0, 0, 0, 0, 0, 0x12, 0);
+    CHECK_CMD(katherine_cmd_send6_chip(&g_sender_link, (uint8_t) 0x12, 5), 5, 0, 0, 0, 0, 0, 0x12, 0);
+
+    // 0x15 has no slot: chip 0 is nothing to place, a nonzero chip is refused
+    // and nothing is sent.
+    CHECK_CMD(katherine_cmd_send6_chip(&g_sender_link, (uint8_t) 0x15, 0), 0, 0, 0, 0, 0, 0, 0x15, 0);
+    KT_CHECK_EQ(katherine_cmd_send6_chip(&g_sender_link, (uint8_t) 0x15, 1), KATHERINE_E_BAD_CHIP);
+}
+
 static void
 test_primitive_cmd6_float(void)
 {
@@ -620,9 +636,7 @@ test_cmd_payload_u32_boundary(void)
     KT_CHECK_MEM_EQ(cmd.b, expected_max, 8);
 }
 
-// One opcode per envelope family, chip=0 and one nonzero chip apiece --
-// nonzero chip is exercised here even though every current caller of this
-// library sends 0, since the table is otherwise untested code.
+// One opcode per envelope family, chip=0 and one nonzero chip apiece.
 static void
 test_cmd_chip_envelope(void)
 {
@@ -694,6 +708,7 @@ main(void)
     KT_RUN(test_primitive_cmd60);
     KT_RUN(test_primitive_cmd6_i64);
     KT_RUN(test_primitive_cmd64_i64);
+    KT_RUN(test_primitive_cmd6_chip);
     KT_RUN(test_primitive_cmd6_float);
     KT_RUN(test_wrappers_arg0_base);
     KT_RUN(test_wrappers_hw);

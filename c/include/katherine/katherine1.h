@@ -171,7 +171,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config)
 {
-    return katherine1_map_result(katherine_tpx3_set_all_pixel_config(device, px_config));
+    return katherine1_map_result(katherine_tpx3_set_all_pixel_config(device, 0, px_config));
 }
 
 /** \legacy1{katherine_set_acq_time} */

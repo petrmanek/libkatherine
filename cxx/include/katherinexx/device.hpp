@@ -449,7 +449,14 @@ public:
     void
     set_all_pixel_config(const katherine::px_config& px_config)
     {
-        int res = katherine_tpx3_set_all_pixel_config(&dev_, &px_config);
+        set_all_pixel_config(0, px_config);
+    }
+
+    /// Uploads a whole pixel matrix to one chip of the readout.
+    void
+    set_all_pixel_config(std::uint8_t chip_index, const katherine::px_config& px_config)
+    {
+        int res = katherine_tpx3_set_all_pixel_config(&dev_, chip_index, &px_config);
 
         if (res != 0) {
             throw katherine::system_error{res};

@@ -144,6 +144,44 @@ katherine_cmd_send6(katherine_transport_t *transport, uint8_t val6)
 }
 
 /**
+ * Send a command that carries nothing but its opcode and a chip index.
+ *
+ * Where the chip index goes is the envelope table's answer, not this
+ * function's: KATHERINE_CHIP_ENVELOPE knows which byte each opcode reads it
+ * from, and rejects a nonzero index for an opcode that has nowhere to put
+ * one.
+ *
+ * \param transport Transport to send on.
+ * \param val6 Command opcode.
+ * \param chip Chip the command addresses.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_BAD_CHIP if \a chip is nonzero and this opcode carries
+ *   no chip index.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
+ *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_get_last_os_error().
+ */
+static inline katherine_error_t
+katherine_cmd_send6_chip(katherine_transport_t *transport, uint8_t val6, uint8_t chip)
+{
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+
+    const katherine_error_t res = katherine_cmd_payload_set_chip(&cmd, val6, chip);
+    if (res) return res;
+
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
+}
+
+/**
  * Send a command whose only argument occupies the lowest payload byte, as
  * the hardware-command dispatch does with its sub-command number.
  *

@@ -352,7 +352,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_config_check_t *check);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config);
+katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_px_config_t *px_config);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns);

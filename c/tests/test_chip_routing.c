@@ -192,6 +192,14 @@ test_an_absent_chip_is_refused(void)
         katherine_tpx3_output_block_config_update(&device, CHIP_ABSENT), KATHERINE_E_BAD_CHIP);
     KT_CHECK_EQ(katherine_tpx3_timer_set(&device, CHIP_ABSENT), KATHERINE_E_BAD_CHIP);
 
+    /* The matrix upload above all: it is 64 KiB of data the readout counts
+     * without correlating, so one sent to a chip that is not there leaves the
+     * session waiting on an acknowledgement nobody will send. */
+    static katherine_tpx3_px_config_t px;
+    memset(&px, 0, sizeof(px));
+    KT_CHECK_EQ(
+        katherine_tpx3_set_all_pixel_config(&device, CHIP_ABSENT, &px), KATHERINE_E_BAD_CHIP);
+
     uint8_t buf[KATHERINE_CMD_CRD_SIZE];
     size_t count = sizeof(buf);
     KT_CHECK_EQ(katherine_udp_recv(&g_mock_quiet, buf, &count), KATHERINE_E_TIMEOUT);

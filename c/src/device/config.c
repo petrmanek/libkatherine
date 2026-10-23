@@ -24,6 +24,11 @@
  * failing step returns at once -- leaving the steps that already succeeded in
  * force on the readout.
  *
+ * Every per-chip step addresses chip 0. What a readout carrying more than one
+ * chip should be given -- this configuration repeated, or one configuration
+ * per chip -- is a question about katherine_config_t, which holds one of
+ * everything.
+ *
  * \param device Katherine device
  * \param config Detector configuration to set
  *
@@ -54,16 +59,26 @@
  * \retval KATHERINE_E_UNSUPPORTED if the end trigger's delay is armed on a
  *   readout of the first generation; see katherine_set_acquisition_triggers().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared, or is one this version cannot drive: the acquisition time's
- *   encoding depends on the readout generation, which is then not known. See
- *   katherine_set_acq_time().
+ *   declared, or is one this version cannot drive: nothing below can be
+ *   addressed to a chip, and the acquisition time's encoding depends on the
+ *   readout generation. See katherine_set_acq_time().
+ * \retval KATHERINE_E_BAD_CHIP if the device reports no chips at all, chip 0
+ *   included; see katherine_device_info_t::chip_count.
  */
 katherine_error_t
 katherine_configure(katherine_device_t *device, const katherine_config_t *config)
 {
     katherine_error_t res;
 
-    res = katherine_tpx3_set_all_pixel_config(device, &config->pixel_config);
+    // Checked here rather than left to the first step that needs it, so that
+    // a device nobody has enumerated is told so instead of being told it
+    // carries no chip 0 -- which is true, and useless.
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err;
+    }
+
+    res = katherine_tpx3_set_all_pixel_config(device, 0, &config->pixel_config);
     if (res) goto err;
 
     res = katherine_set_acq_time(device, config->acq_time);
@@ -192,10 +207,15 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  * session usable. Only the last attempt's failure is reported.
  *
  * \param device Katherine device
+ * \param chip_index Chip to address, counting from zero
  * \param px_config Configuration matrix to set
  *
  * \retval KATHERINE_E_OK on success, once the matrix has been uploaded,
  *   acknowledged and loaded into the pixel registers.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_TIMEOUT if the readout acknowledged none of the ten
  *   uploads, each of which waits about a second for it, or if it did not
  *   acknowledge one of the two matrix commands that follow within the control
@@ -219,9 +239,14 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_tpx3_px_config_t *px_config)
+katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_px_config_t *px_config)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
@@ -252,7 +277,8 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
         --attempts;
 
         // Send command.
-        res = katherine_cmd_set_all_pixel_config(&device->control_transport);
+        res = katherine_cmd_send6_chip(
+            &device->control_transport, CMD_TYPE_SET_ALL_PIXEL_CONFIG, chip_index);
         if (res) continue;
 
         // Send pixel configuration data.
@@ -303,14 +329,14 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, const katherine_
     // dispatch opcode, not under its sub-command number: the readout echoes
     // the operation code of the request it answers, and the sub-command
     // travels in the payload.
-    res = katherine_cmd_hw_reset_matrix_sequential(&device->control_transport);
+    res = katherine_cmd_send60_chip(&device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_RESET_MATRIX_SEQUENTIAL, chip_index);
     if (res) goto err_reset_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
     if (res) goto err_reset_recv;
 
     // Execute HW command 9.
-    res = katherine_cmd_hw_load_pixel_register_configuration(&device->control_transport);
+    res = katherine_cmd_send60_chip(&device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_LOAD_PIXEL_REGISTER_CONFIGURATION, chip_index);
     if (res) goto err_load_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
@@ -326,6 +352,7 @@ err_reset_send:
 err_upload:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_chip:
     return res;
 }
 
