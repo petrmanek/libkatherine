@@ -86,10 +86,10 @@ configure(katherine_config_t *config)
 {
     // For now, these constants are hard-coded.
     // This configuration will produce meaningful results only for: K7-W0005
-    config->bias_index   = 0;
-    config->acq_time  = 10e9; // ns
-    config->no_frames = 1;
-    config->bias      = 230; // V
+    config->bias_index = 0;
+    config->acq_time   = 10e9; // ns
+    config->no_frames  = 1;
+    config->bias       = 230; // V
 
     config->start_trigger.enabled = false;
     config->start_trigger.channel = 0;

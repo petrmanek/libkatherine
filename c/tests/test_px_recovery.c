@@ -299,10 +299,10 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
 {
     memset(config, 0, sizeof(*config));
 
-    config->bias_index   = 0;
-    config->acq_time  = acq_time_ns;
-    config->no_frames = no_frames;
-    config->bias      = 230;
+    config->bias_index = 0;
+    config->acq_time   = acq_time_ns;
+    config->no_frames  = no_frames;
+    config->bias       = 230;
 
     config->phase = KATHERINE_TPX3_PHASE_1;
     config->freq  = KATHERINE_TPX3_FREQ_40_MHZ;

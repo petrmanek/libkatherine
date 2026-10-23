@@ -510,7 +510,7 @@ build_config(katherine_config_t *c)
     memset(c, 0, sizeof(*c));
 
     fill_px_config(&c->pixel_config);
-    c->bias_index       = 7;
+    c->bias_index    = 7;
     c->acq_time      = 400000.0;
     c->no_frames     = 1;
     c->bias          = 230.0f;
