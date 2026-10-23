@@ -55,7 +55,16 @@ typedef struct katherine_transport_udp {
  * \param ctx Session to send on.
  * \param data Bytes to send.
  * \param count How many.
- * \return KATHERINE_E_OK once every byte is on the wire.
+ *
+ * \retval KATHERINE_E_OK once every byte is on the wire.
+ * \retval KATHERINE_E_TIMEOUT if sendto(2) would have blocked; a datagram
+ *   socket blocks only once its send buffer is full.
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see sendto(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the kernel rejected an argument of the send;
+ *   see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the datagram;
+ *   see katherine_udp_last_os_error().
  */
 static katherine_error_t
 udp_t_send_cmd(void *ctx, const void *data, size_t count)
@@ -70,7 +79,18 @@ udp_t_send_cmd(void *ctx, const void *data, size_t count)
  * \param ctx Session to read.
  * \param crd Storage for the response.
  * \param len Capacity on entry, bytes received on return.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if nothing arrived within the session's receive
+ *   timeout, or if a pinned session discarded its whole budget of datagrams
+ *   from other hosts first.
+ * \retval KATHERINE_E_IO if the receive failed at the OS level for a reason
+ *   none of the other codes cover; see recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the kernel rejected an argument of the
+ *   receive; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the receive;
+ *   see katherine_udp_last_os_error().
  */
 static katherine_error_t
 udp_t_recv_crd(void *ctx, void *crd, size_t *len)
@@ -123,7 +143,10 @@ udp_drain(katherine_udp_t *udp, uint32_t *discarded)
  * Discard whatever an earlier exchange left on the session.
  * \param ctx Session to drain.
  * \param discarded Out-parameter for how many were dropped, or NULL.
- * \return KATHERINE_E_OK once the session is quiet.
+ *
+ * \retval KATHERINE_E_OK always. The drain is best-effort by design and stops
+ *   at the first receive that finds nothing, so it has nothing to report: a
+ *   link that is broken says so at the send or receive that follows.
  */
 static katherine_error_t
 udp_t_flush_incoming(void *ctx, uint32_t *discarded)
@@ -140,7 +163,19 @@ udp_t_flush_incoming(void *ctx, uint32_t *discarded)
  * \param ctx Session to read.
  * \param buf Out-parameter for the lent bytes.
  * \param len Out-parameter for how many.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success, the buffer being the caller's until
+ *   udp_t_release_data_buf() takes it back.
+ * \retval KATHERINE_E_TIMEOUT if no datagram arrived within the session's
+ *   receive timeout, which during an acquisition is how a stalled readout
+ *   presents.
+ * \retval KATHERINE_E_IO if the receive failed at the OS level for a reason
+ *   none of the other codes cover; see recvfrom(2) and
+ *   katherine_udp_last_os_error().
+ * \retval KATHERINE_E_INVAL if the kernel rejected an argument of the
+ *   receive; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the receive;
+ *   see katherine_udp_last_os_error().
  */
 static katherine_error_t
 udp_t_acquire_data_buf(void *ctx, void **buf, size_t *len)
@@ -166,7 +201,11 @@ err_recv:
  * Give back the lent datagram, which frees the one buffer to be filled again.
  * \param ctx Session it came from.
  * \param buf The buffer.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if \p buf is not the buffer this session lent,
+ *   which is a caller returning somebody else's memory and not a link
+ *   failure.
  */
 static katherine_error_t
 udp_t_release_data_buf(void *ctx, void *buf)
@@ -191,7 +230,17 @@ err_foreign:
  * Set how long a receive waits.
  * \param ctx Session to set.
  * \param timeout_ms The limit.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the kernel rejected the timeout; see
+ *   setsockopt(2) and katherine_udp_last_os_error().
+ * \retval KATHERINE_E_IO if the option could not be set for a reason none of
+ *   the other codes cover; see katherine_udp_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the kernel had no memory for the option;
+ *   see katherine_udp_last_os_error().
+ * \note Unreachable here: KATHERINE_E_TIMEOUT. setsockopt(2) does not block,
+ *   and the shared socket-error map reports what it can produce rather than
+ *   what this caller can trigger.
  */
 static katherine_error_t
 udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
@@ -205,7 +254,11 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
  * Datagrams the kernel dropped for want of queue space.
  * \param ctx Session to ask.
  * \param count Out-parameter for the running total.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK always. The count is a number the session has
+ *   already been keeping, so reading it touches neither the socket nor the
+ *   kernel; it stays zero unless katherine_udp_set_drop_counting() asked for
+ *   it.
  */
 static katherine_error_t
 udp_t_get_dropped_input(void *ctx, uint64_t *count)
@@ -223,7 +276,21 @@ udp_t_get_dropped_input(void *ctx, uint64_t *count)
  * Delegated rather than reimplemented: the lock belongs to the session, and
  * anything else still reaching it directly takes the very same one.
  * \param ctx Session to lock.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the lock was not in a lockable state, which
+ *   means a session never opened or already finalized; see
+ *   pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason none
+ *   of the other codes cover; see pthread_mutex_lock(3) and
+ *   katherine_udp_last_os_error().
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT.
+ *   pthread_mutex_lock(3) documents EBUSY, EDEADLK, EINVAL and EPERM and no
+ *   more, so neither arrives however the shared map behind it is capable of
+ *   producing them.
+ * \note Only on POSIX: KATHERINE_E_INVAL. The Windows session waits on a
+ *   mutex handle, and WaitForSingleObject() reports every failure as a Win32
+ *   error, which arrives as KATHERINE_E_SYSTEM.
  */
 static katherine_error_t
 udp_t_mutex_lock(void *ctx)
@@ -236,7 +303,18 @@ udp_t_mutex_lock(void *ctx)
 /**
  * Release the lock udp_t_mutex_lock() took.
  * \param ctx Session to unlock.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the lock was not in an unlockable state, which
+ *   means a session never opened or already finalized; see
+ *   pthread_mutex_unlock(3).
+ * \retval KATHERINE_E_SYSTEM if the lock could not be released for a reason
+ *   none of the other codes cover; see pthread_mutex_unlock(3) and
+ *   katherine_udp_last_os_error().
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT. Same
+ *   reason as udp_t_mutex_lock() above.
+ * \note Only on POSIX: KATHERINE_E_INVAL. ReleaseMutex() reports every
+ *   failure as a Win32 error, same as the lock above.
  */
 static katherine_error_t
 udp_t_mutex_unlock(void *ctx)
@@ -264,7 +342,14 @@ udp_t_get_last_os_error(void *ctx)
  * Resize the buffer one datagram is received into.
  * \param ctx Session to resize.
  * \param size Bytes it is to hold.
- * \return KATHERINE_E_OK on success, leaving the old buffer in place otherwise.
+ *
+ * \retval KATHERINE_E_OK on success, the buffer now holding exactly \p size
+ *   bytes of datagram.
+ * \retval KATHERINE_E_INVAL if \p size is zero.
+ * \retval KATHERINE_E_STATE if the one buffer is lent out, since resizing it
+ *   would leave the caller holding freed memory.
+ * \retval KATHERINE_E_NOMEM if the new buffer could not be allocated, the
+ *   session keeping the one it had.
  */
 static katherine_error_t
 udp_t_set_buffer_size(void *ctx, size_t size)
