@@ -74,7 +74,7 @@ katherine_str_readout_mode(katherine_tpx3_readout_mode_t mode)
 /**
  * Get the human-readable name of a chip type.
  * \param v Chip type to name
- * \return Null-terminated string. "(unknown)" for a value outside the enum.
+ * \return Null-terminated string. "unknown" for a value outside the enum.
  */
 const char *
 katherine_str_chip_type(katherine_chip_type_t v)
@@ -83,8 +83,8 @@ katherine_str_chip_type(katherine_chip_type_t v)
     case KATHERINE_CHIP_TPX2:    return "Timepix2";
     case KATHERINE_CHIP_TPX3:    return "Timepix3";
     case KATHERINE_CHIP_TPX4:    return "Timepix4";
-    case KATHERINE_CHIP_UNKNOWN: return "(unknown)";
-    default:                     return "(unknown)";
+    case KATHERINE_CHIP_UNKNOWN: return "unknown";
+    default:                     return "unknown";
     }
 }
 
@@ -136,7 +136,7 @@ katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_dev
  * Describe what a phase-correction request resolved to.
  *
  * \param v Outcome to describe.
- * \return Static string, "(unknown)" for a value outside the enumeration.
+ * \return Static string, "unknown" for a value outside the enumeration.
  */
 const char *
 katherine_str_phase_correction(katherine_tpx3_phase_correction_t v)
@@ -145,7 +145,7 @@ katherine_str_phase_correction(katherine_tpx3_phase_correction_t v)
     case KATHERINE_TPX3_PHASE_CORRECTION_NONE:     return "none";
     case KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE: return "software";
     case KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE: return "hardware";
-    default:                                       return "(unknown)";
+    default:                                       return "unknown";
     }
 }
 

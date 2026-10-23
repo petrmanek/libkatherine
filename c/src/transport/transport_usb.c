@@ -1389,7 +1389,7 @@ katherine_usb_config_snprint_address(char *buf, size_t cap, const katherine_usb_
  * Render a read strategy as the token naming it.
  * \param stream Strategy to render.
  *
- * \return The token, or "?" for a value this version does not name.
+ * \return The token, or "unknown" for a value this version does not name.
  */
 const char *
 katherine_str_usb_stream(katherine_usb_stream_t stream)
@@ -1397,7 +1397,7 @@ katherine_str_usb_stream(katherine_usb_stream_t stream)
     switch (stream) {
     case KATHERINE_USB_STREAM_ASYNC: return "async";
     case KATHERINE_USB_STREAM_SYNC:  return "sync";
-    default:                         return "?";
+    default:                         return "unknown";
     }
 }
 

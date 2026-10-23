@@ -304,7 +304,7 @@ katherine_transport_get_last_os_error(const katherine_transport_t *transport)
  * Render a transport kind as the token naming it.
  * \param kind Kind to render.
  *
- * \return The token, or "?" for a value this version does not name.
+ * \return The token, or "unknown" for a value this version does not name.
  */
 const char *
 katherine_str_transport_kind(katherine_transport_kind_t kind)
@@ -312,7 +312,7 @@ katherine_str_transport_kind(katherine_transport_kind_t kind)
     switch (kind) {
     case KATHERINE_TRANSPORT_UDP: return "udp";
     case KATHERINE_TRANSPORT_USB: return "usb";
-    default:                      return "?";
+    default:                      return "unknown";
     }
 }
 

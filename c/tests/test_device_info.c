@@ -277,10 +277,10 @@ test_asic_names(void)
     KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_TPX2), "Timepix2") == 0);
     KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_TPX3), "Timepix3") == 0);
     KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_TPX4), "Timepix4") == 0);
-    KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_UNKNOWN), "(unknown)") == 0);
+    KT_CHECK(strcmp(katherine_str_chip_type(KATHERINE_CHIP_UNKNOWN), "unknown") == 0);
 
     // A value outside the enumeration must not walk off the switch.
-    KT_CHECK(strcmp(katherine_str_chip_type((katherine_chip_type_t) 99), "(unknown)") == 0);
+    KT_CHECK(strcmp(katherine_str_chip_type((katherine_chip_type_t) 99), "unknown") == 0);
 }
 
 // An unpopulated structure has to be distinguishable in output too, or a log
