@@ -87,7 +87,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_no_frames(device, config->no_frames);
     if (res) goto err;
 
-    res = katherine_set_bias(device, config->bias_id, config->bias);
+    res = katherine_set_bias(device, config->bias_index, config->bias);
     if (res) goto err;
 
     res = katherine_set_acquisition_triggers(device, &config->start_trigger, &config->stop_trigger);
@@ -700,11 +700,15 @@ err_lock:
  * dropping it is prompt.
  *
  * \param device Katherine device
- * \param bias_id Index of the bias voltage (the value is discarded by implementation)
- * \param bias_value Bias voltage in Volts
+ * \param bias_index Supply to drive, addressed from 0.
+ * \param bias_value Bias voltage in Volts. Its sign selects the supply's
+ *   polarity, which the readout latches per supply.
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
- *   bias setting.
+ *   bias setting. The supply ramps afterwards, so the voltage has not
+ *   arrived when this returns; katherine_get_bias() is what reports it.
+ * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
+ *   declared, since which supplies it has is then not known.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the bias
  *   setting within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
@@ -719,27 +723,34 @@ err_lock:
  *   codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
  *   the receive; see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
- *   exchange; see katherine_transport_get_last_os_error(). The bias value itself
- *   is not validated here.
+ * \retval KATHERINE_E_INVAL if \p bias_index is not one this readout provides,
+ *   or if the control link rejected an argument of the exchange; see
+ *   katherine_transport_get_last_os_error(). The bias value itself is not
+ *   validated here.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_set_bias(katherine_device_t *device, uint8_t bias_id, float bias_value)
+katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_value)
 {
-    (void) bias_id;
-
     katherine_error_t res;
+
+    if (!device->derived_info.supported) {
+        res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
+
+    if (bias_index >= device->derived_info.bias_supply_count) {
+        res = KATHERINE_E_INVAL;
+        goto err_bias_id;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
-    // TODO use bias_id
-
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_bias_settings(&device->control_transport, bias_value);
+    res = katherine_cmd_set_bias_settings(&device->control_transport, bias_index, bias_value);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_BIAS_SETTINGS);
@@ -752,6 +763,8 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_bias_id:
+err_enumerated:
     return res;
 }
 

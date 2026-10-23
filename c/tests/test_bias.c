@@ -337,7 +337,7 @@ test_e_the_supply_index_goes_in_both_bytes(void)
         uint8_t opcode;
         uint8_t hw_type;
         katherine_error_t (*call)(katherine_device_t *, unsigned char, float *);
-        uint8_t bias_id;
+        uint8_t bias_index;
 
         // What the accessor is to make of MOCK_ANSWER_V: the read-back hands
         // the float back as it came, the leakage reading converts it.
@@ -360,15 +360,15 @@ test_e_the_supply_index_goes_in_both_bytes(void)
         memset(g_captured, 0xAA, sizeof(g_captured));
         KT_REQUIRE(kthread_start(&thread, mock_readout, NULL) == 0);
 
-        const katherine_error_t res = cases[i].call(&device, cases[i].bias_id, &volts);
+        const katherine_error_t res = cases[i].call(&device, cases[i].bias_index, &volts);
         KT_CHECK_EQ(kthread_join(&thread), 0);
 
         printf("# %s: res %d, answer %.4f\n", cases[i].what, (int) res, (double) volts);
         KT_CHECK_EQ(res, 0);
         KT_CHECK_CLOSE(volts, cases[i].expected);
 
-        KT_CHECK_EQ(g_captured[0], cases[i].bias_id);
-        KT_CHECK_EQ(g_captured[4], cases[i].bias_id);
+        KT_CHECK_EQ(g_captured[0], cases[i].bias_index);
+        KT_CHECK_EQ(g_captured[4], cases[i].bias_index);
         KT_CHECK_EQ(g_captured[KATHERINE_CMD_OPCODE_BYTE], cases[i].opcode);
 
         // And nothing else: the index is the whole payload.

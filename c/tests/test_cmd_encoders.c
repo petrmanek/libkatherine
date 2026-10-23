@@ -310,7 +310,12 @@ static void
 test_wrappers_set_bias_settings(void)
 {
     // 42.0f -> IEEE-754 0x42280000, LE bytes 00 00 28 42.
-    CHECK_CMD(katherine_cmd_set_bias_settings(&g_sender_link, 42.0f), 0x00, 0x00, 0x28, 0x42, 0, 0, 0x02, 0);
+    // The supply rides byte 4; bytes 0 to 3 are the float itself. Writing it
+    // where the DAC commands write theirs is what addresses the second
+    // regulator, which until 2.0 was unreachable.
+    CHECK_CMD(katherine_cmd_set_bias_settings(&g_sender_link, 0, 42.0f), 0x00, 0x00, 0x28, 0x42, 0, 0, 0x02, 0);
+    CHECK_CMD(katherine_cmd_set_bias_settings(&g_sender_link, 1, 42.0f), 0x00, 0x00, 0x28, 0x42, 1, 0, 0x02, 0);
+    CHECK_CMD(katherine_cmd_set_bias_settings(&g_sender_link, 1, -42.0f), 0x00, 0x00, 0x28, 0xC2, 1, 0, 0x02, 0);
 }
 
 // ------------------------------------------------------------------

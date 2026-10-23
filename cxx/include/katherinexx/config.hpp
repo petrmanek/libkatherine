@@ -193,9 +193,9 @@ public:
     void set_pixel_config(katherine::px_config&& pixel_config) { conf_.pixel_config = pixel_config; }
 
     /// Which bias supply of the readout this configuration drives.
-    std::uint8_t bias_id() const { return conf_.bias_id; }
-    /** \copydoc bias_id() */
-    void set_bias_id(std::uint8_t val) { conf_.bias_id = val; }
+    std::uint8_t bias_index() const { return conf_.bias_index; }
+    /** \copydoc bias_index() */
+    void set_bias_id(std::uint8_t val) { conf_.bias_index = val; }
 
     // The trailing return type (rather than a C++14 deduced one) is what
     // keeps this header valid C++11.

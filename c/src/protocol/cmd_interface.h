@@ -417,6 +417,40 @@ katherine_cmd_send6_f32(katherine_transport_t *transport, uint8_t val6, float va
     return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
 }
 
+/**
+ * Send a command with a sub-index and a float payload.
+ *
+ * The float occupies bytes 0 to 3, so unlike katherine_cmd_send64_i64() the
+ * index travels in byte 4 alone -- there is no second copy in byte 0 to set,
+ * that byte being part of the value.
+ *
+ * \param transport Link to send on.
+ * \param val6 Command opcode.
+ * \param val4 Sub-index, byte 4 of the command.
+ * \param value Payload, transmitted as its IEEE-754 bytes.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
+ *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
+ *   removable one can do and a socket cannot: a USB readout unplugged or
+ *   reset out from under the session; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
+ *   of the other codes cover; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
+ *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
+ *   katherine_transport_get_last_os_error().
+ */
+static inline katherine_error_t
+katherine_cmd_send64_f32(katherine_transport_t *transport, uint8_t val6, uint8_t val4, float value)
+{
+    katherine_cmd_t cmd = katherine_cmd_create(val6);
+    katherine_cmd_payload_set_subidx(&cmd, val4);
+    katherine_cmd_payload_set_f32(&cmd, value);
+    return katherine_cmd_send(transport, cmd.b, sizeof(cmd.b));
+}
+
 //
 // GeneralConfig sensor register (Timepix3 manual v2, sec 4.2.5.4.1, headers
 // 0h30/0h31), declared as a bitfield for INSERT(). Field names follow the
@@ -569,6 +603,23 @@ katherine_pll_config_word(const katherine_config_t *config)
     static inline katherine_error_t katherine_cmd_##CMD_NAME(katherine_transport_t *transport, ARG1_TYPE arg1) \
     { \
         return katherine_##A(transport, __VA_ARGS__, arg1); \
+    }
+
+/**
+ * Define katherine_cmd_<CMD_NAME>(transport, arg1, arg2), sending a command
+ * whose last two arguments the caller supplies.
+ * \param A Sender to build on, without the katherine_ prefix.
+ * \param CMD_NAME Name of the generated function, without the
+ *   katherine_cmd_ prefix.
+ * \param ARG1_TYPE Type of the first caller-supplied argument.
+ * \param ARG2_TYPE Type of the second.
+ * \param ... Leading arguments of the sender, which the caller's follow.
+ */
+#define K_DEFINE_CMD_ARG2(A, CMD_NAME, ARG1_TYPE, ARG2_TYPE, ...) \
+    static inline katherine_error_t katherine_cmd_##CMD_NAME( \
+        katherine_transport_t *transport, ARG1_TYPE arg1, ARG2_TYPE arg2) \
+    { \
+        return katherine_##A(transport, __VA_ARGS__, arg1, arg2); \
     }
 
 /** Command opcodes of the readout protocol, carried in byte 6 of a command. */
@@ -990,7 +1041,7 @@ K_DEFINE_CMD_ARG1(cmd_send6_i64,  set_seq_readout_start,                    int6
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  start_acquisition,                        uint8_t, CMD_TYPE_ACQUISITION_START)
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  stop_acquisition,                         uint8_t, CMD_TYPE_ACQUISITION_STOP)
 K_DEFINE_CMD_ARG1(cmd_send6_i64,  get_adc_voltage,                          uint8_t, CMD_TYPE_GET_ADC_VOLTAGE)
-K_DEFINE_CMD_ARG1(cmd_send6_f32,  set_bias_settings,                        float, CMD_TYPE_BIAS_SETTINGS)
+K_DEFINE_CMD_ARG2(cmd_send64_f32, set_bias_settings,                        uint8_t, float, CMD_TYPE_BIAS_SETTINGS)
 
 K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_preamp_on,                  int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 0)
 K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_ibias_preamp_off,                 int64_t, CMD_TYPE_INTERNAL_DAC_SETTINGS, 1)

@@ -299,7 +299,7 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
 {
     memset(config, 0, sizeof(*config));
 
-    config->bias_id   = 0;
+    config->bias_index   = 0;
     config->acq_time  = acq_time_ns;
     config->no_frames = no_frames;
     config->bias      = 230;

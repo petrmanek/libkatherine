@@ -606,7 +606,7 @@ err_lock:
  * per step of its 12-bit converter, and slightly negative at rest.
  *
  * \param device Katherine device
- * \param bias_id Index of the bias supply
+ * \param bias_index Index of the bias supply
  * \param voltage Retrieved voltage, in Volts, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
@@ -618,7 +618,7 @@ err_lock:
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
- * \retval KATHERINE_E_INVAL if \p bias_id is not one this readout provides, or
+ * \retval KATHERINE_E_INVAL if \p bias_index is not one this readout provides, or
  *   if the control link rejected an argument; see
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
@@ -630,7 +630,7 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
+katherine_get_bias(katherine_device_t *device, uint8_t bias_index, float *voltage)
 {
     katherine_error_t res;
 
@@ -639,7 +639,7 @@ katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
         goto err_enumerated;
     }
 
-    if (bias_id >= device->derived_info.bias_supply_count) {
+    if (bias_index >= device->derived_info.bias_supply_count) {
         res = KATHERINE_E_INVAL;
         goto err_bias_id;
     }
@@ -651,7 +651,7 @@ katherine_get_bias(katherine_device_t *device, uint8_t bias_id, float *voltage)
 
     // Both bytes carry the index: the manual specifies byte 4, the Gen2
     // firmware reads byte 0, and the reference implementation sets both.
-    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_GET_BIAS_VOLTAGE, bias_id, bias_id);
+    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_GET_BIAS_VOLTAGE, bias_index, bias_index);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];
@@ -679,7 +679,7 @@ err_enumerated:
  * up to about 0.4 uA.
  *
  * \param device Katherine device
- * \param bias_id Index of the bias supply
+ * \param bias_index Index of the bias supply
  * \param current Retrieved leakage current, in microamperes, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
@@ -699,7 +699,7 @@ err_enumerated:
  * \retval KATHERINE_E_BAD_CRD if the answer was not a command response.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving until
  *   the discard budget ran out.
- * \retval KATHERINE_E_INVAL if \p bias_id is not one this readout provides, or
+ * \retval KATHERINE_E_INVAL if \p bias_index is not one this readout provides, or
  *   if the control link rejected an argument; see
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if a send or receive failed at the OS level for a
@@ -709,7 +709,7 @@ err_enumerated:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *current)
+katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_index, float *current)
 {
     katherine_error_t res;
 
@@ -723,7 +723,7 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *c
         goto err_generation;
     }
 
-    if (bias_id >= device->derived_info.bias_supply_count) {
+    if (bias_index >= device->derived_info.bias_supply_count) {
         res = KATHERINE_E_INVAL;
         goto err_bias_id;
     }
@@ -733,7 +733,7 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_id, float *c
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_GET_BIAS_CURRENT, bias_id, bias_id);
+    res = katherine_cmd_send64_i64(&device->control_transport, CMD_TYPE_GET_BIAS_CURRENT, bias_index, bias_index);
     if (res) goto err_send;
 
     char crd[KATHERINE_CMD_CRD_SIZE];

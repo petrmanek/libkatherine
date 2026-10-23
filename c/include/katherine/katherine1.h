@@ -202,9 +202,9 @@ katherine1_set_no_frames(katherine_device_t *device, int no_frames)
 /** \legacy1{katherine_set_bias} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_set_bias(katherine_device_t *device, uint8_t bias_id, float bias_value)
+katherine1_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_value)
 {
-    return katherine1_map_result(katherine_set_bias(device, bias_id, bias_value));
+    return katherine1_map_result(katherine_set_bias(device, bias_index, bias_value));
 }
 
 /** \legacy1{katherine_tpx3_set_seq_readout_start} */
@@ -329,6 +329,17 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
  * this header, which is what this header is for.
  */
 #define chip_detected chip_count
+
+/**
+ * 1.x called the bias supply's index bias_id, where every other index in this
+ * library is an _index -- chip_index, px_index, frame_index -- and where the
+ * reference implementation calls it biasIndex.
+ *
+ * An alias is safe here for the same reason chip_detected's is: both
+ * spellings name the same field, of the same type, with the same meaning.
+ * Only the spelling moved.
+ */
+#define bias_id       bias_index
 
 /**
  * 1.x spelled the preamplifier cascode DAC VPReamp_NCAS, with a capital R

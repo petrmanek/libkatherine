@@ -413,20 +413,20 @@ public:
 
     /// What one bias supply is actually delivering, in Volts.
     float
-    bias(std::uint8_t bias_id)
+    bias(std::uint8_t bias_index)
     {
         float voltage;
-        katherine::detail::check(katherine_get_bias(&dev_, bias_id, &voltage));
+        katherine::detail::check(katherine_get_bias(&dev_, bias_index, &voltage));
 
         return voltage;
     }
 
     /// The current one bias supply is delivering, in Amperes.
     float
-    bias_leakage(std::uint8_t bias_id)
+    bias_leakage(std::uint8_t bias_index)
     {
         float voltage;
-        katherine::detail::check(katherine_get_bias_leakage(&dev_, bias_id, &voltage));
+        katherine::detail::check(katherine_get_bias_leakage(&dev_, bias_index, &voltage));
 
         return voltage;
     }
@@ -568,9 +568,9 @@ public:
 
     /// Asks one bias supply for a voltage. It arrives seconds later; the acknowledgement is of the command.
     void
-    set_bias(std::uint8_t bias_id, float bias_value)
+    set_bias(std::uint8_t bias_index, float bias_value)
     {
-        katherine::detail::check(katherine_set_bias(&dev_, bias_id, bias_value));
+        katherine::detail::check(katherine_set_bias(&dev_, bias_index, bias_value));
     }
 
     /// Which readout mode the chip uses to deliver hits.

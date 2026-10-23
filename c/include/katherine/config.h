@@ -291,7 +291,7 @@ katherine_str_polarity(katherine_polarity_t polarity);
 typedef struct katherine_config {
     katherine_tpx3_px_config_t pixel_config; ///< Per-pixel settings for the whole matrix.
 
-    uint8_t bias_id; ///< Which bias supply to drive, for a readout that has more than one.
+    uint8_t bias_index; ///< Which bias supply to drive, for a readout that has more than one.
 
     double acq_time; ///< Shutter time per frame, in nanoseconds.
     int no_frames;   ///< Frames to measure; data-driven readout accepts only one.
@@ -367,7 +367,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_bias(katherine_device_t *device, uint8_t bias_id, float bias_value);
+katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_value);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg);

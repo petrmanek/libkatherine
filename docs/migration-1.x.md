@@ -159,6 +159,19 @@ The 1.x functions still have declarations, so a source mentioning them
 compiles, and they decline at runtime. Code that declared a session has to
 be ported rather than recompiled.
 
+### One configuration field was respelled
+
+`katherine_config_t::bias_id` is `bias_index`, which is how every other
+index in the library is spelled -- `chip_index`, `px_index`,
+`frame_index` -- and how the reference implementation names it. Nothing
+else about it changed: same type, same meaning, same values.
+`katherine1.h` aliases the old spelling, so a 1.x source that sets it
+keeps compiling.
+
+The field itself is on its way out: 2.0's configuration restructure
+replaces `bias_id` and `bias` with a `bias[]` array addressed by the same
+index, so a caller writing new code should expect to move again.
+
 ### Some acquisition fields moved
 
 `katherine_acquisition_t` still exposes its state, counters and handlers.

@@ -866,8 +866,8 @@ cdef class Device:
          res = cconfig.katherine_set_no_frames(self._c_device, no_frames)
          check_return_code(res)
 
-    def set_bias(self, unsigned char bias_id, float bias_value):
-         res = cconfig.katherine_set_bias(self._c_device, bias_id, bias_value)
+    def set_bias(self, unsigned char bias_index, float bias_value):
+         res = cconfig.katherine_set_bias(self._c_device, bias_index, bias_value)
          check_return_code(res)
 
     def set_seq_readout_start(self, int arg):
@@ -936,17 +936,17 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_dac(self._c_device, chip_index, dac.value, value)
          check_return_code(res)
 
-    def get_bias(self, unsigned char bias_id):
+    def get_bias(self, unsigned char bias_index):
          cdef float voltage
-         res = cstatus.katherine_get_bias(self._c_device, bias_id, &voltage)
+         res = cstatus.katherine_get_bias(self._c_device, bias_index, &voltage)
          check_return_code(res)
          return voltage
 
-    def get_bias_leakage(self, unsigned char bias_id):
+    def get_bias_leakage(self, unsigned char bias_index):
          """Volts across the sense resistor, not amperes: the conversion needs
          a per-unit zero, which is the caller's to calibrate."""
          cdef float voltage
-         res = cstatus.katherine_get_bias_leakage(self._c_device, bias_id, &voltage)
+         res = cstatus.katherine_get_bias_leakage(self._c_device, bias_index, &voltage)
          check_return_code(res)
          return voltage
 
@@ -1569,12 +1569,12 @@ cdef class Config:
          return _snprint_repr(<snprint_fn_t> cconfig.katherine_config_snprint, &self._c_config)
 
     @property
-    def bias_id(self):
-       return self._c_config.bias_id
+    def bias_index(self):
+       return self._c_config.bias_index
 
-    @bias_id.setter
-    def bias_id(self, val):
-       self._c_config.bias_id = val
+    @bias_index.setter
+    def bias_index(self, val):
+       self._c_config.bias_index = val
 
     @property
     def acq_time(self):

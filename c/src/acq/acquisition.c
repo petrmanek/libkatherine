@@ -193,7 +193,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("Fast VCO:               %s\n",      acq->fast_vco_enabled ? "enabled" : "disabled");
     printf("\n");
 
-    printf("Bias ID:                %d\n",      config->bias_id);
+    printf("Bias ID:                %d\n",      config->bias_index);
     printf("Acquisition Time:       %0.3f s\n", config->acq_time / 1e9);
     printf("No. of Frames:          %d\n",      config->no_frames);
     printf("Bias:                   %0.3f V\n", config->bias);

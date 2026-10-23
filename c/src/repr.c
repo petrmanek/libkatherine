@@ -456,7 +456,7 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 
     REPR_APPENDF(buf, cap, off, "config{pixel_config: ");
     REPR_NEST(buf, cap, off, katherine_tpx3_px_config_snprint, &v->pixel_config);
-    REPR_APPENDF(buf, cap, off, ", bias_id: %u, acq_time: %g, no_frames: %d, bias: %g, start_trigger: ", (unsigned) v->bias_id,
+    REPR_APPENDF(buf, cap, off, ", bias_index: %u, acq_time: %g, no_frames: %d, bias: %g, start_trigger: ", (unsigned) v->bias_index,
         v->acq_time, v->no_frames, (double) v->bias);
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->start_trigger);
     REPR_APPENDF(buf, cap, off, ", stop_trigger: ");

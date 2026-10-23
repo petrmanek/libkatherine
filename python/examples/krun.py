@@ -51,7 +51,7 @@ def paint_test_pixels(px_config):
 def configure():
     c = k.Config()
 
-    c.bias_id           = 0
+    c.bias_index           = 0
     c.acq_time          = 10e9 # ns
     c.no_frames         = 1
     c.bias              = 230 # V

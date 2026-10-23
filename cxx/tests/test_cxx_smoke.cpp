@@ -121,7 +121,7 @@ test_config_round_trip(void)
     katherine::config c;
 
     c.set_bias_id(7);
-    KT_CHECK_EQ(c.bias_id(), 7);
+    KT_CHECK_EQ(c.bias_index(), 7);
 
     c.set_no_frames(12);
     KT_CHECK_EQ(c.no_frames(), 12);
