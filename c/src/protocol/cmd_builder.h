@@ -155,11 +155,12 @@ katherine_cmd_payload_set_f32(katherine_cmd_t *cmd, float value)
  *     overloaded: the firmware reads a value below 32 as a chip index and
  *     anything above as a UDP port to answer on, so only chip indices are
  *     placeable here.
- * The last two entries, 0x05 (sequential readout start) and 0x27
- * (calibration start), are not in that dispatcher's chip-index paths at
- * all; they are placed at byte 5 on the authority of a mature reference
- * implementation of this protocol, which sends them there. Worth
- * confirming against hardware before a per-chip API relies on them.
+ * 0x05 (sequential readout start) and 0x27 (calibration start) are absent
+ * deliberately: that dispatcher reads a chip index from neither.
+ * ReadoutStart() spends byte 0 on the readout type and writes the
+ * chip-select register's broadcast value unconditionally, so a sequential
+ * readout cannot be directed at one chip of several; 0x27's handler reads
+ * no byte of the command at all.
  *
  * An opcode absent from this table has no known chip-index position on the
  * wire; katherine_cmd_payload_set_chip() below rejects a nonzero chip for it instead of
@@ -183,8 +184,6 @@ static const uint8_t KATHERINE_CHIP_ENVELOPE[256] = {
     [0x14] = KATHERINE_CHIP_SLOT(0),
     [0x19] = KATHERINE_CHIP_SLOT(0),
     [0x20] = KATHERINE_CHIP_SLOT(0),
-    [0x05] = KATHERINE_CHIP_SLOT(5),
-    [0x27] = KATHERINE_CHIP_SLOT(5),
 };
 
 /**
