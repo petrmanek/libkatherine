@@ -1532,9 +1532,18 @@ def tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t phase_
     return (toa, ftoa)
 
 
-@_unique
+# The one enumeration here without @_unique, because the C one it mirrors
+# carries a deliberate alias: register 0 is named TEST_PULSE_METHOD in the
+# 1.x spelling and TEST_PULSE_PERIOD in the Tpx3 manual's, which is the
+# correct one. @_unique exists to catch a transcription that collapsed two
+# registers onto one value; here the collision is the point, so the guard
+# is dropped on this enum alone rather than the alias on the name.
 class Tpx3Reg(_Enum):
     TEST_PULSE_METHOD     = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_TEST_PULSE_METHOD
+    #: The same register under the name the Tpx3 manual gives it: Table 9
+    #: header 0h0C carries TP_period in bits 7:0 and TP_phase in 11:8, not a
+    #: single "method".
+    TEST_PULSE_PERIOD     = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_TEST_PULSE_PERIOD
     NUMBER_TEST_PULSES    = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
     OUT_BLOCK_CONFIG      = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
     PLL_CONFIG            = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_PLL_CONFIG

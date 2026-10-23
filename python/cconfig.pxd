@@ -160,6 +160,7 @@ cdef extern from 'katherine/config.h':
 
     ctypedef enum katherine_tpx3_reg_t:
         KATHERINE_TPX3_REG_TEST_PULSE_METHOD
+        KATHERINE_TPX3_REG_TEST_PULSE_PERIOD
         KATHERINE_TPX3_REG_NUMBER_TEST_PULSES
         KATHERINE_TPX3_REG_OUT_BLOCK_CONFIG
         KATHERINE_TPX3_REG_PLL_CONFIG

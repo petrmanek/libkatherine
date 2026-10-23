@@ -385,10 +385,10 @@ def check_enums(tap, katherine):
     tap.check_eq('Tpx3PhaseCorrection enumerates every outcome',
                  [(m.name, m.value) for m in katherine.Tpx3PhaseCorrection],
                  [('NONE', 0), ('SOFTWARE', 1), ('HARDWARE', 2)])
-    # TEST_PULSE_PERIOD is absent on purpose: C aliases it to
-    # TEST_PULSE_METHOD, both naming register 0, and @unique forbids an alias.
-    # Python would not iterate it even without @unique, so this list is the
-    # whole of the enumeration either way.
+    # TEST_PULSE_PERIOD is not in this list because an alias is not iterated,
+    # which is also why it can exist at all: it names register 0 under the
+    # name the Tpx3 manual gives it, as the C enumeration does. The list is
+    # the whole of the enumeration; the alias is checked below.
     tap.check_eq('Tpx3Reg enumerates every sensor register',
                  [(m.name, m.value) for m in katherine.Tpx3Reg],
                  [('TEST_PULSE_METHOD', 0), ('NUMBER_TEST_PULSES', 1),
@@ -396,6 +396,12 @@ def check_enums(tap, katherine):
                   ('SLVS_CONFIG', 5), ('POWER_PULSING_PATTERN', 6),
                   ('SET_TIMER_LOW', 7), ('SET_TIMER_MID', 8), ('SET_TIMER_HIGH', 9),
                   ('SENSE_DAC_SELECTOR', 10), ('EXT_DAC_SELECTOR', 11)])
+
+    # The manual's name for register 0, which the C header carries and the
+    # binding did not. Same member, not merely the same number: a second
+    # member with one value is what @unique exists to catch.
+    tap.check('TEST_PULSE_PERIOD is the manual name for register 0',
+              katherine.Tpx3Reg.TEST_PULSE_PERIOD is katherine.Tpx3Reg.TEST_PULSE_METHOD)
 
 
 
