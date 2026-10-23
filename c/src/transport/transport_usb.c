@@ -332,7 +332,23 @@ err_submit:
  * \param ctx Link to send on.
  * \param data Bytes to send.
  * \param count How many.
- * \return KATHERINE_E_OK once every byte is on the bus.
+ *
+ * \retval KATHERINE_E_OK once every byte is on the bus.
+ * \retval KATHERINE_E_TIMEOUT if the transfer did not complete within the
+ *   link's timeout; see katherine_transport_set_timeout().
+ * \retval KATHERINE_E_CLOSED if the readout is no longer on the bus, which a
+ *   USB link can do and a socket cannot: unplugged, or reset out from under
+ *   the session; see libusb_bulk_transfer(3) LIBUSB_ERROR_NO_DEVICE.
+ * \retval KATHERINE_E_INVAL if libusb rejected an argument of the transfer;
+ *   see katherine_transport_get_last_os_error() for the libusb code.
+ * \retval KATHERINE_E_NOMEM if libusb had no memory for the transfer.
+ * \retval KATHERINE_E_IO if the transfer failed for a reason none of the
+ *   other codes cover, which is every remaining libusb error -- a busy
+ *   interface and a refused one among them; see
+ *   katherine_transport_get_last_os_error().
+ * \note KATHERINE_E_IO also covers a transfer libusb called successful that
+ *   moved fewer bytes than asked: a command is one message either way, so a
+ *   partial one is a failed one.
  */
 static katherine_error_t
 usb_t_send_cmd(void *ctx, const void *data, size_t count)
@@ -366,7 +382,21 @@ err_write:
  * \param ctx Link to read.
  * \param crd Storage for the response.
  * \param len Capacity on entry, bytes received on return.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success, \p len holding what arrived rather than
+ *   what was asked for, so that an oversized response is seen to be one.
+ * \retval KATHERINE_E_TIMEOUT if the transfer did not complete within the
+ *   link's timeout; see katherine_transport_set_timeout().
+ * \retval KATHERINE_E_CLOSED if the readout is no longer on the bus, which a
+ *   USB link can do and a socket cannot: unplugged, or reset out from under
+ *   the session; see libusb_bulk_transfer(3) LIBUSB_ERROR_NO_DEVICE.
+ * \retval KATHERINE_E_INVAL if libusb rejected an argument of the transfer;
+ *   see katherine_transport_get_last_os_error() for the libusb code.
+ * \retval KATHERINE_E_NOMEM if libusb had no memory for the transfer.
+ * \retval KATHERINE_E_IO if the transfer failed for a reason none of the
+ *   other codes cover, which is every remaining libusb error -- a busy
+ *   interface and a refused one among them; see
+ *   katherine_transport_get_last_os_error().
  */
 static katherine_error_t
 usb_t_recv_crd(void *ctx, void *crd, size_t *len)
@@ -395,7 +425,10 @@ err_read:
  * Discard whatever an earlier exchange left on the response endpoint.
  * \param ctx Link to drain.
  * \param discarded Out-parameter for how many were dropped, or NULL.
- * \return KATHERINE_E_OK once the endpoint is quiet.
+ *
+ * \retval KATHERINE_E_OK always. The drain stops at the first read that
+ *   brings nothing back and reports no failure of its own: a link that is
+ *   broken says so at the send or receive that follows.
  */
 static katherine_error_t
 usb_t_flush_incoming(void *ctx, uint32_t *discarded)
@@ -424,7 +457,24 @@ usb_t_flush_incoming(void *ctx, uint32_t *discarded)
  * \param ctx Link to read.
  * \param buf Out-parameter for the lent bytes.
  * \param len Out-parameter for how many.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success, which includes a read holding nothing
+ *   but the filler the bridge pads with: \p len is then zero and the caller
+ *   is expected to ask again.
+ * \retval KATHERINE_E_TIMEOUT if the transfer did not complete within the
+ *   link's timeout; see katherine_transport_set_timeout().
+ * \retval KATHERINE_E_CLOSED if the readout is no longer on the bus, which a
+ *   USB link can do and a socket cannot: unplugged, or reset out from under
+ *   the session; see libusb_bulk_transfer(3) LIBUSB_ERROR_NO_DEVICE.
+ * \retval KATHERINE_E_INVAL if libusb rejected an argument of the transfer;
+ *   see katherine_transport_get_last_os_error() for the libusb code.
+ * \retval KATHERINE_E_NOMEM if libusb had no memory for the transfer.
+ * \retval KATHERINE_E_IO if the transfer failed for a reason none of the
+ *   other codes cover, which is every remaining libusb error -- a busy
+ *   interface and a refused one among them; see
+ *   katherine_transport_get_last_os_error().
+ * \note A timeout that still brought bytes back is data, not a failure, and
+ *   is reported as success.
  */
 static katherine_error_t
 usb_t_acquire_data_buf_sync(void *ctx, void **buf, size_t *len)
@@ -470,7 +520,9 @@ err_read:
  * Give back a buffer lent by the synchronous shape, which owns only one.
  * \param ctx Link it came from.
  * \param buf The buffer.
- * \return KATHERINE_E_OK always.
+ *
+ * \retval KATHERINE_E_OK always. There is one buffer and it never moved, so
+ *   returning it is bookkeeping the synchronous shape does not need to do.
  */
 static katherine_error_t
 usb_t_release_data_buf_sync(void *ctx, void *buf)
@@ -489,7 +541,31 @@ usb_t_release_data_buf_sync(void *ctx, void *buf)
  * \param ctx Link to read.
  * \param buf Out-parameter for the lent bytes.
  * \param len Out-parameter for how many.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_STATE if the ring is empty and nothing is outstanding
+ *   on the bus, so no completion can ever arrive -- a stall rather than a
+ *   wait, reported at once instead of after the timeout.
+ * \retval KATHERINE_E_TIMEOUT if the transfer did not complete within the
+ *   link's timeout; see katherine_transport_set_timeout().
+ * \retval KATHERINE_E_CLOSED if the readout is no longer on the bus, which a
+ *   USB link can do and a socket cannot: unplugged, or reset out from under
+ *   the session; see libusb_bulk_transfer(3) LIBUSB_ERROR_NO_DEVICE.
+ * \retval KATHERINE_E_INVAL if libusb rejected an argument of the transfer;
+ *   see katherine_transport_get_last_os_error() for the libusb code.
+ * \retval KATHERINE_E_NOMEM if libusb had no memory for the transfer.
+ * \retval KATHERINE_E_IO if the transfer failed for a reason none of the
+ *   other codes cover, which is every remaining libusb error -- a busy
+ *   interface and a refused one among them; see
+ *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_INVAL if the ring lock was not in a usable state,
+ *   which means a link never opened or already finalized; see
+ *   pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the ring lock could not be taken or released
+ *   for a reason none of the other codes cover; see pthread_mutex_lock(3).
+ * \note The timeout is the whole call's, not one transfer's: the loop reposts
+ *   what came back empty and pumps libusb events until a run is ready or the
+ *   deadline passes.
  */
 static katherine_error_t
 usb_t_acquire_data_buf_async(void *ctx, void **buf, size_t *len)
@@ -588,7 +664,16 @@ err_lock:
  * Give a ring buffer back, reposting it once the read holds no more.
  * \param ctx Link it came from.
  * \param buf The buffer, which may point into a slot.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if \p buf points into no slot of this ring, or
+ *   into one that was not lent out -- a caller returning somebody else's
+ *   memory, or returning the same buffer twice.
+ * \retval KATHERINE_E_INVAL if the ring lock was not in a usable state,
+ *   which means a link never opened or already finalized; see
+ *   pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the ring lock could not be taken or released
+ *   for a reason none of the other codes cover; see pthread_mutex_lock(3).
  */
 static katherine_error_t
 usb_t_release_data_buf_async(void *ctx, void *buf)
@@ -639,9 +724,19 @@ err_lock:
 
 /**
  * Set how long a read or a response waits.
+ *
+ * Applies to the transfers already posted as well as to the ones still to
+ * come, so the ring has to be walked under its lock -- which is why this can
+ * fail at all, unlike its UDP counterpart.
  * \param ctx Link to set.
  * \param timeout_ms The limit.
- * \return KATHERINE_E_OK always.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the ring lock was not in a usable state,
+ *   which means a link never opened or already finalized; see
+ *   pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the ring lock could not be taken or released
+ *   for a reason none of the other codes cover; see pthread_mutex_lock(3).
  */
 static katherine_error_t
 usb_t_set_timeout(void *ctx, uint32_t timeout_ms)
@@ -676,7 +771,11 @@ err_lock:
  * \param ctx Link to ask.
  * \param count Out-parameter, left alone.
  *
- * \return KATHERINE_E_UNSUPPORTED always, this link keeping no such queue.
+ * \retval KATHERINE_E_UNSUPPORTED always, this link keeping no such queue.
+ * \note Unreachable here: KATHERINE_E_OK. Every function returning this type
+ *   is assumed to have a success path, and this one has none -- a caller that
+ *   reads a count must be able to tell an honest zero from an unanswerable
+ *   question, so there is nothing for it to succeed at.
  */
 static katherine_error_t
 usb_t_get_dropped_input(void *ctx, uint64_t *count)
@@ -693,7 +792,13 @@ usb_t_get_dropped_input(void *ctx, uint64_t *count)
  * Not the ring lock, which submit_slot() drops and the completion callback
  * takes: holding that for a whole loop would stop the callbacks it waits for.
  * \param ctx Link to lock.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the lock was not in a lockable state, which
+ *   means a link never opened or already finalized; see
+ *   pthread_mutex_lock(3).
+ * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason none
+ *   of the other codes cover; see pthread_mutex_lock(3).
  */
 static katherine_error_t
 usb_t_mutex_lock(void *ctx)
@@ -712,7 +817,13 @@ err_lock:
 /**
  * Release the lock usb_t_mutex_lock() took.
  * \param ctx Link to unlock.
- * \return KATHERINE_E_OK on success.
+ *
+ * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_INVAL if the lock was not in an unlockable state, which
+ *   means a link never opened or already finalized; see
+ *   pthread_mutex_unlock(3).
+ * \retval KATHERINE_E_SYSTEM if the lock could not be released for a reason
+ *   none of the other codes cover; see pthread_mutex_unlock(3).
  */
 static katherine_error_t
 usb_t_mutex_unlock(void *ctx)
