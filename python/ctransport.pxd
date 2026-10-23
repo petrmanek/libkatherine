@@ -14,3 +14,6 @@ cdef extern from 'katherine/transport.h':
         uint64_t stray_command_responses
 
     void katherine_transport_set_strict_ack(katherine_transport_t *transport, bint strict)
+    int katherine_transport_get_last_os_error(const katherine_transport_t *transport)
+    int katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms)
+    int katherine_transport_get_dropped_input(const katherine_transport_t *transport, uint64_t *count)

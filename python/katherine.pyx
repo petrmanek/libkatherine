@@ -712,6 +712,26 @@ cdef class Device:
     def stray_command_responses(self):
          return self._c_device.control_transport.stray_command_responses
 
+    @property
+    def last_os_error(self):
+         """The OS-level code behind the control link's last failure.
+
+         What every error description in the C library means by "see
+         katherine_transport_get_last_os_error()": an errno on POSIX, a
+         WSAGetLastError() value on Windows, a libusb code over USB.
+         Meaningful only directly after a call that failed, and 0 where
+         nothing has."""
+         return ctransport.katherine_transport_get_last_os_error(&self._c_device.control_transport)
+
+    def set_timeout(self, uint32_t timeout_ms):
+         """Set how long a control exchange waits for the readout.
+
+         Every command of this library is bounded by it, so shortening it
+         makes a readout that is not there fail sooner and a slow one fail
+         wrongly."""
+         check_return_code(ctransport.katherine_transport_set_timeout(
+             &self._c_device.control_transport, timeout_ms))
+
     def __repr__(self):
          return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._c_device)
 
@@ -2060,6 +2080,33 @@ cdef class Acquisition:
     @property
     def truncated_measurement_data(self):
        return self._c_acq.truncated_measurement_data
+
+    @property
+    def dropped_input(self):
+       """Measurement data the OS dropped for want of room in its receive queue.
+
+       Counted by the kernel, not by this library, and so a different number
+       from dropped_measurement_data, which is what the decoder could not
+       keep up with. Raises on a link that keeps no such queue, the USB one
+       among them."""
+       cdef uint64_t count = 0
+       check_return_code(ctransport.katherine_transport_get_dropped_input(
+           &self._c_acq.data_transport, &count))
+       return count
+
+    @property
+    def last_os_error(self):
+       """The OS-level code behind the data link's last failure; see
+       Device.last_os_error."""
+       return ctransport.katherine_transport_get_last_os_error(&self._c_acq.data_transport)
+
+    def set_timeout(self, uint32_t timeout_ms):
+       """Set how long a data read waits before it reports a timeout.
+
+       What report_timeout is measured in steps of, so a report timeout
+       shorter than this one is never observed sooner than this one."""
+       check_return_code(ctransport.katherine_transport_set_timeout(
+           &self._c_acq.data_transport, timeout_ms))
 
     @property
     def readout_mode(self):

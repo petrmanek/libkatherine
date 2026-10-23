@@ -189,6 +189,21 @@ test_device_and_acquisition(void)
     }
     KT_CHECK(!threw);
 
+    // The link under the device, which no C++ caller could reach: every
+    // \retval line in the C library ends "see
+    // katherine_transport_get_last_os_error()" and nothing here had one.
+    KT_CHECK_EQ(dev.last_os_error(), 0);
+
+    // Deliberate, not an omission: the UDP transport clears the OS error on
+    // a timeout, a timeout not being an OS failure worth reporting. The call
+    // above timed out, so this stays zero.
+    dev.set_timeout(std::chrono::milliseconds{20});
+    try {
+        (void) dev.chip_id();
+    } catch (const katherine::error&) {
+    }
+    KT_CHECK_EQ(dev.last_os_error(), 0);
+
     // An acquisition constructs -- it allocates its buffers and takes its
     // timeouts, touching no socket -- and reports the state of one that has
     // not begun.

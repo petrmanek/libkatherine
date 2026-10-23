@@ -197,6 +197,43 @@ public:
     std::size_t dropped_measurement_data() const { return acq_.dropped_measurement_data; }
     std::uint64_t truncated_measurement_data() const { return acq_.truncated_measurement_data; }
 
+    /**
+     * Measurement data the OS dropped for want of room in its receive queue.
+     *
+     * Counted by the kernel, not by this library, and so distinct from
+     * dropped_measurement_data(), which is what the decoder could not keep
+     * up with. Throws KATHERINE_E_UNSUPPORTED on a link that keeps no such
+     * queue, the USB one among them.
+     */
+    std::uint64_t
+    dropped_input() const
+    {
+        std::uint64_t count = 0;
+        katherine::detail::check(katherine_transport_get_dropped_input(&acq_.data_transport, &count));
+        return count;
+    }
+
+    /// The OS-level code behind the data link's last failure; see katherine::device::last_os_error().
+    int
+    last_os_error() const
+    {
+        return katherine_transport_get_last_os_error(&acq_.data_transport);
+    }
+
+    /**
+     * The limit a data read waits within before it reports a timeout.
+     *
+     * What katherine_acquisition_t::report_timeout is measured in steps of,
+     * so a report timeout shorter than this one is never observed sooner
+     * than this one.
+     */
+    void
+    set_timeout(std::chrono::milliseconds timeout)
+    {
+        katherine::detail::check(
+            katherine_transport_set_timeout(&acq_.data_transport, (std::uint32_t) timeout.count()));
+    }
+
     std::uint8_t timestamp_phase_offset(katherine::tpx3::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
 
     katherine::phase_correction phase_correction() const { return (katherine::phase_correction) acq_.phase_correction; }

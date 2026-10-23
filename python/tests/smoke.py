@@ -736,6 +736,54 @@ def check_device_declaration(tap, katherine):
     tap.check('enumerate() fails where nothing answers', raised)
 
 
+def check_link_accessors(tap, katherine):
+    """The three transport accessors neither wrapper could reach.
+
+    Every error description in the C library ends "see
+    katherine_transport_get_last_os_error()", and until now that was a
+    pointer to something no wrapper caller had. set_timeout() is what the
+    acquisition's report_timeout is measured in steps of, and
+    get_dropped_input() is the kernel's own drop counter rather than the
+    decoder's.
+
+    Nothing here touches a readout.
+    """
+    flags = (katherine.DeviceFlags.DONT_ENUMERATE
+             | katherine.DeviceFlags.DONT_CHANGE_UDP_PORTS
+             | katherine.DeviceFlags.DONT_SELECT_INTERFACE)
+    dev = katherine.Device('udp://127.0.0.3', flags)
+    dev.declare(katherine.DeviceInfo(hw_type=0x03, chip_count=4))
+
+    tap.check_eq('a link that has not failed reports no OS error', dev.last_os_error, 0)
+
+    # The timeout is the whole claim: a control call against nobody waits it
+    # out, so shortening it shortens the wait. Measured rather than assumed,
+    # with a wide margin -- what would fail is a set_timeout that reached
+    # nothing.
+    dev.set_timeout(1000)
+    started = time.monotonic()
+    try:
+        dev.get_chip_id()
+    except katherine.Error:
+        pass
+    slow = time.monotonic() - started
+
+    dev.set_timeout(50)
+    started = time.monotonic()
+    try:
+        dev.get_chip_id()
+    except katherine.Error as e:
+        tap.check_eq('a control call against nobody times out', e.code,
+                     katherine.ErrorCode.TIMEOUT)
+    fast = time.monotonic() - started
+
+    tap.check('set_timeout() reaches the link that waits', fast < slow)
+
+    # Deliberate, not an omission: udp_nix.c clears the OS error on a
+    # timeout, a timeout not being an OS failure worth reporting.
+    tap.check_eq('a timed-out call reports no OS error', dev.last_os_error, 0)
+
+
 def check_pixel_types(tap, katherine):
     """Every pixel type, not only the one an acquisition happens to produce.
 
@@ -873,6 +921,7 @@ def run_checks(tap, katherine, device):
     check_timestamp_functions(tap, katherine)
     check_clock_helpers(tap, katherine)
     check_device_declaration(tap, katherine)
+    check_link_accessors(tap, katherine)
     check_pixel_types(tap, katherine)
     check_error_codes(tap, katherine)
     check_error_mapping(tap, katherine)

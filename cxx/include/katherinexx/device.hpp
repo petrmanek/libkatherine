@@ -155,6 +155,33 @@ public:
     {
         return dev_.control_transport.stray_command_responses;
     }
+
+    /**
+     * The OS-level code behind the control link's last failure.
+     *
+     * What every \retval line in this library means by "see
+     * katherine_transport_get_last_os_error()": an errno on POSIX, a
+     * WSAGetLastError() value on Windows, a libusb code over USB. Meaningful
+     * only directly after a call that failed, and 0 where nothing has.
+     */
+    int
+    last_os_error() const
+    {
+        return katherine_transport_get_last_os_error(&dev_.control_transport);
+    }
+
+    /**
+     * The limit a control exchange waits for the readout within.
+     *
+     * Every command of this library is bounded by it, so shortening it makes
+     * a readout that is not there fail sooner and a slow one fail wrongly.
+     */
+    void
+    set_timeout(std::chrono::milliseconds timeout)
+    {
+        katherine::detail::check(katherine_transport_set_timeout(
+            &dev_.control_transport, (std::uint32_t) timeout.count()));
+    }
     /// What the readout said it is. Zeroed until it has answered, and
     /// constructing a device succeeds either way, the enumeration inside it
     /// being best-effort.

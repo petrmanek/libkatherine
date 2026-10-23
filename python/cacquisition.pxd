@@ -9,6 +9,7 @@
 from libcpp cimport bool
 from libc.time cimport time_t
 from libc.stdint cimport uint8_t, uint32_t, uint64_t
+cimport ctransport
 from cdevice cimport katherine_device_t
 from cconfig cimport katherine_config_t, katherine_tpx3_px_mode_t
 from cpx cimport katherine_tpx3_coord_t
@@ -50,6 +51,7 @@ cdef extern from 'katherine/acquisition.h':
     const char *katherine_str_phase_correction(katherine_tpx3_phase_correction_t v)
 
     ctypedef struct katherine_acquisition_t:
+        ctransport.katherine_transport_t data_transport
         katherine_device_t *device
         void *user_ctx
 
