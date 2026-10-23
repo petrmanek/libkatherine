@@ -20,6 +20,7 @@
 
 #include <katherinexx/device.hpp>
 #include <katherinexx/config.hpp>
+#include <katherinexx/error.hpp>
 
 namespace katherine {
 
@@ -117,10 +118,7 @@ public:
     {
         using namespace std::chrono;
 
-        int res = katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void *>(this), md_buffer_size, pixel_buffer_size, static_cast<int>(duration_cast<milliseconds>(report_timeout).count()), static_cast<int>(duration_cast<milliseconds>(fail_timeout).count()));
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void *>(this), md_buffer_size, pixel_buffer_size, static_cast<int>(duration_cast<milliseconds>(report_timeout).count()), static_cast<int>(duration_cast<milliseconds>(fail_timeout).count())));
 
         // TODO: uncomment in C++2a
         acq_.handlers = {
@@ -157,43 +155,27 @@ public:
     void
     begin(const katherine::config& config, katherine::tpx3::readout_mode readout_mode)
     {
-        int res = katherine_acquisition_begin(&acq_, config.c_config(),
+        katherine::detail::check(katherine_acquisition_begin(&acq_, config.c_config(),
             (katherine_tpx3_readout_mode_t) readout_mode,
-            (katherine_tpx3_px_mode_t) mode_, fast_vco_enabled_, decode_data_);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+            (katherine_tpx3_px_mode_t) mode_, fast_vco_enabled_, decode_data_));
     }
 
     void
     abort()
     {
-        int res = katherine_acquisition_abort(&acq_);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_acquisition_abort(&acq_));
     }
 
     void
     stop()
     {
-        int res = katherine_acquisition_stop(&acq_);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_acquisition_stop(&acq_));
     }
 
     void
     read()
     {
-        int res = katherine_acquisition_read(&acq_);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_acquisition_read(&acq_));
     }
 
     /**

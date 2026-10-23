@@ -61,10 +61,7 @@ inline katherine::px_config
 load_bmc_data(const bmc& bmc_data)
 {
     katherine::px_config data{};
-    int res = katherine_tpx3_px_config_load_bmc_data(&data, &bmc_data);
-    if (res != 0) {
-        throw katherine::system_error{res};
-    }
+    katherine::detail::check(katherine_tpx3_px_config_load_bmc_data(&data, &bmc_data));
 
     return data;
 }
@@ -73,10 +70,7 @@ inline katherine::px_config
 load_bmc_file(std::string file_path)
 {
     katherine::px_config data{};
-    int res = katherine_tpx3_px_config_load_bmc_file(&data, file_path.c_str());
-    if (res != 0) {
-        throw katherine::system_error{res};
-    }
+    katherine::detail::check(katherine_tpx3_px_config_load_bmc_file(&data, file_path.c_str()));
 
     return data;
 }
@@ -85,10 +79,7 @@ inline katherine::px_config
 load_bpc_data(const bpc& bpc_data)
 {
     katherine::px_config data{};
-    int res = katherine_tpx3_px_config_load_bpc_data(&data, &bpc_data);
-    if (res != 0) {
-        throw katherine::system_error{res};
-    }
+    katherine::detail::check(katherine_tpx3_px_config_load_bpc_data(&data, &bpc_data));
 
     return data;
 }
@@ -97,10 +88,7 @@ inline katherine::px_config
 load_bpc_file(std::string file_path)
 {
     katherine::px_config data{};
-    int res = katherine_tpx3_px_config_load_bpc_file(&data, file_path.c_str());
-    if (res != 0) {
-        throw katherine::system_error{res};
-    }
+    katherine::detail::check(katherine_tpx3_px_config_load_bpc_file(&data, file_path.c_str()));
 
     return data;
 }

@@ -36,4 +36,25 @@ public:
 
 /** \} */
 
+namespace detail {
+
+/**
+ * A katherine::system_error for a failed return code, and nothing for
+ * KATHERINE_E_OK.
+ *
+ * Every wrapper in this library calls exactly one C function and has nothing
+ * to add to its failure, so the call and the throw are one statement rather
+ * than a four-line block repeated at each of them. A wrapper that does have
+ * something to add still writes the block out by hand.
+ */
+inline void
+check(katherine_error_t res)
+{
+    if (res != KATHERINE_E_OK) {
+        throw katherine::system_error{res};
+    }
+}
+
+}
+
 }

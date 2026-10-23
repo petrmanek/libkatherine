@@ -72,12 +72,8 @@ discover(const std::string& address, uint16_t reply_port, std::chrono::duration<
     std::vector<katherine::discovered> out(capacity);
     std::size_t count = out.size();
 
-    int res = katherine_device_discover_udp(address.c_str(), reply_port,
-        (uint32_t) timeout_ms.count(), out.data(), &count);
-
-    if (res != 0) {
-        throw katherine::system_error{res};
-    }
+    katherine::detail::check(katherine_device_discover_udp(address.c_str(), reply_port,
+        (uint32_t) timeout_ms.count(), out.data(), &count));
 
     out.resize(count);
     return out;
@@ -103,11 +99,7 @@ discover_usb(std::size_t capacity = 32)
     std::vector<katherine::discovered> out(capacity);
     std::size_t count = out.size();
 
-    int res = katherine_device_discover_usb(out.data(), &count);
-
-    if (res != 0) {
-        throw katherine::system_error{res};
-    }
+    katherine::detail::check(katherine_device_discover_usb(out.data(), &count));
 
     out.resize(count);
     return out;
@@ -122,10 +114,7 @@ public:
     // class, which would need operators invented for it.
     device(std::string address, uint32_t flags = 0)
     {
-        int res = katherine_device_init(&dev_, address.c_str(), flags);
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_device_init(&dev_, address.c_str(), flags));
     }
 
     virtual ~device()
@@ -195,11 +184,7 @@ public:
     readout_status()
     {
         katherine_readout_status_t ro_status;
-        int res = katherine_get_readout_status(&dev_, &ro_status);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_readout_status(&dev_, &ro_status));
 
         return ro_status;
     }
@@ -208,11 +193,7 @@ public:
     comm_status()
     {
         katherine_comm_status_t comm_status;
-        int res = katherine_get_comm_status(&dev_, &comm_status);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_comm_status(&dev_, &comm_status));
 
         return comm_status;
     }
@@ -228,11 +209,7 @@ public:
     chip_id(std::uint8_t chip_index)
     {
         char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
-        int res = katherine_get_chip_id(&dev_, chip_index, chip_id);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_chip_id(&dev_, chip_index, chip_id));
 
         return chip_id;
     }
@@ -241,11 +218,7 @@ public:
     readout_temperature()
     {
         float temp;
-        int res = katherine_get_readout_temperature(&dev_, &temp);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_readout_temperature(&dev_, &temp));
 
         return temp;
     }
@@ -261,11 +234,7 @@ public:
     sensor_temperature(std::uint8_t chip_index)
     {
         float temp;
-        int res = katherine_get_sensor_temperature(&dev_, chip_index, &temp);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_sensor_temperature(&dev_, chip_index, &temp));
 
         return temp;
     }
@@ -280,32 +249,20 @@ public:
     void
     perform_digital_test(std::uint8_t chip_index)
     {
-        int res = katherine_tpx3_perform_digital_test(&dev_, chip_index);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_perform_digital_test(&dev_, chip_index));
     }
 
     void
     set_test_pulses(const katherine::test_pulse_config& tp)
     {
-        int res = katherine_tpx3_set_test_pulses(&dev_, &tp);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_set_test_pulses(&dev_, &tp));
     }
 
     float
     adc_voltage(std::uint8_t channel_id)
     {
         float voltage;
-        int res = katherine_get_adc_voltage(&dev_, channel_id, &voltage);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_adc_voltage(&dev_, channel_id, &voltage));
 
         return voltage;
     }
@@ -314,11 +271,7 @@ public:
     bias(std::uint8_t bias_id)
     {
         float voltage;
-        int res = katherine_get_bias(&dev_, bias_id, &voltage);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_bias(&dev_, bias_id, &voltage));
 
         return voltage;
     }
@@ -327,11 +280,7 @@ public:
     bias_leakage(std::uint8_t bias_id)
     {
         float voltage;
-        int res = katherine_get_bias_leakage(&dev_, bias_id, &voltage);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_bias_leakage(&dev_, bias_id, &voltage));
 
         return voltage;
     }
@@ -340,11 +289,7 @@ public:
     dac_monitor_voltage(std::uint8_t chip_index, katherine::tpx3::dac_monitor monitor)
     {
         float voltage;
-        int res = katherine_tpx3_get_dac_monitor_voltage(&dev_, chip_index, monitor, &voltage);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_get_dac_monitor_voltage(&dev_, chip_index, monitor, &voltage));
 
         return voltage;
     }
@@ -353,11 +298,7 @@ public:
     dac_monitor_voltages(std::uint8_t chip_index)
     {
         katherine::tpx3::dac_voltages voltages;
-        int res = katherine_tpx3_get_dac_monitor_voltages(&dev_, chip_index, &voltages);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_get_dac_monitor_voltages(&dev_, chip_index, &voltages));
 
         return voltages;
     }
@@ -365,32 +306,20 @@ public:
     void
     set_gpio_config(const katherine::gpio_config& config)
     {
-        int res = katherine_set_gpio_config(&dev_, &config);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_gpio_config(&dev_, &config));
     }
 
     void
     set_composed_ready_signal(const katherine::gpio_config& config)
     {
-        int res = katherine_set_composed_ready_signal(&dev_, &config);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_composed_ready_signal(&dev_, &config));
     }
 
     katherine::gpio_monitor
     probe_gpio()
     {
         katherine::gpio_monitor state;
-        int res = katherine_probe_gpio(&dev_, &state);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_probe_gpio(&dev_, &state));
 
         return state;
     }
@@ -398,22 +327,14 @@ public:
     void
     set_tdc_config(const katherine::tdc_config& config)
     {
-        int res = katherine_set_tdc_config(&dev_, &config);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_tdc_config(&dev_, &config));
     }
 
     katherine::tdc_counts
     tdc_counts()
     {
         katherine::tdc_counts counts{};
-        int res = katherine_get_tdc_counts(&dev_, counts.data());
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_tdc_counts(&dev_, counts.data()));
 
         return counts;
     }
@@ -421,22 +342,14 @@ public:
     void
     set_pulse_generator(const katherine::pulse_config& config)
     {
-        int res = katherine_set_pulse_generator(&dev_, &config);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_pulse_generator(&dev_, &config));
     }
 
     katherine::pulse_counts
     pulse_generator_counts()
     {
         katherine::pulse_counts state;
-        int res = katherine_get_pulse_generator_counts(&dev_, &state);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_get_pulse_generator_counts(&dev_, &state));
 
         return state;
     }
@@ -444,11 +357,7 @@ public:
     void
     reset_pulse_generator_counts()
     {
-        int res = katherine_reset_pulse_generator_counts(&dev_);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_reset_pulse_generator_counts(&dev_));
     }
 
     // The following methods each drive one step of detector/readout
@@ -460,11 +369,7 @@ public:
     void
     configure(const katherine::config& config)
     {
-        int res = katherine_configure(&dev_, config.c_config());
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_configure(&dev_, config.c_config()));
     }
 
     void
@@ -477,11 +382,7 @@ public:
     void
     set_all_pixel_config(std::uint8_t chip_index, const katherine::px_config& px_config)
     {
-        int res = katherine_tpx3_set_all_pixel_config(&dev_, chip_index, &px_config);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_set_all_pixel_config(&dev_, chip_index, &px_config));
     }
 
     template<typename Rep, typename Period>
@@ -489,61 +390,37 @@ public:
     set_acq_time(std::chrono::duration<Rep, Period> val)
     {
         using namespace std::chrono;
-        int res = katherine_set_acq_time(&dev_, (double) duration_cast<nanoseconds>(val).count());
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_acq_time(&dev_, (double) duration_cast<nanoseconds>(val).count()));
     }
 
     void
     set_acq_mode(katherine::tpx3::px_mode mode, bool fast_vco_enabled)
     {
-        int res = katherine_tpx3_set_acq_mode(&dev_, (katherine_tpx3_px_mode_t) mode, fast_vco_enabled);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_set_acq_mode(&dev_, (katherine_tpx3_px_mode_t) mode, fast_vco_enabled));
     }
 
     void
     set_no_frames(int no_frames)
     {
-        int res = katherine_set_no_frames(&dev_, no_frames);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_no_frames(&dev_, no_frames));
     }
 
     void
     set_bias(std::uint8_t bias_id, float bias_value)
     {
-        int res = katherine_set_bias(&dev_, bias_id, bias_value);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_bias(&dev_, bias_id, bias_value));
     }
 
     void
     set_seq_readout_start(int arg)
     {
-        int res = katherine_tpx3_set_seq_readout_start(&dev_, arg);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_set_seq_readout_start(&dev_, arg));
     }
 
     void
     set_acquisition_triggers(const katherine::trigger& start_trigger, const katherine::trigger& end_trigger)
     {
-        int res = katherine_set_acquisition_triggers(&dev_, &start_trigger, &end_trigger);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_set_acquisition_triggers(&dev_, &start_trigger, &end_trigger));
     }
 
     void
@@ -556,11 +433,7 @@ public:
     void
     set_sensor_register(std::uint8_t chip_index, katherine_tpx3_reg_t reg_idx, std::int32_t reg_value)
     {
-        int res = katherine_tpx3_set_sensor_register(&dev_, chip_index, (char) reg_idx, reg_value);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_set_sensor_register(&dev_, chip_index, (char) reg_idx, reg_value));
     }
 
     void
@@ -573,11 +446,7 @@ public:
     void
     update_sensor_registers(std::uint8_t chip_index)
     {
-        int res = katherine_tpx3_update_sensor_registers(&dev_, chip_index);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_update_sensor_registers(&dev_, chip_index));
     }
 
     void
@@ -590,11 +459,7 @@ public:
     void
     output_block_config_update(std::uint8_t chip_index)
     {
-        int res = katherine_tpx3_output_block_config_update(&dev_, chip_index);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_output_block_config_update(&dev_, chip_index));
     }
 
     void
@@ -607,11 +472,7 @@ public:
     void
     timer_set(std::uint8_t chip_index)
     {
-        int res = katherine_tpx3_timer_set(&dev_, chip_index);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_timer_set(&dev_, chip_index));
     }
 
     void
@@ -624,11 +485,7 @@ public:
     void
     set_dacs(std::uint8_t chip_index, const katherine::tpx3::dacs& dacs)
     {
-        int res = katherine_tpx3_set_dacs(&dev_, chip_index, &dacs);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_set_dacs(&dev_, chip_index, &dacs));
     }
 
     /// Writes one DAC of chip zero, leaving the other seventeen alone.
@@ -642,11 +499,7 @@ public:
     void
     set_dac(std::uint8_t chip_index, katherine_tpx3_dac_t dac, std::uint16_t value)
     {
-        int res = katherine_tpx3_set_dac(&dev_, chip_index, dac, value);
-
-        if (res != 0) {
-            throw katherine::system_error{res};
-        }
+        katherine::detail::check(katherine_tpx3_set_dac(&dev_, chip_index, dac, value));
     }
 };
 
