@@ -1003,6 +1003,9 @@ err_bytes_null:
  *   count out of the ancillary data of each datagram, and winsock has no
  *   equivalent -- its per-interface statistics are not per socket, and
  *   attributing them to one session would be a guess.
+ * \note Unreachable here: KATHERINE_E_OK. Every function returning this type
+ *   is assumed to have a success path, and this one has none: there is
+ *   nothing on Windows for it to succeed at.
  */
 katherine_error_t
 katherine_udp_set_drop_counting(katherine_udp_t *u, bool enabled)

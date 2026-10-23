@@ -286,6 +286,30 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
  *   see malloc(3). The device is not contacted either way, and a failed pixel
  *   buffer leaves the resize in place rather than leaking it -- the buffer is
  *   the device's, and the next acquisition resizes it again.
+ *
+ * The codes below belong to the data link this opens, not to the acquisition.
+ * Nothing is sent to the readout here -- the link is opened and sized, and
+ * every one of these is a failure of that.
+ *
+ * \retval KATHERINE_E_ADDRESS if the device's address names no link this
+ *   build can open, or names one malformed; see katherine_device_init().
+ * \retval KATHERINE_E_INVAL if the device's address carries a scheme this
+ *   build was compiled without, or the data link rejected an argument of its
+ *   own open.
+ * \retval KATHERINE_E_UNSUPPORTED if the address names a transport this
+ *   build does not carry at all; see KATHERINE_FEATURE_UDP and
+ *   KATHERINE_FEATURE_USB.
+ * \retval KATHERINE_E_IO if the data socket could not be created or
+ *   configured; see socket(2), setsockopt(2) and
+ *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_SYSTEM if opening the data link failed at the OS level
+ *   for a reason none of the other codes cover -- binding it, resolving its
+ *   address, or taking its lock; see bind(2), inet_pton(3),
+ *   pthread_mutex_init(3) and katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_CLOSED if a USB readout went away while its data
+ *   endpoint was being claimed.
+ * \retval KATHERINE_E_TIMEOUT if claiming a USB readout's data endpoint did
+ *   not complete in time.
  */
 katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
@@ -949,6 +973,10 @@ err_unsupported:
  *   the first katherine_acquisition_read(), so a caller learns before the
  *   detector is made sensitive; katherine_configure() would refuse it anyway,
  *   on the acquisition time.
+ * \retval KATHERINE_E_BAD_CHIP if the readout reports no chips at all, chip 0
+ *   included. katherine_configure() addresses chip 0 at every per-chip step,
+ *   so a device enumerated as carrying nothing fails there; see
+ *   katherine_device_info_t::chip_count.
  */
 katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)

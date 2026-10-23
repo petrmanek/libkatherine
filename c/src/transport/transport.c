@@ -248,10 +248,10 @@ katherine_transport_get_dropped_input(const katherine_transport_t *transport, ui
  *   finalized; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason
  *   none of the other codes cover; see katherine_transport_get_last_os_error().
- * \note Unreachable through the UDP transport: KATHERINE_E_NOMEM and
- *   KATHERINE_E_TIMEOUT. pthread_mutex_lock(3) documents EBUSY, EDEADLK,
- *   EINVAL and EPERM and no more, so neither can arrive however the map
- *   behind it is capable of producing them.
+ * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT.
+ *   pthread_mutex_lock(3) documents EBUSY, EDEADLK, EINVAL and EPERM and no
+ *   more, so neither can arrive through either transport, however the
+ *   shared error map behind them is capable of producing them.
  */
 katherine_error_t
 katherine_transport_mutex_lock(katherine_transport_t *transport)
@@ -269,10 +269,11 @@ katherine_transport_mutex_lock(katherine_transport_t *transport)
  *   finalized; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the lock could not be released for a reason
  *   none of the other codes cover; see katherine_transport_get_last_os_error().
- * \note Unreachable through the UDP transport: KATHERINE_E_NOMEM and
+ * \note Unreachable here: KATHERINE_E_NOMEM and
  *   KATHERINE_E_TIMEOUT. pthread_mutex_unlock(3) documents EBUSY, EDEADLK,
- *   EINVAL and EPERM and no more, so neither can arrive however the map
- *   behind it is capable of producing them.
+ *   EINVAL and EPERM and no more, so neither can arrive through either
+ *   transport, however the shared error map behind them is capable of
+ *   producing them.
  */
 katherine_error_t
 katherine_transport_mutex_unlock(katherine_transport_t *transport)
