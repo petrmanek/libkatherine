@@ -38,7 +38,8 @@
  * snprintf()-style length, never an error code), the `str_*()` lookups, and
  * the plain getters/setters of px_config.h never used the errno convention
  * and are unaffected. Functions with no 1.x history at all -- e.g.
- * katherine_udp_last_os_error(), katherine_strerror(), katherine_version()
+ * katherine_transport_get_last_os_error(), katherine_strerror(),
+ * katherine_version()
  * -- have no 1.x name to preserve and so are not wrapped either.
  *
  * This header exports no new symbols of its own: every wrapper is `static

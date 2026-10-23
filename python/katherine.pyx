@@ -315,10 +315,11 @@ class PulseSource(_Enum):
         return cpulse.katherine_str_pulse_source(self.value).decode('UTF-8')
 
 
+@_unique
 class PulseOutput(_Enum):
     """What a generator channel puts out."""
-    PULSE          = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PULSE
-    PULSE_INVERTED = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PULSE_INVERTED
+    PULSE                = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PULSE
+    PULSE_INVERTED       = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PULSE_INVERTED
     PASSTHROUGH          = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PASSTHROUGH
     PASSTHROUGH_INVERTED = cpulse.katherine_pulse_output_t.KATHERINE_PULSE_OUTPUT_PASSTHROUGH_INVERTED
 

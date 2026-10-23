@@ -46,7 +46,7 @@ typedef enum katherine_error {
 
     // transport
     KATHERINE_E_TIMEOUT, ///< The operation did not complete within its deadline.
-    KATHERINE_E_IO,      ///< A send, receive or socket setup call failed at the OS level; see katherine_udp_last_os_error().
+    KATHERINE_E_IO,      ///< A send, receive or socket setup call failed at the OS level; see katherine_transport_get_last_os_error().
     KATHERINE_E_CLOSED,  ///< The session is no longer usable.
     KATHERINE_E_ADDRESS, ///< An address could not be resolved or bound.
 
@@ -64,7 +64,7 @@ typedef enum katherine_error {
     // generic
     KATHERINE_E_INVAL,  ///< An argument was invalid.
     KATHERINE_E_NOMEM,  ///< Memory allocation failed.
-    KATHERINE_E_SYSTEM, ///< Some other OS-level failure; see katherine_udp_last_os_error() where applicable.
+    KATHERINE_E_SYSTEM, ///< Some other OS-level failure; see katherine_transport_get_last_os_error() where applicable.
 } katherine_error_t;
 
 KATHERINE_EXPORTED const char *
