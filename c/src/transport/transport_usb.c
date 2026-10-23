@@ -1457,6 +1457,11 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
 {
     katherine_error_t res;
 
+    // See the same line in transport_udp.c: the finalizer's "nothing to
+    // release" answer has to be true before the first failure, not after the
+    // last success.
+    if (transport != NULL) transport->ops = NULL;
+
     if (transport == NULL || config == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_args;

@@ -473,6 +473,13 @@ err_local_address:
 err_reuseaddr:
     close(u->sock);
 err_socket:
+    // Left in the state katherine_udp_fini() reads as "nothing to release".
+    // Without this the descriptor just closed stayed in the session, and
+    // finalizing afterwards -- which an error path that does not know how far
+    // setup got will do -- closed it a second time, by then very possibly
+    // belonging to somebody else. The mutex is worse: on every path but
+    // err_mutex it was never initialized at all.
+    u->sock = 0;
     return res;
 }
 

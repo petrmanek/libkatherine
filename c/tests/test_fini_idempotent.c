@@ -30,6 +30,7 @@
 #include <io.h>
 #else
 #include <fcntl.h>
+#include <unistd.h>
 #endif
 
 #include <katherine/katherine.h>
@@ -164,6 +165,68 @@ test_a_device_can_be_finalized_twice(void)
     KT_CHECK(stdin_is_open());
 }
 
+/* A session whose open failed must not take a descriptor with it.
+ *
+ * The unwinding inside katherine_udp_init_bound() closes the socket it had
+ * made; it used to leave the number in the session, so finalizing afterwards
+ * closed it a second time -- and by then the process may well have handed
+ * that number to somebody else. This observes exactly that: claim the number
+ * the failed open just released, then finalize and see whether it survived.
+ *
+ * On Windows a SOCKET is not a descriptor and dup() has no counterpart, so
+ * the theft cannot be staged the same way; what the fix prevents there is a
+ * second WSACleanup(), which no test can observe. The check reduces to the
+ * session reporting itself closed. */
+static void
+test_a_session_whose_open_failed_steals_no_descriptor(void)
+{
+    katherine_udp_t u;
+    memset(&u, 0xA5, sizeof(u));
+
+    /* An address this host does not have: fails past socket(), which is the
+     * path that had a descriptor to leave behind. */
+    KT_CHECK(katherine_udp_init_bound(&u, "203.0.113.7", PORT_A, "127.0.0.1", PORT_B, 100)
+        != KATHERINE_E_OK);
+    KT_CHECK_EQ((int) u.sock, 0);
+
+#ifndef KATHERINE_WIN
+    int victim = dup(0);
+    KT_REQUIRE(victim != -1);
+
+    katherine_udp_fini(&u);
+
+    KT_CHECK(fcntl(victim, F_GETFD) != -1);
+    close(victim);
+#else
+    katherine_udp_fini(&u);
+#endif
+}
+
+/* And a transport whose constructor failed. It is the same shape once more:
+ * katherine_transport_fini() keys on ops, which used to be written only on
+ * success, so a caller finalizing an error path called through whatever its
+ * own storage held. Not reachable from the library's own code -- every
+ * internal caller clears its transport first -- but it is a public
+ * constructor and the convention should hold for it too. */
+static void
+test_a_transport_whose_init_failed_can_be_finalized(void)
+{
+    katherine_transport_t t;
+    memset(&t, 0xA5, sizeof(t));
+
+    const katherine_udp_config_t bad = {
+        .local_address  = "203.0.113.7",
+        .local_port     = PORT_A,
+        .remote_address = "127.0.0.1",
+        .remote_port    = PORT_B,
+        .timeout_ms     = 100,
+    };
+    KT_CHECK(katherine_transport_init_udp(&t, &bad) != KATHERINE_E_OK);
+    KT_CHECK(t.ops == NULL);
+
+    katherine_transport_fini(&t);
+}
+
 /* A finalizer called on an object whose initializer FAILED, which is the
  * other half of the same trap: an error path that does not know how far
  * setup got, and a wrapper destructor that runs anyway.
@@ -216,6 +279,8 @@ main(void)
     KT_RUN(test_a_transport_can_be_finalized_twice);
     KT_RUN(test_an_acquisition_can_be_finalized_twice);
     KT_RUN(test_a_device_can_be_finalized_twice);
+    KT_RUN(test_a_session_whose_open_failed_steals_no_descriptor);
+    KT_RUN(test_a_transport_whose_init_failed_can_be_finalized);
     KT_RUN(test_a_device_whose_init_failed_can_be_finalized);
     KT_RUN(test_an_acquisition_whose_init_failed_can_be_finalized);
     return kt_summary();

@@ -465,6 +465,11 @@ err_local_address:
 err_socket:
     (void) WSACleanup();
 err_wsa_data:
+    // Left in the state katherine_udp_fini() reads as "nothing to release";
+    // see the same line in udp_nix.c. The cost of omitting it is higher here,
+    // because that finalizer would also call WSACleanup() a second time and
+    // take the process's startup count below what this session contributed.
+    u->sock = 0;
     return res;
 }
 

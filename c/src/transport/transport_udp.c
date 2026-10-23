@@ -456,6 +456,12 @@ katherine_transport_init_udp(katherine_transport_t *transport, const katherine_u
 {
     katherine_error_t res;
 
+    // katherine_transport_fini() reads ops to decide whether there is
+    // anything to release, so the "nothing yet" answer has to be true before
+    // the first thing that can fail rather than only after the last one that
+    // can succeed. Set below, on success, to the table the caller then owns.
+    if (transport != NULL) transport->ops = NULL;
+
     if (transport == NULL || config == NULL || config->remote_address == NULL) {
         res = KATHERINE_E_INVAL;
         goto err_args;
