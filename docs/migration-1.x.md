@@ -165,12 +165,53 @@ be ported rather than recompiled.
 Fields marked `Internal:` in `acquisition.h` are not part of the interface
 and may move again.
 
-### C++ and Python have no shim
+### C++ and Python have no shim, and Python renamed fourteen classes
 
 `katherinexx` and the Python module follow the C renames, and the shim is a
-C header. Both wrappers are source-compatible in the places where the C API
-did not move, and each has gained surface in 2.0 rather than lost it; see
-`README.md` for what they bind.
+C header. C++ is the easy half: it has always tracked the C names rather
+than offering its own, so a caller following the C sections above is
+already following the C++ one.
+
+**Python is not.** Fourteen classes a 1.x script names are gone, and each
+one is an `AttributeError` with nothing naming the replacement:
+
+| 1.x | 2.0 |
+|---|---|
+| `katherine.Dacs` | `katherine.Tpx3Dacs` |
+| `katherine.PxConfig` | `katherine.Tpx3PxConfig` |
+| `katherine.TestPulseConfig` | `katherine.Tpx3TestPulseConfig` |
+| `katherine.PxToaTot` | `katherine.Tpx3PxToaTot` |
+| `katherine.PxToaOnly` | `katherine.Tpx3PxToaOnly` |
+| `katherine.PxFastToaTot` | `katherine.Tpx3PxFastToaTot` |
+| `katherine.PxFastToaOnly` | `katherine.Tpx3PxFastToaOnly` |
+| `katherine.PxEventItot` | `katherine.Tpx3PxEventCountItot` |
+| `katherine.PxFastEventItot` | `katherine.Tpx3PxFastEventCountItot` |
+| `katherine.Freq` | `katherine.Tpx3Freq` |
+| `katherine.Phase` | `katherine.Tpx3Phase` |
+| `katherine.AcquisitionMode` | `katherine.Tpx3PxMode` |
+| `katherine.ReadoutType` | `katherine.Tpx3ReadoutMode` |
+| `katherine.Udp` | nothing -- the session type went private, as above |
+
+The prefix is the same one the C and C++ sides carry, and it means the same
+thing: the class describes something Timepix3-specific, and a Timepix2 or
+Timepix4 equivalent would not be interchangeable with it.
+
+One enumeration **member** moved with them, and it is the only one:
+
+```python
+# 1.x
+katherine.AcquisitionMode.EVENT_ITOT
+# 2.0
+katherine.Tpx3PxMode.EVENT_COUNT_ITOT
+```
+
+That mode's four-bit field counts hits rather than measuring a current, and
+the two `PxEventItot` hit classes gain `Count` for the same reason.
+`Tpx3Freq` and `Tpx3Phase` kept every member spelling they had, so
+`Freq.FREQ_40` becomes `Tpx3Freq.FREQ_40` and nothing else.
+
+Everything else the module binds kept its name, and 2.0 adds to it rather
+than removing further; see `README.md`.
 
 Python's exceptions now carry the code:
 
