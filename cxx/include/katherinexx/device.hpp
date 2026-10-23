@@ -136,6 +136,17 @@ public:
         katherine_device_fini(&dev_);
     }
 
+    /**
+     * Neither copied nor moved: it owns an open link.
+     *
+     * A copy would finalize the same sockets twice, and a move would leave
+     * any acquisition built on this device holding the address it used to
+     * be at. Both compiled before this was written, and neither said so
+     * until the second katherine_device_fini().
+     */
+    device(const device&)            = delete;
+    device& operator=(const device&) = delete;
+
     /// The C structure this wraps, for the calls katherinexx does not bind.
     katherine_device_t *c_dev()
     {

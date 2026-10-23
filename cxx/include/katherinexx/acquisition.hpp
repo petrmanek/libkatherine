@@ -157,6 +157,18 @@ public:
         };
     }
 
+    /**
+     * Neither copied nor moved: it owns a buffer, a data link, and a pointer
+     * the C acquisition holds back to it.
+     *
+     * The constructor hands katherine_acquisition_init() `this` as the user
+     * context, which is how the C callbacks find the handlers. A move leaves
+     * that pointing at the address the object used to be at; a copy frees
+     * the pixel buffer twice.
+     */
+    base_acquisition(const base_acquisition&)            = delete;
+    base_acquisition& operator=(const base_acquisition&) = delete;
+
     virtual ~base_acquisition()
     {
         katherine_acquisition_fini(&acq_);

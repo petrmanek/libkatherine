@@ -167,8 +167,13 @@ class config {
     katherine_config_t conf_{};
 
 public:
-    config()          = default;
-    virtual ~config() = default;
+    // Copyable and movable on purpose, unlike device and base_acquisition:
+    // this owns nothing but a katherine_config_t, and a caller holding two
+    // configurations that differ in one setting is the ordinary use. The
+    // destructor is non-virtual for the same reason -- nothing derives from
+    // it, and a vptr would make a value type carry one for nobody.
+    config()  = default;
+    ~config() = default;
 
     /// The C structure this wraps, for the calls katherinexx does not bind.
     katherine_config_t *c_config() { return &conf_; }

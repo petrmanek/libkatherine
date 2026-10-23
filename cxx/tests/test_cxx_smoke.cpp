@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <sstream>
 #include <string>
+#include <type_traits>
 
 #include <katherinexx/katherinexx.hpp>
 
@@ -259,6 +260,33 @@ test_px_config(void)
 
 // ------------------------------------------------------------------
 // 5. toa.hpp -- the #31 timestamp surface, which shipped with no C++ test.
+
+/* The two owning wrappers refuse to be copied or moved, and the value type
+ * beside them does not.
+ *
+ * Asserted with traits rather than by writing the copy out, because writing
+ * it out is the thing that must not compile. Before this, copying a device
+ * finalized the same sockets twice and copying an acquisition freed the
+ * pixel buffer twice, and neither said anything until it happened. */
+static void
+test_ownership(void)
+{
+    KT_CHECK(!std::is_copy_constructible<katherine::device>::value);
+    KT_CHECK(!std::is_copy_assignable<katherine::device>::value);
+    KT_CHECK(!std::is_move_constructible<katherine::device>::value);
+    KT_CHECK(!std::is_move_assignable<katherine::device>::value);
+
+    using acq_t = katherine::acquisition<katherine::acq::toa_tot>;
+    KT_CHECK(!std::is_copy_constructible<acq_t>::value);
+    KT_CHECK(!std::is_copy_assignable<acq_t>::value);
+    KT_CHECK(!std::is_move_constructible<acq_t>::value);
+    KT_CHECK(!std::is_move_assignable<acq_t>::value);
+
+    // The configuration owns nothing and stays an ordinary value.
+    KT_CHECK(std::is_copy_constructible<katherine::config>::value);
+    KT_CHECK(std::is_copy_assignable<katherine::config>::value);
+    KT_CHECK(std::is_move_constructible<katherine::config>::value);
+}
 
 /* The three pure helpers of config.h, which no C++ caller could reach until
  * they were bound. What they answer is pinned by the C suite
@@ -609,6 +637,7 @@ main(void)
     KT_RUN(test_enum_rendering);
     KT_RUN(test_config_round_trip);
     KT_RUN(test_px_config);
+    KT_RUN(test_ownership);
     KT_RUN(test_clock_helpers);
     KT_RUN(test_timestamps);
     KT_RUN(test_errors);
