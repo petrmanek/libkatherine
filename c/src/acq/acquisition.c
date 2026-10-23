@@ -862,10 +862,16 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  *   it reports the outcome it finished with again.
  * \retval KATHERINE_E_INVAL if no decoder is instantiated for this
  *   acquisition's mode and pixel-clock divider -- an unknown px_mode, or a
- *   coarse-to-fine shift outside 2..5 in a timestamp-bearing mode. The shift
- *   is resolved in katherine_acquisition_begin(), so this is what a read on an
- *   acquisition that never got through it reports, rather than decoding every
- *   timestamp at a guessed scale.
+ *   coarse-to-fine shift outside 2..5 in a timestamp-bearing mode -- rather
+ *   than decoding every timestamp at a guessed scale.
+ *
+ * \note Which of those two a never-begun read reports depends on the pixel
+ *   mode, the decoder being selected before the state is examined. The shift
+ *   is resolved in katherine_acquisition_begin() and is zero until it runs, so
+ *   a timestamp-bearing mode finds no decoder and reports
+ *   KATHERINE_E_INVAL, while KATHERINE_TPX3_PX_EVENT_COUNT_ITOT needs no
+ *   shift, finds its decoder and reaches the state check to report
+ *   KATHERINE_E_STATE. Neither says more than that begin() has not run.
  * \retval KATHERINE_E_SYSTEM if the data link's lock, which the read holds for
  *   its whole duration, could not be taken; see
  *   katherine_transport_get_last_os_error(). That same lock failing with an errno
