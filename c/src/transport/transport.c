@@ -222,7 +222,8 @@ katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t siz
  * Input the link lost before this library read it.
  * \param transport Link to ask.
  * \param count Datagrams, or whatever unit the link delivers, lost for want
- *   of room in its own receive queue since the count was switched on.
+ *   of room in its own receive queue since the count was switched on, or NULL
+ *   to discard it.
  *
  * Counts only what the host lost, and only on a link that keeps a queue of
  * its own. What a readout dropped before transmitting is its to report; see

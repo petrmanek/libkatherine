@@ -260,7 +260,7 @@ udp_t_set_timeout(void *ctx, uint32_t timeout_ms)
 /**
  * Datagrams the kernel dropped for want of queue space.
  * \param ctx Session to ask.
- * \param count Out-parameter for the running total.
+ * \param count Out-parameter for the running total, or NULL to discard it.
  *
  * \retval KATHERINE_E_OK always. The count is a number the session has
  *   already been keeping, so reading it touches neither the socket nor the
@@ -272,7 +272,7 @@ udp_t_get_dropped_input(void *ctx, uint64_t *count)
 {
     katherine_transport_udp_t *t = ctx;
 
-    *count = katherine_udp_get_dropped_datagrams(&t->udp);
+    if (count != NULL) *count = katherine_udp_get_dropped_datagrams(&t->udp);
 
     return KATHERINE_E_OK;
 }

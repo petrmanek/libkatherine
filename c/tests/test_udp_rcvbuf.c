@@ -379,6 +379,11 @@ test_a_transport_reports_what_its_session_dropped(void)
     KT_CHECK_EQ(katherine_transport_get_dropped_input(&t, &dropped), KATHERINE_E_OK);
     printf("# flood through a transport: %u sent, %llu reported dropped\n", FLOOD_DATAGRAMS,
         (unsigned long long) dropped);
+
+    /* NULL discards the answer rather than crashing, as it does for every
+       other read of a single value. A caller clearing the count before a
+       measurement has nowhere to put the old one. */
+    KT_CHECK_EQ(katherine_transport_get_dropped_input(&t, NULL), KATHERINE_E_OK);
     if (dropped == 0) printf("# SKIP this host dropped nothing on a %u-datagram flood\n", FLOOD_DATAGRAMS);
 
     katherine_udp_fini(&sender);
