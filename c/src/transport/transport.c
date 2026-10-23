@@ -199,7 +199,10 @@ katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeo
  * \retval KATHERINE_E_UNSUPPORTED if this transport's buffers are fixed.
  * \retval KATHERINE_E_STATE if a buffer is lent out, which resizing would
  *   leave dangling in the caller's hands.
- * \retval KATHERINE_E_INVAL if the size is zero.
+ * \retval KATHERINE_E_INVAL if the size is zero, or above what this transport
+ *   can carry in one buffer: the UDP link refuses a size within a word of
+ *   SIZE_MAX, where its own read headroom can no longer be added, and the USB
+ *   link refuses anything past the int a libusb transfer's length is.
  * \retval KATHERINE_E_NOMEM if the new buffer could not be allocated, the
  *   transport keeping the one it had.
  * \note No transport yet refuses outright, so KATHERINE_E_UNSUPPORTED is

@@ -352,7 +352,8 @@ udp_t_get_last_os_error(void *ctx)
  *
  * \retval KATHERINE_E_OK on success, the buffer now holding exactly \p size
  *   bytes of datagram.
- * \retval KATHERINE_E_INVAL if \p size is zero.
+ * \retval KATHERINE_E_INVAL if \p size is zero, or within a word of SIZE_MAX,
+ *   which is where this transport's own headroom can no longer be added to it.
  * \retval KATHERINE_E_STATE if the one buffer is lent out, since resizing it
  *   would leave the caller holding freed memory.
  * \retval KATHERINE_E_NOMEM if the new buffer could not be allocated, the
