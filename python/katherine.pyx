@@ -19,7 +19,7 @@ from libcpp cimport bool
 # the underscore keeps both out, `import *` skipping underscored names by
 # itself. Hence no __all__: the public surface is everything not underscored,
 # which is the rule Python already applies.
-from enum import Enum as _Enum, unique as _unique
+from enum import Enum as _Enum, IntEnum as _IntEnum, unique as _unique
 import array as _array
 
 cimport cdevice
@@ -37,6 +37,58 @@ cimport cversion
 cimport cerror
 
 
+@_unique
+class ErrorCode(_IntEnum):
+    """Every code the library returns.
+
+    An IntEnum, so that a caught code compares against a bare number as well
+    as against a name."""
+    OK          = cerror.katherine_error_t.KATHERINE_E_OK
+    TIMEOUT     = cerror.katherine_error_t.KATHERINE_E_TIMEOUT
+    IO          = cerror.katherine_error_t.KATHERINE_E_IO
+    CLOSED      = cerror.katherine_error_t.KATHERINE_E_CLOSED
+    ADDRESS     = cerror.katherine_error_t.KATHERINE_E_ADDRESS
+    BAD_CRD     = cerror.katherine_error_t.KATHERINE_E_BAD_CRD
+    STRAY       = cerror.katherine_error_t.KATHERINE_E_STRAY
+    PROTO       = cerror.katherine_error_t.KATHERINE_E_PROTO
+    UNSUPPORTED = cerror.katherine_error_t.KATHERINE_E_UNSUPPORTED
+    BAD_CHIP    = cerror.katherine_error_t.KATHERINE_E_BAD_CHIP
+    STATE       = cerror.katherine_error_t.KATHERINE_E_STATE
+    HW_UNKNOWN  = cerror.katherine_error_t.KATHERINE_E_HW_UNKNOWN
+    INVAL       = cerror.katherine_error_t.KATHERINE_E_INVAL
+    NOMEM       = cerror.katherine_error_t.KATHERINE_E_NOMEM
+    SYSTEM      = cerror.katherine_error_t.KATHERINE_E_SYSTEM
+
+    def __str__(self):
+        """The description katherine_strerror() gives this code."""
+        return cerror.katherine_strerror(self.value).decode('UTF-8')
+
+
+class Error(RuntimeError):
+    """A failure the library reported, carrying the code it reported.
+
+    Every exception this binding raises for a library return code is one of
+    these, so `except katherine.Error` catches all of them and `.code` says
+    which. The three with a Python meaning of their own are also subclasses
+    of it, so code written against the plain builtins keeps working."""
+
+    def __init__(self, code, message=None):
+        self.code = ErrorCode(code)
+        super().__init__(message if message is not None else str(self.code))
+
+
+class Timeout(Error, TimeoutError):
+    """ErrorCode.TIMEOUT, and a builtin TimeoutError as well."""
+
+
+class InvalidArgument(Error, ValueError):
+    """ErrorCode.INVAL, and a builtin ValueError as well."""
+
+
+class OutOfMemory(Error, MemoryError):
+    """ErrorCode.NOMEM, and a builtin MemoryError as well."""
+
+
 def check_return_code(int res):
     if res == 0:
         return
@@ -44,13 +96,13 @@ def check_return_code(int res):
     message = cerror.katherine_strerror(res).decode('UTF-8')
 
     if res == cerror.KATHERINE_E_TIMEOUT:
-        raise TimeoutError(message)
+        raise Timeout(res, message)
     elif res == cerror.KATHERINE_E_INVAL:
-        raise ValueError(message)
+        raise InvalidArgument(res, message)
     elif res == cerror.KATHERINE_E_NOMEM:
-        raise MemoryError()
+        raise OutOfMemory(res, message)
     else:
-        raise RuntimeError(message)
+        raise Error(res, message)
 
 
 # Function pointer type shared by every katherine_*_snprint() declared in

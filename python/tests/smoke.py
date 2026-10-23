@@ -773,6 +773,62 @@ def check_pixel_types(tap, katherine):
         tap.check('%s has a non-empty repr' % name, len(repr(px)) > 0)
 
 
+def check_error_codes(tap, katherine):
+    """Every exception carries the code it was raised from.
+
+    Until this landed the binding folded eleven of the fifteen codes into a
+    bare RuntimeError with nothing on it, so a caller could only tell a
+    refused chip from a broken link by comparing rendered strings. The three
+    codes with a Python meaning of their own keep it: what is asserted here
+    is that they kept it *and* gained the code, since the compatibility is
+    the half that is easy to break.
+    """
+    tap.check_eq('ErrorCode covers every code the library defines',
+                 len(katherine.ErrorCode), 15)
+    tap.check_eq('ErrorCode.OK is zero', int(katherine.ErrorCode.OK), 0)
+
+    # An IntEnum, so a caught code compares against a bare number too.
+    tap.check('a code compares equal to its number',
+              katherine.ErrorCode.TIMEOUT == int(katherine.ErrorCode.TIMEOUT))
+
+    # str() is the C library's description, as it is for every other
+    # enumeration in this binding; repr() keeps the name.
+    tap.check('a code renders as its description', len(str(katherine.ErrorCode.BAD_CHIP)) > 0)
+    tap.check('a code reprs as its name', 'BAD_CHIP' in repr(katherine.ErrorCode.BAD_CHIP))
+
+    cases = [
+        (katherine.ErrorCode.TIMEOUT, katherine.Timeout, TimeoutError),
+        (katherine.ErrorCode.INVAL, katherine.InvalidArgument, ValueError),
+        (katherine.ErrorCode.NOMEM, katherine.OutOfMemory, MemoryError),
+        (katherine.ErrorCode.BAD_CHIP, katherine.Error, None),
+        (katherine.ErrorCode.STATE, katherine.Error, None),
+        (katherine.ErrorCode.UNSUPPORTED, katherine.Error, None),
+    ]
+    for code, cls, builtin in cases:
+        raised = None
+        try:
+            katherine.check_return_code(int(code))
+        except katherine.Error as e:
+            raised = e
+
+        tap.check('%s raises something' % code.name, raised is not None)
+        tap.check('%s raises %s' % (code.name, cls.__name__), isinstance(raised, cls))
+        tap.check_eq('%s carries its own code' % code.name, raised.code, code)
+        tap.check('%s carries a message' % code.name, len(str(raised)) > 0)
+
+        # Every one of them is a RuntimeError, which is what the binding
+        # raised before and what existing callers catch.
+        tap.check('%s is still a RuntimeError' % code.name, isinstance(raised, RuntimeError))
+
+        if builtin is not None:
+            tap.check('%s is still a %s' % (code.name, builtin.__name__),
+                      isinstance(raised, builtin))
+
+    # And success raises nothing at all.
+    katherine.check_return_code(0)
+    tap.check('a successful code raises nothing', True)
+
+
 def check_error_mapping(tap, katherine):
     """The exception mapping, on a device that is not there.
 
@@ -818,6 +874,7 @@ def run_checks(tap, katherine, device):
     check_clock_helpers(tap, katherine)
     check_device_declaration(tap, katherine)
     check_pixel_types(tap, katherine)
+    check_error_codes(tap, katherine)
     check_error_mapping(tap, katherine)
 
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
