@@ -75,6 +75,42 @@ def test_err_marker():
           bool(m.search(r" * \return The raw OS error code.")), False)
 
 
+def test_exemption_phrases():
+    """The three phrases that take a code out of the comparison, or put it in.
+
+    Each is ordinary prose inside a \\note, so Doxygen renders it rather than
+    warning about an unknown command, and each is therefore one typo away
+    from being silently ignored -- which would turn a deliberate exemption
+    back into a finding, or worse, the reverse.
+    """
+    codes = lambda pat, text: {c for m in pat.finditer(text) for c in ed.CODE.findall(m.group(1))}
+
+    check("a code declared unreachable is extracted",
+          codes(ed.EXEMPT_UNREACHABLE,
+                r" * \note Unreachable here: KATHERINE_E_NOMEM. Nothing raises it."),
+          {"KATHERINE_E_NOMEM"})
+
+    check("a code the indexer cannot follow is extracted",
+          codes(ed.EXEMPT_UNSEEN,
+                r" * \note The indexer cannot follow the dispatch to: KATHERINE_E_IO."),
+          {"KATHERINE_E_IO"})
+
+    # One doc block serves both UDP transports, so a code only one of them
+    # produces has to be accepted by the run that picked the other.
+    check("a code of one platform only is extracted",
+          codes(ed.EXEMPT_PLATFORM,
+                r" * \note Only on POSIX: KATHERINE_E_INVAL. Windows says SYSTEM."),
+          {"KATHERINE_E_INVAL"})
+    check("the other platform spells it the same way",
+          codes(ed.EXEMPT_PLATFORM,
+                r" * \note Only on Windows: KATHERINE_E_IO. POSIX cannot."),
+          {"KATHERINE_E_IO"})
+    # It is one phrase, not a licence to name any platform at all.
+    check("an unknown platform is not an exemption",
+          bool(ed.EXEMPT_PLATFORM.search(r" * \note Only on VxWorks: KATHERINE_E_IO.")),
+          False)
+
+
 def test_retval_extraction():
     doc = r"""
      * \retval KATHERINE_E_OK on success.
@@ -291,6 +327,7 @@ def test_doc_agreement(fx):
 
 def main():
     test_err_marker()
+    test_exemption_phrases()
     test_retval_extraction()
 
     fx = Fixture()

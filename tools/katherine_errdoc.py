@@ -72,6 +72,15 @@ RETVAL = re.compile(r"\\retval\s+(KATHERINE_E_[A-Z_]+)")
 # dispatch being the case in hand.
 EXEMPT_UNREACHABLE = re.compile(r"Unreachable here:((?:[^\n]|\n\s*\*)*?)(?:\.|\\)")
 EXEMPT_UNSEEN = re.compile(r"indexer cannot follow[^:]*:((?:[^\n]|\n\s*\*)*?)(?:\.|\\)")
+
+# A third, in the same direction as EXEMPT_UNSEEN: a code one platform's
+# transport produces and the other's does not. One doc block serves both UDP
+# transports and they do not fail alike -- a lock in an unusable state is
+# EINVAL to pthread_mutex_lock(3) and nothing at all to WaitForSingleObject(),
+# which reports every failure as a Win32 error. A run picks one transport, so
+# without this the block is wrong under whichever it did not pick, and
+# whichever way it is written one of the two runs disagrees.
+EXEMPT_PLATFORM = re.compile(r"Only on (?:POSIX|Windows):((?:[^\n]|\n\s*\*)*?)(?:\.|\\)")
 CODE = re.compile(r"\bKATHERINE_E_[A-Z_]+\b")
 
 
@@ -651,19 +660,21 @@ class Index:
         """Codes the docstring declares the index wrong about, with a reason.
 
         Returns (unreachable, unseen): the first to be dropped from what the
-        index claims, the second added to it.
+        index claims, the second added to it. A code the other platform's
+        transport produces joins the second, since this run's index is right
+        not to have it and the docstring is right to name it.
         """
         entry = self.doc.get(name)
         if not entry:
             return set(), set()
         text = entry[2]
         out = []
-        for pattern in (EXEMPT_UNREACHABLE, EXEMPT_UNSEEN):
+        for pattern in (EXEMPT_UNREACHABLE, EXEMPT_UNSEEN, EXEMPT_PLATFORM):
             found = set()
             for m in pattern.finditer(text):
                 found |= set(CODE.findall(m.group(1)))
             out.append(found)
-        return out[0], out[1]
+        return out[0], out[1] | out[2]
 
 
 def build(paths):
