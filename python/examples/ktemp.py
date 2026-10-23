@@ -53,25 +53,22 @@ def parse_args(argv):
 
 
 def poll_temperatures(device, show_readout, show_chip):
-    readout_temp = 0.0
-    chip_temp = 0.0
+    parts = []
 
     try:
         if show_readout:
-            readout_temp = device.get_readout_temperature()
+            parts.append('readout: %.1f C' % device.get_readout_temperature())
 
+        # A temperature per chip: they are separate sensors and read
+        # differently, so one number cannot stand for a readout carrying
+        # several. The readout's own stays where it is, not being a chip's.
         if show_chip:
-            chip_temp = device.get_sensor_temperature()
+            for chip in range(device.info.chip_count):
+                parts.append('chip %d: %.1f C' % (chip, device.get_sensor_temperature(chip)))
     except Error as e:
         return False, str(e)
 
-    if show_readout and show_chip:
-        print('readout: %.1f C, chip: %.1f C' % (readout_temp, chip_temp))
-    elif show_readout:
-        print('readout: %.1f C' % readout_temp)
-    else:
-        print('chip: %.1f C' % chip_temp)
-
+    print(', '.join(parts))
     sys.stdout.flush()
     return True, None
 

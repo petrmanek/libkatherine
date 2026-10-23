@@ -42,14 +42,6 @@ report_failure(const std::string& step, const std::string& text)
 static bool
 print_info(katherine::device& device)
 {
-    std::string chip_id;
-    try {
-        chip_id = device.chip_id();
-    } catch (const katherine::error& e) {
-        report_failure("katherine_get_chip_id", e.what());
-        return false;
-    }
-
     katherine_readout_status_t readout_status;
     try {
         readout_status = device.readout_status();
@@ -66,18 +58,43 @@ print_info(katherine::device& device)
         return false;
     }
 
-    std::printf("%-15s: %s\n", "Chip ID", chip_id.c_str());
+    const katherine_device_derived_info_t& derived = device.derived_info();
+
+    std::printf("Device information\n");
+    std::printf("  %-16s: %s\n", "Name", derived.name != nullptr ? derived.name : "(unknown)");
+    std::printf("  %-16s: %s\n", "Chip type", katherine_str_chip_type(derived.chip_type));
+    std::printf("  %-16s: %u\n", "Generation", (unsigned) derived.gen);
+    std::printf("  %-16s: %u\n", "Max chips", (unsigned) derived.max_chip_count);
+    std::printf("  %-16s: %u\n", "Bias supplies", (unsigned) derived.bias_supply_count);
+    std::printf("  %-16s: %u\n", "Total GPIO", (unsigned) derived.all_gpio_count);
+    std::printf("  %-16s: %u\n", "Accessible GPIO", (unsigned) derived.accessible_gpio_count);
+    std::printf("  %-16s: %u\n", "TDC channels", (unsigned) derived.tdc_channel_count);
+    std::printf("  %-16s: %u\n", "Pulse channels", (unsigned) derived.pulse_channel_count);
+    std::printf("  %-16s: %s\n", "Supported", katherine_str_bool(derived.supported));
     std::printf("\n");
     std::printf("Readout status\n");
-    std::printf("  %-13s: %d\n", "HW type", readout_status.hw_type);
-    std::printf("  %-13s: %d\n", "HW revision", readout_status.hw_revision);
-    std::printf("  %-13s: %d\n", "Serial number", readout_status.hw_serial_number);
-    std::printf("  %-13s: %d\n", "FW version", readout_status.fw_version);
+    std::printf("  %-16s: %d\n", "HW type", readout_status.hw_type);
+    std::printf("  %-16s: %d\n", "HW revision", readout_status.hw_revision);
+    std::printf("  %-16s: %d\n", "Serial number", readout_status.hw_serial_number);
+    std::printf("  %-16s: %d\n", "FW version", readout_status.fw_version);
     std::printf("\n");
     std::printf("Comm status\n");
-    std::printf("  %-13s: 0x%02x\n", "Comm lines", (unsigned) comm_status.comm_lines_mask);
-    std::printf("  %-13s: %u Mb/s\n", "Data rate", (unsigned) comm_status.data_rate);
-    std::printf("  %-13s: %u\n", "Chips", (unsigned) comm_status.chip_count);
+    std::printf("  %-16s: 0x%02x\n", "Comm lines", (unsigned) comm_status.comm_lines_mask);
+    std::printf("  %-16s: %u Mb/s\n", "Data rate", (unsigned) comm_status.data_rate);
+    std::printf("  %-16s: %u\n", "Chip count", (unsigned) comm_status.chip_count);
+    std::printf("\n");
+
+    // One line per chip the readout reports, rather than chip 0 and the
+    // impression that a readout has one.
+    std::printf("Detected chips\n");
+    for (std::uint8_t chip = 0; chip < device.info().chip_count; ++chip) {
+        try {
+            std::printf("  Chip %-11u: %s\n", (unsigned) chip, device.chip_id(chip).c_str());
+        } catch (const katherine::error& e) {
+            report_failure("katherine_get_chip_id", e.what());
+            return false;
+        }
+    }
 
     return true;
 }

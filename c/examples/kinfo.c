@@ -49,12 +49,6 @@ print_info(katherine_device_t *device)
     katherine_comm_status_t comm_status;
     int err;
 
-    err = katherine_get_chip_id(device, 0, chip_id);
-    if (err != 0) {
-        report_failure("katherine_get_chip_id", err);
-        return false;
-    }
-
     err = katherine_get_readout_status(device, &readout_status);
     if (err != 0) {
         report_failure("katherine_get_readout_status", err);
@@ -67,18 +61,45 @@ print_info(katherine_device_t *device)
         return false;
     }
 
-    printf("%-15s: %s\n", "Chip ID", chip_id);
+    const katherine_device_derived_info_t *derived = &device->derived_info;
+
+    printf("Device information\n");
+    printf("  %-16s: %s\n", "Name", derived->name != NULL ? derived->name : "(unknown)");
+    printf("  %-16s: %s\n", "Chip type", katherine_str_chip_type(derived->chip_type));
+    printf("  %-16s: %u\n", "Generation", (unsigned) derived->gen);
+    printf("  %-16s: %u\n", "Max chips", (unsigned) derived->max_chip_count);
+    printf("  %-16s: %u\n", "Bias supplies", (unsigned) derived->bias_supply_count);
+    printf("  %-16s: %u\n", "Total GPIO", (unsigned) derived->all_gpio_count);
+    printf("  %-16s: %u\n", "Accessible GPIO", (unsigned) derived->accessible_gpio_count);
+    printf("  %-16s: %u\n", "TDC channels", (unsigned) derived->tdc_channel_count);
+    printf("  %-16s: %u\n", "Pulse channels", (unsigned) derived->pulse_channel_count);
+    printf("  %-16s: %s\n", "Supported", katherine_str_bool(derived->supported));
     printf("\n");
     printf("Readout status\n");
-    printf("  %-13s: %d\n", "HW type", readout_status.hw_type);
-    printf("  %-13s: %d\n", "HW revision", readout_status.hw_revision);
-    printf("  %-13s: %d\n", "Serial number", readout_status.hw_serial_number);
-    printf("  %-13s: %d\n", "FW version", readout_status.fw_version);
+    printf("  %-16s: %d\n", "HW type", readout_status.hw_type);
+    printf("  %-16s: %d\n", "HW revision", readout_status.hw_revision);
+    printf("  %-16s: %d\n", "Serial number", readout_status.hw_serial_number);
+    printf("  %-16s: %d\n", "FW version", readout_status.fw_version);
     printf("\n");
     printf("Comm status\n");
-    printf("  %-13s: 0x%02x\n", "Comm lines", (unsigned) comm_status.comm_lines_mask);
-    printf("  %-13s: %u Mb/s\n", "Data rate", (unsigned) comm_status.data_rate);
-    printf("  %-13s: %u\n", "Chips", comm_status.chip_count);
+    printf("  %-16s: 0x%02x\n", "Comm lines", (unsigned) comm_status.comm_lines_mask);
+    printf("  %-16s: %u Mb/s\n", "Data rate", (unsigned) comm_status.data_rate);
+    printf("  %-16s: %u\n", "Chip count", comm_status.chip_count);
+    printf("\n");
+
+    // One line per chip the readout reports, rather than chip 0 and the
+    // impression that a readout has one. device->info.chip_count is what
+    // every per-chip call is bounded by, so it is the bound here too.
+    printf("Detected chips\n");
+    for (uint8_t chip = 0; chip < device->info.chip_count; ++chip) {
+        err = katherine_get_chip_id(device, chip, chip_id);
+        if (err != 0) {
+            report_failure("katherine_get_chip_id", err);
+            return false;
+        }
+
+        printf("  Chip %-11u: %s\n", (unsigned) chip, chip_id);
+    }
 
     return true;
 }

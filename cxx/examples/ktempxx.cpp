@@ -72,29 +72,32 @@ parse_args(int argc, char *argv[], ktemp_args& args)
 static bool
 poll_temperatures(katherine::device& device, const ktemp_args& args, std::string& err)
 {
-    float readout_temp = 0.f, chip_temp = 0.f;
+    float readout_temp = 0.f;
+    bool printed       = false;
 
     try {
         if (args.show_readout) {
             readout_temp = device.readout_temperature();
+            std::printf("readout: %.1f C", readout_temp);
+            printed = true;
         }
 
+        // A temperature per chip: they are separate sensors and read
+        // differently, so one number cannot stand for a readout carrying
+        // several. The readout's own stays where it is, not being a chip's.
         if (args.show_chip) {
-            chip_temp = device.sensor_temperature();
+            for (std::uint8_t chip = 0; chip < device.info().chip_count; ++chip) {
+                std::printf("%schip %u: %.1f C", printed ? ", " : "", (unsigned) chip,
+                    device.sensor_temperature(chip));
+                printed = true;
+            }
         }
     } catch (const katherine::error& e) {
         err = e.what();
         return false;
     }
 
-    if (args.show_readout && args.show_chip) {
-        std::printf("readout: %.1f C, chip: %.1f C\n", readout_temp, chip_temp);
-    } else if (args.show_readout) {
-        std::printf("readout: %.1f C\n", readout_temp);
-    } else {
-        std::printf("chip: %.1f C\n", chip_temp);
-    }
-
+    std::printf("\n");
     std::fflush(stdout);
     return true;
 }

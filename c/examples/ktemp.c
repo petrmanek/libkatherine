@@ -93,25 +93,33 @@ sleep_seconds(double seconds)
 static bool
 poll_temperatures(katherine_device_t *device, const ktemp_args_t *args, int *err)
 {
-    float readout_temp = 0.f, chip_temp = 0.f;
+    float readout_temp = 0.f;
+    int printed        = 0;
 
     if (args->show_readout) {
         *err = katherine_get_readout_temperature(device, &readout_temp);
         if (*err != 0) return false;
+
+        printf("readout: %.1f C", readout_temp);
+        printed = 1;
     }
 
+    // A temperature per chip: they are separate sensors and read differently,
+    // so one number cannot stand for a readout carrying several. The readout's
+    // own stays where it is, not being a chip's.
     if (args->show_chip) {
-        *err = katherine_get_sensor_temperature(device, 0, &chip_temp);
-        if (*err != 0) return false;
+        for (uint8_t chip = 0; chip < device->info.chip_count; ++chip) {
+            float chip_temp = 0.f;
+
+            *err = katherine_get_sensor_temperature(device, chip, &chip_temp);
+            if (*err != 0) return false;
+
+            printf("%schip %u: %.1f C", printed ? ", " : "", (unsigned) chip, chip_temp);
+            printed = 1;
+        }
     }
 
-    if (args->show_readout && args->show_chip) {
-        printf("readout: %.1f C, chip: %.1f C\n", readout_temp, chip_temp);
-    } else if (args->show_readout) {
-        printf("readout: %.1f C\n", readout_temp);
-    } else {
-        printf("chip: %.1f C\n", chip_temp);
-    }
+    printf("\n");
 
     fflush(stdout);
     return true;
