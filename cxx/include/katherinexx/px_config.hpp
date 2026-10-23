@@ -25,7 +25,9 @@ namespace katherine {
  * \{
  */
 
+/// A whole matrix in the BMC layout, as a BurdaMan .bmc file holds it.
 using bmc = katherine_tpx3_bmc_t;
+/// A whole matrix in the BPC layout, as a Pixet .bpc file holds it.
 using bpc = katherine_tpx3_bpc_t;
 
 namespace tpx3 {
@@ -40,14 +42,28 @@ using coord = katherine_tpx3_coord_t;
 
 } // namespace tpx3
 
+/**
+ * A pixel matrix in the form the readout is uploaded, with per-pixel
+ * accessors.
+ *
+ * Derives from the C structure and adds no members of its own, so a
+ * katherine_tpx3_px_config_t can be viewed through this type -- which is
+ * what katherine::config does with the matrix it holds.
+ */
 struct px_config: katherine_tpx3_px_config_t {
+    /// Whether this pixel fires on a test pulse.
     void set_test_bit(katherine::tpx3::coord coord, bool enabled) { katherine_tpx3_px_config_set_test_bit(this, coord, enabled); }
+    /** \copydoc set_test_bit() */
     bool test_bit(katherine::tpx3::coord coord) const { return katherine_tpx3_px_config_get_test_bit(this, coord); }
 
+    /// Whether this pixel is masked off, and so reports nothing.
     void set_mask_bit(katherine::tpx3::coord coord, bool masked) { katherine_tpx3_px_config_set_mask_bit(this, coord, masked); }
+    /** \copydoc set_mask_bit() */
     bool mask_bit(katherine::tpx3::coord coord) const { return katherine_tpx3_px_config_get_mask_bit(this, coord); }
 
+    /// This pixel's four-bit threshold trim, which equalisation sets.
     void set_loc_thl(katherine::tpx3::coord coord, std::uint8_t loc_thl) { katherine_tpx3_px_config_set_loc_thl(this, coord, loc_thl); }
+    /** \copydoc set_loc_thl() */
     std::uint8_t loc_thl(katherine::tpx3::coord coord) const { return katherine_tpx3_px_config_get_loc_thl(this, coord); }
 };
 
@@ -57,6 +73,7 @@ struct px_config: katherine_tpx3_px_config_t {
 static_assert(sizeof(px_config) == sizeof(katherine_tpx3_px_config_t),
     "katherine::px_config must not add data members");
 
+/// A pixel matrix read from a BMC matrix already in memory.
 inline katherine::px_config
 load_bmc_data(const bmc& bmc_data)
 {
@@ -66,6 +83,7 @@ load_bmc_data(const bmc& bmc_data)
     return data;
 }
 
+/// A pixel matrix read from a BurdaMan .bmc file.
 inline katherine::px_config
 load_bmc_file(std::string file_path)
 {
@@ -75,6 +93,7 @@ load_bmc_file(std::string file_path)
     return data;
 }
 
+/// A pixel matrix read from a BPC matrix already in memory.
 inline katherine::px_config
 load_bpc_data(const bpc& bpc_data)
 {
@@ -84,6 +103,7 @@ load_bpc_data(const bpc& bpc_data)
     return data;
 }
 
+/// A pixel matrix read from a Pixet .bpc file.
 inline katherine::px_config
 load_bpc_file(std::string file_path)
 {
