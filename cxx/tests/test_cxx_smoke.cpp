@@ -313,6 +313,19 @@ test_errors(void)
     KT_CHECK(caught_as_katherine_error);
     KT_CHECK(what.size() > 0);
     KT_CHECK(what == std::string(katherine_strerror(KATHERINE_E_TIMEOUT)));
+
+    // The code survives the throw, so a caller can branch on the failure
+    // instead of comparing its rendered description.
+    katherine_error_t code = KATHERINE_E_OK;
+    try {
+        katherine::detail::check(KATHERINE_E_BAD_CHIP);
+    } catch (const katherine::system_error& e) {
+        code = e.code();
+    }
+    KT_CHECK_EQ(code, KATHERINE_E_BAD_CHIP);
+
+    // And a successful code throws nothing at all.
+    katherine::detail::check(KATHERINE_E_OK);
 }
 
 // ------------------------------------------------------------------

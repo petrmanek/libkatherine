@@ -31,7 +31,23 @@ public:
 
 class system_error: public error {
 public:
-    system_error(int rc) : error{katherine_strerror(rc)} { }
+    system_error(katherine_error_t rc) : error{katherine_strerror(rc)}, code_{rc} { }
+
+    /**
+     * The code this was raised from.
+     *
+     * What std::runtime_error::what() renders is katherine_strerror()'s
+     * description of this code. A caller that wants to branch on the failure
+     * rather than print it needs the code itself, which is what this is for.
+     */
+    katherine_error_t
+    code() const noexcept
+    {
+        return code_;
+    }
+
+private:
+    katherine_error_t code_;
 };
 
 /** \} */
