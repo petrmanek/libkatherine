@@ -180,6 +180,13 @@ operator<<(std::ostream& os, const katherine_acquisition_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_acquisition_snprint);
 }
 
+/** Renders a katherine_transport_t (via katherine_transport_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_transport_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_transport_snprint);
+}
+
 /** Renders a katherine_device_info_t (via katherine_device_info_snprint()). */
 inline std::ostream&
 operator<<(std::ostream& os, const katherine_device_info_t& v)
@@ -288,6 +295,34 @@ inline std::ostream&
 operator<<(std::ostream& os, katherine_tpx3_dac_monitor_t v)
 {
     return os << katherine_tpx3_dac_monitor_name(v);
+}
+
+/** Renders a katherine_tpx3_dac_t (via katherine_tpx3_dac_name()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_tpx3_dac_t v)
+{
+    return os << katherine_tpx3_dac_name(v);
+}
+
+/** Renders a katherine_trigger_edge_t (via katherine_str_trigger_edge()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_trigger_edge_t v)
+{
+    return os << katherine_str_trigger_edge(v);
+}
+
+/** Renders a katherine_chip_type_t (via katherine_str_chip_type()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_chip_type_t v)
+{
+    return os << katherine_str_chip_type(v);
+}
+
+/** Renders a katherine_transport_kind_t (via katherine_str_transport_kind()). */
+inline std::ostream&
+operator<<(std::ostream& os, katherine_transport_kind_t v)
+{
+    return os << katherine_str_transport_kind(v);
 }
 
 // The enumerations, rendered by the katherine_str_* family rather than by

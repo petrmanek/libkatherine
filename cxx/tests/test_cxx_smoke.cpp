@@ -85,10 +85,25 @@ test_enum_rendering(void)
     KT_CHECK(streamed(katherine::tpx3::px_mode::toa_tot).size() > 0);
     KT_CHECK(streamed(katherine::tpx3::readout_mode::sequential).size() > 0);
 
+    // The four C enumerations that had no overload: a caller streaming one
+    // got the integer, silently, since every one of them converts.
+    KT_CHECK(streamed(KATHERINE_TRIGGER_EDGE_RISING).size() > 0);
+    KT_CHECK(streamed(KATHERINE_CHIP_TPX3).size() > 0);
+    KT_CHECK(streamed(KATHERINE_TRANSPORT_UDP).size() > 0);
+    KT_CHECK(streamed(KATHERINE_TPX3_DAC_VTHRESHOLD_FINE).size() > 0);
+
     // Two members of one enumeration must not render alike, which is what a
     // stringifier wired to the wrong enumeration would produce.
     KT_CHECK(streamed(katherine::polarity::holes) != streamed(katherine::polarity::electrons));
     KT_CHECK(streamed(katherine::tpx3::freq::f40) != streamed(katherine::tpx3::freq::f80));
+    KT_CHECK(streamed(KATHERINE_CHIP_TPX3) != streamed(KATHERINE_CHIP_TPX4));
+    KT_CHECK(streamed(KATHERINE_TRANSPORT_UDP) != streamed(KATHERINE_TRANSPORT_USB));
+    KT_CHECK(streamed(KATHERINE_TPX3_DAC_VTHRESHOLD_FINE)
+        != streamed(KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE));
+
+    // And none of them is rendering as its own number, which is what the
+    // missing overload did.
+    KT_CHECK(streamed(KATHERINE_CHIP_TPX3) != "3");
 }
 
 // ------------------------------------------------------------------
