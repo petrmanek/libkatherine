@@ -231,10 +231,19 @@ static float
 bias_readback(float set_volts)
 {
     const float at_mid = set_volts * EMU_BIAS_DIV / EMU_ADC_COMP + EMU_ADC_MID;
-    int counts         = (int) (at_mid / EMU_ADC_Q);
+    const float steps  = at_mid / EMU_ADC_Q;
 
-    if (counts < 0) counts = 0;
-    if (counts > 4095) counts = 4095;
+    // Clamped before the conversion, not after: a float outside int's range
+    // converts to an undefined value rather than to a large one, so a clamp
+    // on the result has nothing dependable to clamp.
+    int counts;
+    if (steps <= 0.0f) {
+        counts = 0;
+    } else if (steps >= 4095.0f) {
+        counts = 4095;
+    } else {
+        counts = (int) steps;
+    }
 
     return EMU_ADC_COMP * ((float) counts * EMU_ADC_Q - EMU_ADC_MID) / EMU_BIAS_DIV;
 }
