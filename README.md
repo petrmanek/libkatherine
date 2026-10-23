@@ -23,7 +23,7 @@ macOS and Windows.
 
 The following simple code snippets in C, C++ and Python, respectively,
 show the intended usage of the library. The code prints the chip ID of
-a read-out at a given address.
+the first chip connected to a Katherine device at a given address.
 
 ```c
 // C example
@@ -38,7 +38,7 @@ int main() {
 
   char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
   katherine_get_chip_id(&dev, 0, chip_id);   // Ignoring return code.
-  printf("Device %s has chip id: %s\n", address, chip_id);
+  printf("Device %s has chip 0 with id: %s\n", address, chip_id);
 
   katherine_device_fini(&dev);
 }
@@ -53,8 +53,8 @@ int main() {
   const std::string address{"udp://192.168.1.142"};
 
   katherine::device dev{address};
-  const std::string chip_id = dev.chip_id();   // Exception can be thrown here.
-  std::cout << "Device " << address << " has chip id: " << chip_id << std::endl;
+  const std::string chip_id = dev.chip_id(0);   // Exception can be thrown here.
+  std::cout << "Device " << address << " has chip 0 with id: " << chip_id << std::endl;
 }
 ```
 
@@ -64,20 +64,49 @@ from katherine import Device
 
 address = 'udp://192.168.1.142'
 
-dev = Device(address)
-chip_id = dev.get_chip_id()   # Raises on failure; see below.
-print('Device %s has chip id: %s' % (address, chip_id))
+with Device(address) as dev:
+    chip_id = dev.get_chip_id(0)   # Raises on failure; see below.
+    print('Device %s has chip 0 with id: %s' % (address, chip_id))
 ```
 
-Every failure the Python binding reports is a `katherine.Error`, which is a
-`RuntimeError` carrying `.code` -- a `katherine.ErrorCode`, the same
-enumeration the C library returns:
+### Error Handling
+
+The library defines a set of potential faults that can happen when interacting
+with live hardware. These are enumerated and documented in
+[a dedicated C header](./c/include/katherine/error.h). Every C call returns either
+`KATHERINE_E_OK` on success or another `KATHERINE_E_...` error code on failure. A
+recommended pattern to handle errors in the C example above is as follows:
+
+```c
+katherine_error_t result = katherine_get_chip_id(&dev, 0, chip_id);
+if (result == KATHERINE_E_OK) {
+  printf("Device %s has chip 0 with id: %s\n", address, chip_id);
+} else {
+  printf("katherine_get_chip_id failed with code %d: %s\n", (int) result, katherine_strerror(result));
+}
+```
+
+In C++ this mechanism makes use of runtime exceptions, which derive from
+`katherine::system_error`. Here is an example how such exceptions can be handled:
+
+```cpp
+try {
+  const std::string chip_id = dev.chip_id(0);   // Exception can be thrown here.
+  std::cout << "Device " << address << " has chip 0 with id: " << chip_id << std::endl;
+} catch (const katherine::system_error& err) {
+  std::cout << "katherine::device::chip_id failed with code " << err.code() << ": " << err.what() << std::endl;
+}
+```
+
+Much like C++, the Python binding declares a `katherine.Error`, which may be
+raised from many library calls.
 
 ```python
 try:
-    dev.get_chip_id()
+    chip_id = dev.get_chip_id(0)   # Raises on failure.
+    print('Device %s has chip 0 with id: %s' % (address, chip_id))
 except katherine.Error as e:
-    print(e.code)            # e.g. ErrorCode.TIMEOUT
+    print('katherine.Device.get_chip_id failed with code %d: %s' % (e.code, str(e)))
 ```
 
 Three of them are also the builtin they used to be, so code written against
@@ -324,7 +353,7 @@ If you use BibTeX, you can use the following code:
     year={2018},
     institution={Faculty of Mathematics and Physics, Charles University},
     type={Master's thesis}
-  } 
+  }
 ```
 
 
