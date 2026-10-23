@@ -78,10 +78,11 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_acquisition_triggers(device, &config->start_trigger, &config->stop_trigger);
     if (res) goto err;
 
-    res = katherine_tpx3_set_sensor_register(device, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
+    res = katherine_tpx3_set_sensor_register(
+        device, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
     if (res) goto err;
 
-    res = katherine_tpx3_set_sensor_register(device, KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
+    res = katherine_tpx3_set_sensor_register(device, 0, KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
     if (res) goto err;
 
     // Commits the output block's own configuration, which this library never
@@ -90,15 +91,15 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     // status. So this is a commit for a register nobody here sets, kept
     // because the sensor still needs the trigger to latch what the firmware
     // put there.
-    res = katherine_tpx3_output_block_config_update(device);
+    res = katherine_tpx3_output_block_config_update(device, 0);
     if (res) goto err;
 
     // Carries the register writes above to the sensor. Without it they sit in
     // the readout's register image and never reach the chip.
-    res = katherine_tpx3_update_sensor_registers(device);
+    res = katherine_tpx3_update_sensor_registers(device, 0);
     if (res) goto err;
 
-    res = katherine_tpx3_timer_set(device);
+    res = katherine_tpx3_timer_set(device, 0);
     if (res) goto err;
 
     res = katherine_tpx3_set_dacs(device, 0, &config->dacs);
@@ -1098,11 +1099,16 @@ err_check:
  * Several registers may be written before one flush commits them together.
  *
  * \param device Katherine device
+ * \param chip_index Chip to address, counting from zero
  * \param reg_idx Index of the register
  * \param reg_value Value to assign to the register
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   write into its register image.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the write
  *   within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
@@ -1126,17 +1132,23 @@ err_check:
  * \see katherine_tpx3_update_sensor_registers
  */
 katherine_error_t
-katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
+katherine_tpx3_set_sensor_register(
+    katherine_device_t *device, uint8_t chip_index, char reg_idx, int32_t reg_value)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_send64_i64(
-        &device->control_transport, CMD_TYPE_SENSOR_REGISTER_SETTING, (uint8_t) reg_idx, reg_value);
+    res = katherine_cmd_send64_i64_chip(
+        &device->control_transport, CMD_TYPE_SENSOR_REGISTER_SETTING, (uint8_t) reg_idx, reg_value, chip_index);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_SENSOR_REGISTER_SETTING);
@@ -1149,6 +1161,7 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_chip:
     return res;
 }
 
@@ -1162,9 +1175,14 @@ err_lock:
  * whatsoever, silently, so treat the pairing as mandatory.
  *
  * \param device Katherine device
+ * \param chip_index Chip to address, counting from zero
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   flush.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the flush
  *   within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
@@ -1187,16 +1205,22 @@ err_lock:
  * \see katherine_tpx3_set_sensor_register
  */
 katherine_error_t
-katherine_tpx3_update_sensor_registers(katherine_device_t *device)
+katherine_tpx3_update_sensor_registers(katherine_device_t *device, uint8_t chip_index)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_hw_sensor_config_registers_update(&device->control_transport);
+    res = katherine_cmd_send60_chip(
+        &device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE, chip_index);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
@@ -1209,15 +1233,21 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_chip:
     return res;
 }
 
 /**
  * Update output block config.
  * \param device Katherine device
+ * \param chip_index Chip to address, counting from zero
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   hardware command.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the hardware
  *   command within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
@@ -1238,16 +1268,22 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_tpx3_output_block_config_update(katherine_device_t *device)
+katherine_tpx3_output_block_config_update(katherine_device_t *device, uint8_t chip_index)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_hw_output_block_config_update(&device->control_transport);
+    res = katherine_cmd_send60_chip(
+        &device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_OUTPUT_BLOCK_CONFIG_UPDATE, chip_index);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
@@ -1260,15 +1296,21 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_chip:
     return res;
 }
 
 /**
  * Set timer.
  * \param device Katherine device
+ * \param chip_index Chip to address, counting from zero
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   hardware command.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the hardware
  *   command within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
@@ -1289,16 +1331,22 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_tpx3_timer_set(katherine_device_t *device)
+katherine_tpx3_timer_set(katherine_device_t *device, uint8_t chip_index)
 {
     katherine_error_t res;
+
+    if (chip_index >= device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip;
+    }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_hw_timer_set(&device->control_transport);
+    res = katherine_cmd_send60_chip(
+        &device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_TIMER_SET, chip_index);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
@@ -1311,6 +1359,7 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_chip:
     return res;
 }
 
@@ -1333,8 +1382,10 @@ err_lock:
  *
  * \retval KATHERINE_E_OK on success, once all eighteen writes and the update
  *   command have been acknowledged.
- * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout
- *   can address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   writes, or the update command, within the control link's receive timeout.
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
@@ -1425,8 +1476,10 @@ err_chip:
  *
  * \retval KATHERINE_E_OK on success, once both the write and the update
  *   command have been acknowledged.
- * \retval KATHERINE_E_BAD_CHIP if the chip index is past what this readout
- *   can address; see katherine_device_derived_info_t::max_chip_count.
+ * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
+ *   katherine_device_info_t::chip_count, which is what a readout reports and
+ *   not what it could hold. A device that has been neither enumerated nor
+ *   declared carries none, so this refuses chip 0 as well.
  * \retval KATHERINE_E_INVAL if \a dac is not one of the chip's DACs. A value
  *   too large for the DAC is not reported: like katherine_tpx3_set_dacs(),
  *   this transmits it unchecked, and katherine_tpx3_dacs_validate() is the

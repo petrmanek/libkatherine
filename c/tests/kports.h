@@ -81,6 +81,7 @@
 #define KPORTS_STATUS_NULL   KPORTS_BLOCK(16)
 #define KPORTS_REPR          KPORTS_BLOCK(17)
 #define KPORTS_COMPAT1       KPORTS_BLOCK(18)
+#define KPORTS_CHIP_ROUTING  KPORTS_BLOCK(19)
 
 // The blocks must not overlap, which for blocks handed out in order is the
 // same as each starting where the last ends. Stated rather than trusted: the
@@ -104,6 +105,7 @@ _Static_assert(KPORTS_SET_DAC >= KPORTS_FINI + KPORTS_BLOCK_SIZE, "port blocks o
 _Static_assert(KPORTS_STATUS_NULL >= KPORTS_SET_DAC + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_REPR >= KPORTS_STATUS_NULL + KPORTS_BLOCK_SIZE, "port blocks overlap");
 _Static_assert(KPORTS_COMPAT1 >= KPORTS_REPR + KPORTS_BLOCK_SIZE, "port blocks overlap");
+_Static_assert(KPORTS_CHIP_ROUTING >= KPORTS_COMPAT1 + KPORTS_BLOCK_SIZE, "port blocks overlap");
 
 // True where every port of a block can be bound right now. A fixed port is
 // always somebody else's to take first, and a test that cannot have the one

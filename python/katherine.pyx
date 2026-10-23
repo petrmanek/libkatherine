@@ -666,20 +666,30 @@ cdef class Device:
          res = cconfig.katherine_set_acquisition_triggers(self._c_device, &start_trigger._c_trigger, &end_trigger._c_trigger)
          check_return_code(res)
 
-    def set_sensor_register(self, reg_idx, int32_t reg_value):
-         res = cconfig.katherine_tpx3_set_sensor_register(self._c_device, reg_idx.value, reg_value)
+    def set_sensor_register(self, reg_idx, int32_t reg_value, uint8_t chip_index=0):
+         """Write one sensor register into the readout's register image.
+
+         The write reaches the sensor only once update_sensor_registers()
+         flushes the image.
+
+         chip_index trails the values here, rather than leading them as it
+         does in C, so that callers written against 1.x keep working."""
+         res = cconfig.katherine_tpx3_set_sensor_register(self._c_device, chip_index, reg_idx.value, reg_value)
          check_return_code(res)
 
-    def update_sensor_registers(self):
-         res = cconfig.katherine_tpx3_update_sensor_registers(self._c_device)
+    def update_sensor_registers(self, uint8_t chip_index=0):
+         """Carry one chip's register image to its sensor."""
+         res = cconfig.katherine_tpx3_update_sensor_registers(self._c_device, chip_index)
          check_return_code(res)
 
-    def output_block_config_update(self):
-         res = cconfig.katherine_tpx3_output_block_config_update(self._c_device)
+    def output_block_config_update(self, uint8_t chip_index=0):
+         """Latch one chip's output block configuration."""
+         res = cconfig.katherine_tpx3_output_block_config_update(self._c_device, chip_index)
          check_return_code(res)
 
-    def timer_set(self):
-         res = cconfig.katherine_tpx3_timer_set(self._c_device)
+    def timer_set(self, uint8_t chip_index=0):
+         """Set one chip's timer."""
+         res = cconfig.katherine_tpx3_timer_set(self._c_device, chip_index)
          check_return_code(res)
 
     @property

@@ -418,16 +418,16 @@ typedef enum katherine_tpx3_reg {
 } katherine_tpx3_reg_t;
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value);
+katherine_tpx3_set_sensor_register(katherine_device_t *device, uint8_t chip_index, char reg_idx, int32_t reg_value);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_update_sensor_registers(katherine_device_t *device);
+katherine_tpx3_update_sensor_registers(katherine_device_t *device, uint8_t chip_index);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_output_block_config_update(katherine_device_t *device);
+katherine_tpx3_output_block_config_update(katherine_device_t *device, uint8_t chip_index);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_timer_set(katherine_device_t *device);
+katherine_tpx3_timer_set(katherine_device_t *device, uint8_t chip_index);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_dac(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_t dac, uint16_t value);

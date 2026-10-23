@@ -521,7 +521,14 @@ public:
     void
     set_sensor_register(katherine_tpx3_reg_t reg_idx, std::int32_t reg_value)
     {
-        int res = katherine_tpx3_set_sensor_register(&dev_, (char) reg_idx, reg_value);
+        set_sensor_register(0, reg_idx, reg_value);
+    }
+
+    /// Writes one sensor register of one chip into the readout's register image.
+    void
+    set_sensor_register(std::uint8_t chip_index, katherine_tpx3_reg_t reg_idx, std::int32_t reg_value)
+    {
+        int res = katherine_tpx3_set_sensor_register(&dev_, chip_index, (char) reg_idx, reg_value);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -531,7 +538,14 @@ public:
     void
     update_sensor_registers()
     {
-        int res = katherine_tpx3_update_sensor_registers(&dev_);
+        update_sensor_registers(0);
+    }
+
+    /// Carries one chip's register image to its sensor.
+    void
+    update_sensor_registers(std::uint8_t chip_index)
+    {
+        int res = katherine_tpx3_update_sensor_registers(&dev_, chip_index);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -541,7 +555,14 @@ public:
     void
     output_block_config_update()
     {
-        int res = katherine_tpx3_output_block_config_update(&dev_);
+        output_block_config_update(0);
+    }
+
+    /// Latches one chip's output block configuration.
+    void
+    output_block_config_update(std::uint8_t chip_index)
+    {
+        int res = katherine_tpx3_output_block_config_update(&dev_, chip_index);
 
         if (res != 0) {
             throw katherine::system_error{res};
@@ -551,7 +572,14 @@ public:
     void
     timer_set()
     {
-        int res = katherine_tpx3_timer_set(&dev_);
+        timer_set(0);
+    }
+
+    /// Sets one chip's timer.
+    void
+    timer_set(std::uint8_t chip_index)
+    {
+        int res = katherine_tpx3_timer_set(&dev_, chip_index);
 
         if (res != 0) {
             throw katherine::system_error{res};

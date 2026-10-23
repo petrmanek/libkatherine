@@ -165,6 +165,11 @@ if(KATHERINE_TRANSPORT_USB)
         "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
 endif()
 katherine_add_test(NAME test_set_dac SOURCES test_set_dac.c LABELS unit)
+
+# Where a per-chip command puts its chip index. Three opcodes, three
+# different bytes, and an acknowledgement that cannot tell them apart: the
+# cases read the datagram the mock received rather than the return code.
+katherine_add_test(NAME test_chip_routing SOURCES test_chip_routing.c LABELS unit)
 katherine_add_test(NAME test_status_null SOURCES test_status_null.c LABELS unit)
 
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x

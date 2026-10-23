@@ -230,7 +230,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_sensor_register(katherine_device_t *device, char reg_idx, int32_t reg_value)
 {
-    return katherine1_map_result(katherine_tpx3_set_sensor_register(device, reg_idx, reg_value));
+    return katherine1_map_result(katherine_tpx3_set_sensor_register(device, 0, reg_idx, reg_value));
 }
 
 /** \legacy1{katherine_tpx3_update_sensor_registers} */
@@ -238,7 +238,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_update_sensor_registers(katherine_device_t *device)
 {
-    return katherine1_map_result(katherine_tpx3_update_sensor_registers(device));
+    return katherine1_map_result(katherine_tpx3_update_sensor_registers(device, 0));
 }
 
 /** \legacy1{katherine_tpx3_output_block_config_update} */
@@ -246,7 +246,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_output_block_config_update(katherine_device_t *device)
 {
-    return katherine1_map_result(katherine_tpx3_output_block_config_update(device));
+    return katherine1_map_result(katherine_tpx3_output_block_config_update(device, 0));
 }
 
 /** \legacy1{katherine_tpx3_timer_set} */
@@ -254,7 +254,7 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_timer_set(katherine_device_t *device)
 {
-    return katherine1_map_result(katherine_tpx3_timer_set(device));
+    return katherine1_map_result(katherine_tpx3_timer_set(device, 0));
 }
 
 /** \legacy1{katherine_tpx3_set_dacs} */
