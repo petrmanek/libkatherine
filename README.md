@@ -69,12 +69,22 @@ chip_id = dev.get_chip_id()   # Raises on failure; see below.
 print('Device %s has chip id: %s' % (address, chip_id))
 ```
 
-The Python binding raises `TimeoutError` on a timeout, `ValueError` on an
-invalid argument and `MemoryError` on a failed allocation. Every other
-failure -- eleven of the fourteen error codes, the I/O and system ones among
-them -- becomes a `RuntimeError` carrying the library's message. Beware that
-`TimeoutError` is an `OSError` and `RuntimeError` is not, so `except OSError`
-catches the timeout alone. The exception does not carry the error code.
+Every failure the Python binding reports is a `katherine.Error`, which is a
+`RuntimeError` carrying `.code` -- a `katherine.ErrorCode`, the same
+enumeration the C library returns:
+
+```python
+try:
+    dev.get_chip_id()
+except katherine.Error as e:
+    print(e.code)            # e.g. ErrorCode.TIMEOUT
+```
+
+Three of them are also the builtin they used to be, so code written against
+those keeps working: `katherine.Timeout` derives from `TimeoutError`,
+`katherine.InvalidArgument` from `ValueError` and `katherine.OutOfMemory`
+from `MemoryError`. Beware that `TimeoutError` is an `OSError` and
+`RuntimeError` is not, so `except OSError` still catches the timeout alone.
 
 ### Device Addresses
 
