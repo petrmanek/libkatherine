@@ -47,6 +47,26 @@
 #define HOST_LOCAL_ADDRESS "udp://127.0.0.1"
 #define BUF_BYTES          2048
 
+// Both sanitizers abort on the allocation test_a_transport_resizes_exactly
+// asks for -- the largest size the transport's headroom survives is within a
+// word of SIZE_MAX, and realloc() of that is "allocation-size-too-big" to
+// them -- instead of letting realloc() decline it. allocator_may_return_null
+// makes them return NULL as the C library would, which is the answer the case
+// is written against. The same two hooks, for the same reason, are in
+// c/tests/test_compat1.c; their runtimes call them at startup and nothing
+// else does.
+const char *
+__asan_default_options(void)
+{
+    return "allocator_may_return_null=1";
+}
+
+const char *
+__tsan_default_options(void)
+{
+    return "allocator_may_return_null=1";
+}
+
 static katherine_error_t
 open_session(katherine_udp_t *u, uint16_t local_port, uint16_t remote_port)
 {
