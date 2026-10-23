@@ -16,6 +16,12 @@
 #include <katherine/device.h>
 #include "protocol/cmd_interface.h"
 
+// A uint8_t counter walking this bound terminates only while the bound fits
+// in one. KATHERINE_TPX3_MATRIX_WIDTH is 256 and takes a uint16_t counter for
+// exactly this reason: an eight-bit one is always below it and the loop never
+// ends. Stated here because the compiler is silent about it either way.
+_Static_assert(KATHERINE_MAX_GPIO_COUNT <= 255, "KATHERINE_MAX_GPIO_COUNT must fit the uint8_t counters that walk it");
+
 /**
  * Names of the mappings, in enumeration order. Their meanings are on the
  * enumerators; this is only the spelling.

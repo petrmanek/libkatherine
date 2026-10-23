@@ -15,6 +15,9 @@
 #include <katherine/device.h>
 #include "protocol/cmd_interface.h"
 
+// Walked by a uint8_t counter; see c/src/device/gpio.c.
+_Static_assert(KATHERINE_MAX_TDC_CHANNEL_COUNT <= 255, "KATHERINE_MAX_TDC_CHANNEL_COUNT must fit the uint8_t counters that walk it");
+
 /**
  * Names of the sources, in enumeration order.
  */

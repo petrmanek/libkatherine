@@ -13,7 +13,7 @@
 #include <stdbool.h> // bool
 #include <stdint.h>
 #include <stdio.h>  // printf, fprintf
-#include <stdlib.h> // strtoul, exit
+#include <stdlib.h> // strtoull, exit
 #include <string.h> // strcmp, strncmp
 
 #include <katherine/katherine.h>

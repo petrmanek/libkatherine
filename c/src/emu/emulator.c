@@ -17,6 +17,9 @@
 #include "protocol/crd.h"
 #include "emu.h"
 
+// Walked by a uint8_t counter; see c/src/device/gpio.c.
+_Static_assert(KATHERINE_EMU_DAC_SCAN_REPLIES <= 255, "KATHERINE_EMU_DAC_SCAN_REPLIES must fit the uint8_t counters that walk it");
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 // The one command still not listed in cmd_interface.h: opcode 0x27's
