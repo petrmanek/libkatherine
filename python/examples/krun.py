@@ -51,10 +51,9 @@ def paint_test_pixels(px_config):
 def configure():
     c = k.Config()
 
-    c.bias_index           = 0
     c.acq_time          = 10e9 # ns
     c.frame_count         = 1
-    c.bias              = 230 # V
+    c.bias              = [230]  # V, one entry per supply
 
     c.start_trigger     = k.Trigger(enabled=False)
     c.stop_trigger      = k.Trigger(enabled=False)

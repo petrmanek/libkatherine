@@ -331,17 +331,6 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
 #define chip_detected chip_count
 
 /**
- * 1.x called the bias supply's index bias_id, where every other index in this
- * library is an _index -- chip_index, px_index, frame_index -- and where the
- * reference implementation calls it biasIndex.
- *
- * An alias is safe here for the same reason chip_detected's is: both
- * spellings name the same field, of the same type, with the same meaning.
- * Only the spelling moved.
- */
-#define bias_id       bias_index
-
-/**
  * 1.x called the frame count no_frames, which reads as a negation rather than
  * as the count it is.
  *
@@ -706,6 +695,13 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 // by that name. correct_phase is aliased because nothing else in reach is
 // spelled that way. The two that are not convert by hand, at sites the compiler
 // names.
+//
+// katherine_config_t's bias_id and bias fields are absent because the pair
+// they named is gone: one supply chosen by index with one voltage became one
+// voltage per supply, bias[]. 1.x's bias_id has no counterpart at all, and an
+// alias from the scalar bias to the array would compile into an assignment to
+// the whole array rather than to the supply the source meant. Both convert by
+// hand: the index becomes the subscript.
 //
 // katherine_config_t's test_pulse_config field is absent for the same reason
 // once removed: this header is includable from C++, and katherinexx spells a

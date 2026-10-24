@@ -260,10 +260,9 @@ def build_config(katherine):
     uploaded and accepted like any other."""
     c = katherine.Config()
 
-    c.bias_index = 0
     c.acq_time = SHORT_ACQ_TIME_NS
     c.frame_count = 1
-    c.bias = 230
+    c.bias = [230]
 
     c.start_trigger = katherine.Trigger(enabled=False)
     c.stop_trigger = katherine.Trigger(enabled=False)

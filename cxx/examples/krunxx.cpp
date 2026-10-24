@@ -80,10 +80,9 @@ configure(katherine::config& config)
 
     // For now, these constants are hard-coded.
     // This configuration will produce meaningful results only for: M7-W0005
-    config.set_bias_id(0);
     config.set_acq_time(10s);
     config.set_frame_count(1);
-    config.set_bias(230); // V
+    config.set_bias(0, 230); // V
 
 
     config.set_start_trigger(katherine::no_trigger);

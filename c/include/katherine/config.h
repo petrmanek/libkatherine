@@ -284,6 +284,9 @@ typedef enum katherine_polarity {
 KATHERINE_EXPORTED const char *
 katherine_str_polarity(katherine_polarity_t polarity);
 
+/** Bias supplies a katherine_config_t carries: at least the largest count in the device table. */
+#define KATHERINE_CONFIG_MAX_BIAS_SUPPLIES 4
+
 /**
  * Everything katherine_configure() sends to a readout before an acquisition.
  * Designed to render safe settings when zero-initialized.
@@ -291,12 +294,17 @@ katherine_str_polarity(katherine_polarity_t polarity);
 typedef struct katherine_config {
     katherine_tpx3_px_config_t pixel_config; ///< Per-pixel settings for the whole matrix.
 
-    uint8_t bias_index; ///< Which bias supply to drive, for a readout that has more than one.
-
     double acq_time;      ///< Shutter time per frame, in nanoseconds.
     uint32_t frame_count; ///< Frames to measure; data-driven readout accepts only one.
 
-    float bias;                        ///< Sensor bias voltage, in volts. Its sign must match the carriers the sensor collects.
+    /**
+     * Sensor bias voltage per supply, in volts, addressed from 0 as
+     * katherine_device_derived_info_t::bias_supply_count counts them.
+     * katherine_configure() sends every supply the readout has, so an entry
+     * left at zero drives that supply to zero rather than leaving it alone.
+     * Each sign must match the carriers the sensor on that supply collects.
+     */
+    float bias[KATHERINE_CONFIG_MAX_BIAS_SUPPLIES];
     katherine_trigger_t start_trigger; ///< What starts the acquisition.
     katherine_trigger_t stop_trigger;  ///< What stops it.
 

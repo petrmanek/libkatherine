@@ -192,10 +192,6 @@ public:
     /// The pixel matrix, which configure() uploads to chip 0.
     void set_pixel_config(katherine::px_config&& pixel_config) { conf_.pixel_config = pixel_config; }
 
-    /// Which bias supply of the readout this configuration drives.
-    std::uint8_t bias_index() const { return conf_.bias_index; }
-    /** \copydoc bias_index() */
-    void set_bias_id(std::uint8_t val) { conf_.bias_index = val; }
 
     // The trailing return type (rather than a C++14 deduced one) is what
     // keeps this header valid C++11.
@@ -218,10 +214,10 @@ public:
     /** \copydoc frame_count() */
     void set_frame_count(std::uint32_t val) { conf_.frame_count = val; }
 
-    /// Sensor bias voltage, in Volts, which the readout supplies.
-    float bias() const { return conf_.bias; }
-    /** \copydoc bias() */
-    void set_bias(float val) { conf_.bias = val; }
+    /// Sensor bias voltage for one supply, in Volts, addressed from 0.
+    float bias(std::uint8_t index) const { return conf_.bias[index]; }
+    /// Sets the sensor bias voltage one supply is asked for, in Volts.
+    void set_bias(std::uint8_t index, float val) { conf_.bias[index] = val; }
 
     /// What opens the shutter.
     const trigger& start_trigger() const { return conf_.start_trigger; }

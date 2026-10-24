@@ -159,28 +159,45 @@ The 1.x functions still have declarations, so a source mentioning them
 compiles, and they decline at runtime. Code that declared a session has to
 be ported rather than recompiled.
 
-### Two configuration fields were respelled
-
-`katherine_config_t::bias_id` is `bias_index`, which is how every other
-index in the library is spelled -- `chip_index`, `px_index`,
-`frame_index` -- and how the reference implementation names it.
+### The frame count was respelled
 
 `katherine_config_t::no_frames` is `frame_count`, and
 `katherine_set_no_frames()` is `katherine_set_frame_count()`. The field
 holds a count, and 1.x named it for the absence of one.
 `katherine_emulator_t`'s register of the same name moved with it.
-
-`bias_id` kept its type and its values. The frame count widened: the
-field and the setter's parameter are `uint32_t`, where 1.x declared both
-`int`. `katherine1.h` aliases both old spellings and
+The field and the setter's parameter are `uint32_t`, where 1.x declared
+both `int`. `katherine1.h` aliases both old spellings and
 `katherine_set_no_frames()` keeps the `int` parameter it had, so a 1.x
 source that sets either keeps compiling -- but a negative count, which
 1.x gave no meaning to, now converts to a large positive one instead of
 reaching the readout as a negative number.
 
-The field itself is on its way out: 2.0's configuration restructure
-replaces `bias_id` and `bias` with a `bias[]` array addressed by the same
-index, so a caller writing new code should expect to move again.
+### One bias supply became every bias supply
+
+`katherine_config_t::bias_id` and `bias` are gone. In their place is
+
+```c
+float bias[KATHERINE_CONFIG_MAX_BIAS_SUPPLIES];
+```
+
+addressed from 0 exactly as `katherine_set_bias()` addresses a supply,
+and `katherine_configure()` now sends **every** supply the readout
+reports rather than the one `bias_id` chose. The conversion is
+mechanical -- the index becomes the subscript:
+
+```c
+config.bias_id = 1;        config.bias[1] = 230.0f;
+config.bias    = 230.0f;
+```
+
+Note the change in effect, not only in spelling: an entry left at zero
+drives that supply to zero, where 1.x left every supply but one alone.
+On a readout with a single supply nothing changes.
+
+`katherine1.h` aliases neither. `bias_id` has no counterpart to alias
+to, and an alias from the scalar `bias` would compile into an assignment
+to the whole array instead of to the supply the source meant -- so both
+are compile errors at every site, which is the only safe outcome.
 
 ### The pixel-clock settings say which clock
 

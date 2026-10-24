@@ -69,6 +69,7 @@ cdef extern from 'katherine/config.h':
     int katherine_tpx3_dacs_snprint(char *buf, size_t cap, const katherine_tpx3_dacs_t *v)
 
     cdef int KATHERINE_TPX3_DAC_MONITOR_COUNT
+    cdef int KATHERINE_CONFIG_MAX_BIAS_SUPPLIES
     cdef int KATHERINE_TPX3_DAC_COUNT
 
     ctypedef enum katherine_tpx3_dac_t:
@@ -136,12 +137,10 @@ cdef extern from 'katherine/config.h':
     ctypedef struct katherine_config_t:
         katherine_tpx3_px_config_t pixel_config
 
-        uint8_t bias_index
-
         double acq_time
         uint32_t frame_count
 
-        float bias
+        float bias[4]  # KATHERINE_CONFIG_MAX_BIAS_SUPPLIES
         katherine_trigger_t start_trigger
         katherine_trigger_t stop_trigger
 

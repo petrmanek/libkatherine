@@ -222,6 +222,7 @@ TDC_CHANNEL_COUNT = ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT
 PULSE_CHANNEL_COUNT = cpulse.KATHERINE_MAX_PULSE_CHANNEL_COUNT
 TPX3_DAC_MONITOR_COUNT = cconfig.KATHERINE_TPX3_DAC_MONITOR_COUNT
 TPX3_DAC_COUNT = cconfig.KATHERINE_TPX3_DAC_COUNT
+MAX_BIAS_SUPPLIES = cconfig.KATHERINE_CONFIG_MAX_BIAS_SUPPLIES
 
 
 @_unique
@@ -1569,14 +1570,6 @@ cdef class Config:
          return _snprint_repr(<snprint_fn_t> cconfig.katherine_config_snprint, &self._c_config)
 
     @property
-    def bias_index(self):
-       return self._c_config.bias_index
-
-    @bias_index.setter
-    def bias_index(self, val):
-       self._c_config.bias_index = val
-
-    @property
     def acq_time(self):
        return self._c_config.acq_time
 
@@ -1594,11 +1587,16 @@ cdef class Config:
 
     @property
     def bias(self):
-       return self._c_config.bias
+       """Bias voltage asked of each supply, in volts, addressed from 0. A
+       copy of the array, so assign the property to change it."""
+       return [self._c_config.bias[i] for i in range(MAX_BIAS_SUPPLIES)]
 
     @bias.setter
     def bias(self, val):
-       self._c_config.bias = val
+       if len(val) > MAX_BIAS_SUPPLIES:
+           raise ValueError('at most %d bias supplies' % MAX_BIAS_SUPPLIES)
+       for i in range(MAX_BIAS_SUPPLIES):
+           self._c_config.bias[i] = val[i] if i < len(val) else 0.0
 
     @property
     def start_trigger(self):

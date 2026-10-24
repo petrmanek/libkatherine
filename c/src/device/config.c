@@ -87,8 +87,12 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_frame_count(device, config->frame_count);
     if (res) goto err;
 
-    res = katherine_set_bias(device, config->bias_index, config->bias);
-    if (res) goto err;
+    // The second bound is the array's own: a readout that named more supplies
+    // than katherine_config_t carries would otherwise index past it.
+    for (uint8_t i = 0; i < device->derived_info.bias_supply_count && i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
+        res = katherine_set_bias(device, i, config->bias[i]);
+        if (res) goto err;
+    }
 
     res = katherine_set_acquisition_triggers(device, &config->start_trigger, &config->stop_trigger);
     if (res) goto err;

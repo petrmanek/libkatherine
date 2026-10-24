@@ -456,8 +456,11 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 
     REPR_APPENDF(buf, cap, off, "config{pixel_config: ");
     REPR_NEST(buf, cap, off, katherine_tpx3_px_config_snprint, &v->pixel_config);
-    REPR_APPENDF(buf, cap, off, ", bias_index: %u, acq_time: %g, frame_count: %u, bias: %g, start_trigger: ", (unsigned) v->bias_index,
-        v->acq_time, (unsigned) v->frame_count, (double) v->bias);
+    REPR_APPENDF(buf, cap, off, ", acq_time: %g, frame_count: %u", v->acq_time, (unsigned) v->frame_count);
+    for (uint8_t i = 0; i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
+        REPR_APPENDF(buf, cap, off, ", bias%u: %g", (unsigned) i, (double) v->bias[i]);
+    }
+    REPR_APPENDF(buf, cap, off, ", start_trigger: ");
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->start_trigger);
     REPR_APPENDF(buf, cap, off, ", stop_trigger: ");
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->stop_trigger);

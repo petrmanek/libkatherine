@@ -193,10 +193,11 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("Fast VCO:               %s\n",      acq->fast_vco_enabled ? "enabled" : "disabled");
     printf("\n");
 
-    printf("Bias ID:                %d\n",      config->bias_index);
     printf("Acquisition Time:       %0.3f s\n", config->acq_time / 1e9);
     printf("Frame Count:            %u\n",      config->frame_count);
-    printf("Bias:                   %0.3f V\n", config->bias);
+    for (uint8_t i = 0; i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
+        printf("Bias %u:                 %0.3f V\n", (unsigned) i, (double) config->bias[i]);
+    }
     printf("\n");
 
     printf("Start Trigger:          %s\n",      config->start_trigger.enabled ? "true" : "false");

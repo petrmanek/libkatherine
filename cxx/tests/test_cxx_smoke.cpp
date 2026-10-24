@@ -120,14 +120,14 @@ test_config_round_trip(void)
 {
     katherine::config c;
 
-    c.set_bias_id(7);
-    KT_CHECK_EQ(c.bias_index(), 7);
+    c.set_bias(1, 12.5f);
+    KT_CHECK_CLOSE(c.bias(1), 12.5f);
 
     c.set_frame_count(12);
     KT_CHECK_EQ(c.frame_count(), 12);
 
-    c.set_bias(150.0f);
-    KT_CHECK_CLOSE(c.bias(), 150.0f);
+    c.set_bias(0, 150.0f);
+    KT_CHECK_CLOSE(c.bias(0), 150.0f);
 
 
     c.set_gray_disable(true);
