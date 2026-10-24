@@ -30,7 +30,7 @@ typedef enum kdac_command {
 typedef struct kdac_args {
     kdac_command_t command;
     const char *address;
-    const char *chip_type; ///< `list` only: which chip's DACs to print.
+    const char *asic; ///< `list` only: which ASIC's DACs to print, named by chip type.
     uint8_t chip_index;
     bool si;
     bool json;
@@ -116,8 +116,8 @@ usage(const char *argv0)
         "\n"
         "options:\n"
         "  --address <host>          readout to talk to; required by every command but list\n"
-        "  --chip <n>                chip index to address, default 0\n"
-        "  --chip <type>             list only: which chip's DACs to print, e.g. tpx3\n"
+        "  --chip <n>                chip index to address; required by every command but list\n"
+        "  --asic <type>             list only: which ASIC's DACs to print, e.g. tpx3\n"
         "  --si                      print setpoints converted to amperes or volts\n"
         "  --json                    readings to stdout as JSON, diagnostics to stderr\n"
         "\n"
@@ -137,6 +137,7 @@ parse_args(int argc, char *argv[], kdac_args_t *args)
     // 164` reads as naturally as `kdac --chip=2 set Vfbk 164`. What is left
     // over, in order, is the command and its arguments.
     const char *positional[KDAC_SET_ALL_ARGC + 2];
+    const char *chip         = NULL;
     int positional_count     = 0;
     const int positional_max = (int) (sizeof(positional) / sizeof(positional[0]));
 
@@ -152,11 +153,16 @@ parse_args(int argc, char *argv[], kdac_args_t *args)
             args->address = argv[i];
         } else if (strncmp(arg, "--address=", 10) == 0) {
             args->address = arg + 10;
+        } else if (strncmp(arg, "--asic=", 7) == 0) {
+            args->asic = arg + 7;
+        } else if (strcmp(arg, "--asic") == 0) {
+            if (++i >= argc) return false;
+            args->asic = argv[i];
         } else if (strncmp(arg, "--chip=", 7) == 0) {
-            args->chip_type = arg + 7;
+            chip = arg + 7;
         } else if (strcmp(arg, "--chip") == 0) {
             if (++i >= argc) return false;
-            args->chip_type = argv[i];
+            chip = argv[i];
         } else if (arg[0] == '-' && arg[1] != '\0') {
             fprintf(stderr, "unknown option \"%s\"\n", arg);
             return false;
@@ -185,20 +191,32 @@ parse_args(int argc, char *argv[], kdac_args_t *args)
         return false;
     }
 
-    // `--chip` names a chip type for list and a chip index everywhere else,
-    // so it is only now, with the command known, that it means anything.
-    // Unset, it is the only chip this library knows and the first index.
+    // `--asic` names a chip type and reaches no readout; `--chip` names an
+    // index and addresses one. Which of them a command takes is known only
+    // now, so this is where the other one is refused.
     if (args->command == KDAC_LIST) {
-        if (args->chip_type == NULL) args->chip_type = "tpx3";
-    } else if (args->chip_type != NULL) {
+        if (chip != NULL) {
+            fprintf(stderr, "list reads a DAC table and addresses no chip; it takes --asic <type>\n");
+            return false;
+        }
+        if (args->asic == NULL) args->asic = "tpx3";
+    } else if (args->asic != NULL) {
+        fprintf(stderr, "--asic names a chip type and is taken only by list\n");
+        return false;
+    } else if (chip != NULL) {
         char *end       = NULL;
-        uint64_t parsed = strtoull(args->chip_type, &end, 10);
-        if (end == args->chip_type || *end != '\0' || parsed > 255) {
-            fprintf(stderr, "--chip takes a chip index for this command, not \"%s\"\n",
-                args->chip_type);
+        uint64_t parsed = strtoull(chip, &end, 10);
+        if (end == chip || *end != '\0' || parsed > 255) {
+            fprintf(stderr, "--chip takes a chip index, not \"%s\"\n", chip);
             return false;
         }
         args->chip_index = (uint8_t) parsed;
+    } else {
+        // No default. A readout with two chips would otherwise take a DAC
+        // write meant for one and apply it to the other, with nothing in the
+        // command to say which was meant.
+        fprintf(stderr, "--chip <n> is required by %s; this readout may have more than one chip\n", command);
+        return false;
     }
 
     args->value_count = positional_count - 1;
@@ -213,8 +231,8 @@ parse_args(int argc, char *argv[], kdac_args_t *args)
 static int
 cmd_list(const kdac_args_t *args)
 {
-    if (!name_matches(args->chip_type, "tpx3")) {
-        fprintf(stderr, "no DAC table for chip \"%s\"; this library knows tpx3\n", args->chip_type);
+    if (!name_matches(args->asic, "tpx3")) {
+        fprintf(stderr, "no DAC table for asic \"%s\"; this library knows tpx3\n", args->asic);
         return 1;
     }
 

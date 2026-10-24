@@ -72,8 +72,8 @@ def usage(argv0):
         "\n"
         "options:\n"
         "  --address <host>          readout to talk to; required by every command but list\n"
-        "  --chip <n>                chip index to address, default 0\n"
-        "  --chip <type>             list only: which chip's DACs to print, e.g. tpx3\n"
+        "  --chip <n>                chip index to address; required by every command but list\n"
+        "  --asic <type>             list only: which ASIC's DACs to print, e.g. tpx3\n"
         "  --si                      print setpoints converted to amperes or volts\n"
         "  --json                    readings to stdout as JSON, diagnostics to stderr\n"
         "\n"
@@ -87,7 +87,7 @@ class Args:
     def __init__(self):
         self.command = 'list'
         self.address = None
-        self.chip_type = None
+        self.asic = None
         self.chip_index = 0
         self.si = False
         self.json = False
@@ -97,6 +97,7 @@ class Args:
 def parse_args(argv):
     args = Args()
     positional = []
+    chip = None
 
     i = 1
     while i < len(argv):
@@ -113,13 +114,20 @@ def parse_args(argv):
             args.address = argv[i]
         elif arg.startswith('--address='):
             args.address = arg[len('--address='):]
+        elif arg.startswith('--asic='):
+            args.asic = arg[len('--asic='):]
+        elif arg == '--asic':
+            i += 1
+            if i >= len(argv):
+                return None
+            args.asic = argv[i]
         elif arg.startswith('--chip='):
-            args.chip_type = arg[len('--chip='):]
+            chip = arg[len('--chip='):]
         elif arg == '--chip':
             i += 1
             if i >= len(argv):
                 return None
-            args.chip_type = argv[i]
+            chip = argv[i]
         elif len(arg) > 1 and arg.startswith('-'):
             sys.stderr.write('unknown option "{0}"\n'.format(arg))
             return None
@@ -135,18 +143,33 @@ def parse_args(argv):
         return None
     args.command = positional[0]
 
-    # --chip names a chip type for list and a chip index everywhere else.
+    # --asic names a chip type and reaches no readout; --chip names an index
+    # and addresses one. Which of them a command takes is known only now, so
+    # this is where the other one is refused.
     if args.command == 'list':
-        if args.chip_type is None:
-            args.chip_type = 'tpx3'
-    elif args.chip_type is not None:
+        if chip is not None:
+            sys.stderr.write('list reads a DAC table and addresses no chip; '
+                             'it takes --asic <type>\n')
+            return None
+        if args.asic is None:
+            args.asic = 'tpx3'
+    elif args.asic is not None:
+        sys.stderr.write('--asic names a chip type and is taken only by list\n')
+        return None
+    elif chip is None:
+        # No default. A readout with two chips would otherwise take a DAC
+        # write meant for one and apply it to the other, with nothing in the
+        # command to say which was meant.
+        sys.stderr.write('--chip <n> is required by {0}; this readout may have '
+                         'more than one chip\n'.format(args.command))
+        return None
+    else:
         try:
-            parsed = int(args.chip_type, 10)
+            parsed = int(chip, 10)
             if parsed < 0 or parsed > 255:
                 raise ValueError
         except ValueError:
-            sys.stderr.write(
-                '--chip takes a chip index for this command, not "{0}"\n'.format(args.chip_type))
+            sys.stderr.write('--chip takes a chip index, not "{0}"\n'.format(chip))
             return None
         args.chip_index = parsed
 
@@ -170,9 +193,9 @@ def parse_value(text):
 
 
 def cmd_list(args):
-    if fold(args.chip_type) != 'tpx3':
+    if fold(args.asic) != 'tpx3':
         sys.stderr.write(
-            'no DAC table for chip "{0}"; this library knows tpx3\n'.format(args.chip_type))
+            'no DAC table for asic "{0}"; this library knows tpx3\n'.format(args.asic))
         return 1
 
     if args.json:

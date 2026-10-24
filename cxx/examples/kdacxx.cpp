@@ -33,8 +33,8 @@ enum class command {
 struct kdac_args {
     command cmd{command::list};
     std::string address;
-    std::string chip_type;
-    bool have_chip{false};
+    std::string asic;
+    bool have_asic{false};
     std::uint8_t chip_index{0};
     bool si{false};
     bool json{false};
@@ -124,8 +124,8 @@ usage(const char *argv0)
         "\n"
         "options:\n"
         "  --address <host>          readout to talk to; required by every command but list\n"
-        "  --chip <n>                chip index to address, default 0\n"
-        "  --chip <type>             list only: which chip's DACs to print, e.g. tpx3\n"
+        "  --chip <n>                chip index to address; required by every command but list\n"
+        "  --asic <type>             list only: which ASIC's DACs to print, e.g. tpx3\n"
         "  --si                      print setpoints converted to amperes or volts\n"
         "  --json                    readings to stdout as JSON, diagnostics to stderr\n"
         "\n"
@@ -140,6 +140,8 @@ bool
 parse_args(int argc, char *argv[], kdac_args& args)
 {
     std::vector<std::string> positional;
+    std::string chip;
+    bool have_chip = false;
 
     for (int i = 1; i < argc; ++i) {
         const std::string arg{argv[i]};
@@ -153,13 +155,20 @@ parse_args(int argc, char *argv[], kdac_args& args)
             args.address = argv[i];
         } else if (arg.rfind("--address=", 0) == 0) {
             args.address = arg.substr(10);
+        } else if (arg.rfind("--asic=", 0) == 0) {
+            args.asic      = arg.substr(7);
+            args.have_asic = true;
+        } else if (arg == "--asic") {
+            if (++i >= argc) return false;
+            args.asic      = argv[i];
+            args.have_asic = true;
         } else if (arg.rfind("--chip=", 0) == 0) {
-            args.chip_type = arg.substr(7);
-            args.have_chip = true;
+            chip      = arg.substr(7);
+            have_chip = true;
         } else if (arg == "--chip") {
             if (++i >= argc) return false;
-            args.chip_type = argv[i];
-            args.have_chip = true;
+            chip      = argv[i];
+            have_chip = true;
         } else if (arg.size() > 1 && arg[0] == '-') {
             std::fprintf(stderr, "unknown option \"%s\"\n", arg.c_str());
             return false;
@@ -184,14 +193,29 @@ parse_args(int argc, char *argv[], kdac_args& args)
         return false;
     }
 
+    // --asic names a chip type and reaches no readout; --chip names an index
+    // and addresses one. Which of them a command takes is known only now, so
+    // this is where the other one is refused.
     if (args.cmd == command::list) {
-        if (!args.have_chip) args.chip_type = "tpx3";
-    } else if (args.have_chip) {
+        if (have_chip) {
+            std::fprintf(stderr, "list reads a DAC table and addresses no chip; it takes --asic <type>\n");
+            return false;
+        }
+        if (!args.have_asic) args.asic = "tpx3";
+    } else if (args.have_asic) {
+        std::fprintf(stderr, "--asic names a chip type and is taken only by list\n");
+        return false;
+    } else if (!have_chip) {
+        // No default. A readout with two chips would otherwise take a DAC
+        // write meant for one and apply it to the other, with nothing in the
+        // command to say which was meant.
+        std::fprintf(stderr, "--chip <n> is required by %s; this readout may have more than one chip\n", name.c_str());
+        return false;
+    } else {
         char *end             = nullptr;
-        const std::uint64_t v = std::strtoull(args.chip_type.c_str(), &end, 10);
-        if (end == args.chip_type.c_str() || *end != '\0' || v > 255) {
-            std::fprintf(stderr, "--chip takes a chip index for this command, not \"%s\"\n",
-                args.chip_type.c_str());
+        const std::uint64_t v = std::strtoull(chip.c_str(), &end, 10);
+        if (end == chip.c_str() || *end != '\0' || v > 255) {
+            std::fprintf(stderr, "--chip takes a chip index, not \"%s\"\n", chip.c_str());
             return false;
         }
         args.chip_index = static_cast<std::uint8_t>(v);
@@ -207,9 +231,9 @@ parse_args(int argc, char *argv[], kdac_args& args)
 int
 cmd_list(const kdac_args& args)
 {
-    if (!name_matches(args.chip_type, "tpx3")) {
-        std::fprintf(stderr, "no DAC table for chip \"%s\"; this library knows tpx3\n",
-            args.chip_type.c_str());
+    if (!name_matches(args.asic, "tpx3")) {
+        std::fprintf(stderr, "no DAC table for asic \"%s\"; this library knows tpx3\n",
+            args.asic.c_str());
         return 1;
     }
 
