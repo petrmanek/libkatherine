@@ -40,7 +40,7 @@ test_ip_address(const std::string& address)
     try {
         katherine::device device{address};
 
-        std::string chip_id = device.chip_id();
+        std::string chip_id = device.chip_id(0);
         test_succeeded(address, chip_id);
     } catch (const katherine::error&) {
         test_failed(address);

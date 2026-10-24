@@ -110,8 +110,10 @@ discover_usb(std::size_t capacity = 32)
  * One readout, open for the lifetime of the object.
  *
  * Every method here reaches the readout over its control link and throws
- * katherine::system_error if it does not answer. The chip-addressed ones
- * come in pairs: the short form takes chip 0, the long one takes an index.
+ * katherine::error if it does not answer. A chip-addressed one takes the
+ * index first and never by default: a call that does not name a chip says
+ * nothing about which one it configured, and on a two-chip readout that
+ * silence is a bug waiting to be written.
  */
 class device {
     katherine_device_t dev_;
@@ -291,12 +293,6 @@ public:
         return ro_status;
     }
 
-    /// Asks chip 0 what it kept of the configuration it was given.
-    katherine_tpx3_config_check_t
-    verify_config()
-    {
-        return verify_config(0);
-    }
 
     /**
      * Asks one chip what it kept of the configuration it was given.
@@ -336,12 +332,6 @@ public:
         return comm_status;
     }
 
-    /// Asks chip 0 for its own identifier.
-    std::string
-    chip_id()
-    {
-        return chip_id(0);
-    }
 
     /// Asks one chip of the readout for its own identifier.
     std::string
@@ -363,12 +353,6 @@ public:
         return temp;
     }
 
-    /// Measures chip 0's own on-die temperature sensor.
-    float
-    sensor_temperature()
-    {
-        return sensor_temperature(0);
-    }
 
     /// Measures one chip's own on-die temperature sensor.
     float
@@ -380,12 +364,6 @@ public:
         return temp;
     }
 
-    /// Tests the link between the readout and chip 0.
-    void
-    perform_digital_test()
-    {
-        perform_digital_test(0);
-    }
 
     /// Tests the link between the readout and one of its chips.
     void
@@ -529,12 +507,6 @@ public:
         katherine::detail::check(katherine_tpx3_configure(&dev_, config.c_config()));
     }
 
-    /// Uploads a whole pixel matrix to chip 0.
-    void
-    set_all_pixel_config(const katherine::px_config& px_config)
-    {
-        set_all_pixel_config(0, px_config);
-    }
 
     /// Uploads a whole pixel matrix to one chip of the readout.
     void
@@ -587,12 +559,6 @@ public:
         katherine::detail::check(katherine_set_acquisition_triggers(&dev_, &start_trigger, &end_trigger));
     }
 
-    /// Writes one sensor register of chip 0 into the readout's register image.
-    void
-    set_sensor_register(katherine_tpx3_reg_t reg_idx, std::int32_t reg_value)
-    {
-        set_sensor_register(0, reg_idx, reg_value);
-    }
 
     /// Writes one sensor register of one chip into the readout's register image.
     void
@@ -602,12 +568,6 @@ public:
             katherine_tpx3_set_sensor_register(&dev_, chip_index, reg_idx, reg_value));
     }
 
-    /// Carries chip 0's register image to its sensor.
-    void
-    update_sensor_registers()
-    {
-        update_sensor_registers(0);
-    }
 
     /// Carries one chip's register image to its sensor.
     void
@@ -616,12 +576,6 @@ public:
         katherine::detail::check(katherine_tpx3_update_sensor_registers(&dev_, chip_index));
     }
 
-    /// Latches chip 0's output block configuration.
-    void
-    output_block_config_update()
-    {
-        output_block_config_update(0);
-    }
 
     /// Latches one chip's output block configuration.
     void
@@ -630,12 +584,6 @@ public:
         katherine::detail::check(katherine_tpx3_output_block_config_update(&dev_, chip_index));
     }
 
-    /// Sets chip 0's timer.
-    void
-    timer_set()
-    {
-        timer_set(0);
-    }
 
     /// Sets one chip's timer.
     void
@@ -644,12 +592,6 @@ public:
         katherine::detail::check(katherine_tpx3_timer_set(&dev_, chip_index));
     }
 
-    /// Writes the whole DAC block to chip 0.
-    void
-    set_dacs(const katherine::tpx3::dacs& dacs)
-    {
-        set_dacs(0, dacs);
-    }
 
     /// Writes the whole DAC block to one chip of the readout.
     void

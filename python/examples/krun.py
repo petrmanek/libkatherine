@@ -139,7 +139,7 @@ class MyObserver(k.AcquisitionObserver):
 
 
 def print_chip_id(device):
-    chip_id = device.get_chip_id()
+    chip_id = device.get_chip_id(0)
     print('Chip ID: %s' % chip_id)
 
 

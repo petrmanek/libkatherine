@@ -191,7 +191,7 @@ def wait_ready(ksim, katherine):
             continue
 
         try:
-            chip_id = device.get_chip_id()
+            chip_id = device.get_chip_id(0)
         except KATHERINE_ERRORS:
             chip_id = None
 
@@ -794,7 +794,7 @@ def check_link_accessors(tap, katherine):
     dev.set_timeout(1000)
     started = time.monotonic()
     try:
-        dev.get_chip_id()
+        dev.get_chip_id(0)
     except katherine.Error:
         pass
     slow = time.monotonic() - started
@@ -802,7 +802,7 @@ def check_link_accessors(tap, katherine):
     dev.set_timeout(50)
     started = time.monotonic()
     try:
-        dev.get_chip_id()
+        dev.get_chip_id(0)
     except katherine.Error as e:
         tap.check_eq('a control call against nobody times out', e.code,
                      katherine.ErrorCode.TIMEOUT)
@@ -998,7 +998,7 @@ def check_io_contract(tap, katherine):
     # Use after close is a programming error, so ValueError rather than one
     # of the Error subclasses a readout failure raises.
     try:
-        dev.get_chip_id()
+        dev.get_chip_id(0)
         tap.check('use after close raises ValueError', False, 'it did not raise')
     except ValueError as e:
         tap.check('use after close raises ValueError', not isinstance(e, katherine.Error),
@@ -1073,7 +1073,7 @@ def run_checks(tap, katherine, device):
     check_error_mapping(tap, katherine)
     check_io_contract(tap, katherine)
 
-    tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
+    tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(0), EXPECTED_CHIP_ID)
 
     # Two calls nothing could reach from Python until they were bound.
     # set_token_count() is deliberately left out of configure(), so this is
@@ -1085,7 +1085,7 @@ def run_checks(tap, katherine, device):
 
     refused = False
     try:
-        device.verify_config()
+        device.verify_config(0)
     except Exception:
         refused = True
     tap.check('verify_config() is refused on a first-generation readout', refused)
@@ -1105,11 +1105,11 @@ def run_checks(tap, katherine, device):
     tap.check('comm status: chip_count', comm.chip_count > 0)
 
     tap.check_eq('readout temperature', device.get_readout_temperature(), EXPECTED_READOUT_T)
-    tap.check_eq('sensor temperature', device.get_sensor_temperature(), EXPECTED_SENSOR_T)
+    tap.check_eq('sensor temperature', device.get_sensor_temperature(0), EXPECTED_SENSOR_T)
     tap.check_eq('ADC channel %d voltage' % ADC_CHANNEL, device.get_adc_voltage(ADC_CHANNEL), EXPECTED_ADC_VOLTAGE)
 
     try:
-        device.perform_digital_test()
+        device.perform_digital_test(0)
         digital_test_ok = True
     except KATHERINE_ERRORS:
         digital_test_ok = False

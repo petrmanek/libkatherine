@@ -92,7 +92,7 @@ test_device_and_acquisition(void)
     // crash, a hang or a C return code leaking through is the whole claim.
     bool threw = false;
     try {
-        (void) dev.chip_id();
+        (void) dev.chip_id(0);
     } catch (const katherine::error&) {
         threw = true;
     }
@@ -128,7 +128,7 @@ test_device_and_acquisition(void)
     // KATHERINE_E_STATE rather than KATHERINE_E_TIMEOUT.
     katherine_error_t code = KATHERINE_E_OK;
     try {
-        (void) dev.verify_config();
+        (void) dev.verify_config(0);
     } catch (const katherine::error& e) {
         code = e.code();
     }
@@ -163,7 +163,7 @@ test_device_and_acquisition(void)
     // wire, where it fails on the timeout like every other one.
     code = KATHERINE_E_OK;
     try {
-        (void) dev.verify_config();
+        (void) dev.verify_config(0);
     } catch (const katherine::error& e) {
         code = e.code();
     }
@@ -199,7 +199,7 @@ test_device_and_acquisition(void)
     // above timed out, so this stays zero.
     dev.set_timeout(std::chrono::milliseconds{20});
     try {
-        (void) dev.chip_id();
+        (void) dev.chip_id(0);
     } catch (const katherine::error&) {
     }
     KT_CHECK_EQ(dev.last_os_error(), 0);

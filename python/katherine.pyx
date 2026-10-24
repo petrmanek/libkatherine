@@ -862,7 +862,7 @@ cdef class Device:
          res = cdevice.katherine_device_select_interface(self._dev())
          check_return_code(res)
 
-    def get_chip_id(self, uint8_t chip_index=0):
+    def get_chip_id(self, uint8_t chip_index):
          """Ask one chip of the readout for its own identifier."""
          cdef char[:] chip_id = _array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)
          cdef char *c_chip_id = &chip_id[0]
@@ -880,14 +880,14 @@ cdef class Device:
          check_return_code(res)
          return temp
 
-    def get_sensor_temperature(self, uint8_t chip_index=0):
+    def get_sensor_temperature(self, uint8_t chip_index):
          """Measure one chip's own on-die temperature sensor."""
          cdef float temp
          res = cstatus.katherine_get_sensor_temperature(self._dev(), chip_index, &temp)
          check_return_code(res)
          return temp
 
-    def perform_digital_test(self, uint8_t chip_index=0):
+    def perform_digital_test(self, uint8_t chip_index):
          """Test the link between the readout and one of its chips."""
          res = cstatus.katherine_tpx3_perform_digital_test(self._dev(), chip_index)
          check_return_code(res)
@@ -906,7 +906,7 @@ cdef class Device:
          res = cconfig.katherine_tpx3_configure(self._dev(), config._c_config)
          check_return_code(res)
 
-    def set_all_pixel_config(self, Tpx3PxConfig px_config, uint8_t chip_index=0):
+    def set_all_pixel_config(self, uint8_t chip_index, Tpx3PxConfig px_config):
          """Upload a whole pixel matrix to one chip.
 
          chip_index trails the matrix here, rather than leading it as it does
@@ -918,7 +918,7 @@ cdef class Device:
          res = cconfig.katherine_set_acq_time(self._dev(), ns)
          check_return_code(res)
 
-    def verify_config(self, uint8_t chip_index=0):
+    def verify_config(self, uint8_t chip_index):
          """Ask one chip what it kept of the configuration it was given.
 
          Second generation only."""
@@ -955,7 +955,7 @@ cdef class Device:
          res = cconfig.katherine_set_acquisition_triggers(self._dev(), &start_trigger._c_trigger, &end_trigger._c_trigger)
          check_return_code(res)
 
-    def set_sensor_register(self, reg_idx, int32_t reg_value, uint8_t chip_index=0):
+    def set_sensor_register(self, uint8_t chip_index, reg_idx, int32_t reg_value):
          """Write one sensor register into the readout's register image.
 
          The write reaches the sensor only once update_sensor_registers()
@@ -966,17 +966,17 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_sensor_register(self._dev(), chip_index, reg_idx.value, reg_value)
          check_return_code(res)
 
-    def update_sensor_registers(self, uint8_t chip_index=0):
+    def update_sensor_registers(self, uint8_t chip_index):
          """Carry one chip's register image to its sensor."""
          res = cconfig.katherine_tpx3_update_sensor_registers(self._dev(), chip_index)
          check_return_code(res)
 
-    def output_block_config_update(self, uint8_t chip_index=0):
+    def output_block_config_update(self, uint8_t chip_index):
          """Latch one chip's output block configuration."""
          res = cconfig.katherine_tpx3_output_block_config_update(self._dev(), chip_index)
          check_return_code(res)
 
-    def timer_set(self, uint8_t chip_index=0):
+    def timer_set(self, uint8_t chip_index):
          """Set one chip's timer."""
          res = cconfig.katherine_tpx3_timer_set(self._dev(), chip_index)
          check_return_code(res)
@@ -996,7 +996,7 @@ cdef class Device:
          info._c_info = self._dev().derived_info
          return info
 
-    def set_dacs(self, Tpx3Dacs dacs, uint8_t chip_index=0):
+    def set_dacs(self, uint8_t chip_index, Tpx3Dacs dacs):
          """Write all eighteen DACs and latch them into the chip.
 
          chip_index trails the values here, rather than leading them as it
@@ -1004,7 +1004,7 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_dacs(self._dev(), chip_index, &dacs._c_dacs)
          check_return_code(res)
 
-    def set_dac(self, dac, uint16_t value, uint8_t chip_index=0):
+    def set_dac(self, uint8_t chip_index, dac, uint16_t value):
          """Write one DAC and latch it into the chip.
 
          The other seventeen keep whatever the readout last held, which is

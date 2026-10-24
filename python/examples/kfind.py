@@ -19,7 +19,7 @@ def check_address(a0, a1, a2, a3):
 
     try:
         dev = Device(address)
-        chip_id = dev.get_chip_id()
+        chip_id = dev.get_chip_id(0)
     except:
         return False
 

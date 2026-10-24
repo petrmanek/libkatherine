@@ -249,7 +249,7 @@ def cmd_set(device, args):
                 return 1
             dacs[i] = value
 
-        device.set_dacs(dacs, args.chip_index)
+        device.set_dacs(args.chip_index, dacs)
 
         if not args.json:
             sys.stdout.write('wrote all {0} DACs of chip {1}\n'.format(
@@ -276,7 +276,7 @@ def cmd_set(device, args):
         sys.stderr.write('{0} holds at most {1}, not {2}\n'.format(str(dac), maximum, value))
         return 1
 
-    device.set_dac(dac, value, args.chip_index)
+    device.set_dac(args.chip_index, dac, value)
 
     if args.json:
         return 0
@@ -318,7 +318,7 @@ def cmd_scan(device, args):
         sys.stdout.write('[')
 
     for code in range(first, last + 1):
-        device.set_dac(dac, code, args.chip_index)
+        device.set_dac(args.chip_index, dac, code)
         voltage = device.get_dac_monitor_voltage(args.chip_index, dac)
         si, unit = dac.to_si(code)
 

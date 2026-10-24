@@ -194,7 +194,7 @@ pixels_received(const mode::pixel_type *px, size_t count)
 void
 print_chip_id(katherine::device& device)
 {
-    std::string chip_id = device.chip_id();
+    std::string chip_id = device.chip_id(0);
     std::cerr << "Chip ID: " << chip_id << std::endl;
 }
 
