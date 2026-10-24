@@ -62,6 +62,15 @@ static uint8_t g_captured[MAX_CAPTURED][KATHERINE_CMD_CRD_SIZE];
 static unsigned g_captured_count;
 static unsigned g_replies;
 
+// Firmware 5 writes this command's answers back to back and the USB link
+// loses their boundaries, delivering the tail of an answer as a short read of
+// its own. Measured on the two-chip Gen2: three whole answers, then a tail
+// before each of the remaining two and one after the last. See
+// misc/hw-evidence-20261024/README.md.
+#define SPLIT_AFTER 3
+static unsigned g_split;  // Interleave tails as the readout does over USB.
+static unsigned g_shorts; // Send this many tails and no answer at all.
+
 static uint32_t
 load_word(const uint8_t *b)
 {
@@ -85,8 +94,19 @@ mock_readout(void *arg)
     if (katherine_udp_recv_exact(&g_mock, cmd, KATHERINE_CMD_CRD_SIZE) != 0) return NULL;
     ++g_captured_count;
 
+    // The tail of an answer, which is what a split one arrives as.
+    static const uint8_t tail[4] = {0x00, 0x00, 0x33, 0x00};
+
+    for (unsigned i = 0; i < g_shorts; ++i) {
+        if (katherine_udp_send_exact(&g_mock, tail, sizeof(tail)) != 0) return NULL;
+    }
+
     for (unsigned i = 0; i < g_replies; ++i) {
         uint8_t crd[KATHERINE_CMD_CRD_SIZE] = {0};
+
+        if (g_split && i >= SPLIT_AFTER) {
+            if (katherine_udp_send_exact(&g_mock, tail, sizeof(tail)) != 0) return NULL;
+        }
 
         crd[KATHERINE_CMD_OPCODE_BYTE] = cmd[KATHERINE_CMD_OPCODE_BYTE];
         if (cmd[KATHERINE_CMD_OPCODE_BYTE] == 0x33) {
@@ -99,6 +119,10 @@ mock_readout(void *arg)
         }
 
         if (katherine_udp_send_exact(&g_mock, crd, sizeof(crd)) != 0) return NULL;
+    }
+
+    if (g_split && g_replies > SPLIT_AFTER) {
+        if (katherine_udp_send_exact(&g_mock, tail, sizeof(tail)) != 0) return NULL;
     }
 
     return NULL;
@@ -148,13 +172,36 @@ device_init(katherine_device_t *device, uint8_t hw_type, uint16_t local_port, ui
     return katherine_transport_init_udp(&device->control_transport, &config);
 }
 
+// Every field the thread reads is set before it is started, not after.
 static void
-mock_start(kthread_t *thread, unsigned replies)
+mock_start_with(kthread_t *thread, unsigned replies, unsigned split, unsigned shorts)
 {
     memset(g_captured, 0xAA, sizeof(g_captured));
     g_captured_count = 0;
     g_replies        = replies;
+    g_split          = split;
+    g_shorts         = shorts;
     KT_REQUIRE(kthread_start(thread, mock_readout, NULL) == 0);
+}
+
+static void
+mock_start(kthread_t *thread, unsigned replies)
+{
+    mock_start_with(thread, replies, 0, 0);
+}
+
+// As above, but answering the way firmware 5 does over USB.
+static void
+mock_start_split(kthread_t *thread, unsigned replies)
+{
+    mock_start_with(thread, replies, 1, 0);
+}
+
+// As above, but answering with nothing but tails.
+static void
+mock_start_shorts(kthread_t *thread, unsigned shorts)
+{
+    mock_start_with(thread, 0, 0, shorts);
 }
 
 static void
@@ -339,8 +386,9 @@ test_d_five_counts_complete_the_sequence(void)
     katherine_transport_fini(&device.control_transport);
 }
 
-// e) One datagram short and the call reports the timeout, leaving the counts
-// it never received alone.
+// e) One datagram short and the call reports the timeout, writing nothing:
+// a part of an answer is not an answer, and a caller that was handed some
+// counts and some of its own values could not tell which were which.
 static void
 test_e_a_short_sequence_times_out(void)
 {
@@ -358,10 +406,61 @@ test_e_a_short_sequence_times_out(void)
     KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), KATHERINE_E_TIMEOUT);
     KT_CHECK_EQ(kthread_join(&thread), 0);
 
-    for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT - 1; ++i) {
+    for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
+        KT_CHECK_EQ(counts.channel[i], 0xFFFFFFFFu);
+    }
+
+    katherine_transport_fini(&device.control_transport);
+}
+
+// i) The answers firmware 5 splits over USB are still read. The tails it
+// interleaves are not command responses and are dropped; the answers
+// themselves arrive whole, so the counts come out as they would on a link
+// that kept the boundaries. Measured against the readout: UDP and USB both
+// report 1 1 0 0 0 after the same frame.
+static void
+test_i_a_split_sequence_is_still_read(void)
+{
+    katherine_device_t device;
+    katherine_tdc_counts_t counts = {0};
+    kthread_t thread;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start_split(&thread, KATHERINE_MAX_TDC_CHANNEL_COUNT);
+
+    KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+
+    for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
         KT_CHECK_EQ(counts.channel[i], expected_count(i));
     }
-    KT_CHECK_EQ(counts.channel[KATHERINE_MAX_TDC_CHANNEL_COUNT - 1], 0xFFFFFFFFu);
+
+    katherine_transport_fini(&device.control_transport);
+}
+
+// j) Tails and nothing else, which is a readout answering in a way this
+// library cannot read. The tolerance above is bounded so that such a readout
+// is reported rather than waited on, and nothing is written.
+static void
+test_j_nothing_but_short_answers_is_unsupported(void)
+{
+    katherine_device_t device;
+    katherine_tdc_counts_t counts;
+    kthread_t thread;
+
+    for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
+        counts.channel[i] = 0xFFFFFFFFu;
+    }
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start_shorts(&thread, KATHERINE_CMD_MAX_STRAY_DISCARDS + 1);
+
+    KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), KATHERINE_E_UNSUPPORTED);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+
+    for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
+        KT_CHECK_EQ(counts.channel[i], 0xFFFFFFFFu);
+    }
 
     katherine_transport_fini(&device.control_transport);
 }
@@ -462,6 +561,8 @@ main(void)
 #endif
     KT_RUN(test_g_every_source_is_named);
     KT_RUN(test_h_a_null_array_discards_the_counts);
+    KT_RUN(test_i_a_split_sequence_is_still_read);
+    KT_RUN(test_j_nothing_but_short_answers_is_unsupported);
 
     mocks_fini();
     return kt_summary();

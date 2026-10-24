@@ -181,8 +181,8 @@ err_enumerated:
  * only while a measurement drains its timestamps, so an idle readout answers
  * with zeros whatever its channels have seen.
  *
- * Counts not received are left unchanged, so a caller holding an error can
- * tell how far the sequence got by zeroing the array first.
+ * Nothing is written unless every count arrived: a failure leaves the
+ * caller's own values rather than part of an answer.
  *
  * \param device Katherine device
  * \param counts Counts to fill, or NULL to read the sequence off the link
@@ -196,7 +196,15 @@ err_enumerated:
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_BAD_CRD if an answer was not a command response.
+ * \retval KATHERINE_E_BAD_CRD if an answer was not a command response. Out
+ *   of reach on the firmware measured so far: the short answers firmware 5
+ *   interleaves over USB are dropped instead, and a run of nothing else is
+ *   KATHERINE_E_UNSUPPORTED.
+ * \retval KATHERINE_E_UNSUPPORTED if the readout answered this command in a
+ *   way this library cannot read: short answers arriving one after another
+ *   until the discard budget ran out. Firmware 5 splits these answers over
+ *   USB and a few short reads are therefore tolerated, but a readout that
+ *   sends nothing else is reported rather than guessed at.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving
  *   until the discard budget ran out.
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of a
@@ -217,14 +225,7 @@ katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *cou
         goto err_enumerated;
     }
 
-    // Entries past this readout's own count answer for channels it does not
-    // have, so they are zeroed rather than left holding whatever the caller's
-    // array did.
-    if (counts != NULL) {
-        for (uint8_t i = device->derived_info.tdc_channel_count; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
-            counts->channel[i] = 0;
-        }
-    }
+    uint32_t received[KATHERINE_MAX_TDC_CHANNEL_COUNT] = {0};
 
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
@@ -238,13 +239,42 @@ katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *cou
     // on the link would be handed to whichever command came next.
     for (uint8_t i = 0; i < device->derived_info.tdc_channel_count; ++i) {
         char crd[KATHERINE_CMD_CRD_SIZE];
-        res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_INTERNAL_TDC_READ_COUNTS, crd);
+
+        // This is the one command whose answers the readout writes back to
+        // back with no gap between them, and over USB that loses their
+        // boundaries: the tail of an answer arrives as a short read of its
+        // own while the answers themselves arrive whole. Those are dropped
+        // and the wait repeated, since the alternative is to fail a call the
+        // readout did answer. A firmware that frames this correctly never
+        // enters the loop below, so it costs a corrected one nothing and
+        // needs no flag to prefer it.
+        for (uint32_t dropped = 0;; ++dropped) {
+            res = katherine_cmd_wait_ack_crd(&device->control_transport, CMD_TYPE_INTERNAL_TDC_READ_COUNTS, crd);
+            if (res != KATHERINE_E_BAD_CRD) break;
+
+            if (dropped >= KATHERINE_CMD_MAX_STRAY_DISCARDS) {
+                // Short reads all the way to the budget: whatever this
+                // readout is answering with, it is not a sequence this
+                // library can read, and saying so beats handing back a
+                // part-filled answer.
+                res = KATHERINE_E_UNSUPPORTED;
+                break;
+            }
+        }
         if (res) goto err_recv;
 
-        if (counts == NULL) continue;
+        const uint8_t *b = (const uint8_t *) crd;
+        received[i]      = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+    }
 
-        const uint8_t *b   = (const uint8_t *) crd;
-        counts->channel[i] = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+    // Written once the whole sequence is in hand, so a failure leaves the
+    // caller's own values rather than some counts and some not. Entries past
+    // this readout's own count answer for channels it does not have and are
+    // zeroed.
+    if (counts != NULL) {
+        for (uint8_t i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
+            counts->channel[i] = i < device->derived_info.tdc_channel_count ? received[i] : 0;
+        }
     }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
