@@ -229,24 +229,27 @@ fixture_init_chips(const char *ksim_path, const char *profile, const char *chips
 
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     for (int attempt = 0; attempt < READY_ATTEMPTS; ++attempt) {
+        // The open is inside the retry and not before it, because it
+        // enumerates: a ksim that has not reached its socket yet makes this
+        // time out, which is the same "not ready" the chip-id probe below
+        // reports and wants the same sleep. Giving up here instead cost one
+        // false failure on the Windows VM, reported as a port conflict it
+        // was not.
         res = katherine_device_init(&g_device, KSIM_DEVICE_ADDRESS, 0);
-        if (res != 0) {
-            snprintf(g_skip_reason, sizeof(g_skip_reason),
-                "cannot bind the local control/data ports 1555/1556: %s", katherine_strerror(res));
-            return g_skip_reason;
-        }
+        if (res == KATHERINE_E_OK) {
+            if (katherine_get_chip_id(&g_device, 0, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
+                // Readiness is probed with the chip id, not with enumeration,
+                // so the enumerate inside katherine_device_init() above may
+                // have run before ksim was listening -- leaving a device that
+                // answers but whose generation is unknown, which the
+                // generation-dependent calls now refuse. Ask again now that it
+                // is demonstrably up.
+                KT_CHECK(katherine_device_enumerate(&g_device) == KATHERINE_E_OK);
+                return NULL;
+            }
 
-        if (katherine_get_chip_id(&g_device, 0, chip_id) == 0 && strcmp(chip_id, EXPECTED_CHIP_ID) == 0) {
-            // Readiness is probed with the chip id, not with enumeration, so
-            // the enumerate inside katherine_device_init() above may have run
-            // before ksim was listening -- leaving a device that answers but
-            // whose generation is unknown, which the generation-dependent
-            // calls now refuse. Ask again now that it is demonstrably up.
-            KT_CHECK(katherine_device_enumerate(&g_device) == KATHERINE_E_OK);
-            return NULL;
+            katherine_device_fini(&g_device);
         }
-
-        katherine_device_fini(&g_device);
 
         if (!kspawn_alive(&g_ksim)) {
             snprintf(g_skip_reason, sizeof(g_skip_reason),
@@ -259,10 +262,10 @@ fixture_init_chips(const char *ksim_path, const char *profile, const char *chips
     }
 
     snprintf(g_skip_reason, sizeof(g_skip_reason),
-        "no answer from ksim at " KSIM_LISTEN_ADDRESS ":1555 within %d attempts: the local ports may be bound on the "
-        "wildcard address by another process, or the wildcard/specific same-port coexistence this needs may be "
-        "unsupported here (unproven on Windows)",
-        READY_ATTEMPTS);
+        "no answer from ksim at " KSIM_LISTEN_ADDRESS ":1555 within %d attempts, last open %s: the local ports may be "
+        "bound on the wildcard address by another process, or the wildcard/specific same-port coexistence this needs "
+        "may be unsupported here (unproven on Windows)",
+        READY_ATTEMPTS, katherine_strerror(res));
     return g_skip_reason;
 }
 
