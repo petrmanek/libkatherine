@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include <array>
 #include <cstdint>
 
 #include <katherine/tdc.h>
@@ -32,7 +31,7 @@ using tdc_channel_config = katherine_tdc_channel_config_t;
 using tdc_config = katherine_tdc_config_t;
 
 /// What each timing-unit channel has counted, one entry per channel.
-using tdc_counts = std::array<uint32_t, KATHERINE_MAX_TDC_CHANNEL_COUNT>;
+using tdc_counts = katherine_tdc_counts_t;
 
 /** \} */
 

@@ -251,7 +251,7 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     katherine_device_t device;
     katherine_tdc_config_t config;
     kthread_t thread;
-    uint32_t counts[KATHERINE_MAX_TDC_CHANNEL_COUNT] = {0};
+    katherine_tdc_counts_t counts = {0};
 
     // A first-generation unit watches three channels, so everything the
     // configuration says about channel 4 -- its enable, its source, even a
@@ -285,7 +285,7 @@ test_c_channels_the_unit_lacks_take_their_defaults(void)
     KT_REQUIRE(device_init(&device, 0, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
     fill_config(&config, false);
     KT_CHECK_EQ(katherine_set_tdc_config(&device, &config), KATHERINE_E_STATE);
-    KT_CHECK_EQ(katherine_get_tdc_counts(&device, counts), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), KATHERINE_E_STATE);
     expect_nothing_sent();
 
     katherine_transport_fini(&device.control_transport);
@@ -298,18 +298,18 @@ static void
 test_d_five_counts_complete_the_sequence(void)
 {
     katherine_device_t device;
-    uint32_t counts[KATHERINE_MAX_TDC_CHANNEL_COUNT] = {0};
+    katherine_tdc_counts_t counts = {0};
     kthread_t thread;
 
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
     mock_start(&thread, KATHERINE_MAX_TDC_CHANNEL_COUNT);
 
-    KT_CHECK_EQ(katherine_get_tdc_counts(&device, counts), 0);
+    KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), 0);
     KT_CHECK_EQ(kthread_join(&thread), 0);
 
     KT_CHECK_EQ(g_captured[0][KATHERINE_CMD_OPCODE_BYTE], 0x33);
     for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
-        KT_CHECK_EQ(counts[i], expected_count(i));
+        KT_CHECK_EQ(counts.channel[i], expected_count(i));
     }
 
     katherine_transport_fini(&device.control_transport);
@@ -318,20 +318,20 @@ test_d_five_counts_complete_the_sequence(void)
     // value behind: the entries it does not answer for read zero, whatever
     // the caller's array held going in.
     for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
-        counts[i] = 0xDEADBEEFu;
+        counts.channel[i] = 0xDEADBEEFu;
     }
 
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE, PORT_MOCK) == 0);
     device.derived_info.tdc_channel_count = 2;
     mock_start(&thread, 2);
 
-    KT_CHECK_EQ(katherine_get_tdc_counts(&device, counts), 0);
+    KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), 0);
     KT_CHECK_EQ(kthread_join(&thread), 0);
 
-    KT_CHECK_EQ(counts[0], expected_count(0));
-    KT_CHECK_EQ(counts[1], expected_count(1));
+    KT_CHECK_EQ(counts.channel[0], expected_count(0));
+    KT_CHECK_EQ(counts.channel[1], expected_count(1));
     for (unsigned i = 2; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
-        KT_CHECK_EQ(counts[i], 0u);
+        KT_CHECK_EQ(counts.channel[i], 0u);
     }
 
     katherine_transport_fini(&device.control_transport);
@@ -343,23 +343,23 @@ static void
 test_e_a_short_sequence_times_out(void)
 {
     katherine_device_t device;
-    uint32_t counts[KATHERINE_MAX_TDC_CHANNEL_COUNT];
+    katherine_tdc_counts_t counts;
     kthread_t thread;
 
     for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
-        counts[i] = 0xFFFFFFFFu;
+        counts.channel[i] = 0xFFFFFFFFu;
     }
 
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
     mock_start(&thread, KATHERINE_MAX_TDC_CHANNEL_COUNT - 1);
 
-    KT_CHECK_EQ(katherine_get_tdc_counts(&device, counts), KATHERINE_E_TIMEOUT);
+    KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), KATHERINE_E_TIMEOUT);
     KT_CHECK_EQ(kthread_join(&thread), 0);
 
     for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT - 1; ++i) {
-        KT_CHECK_EQ(counts[i], expected_count(i));
+        KT_CHECK_EQ(counts.channel[i], expected_count(i));
     }
-    KT_CHECK_EQ(counts[KATHERINE_MAX_TDC_CHANNEL_COUNT - 1], 0xFFFFFFFFu);
+    KT_CHECK_EQ(counts.channel[KATHERINE_MAX_TDC_CHANNEL_COUNT - 1], 0xFFFFFFFFu);
 
     katherine_transport_fini(&device.control_transport);
 }

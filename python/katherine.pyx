@@ -1066,10 +1066,10 @@ cdef class Device:
          check_return_code(res)
 
     def get_tdc_counts(self):
-         cdef uint32_t counts[ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT]
-         res = ctdc.katherine_get_tdc_counts(self._dev(), counts)
+         cdef ctdc.katherine_tdc_counts_t counts
+         res = ctdc.katherine_get_tdc_counts(self._dev(), &counts)
          check_return_code(res)
-         return [counts[i] for i in range(ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT)]
+         return [counts.channel[i] for i in range(ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT)]
 
     def set_pulse_generator(self, PulseConfig config):
          res = cpulse.katherine_set_pulse_generator(self._dev(), &config._c_config)

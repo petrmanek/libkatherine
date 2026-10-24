@@ -465,7 +465,7 @@ public:
     tdc_counts()
     {
         katherine::tdc_counts counts{};
-        katherine::detail::check(katherine_get_tdc_counts(&dev_, counts.data()));
+        katherine::detail::check(katherine_get_tdc_counts(&dev_, &counts));
 
         return counts;
     }

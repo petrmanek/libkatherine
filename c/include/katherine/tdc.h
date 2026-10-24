@@ -78,8 +78,16 @@ typedef struct katherine_tdc_config {
 KATHERINE_EXPORTED katherine_error_t
 katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_t *config);
 
+/** The count each timing channel of a readout has reached. */
+typedef struct katherine_tdc_counts {
+    uint32_t channel[KATHERINE_MAX_TDC_CHANNEL_COUNT]; ///< One entry per channel, of which the readout fills its own katherine_device_derived_info_t::tdc_channel_count. The rest are zeroed.
+} katherine_tdc_counts_t;
+
+KATHERINE_EXPORTED int
+katherine_tdc_counts_snprint(char *buf, size_t cap, const katherine_tdc_counts_t *v);
+
 KATHERINE_EXPORTED katherine_error_t
-katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_MAX_TDC_CHANNEL_COUNT]);
+katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *counts);
 
 KATHERINE_EXPORTED const char *
 katherine_str_tdc_source(katherine_tdc_source_t source);

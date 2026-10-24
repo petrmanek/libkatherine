@@ -185,8 +185,8 @@ err_enumerated:
  * tell how far the sequence got by zeroing the array first.
  *
  * \param device Katherine device
- * \param counts Counts to fill (allocate KATHERINE_MAX_TDC_CHANNEL_COUNT), or
- *   NULL to read the sequence off the link and discard it
+ * \param counts Counts to fill, or NULL to read the sequence off the link
+ *   and discard it
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
@@ -208,7 +208,7 @@ err_enumerated:
  *   taken; see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_MAX_TDC_CHANNEL_COUNT])
+katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *counts)
 {
     katherine_error_t res;
 
@@ -222,7 +222,7 @@ katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_M
     // array did.
     if (counts != NULL) {
         for (uint8_t i = device->derived_info.tdc_channel_count; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
-            counts[i] = 0;
+            counts->channel[i] = 0;
         }
     }
 
@@ -243,8 +243,8 @@ katherine_get_tdc_counts(katherine_device_t *device, uint32_t counts[KATHERINE_M
 
         if (counts == NULL) continue;
 
-        const uint8_t *b = (const uint8_t *) crd;
-        counts[i]        = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
+        const uint8_t *b   = (const uint8_t *) crd;
+        counts->channel[i] = (uint32_t) b[0] | ((uint32_t) b[1] << 8) | ((uint32_t) b[2] << 16) | ((uint32_t) b[3] << 24);
     }
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);

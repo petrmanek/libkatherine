@@ -568,10 +568,12 @@ test_readout_peripherals(void)
     katherine_tpx3_dac_voltages_t voltages{};
     KT_CHECK(streamed(voltages).size() > 0);
 
-    // The counts the timing unit reports are a fixed-size array, so its
-    // length is the library's constant rather than a number repeated here.
+    // The counts the timing unit reports are a struct now, like the GPIO
+    // monitor beside them, so the wrapper is the C type rather than a
+    // std::array special case -- and it streams like every other struct.
     katherine::tdc_counts counts{};
-    KT_CHECK(counts.size() == KATHERINE_MAX_TDC_CHANNEL_COUNT);
+    KT_CHECK_EQ(sizeof(counts.channel) / sizeof(counts.channel[0]), (size_t) KATHERINE_MAX_TDC_CHANNEL_COUNT);
+    KT_CHECK(streamed(counts).size() > 0);
 }
 
 // ------------------------------------------------------------------

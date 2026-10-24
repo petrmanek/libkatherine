@@ -229,6 +229,13 @@ operator<<(std::ostream& os, const katherine_device_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_device_snprint);
 }
 
+/** Renders a katherine_tdc_counts_t (via katherine_tdc_counts_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_tdc_counts_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_tdc_counts_snprint);
+}
+
 /** Renders a katherine_gpio_monitor_t (via katherine_gpio_monitor_snprint()). */
 inline std::ostream&
 operator<<(std::ostream& os, const katherine_gpio_monitor_t& v)

@@ -402,6 +402,24 @@ katherine_gpio_channel_monitor_snprint(char *buf, size_t cap, const katherine_gp
 }
 
 /**
+ * Render what every timing channel has counted.
+ * \copydetails katherine_tpx3_coord_snprint
+ */
+int
+katherine_tdc_counts_snprint(char *buf, size_t cap, const katherine_tdc_counts_t *v)
+{
+    size_t off = 0;
+
+    REPR_APPENDF(buf, cap, off, "tdc_counts{");
+    for (uint8_t i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
+        REPR_APPENDF(buf, cap, off, "%schannel%u: %u", i == 0 ? "" : ", ", (unsigned) i, (unsigned) v->channel[i]);
+    }
+    REPR_APPENDF(buf, cap, off, "}");
+
+    return (int) off;
+}
+
+/**
  * Render what every GPIO channel reads.
  * \copydetails katherine_tpx3_coord_snprint
  */
