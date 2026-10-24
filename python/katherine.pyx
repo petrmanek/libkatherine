@@ -2193,20 +2193,8 @@ cdef class Acquisition:
        return self._c_acq.pixel_buffer_size
 
     @property
-    def pixel_buffer_valid(self):
-       return self._c_acq.pixel_buffer_valid
-
-    @property
-    def pixel_buffer_max_valid(self):
-       return self._c_acq.pixel_buffer_max_valid
-
-    @property
     def requested_frame_duration(self):
        return self._c_acq.requested_frame_duration
-
-    @property
-    def acq_start_time(self):
-       return self._c_acq.acq_start_time
 
     @property
     def report_timeout(self):
@@ -2217,26 +2205,8 @@ cdef class Acquisition:
        return self._c_acq.fail_timeout
 
     @property
-    def current_frame_info(self):
-       cdef FrameInfo info = FrameInfo()
-       memcpy(&info._c_info, &self._c_acq.current_frame_info, sizeof(info._c_info))
-       return info
-
-    @property
-    def last_toa_offset(self):
-       return self._c_acq.last_toa_offset
-
-    @property
     def phase_correction(self):
        return Tpx3PhaseCorrection(self._c_acq.phase_correction)
-
-    @property
-    def phase_count(self):
-       return self._c_acq.phase_count
-
-    @property
-    def frame_active(self):
-       return self._c_acq.frame_active
 
     def timestamp_phase_offset(self, int x, int y):
        return cacquisition.katherine_acquisition_timestamp_phase_offset(self._c_acq, Tpx3PxConfig._coord(x, y))

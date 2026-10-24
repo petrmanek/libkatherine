@@ -41,7 +41,7 @@ enum class acq_state {
 };
 
 /**
- * What a katherine::config::correct_phase() request resolved to;
+ * What a katherine::config::correct_clock_phase() request resolved to;
  * see katherine::base_acquisition::phase_correction().
  */
 enum class phase_correction {
@@ -293,10 +293,8 @@ public:
     /// The fine-tick offset this pixel's double column needs, which the decoder has already applied.
     std::uint8_t timestamp_phase_offset(katherine::tpx3::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
 
-    /// What katherine::config::correct_phase() actually resolved to for this acquisition.
+    /// What katherine::config::correct_clock_phase() actually resolved to for this acquisition.
     katherine::phase_correction phase_correction() const { return (katherine::phase_correction) acq_.phase_correction; }
-    /// Phases the clock divider granted, which is not always what was asked for.
-    std::uint8_t phase_count() const { return acq_.phase_count; }
 };
 
 
