@@ -1020,12 +1020,13 @@ cdef class Device:
          return voltage
 
     def get_bias_leakage(self, unsigned char bias_index):
-         """Volts across the sense resistor, not amperes: the conversion needs
-         a per-unit zero, which is the caller's to calibrate."""
-         cdef float voltage
-         res = cstatus.katherine_get_bias_leakage(self._dev(), bias_index, &voltage)
+         """Leakage current flowing through the sensor, in microamperes. The
+         zero point is not calibrated per unit, so readings carry an offset
+         of up to about 0.4 uA."""
+         cdef float current
+         res = cstatus.katherine_get_bias_leakage(self._dev(), bias_index, &current)
          check_return_code(res)
-         return voltage
+         return current
 
     def get_dac_monitor_voltage(self, uint8_t chip_index, monitor):
          cdef float voltage

@@ -399,14 +399,16 @@ public:
         return voltage;
     }
 
-    /// The current one bias supply is delivering, in Amperes.
+    /// The leakage current flowing through the sensor, in microamperes. The
+    /// zero point is not calibrated per unit, so readings carry an offset of
+    /// up to about 0.4 uA.
     float
     bias_leakage(std::uint8_t bias_index)
     {
-        float voltage;
-        katherine::detail::check(katherine_get_bias_leakage(&dev_, bias_index, &voltage));
+        float current;
+        katherine::detail::check(katherine_get_bias_leakage(&dev_, bias_index, &current));
 
-        return voltage;
+        return current;
     }
 
     /// One chip's analog output pad, pointed at one monitor and read, in Volts.
