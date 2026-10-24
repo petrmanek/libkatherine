@@ -817,6 +817,35 @@ test_k_the_generator_reports_its_own_clock(void)
     katherine_transport_fini(&device.control_transport);
 }
 
+// The same for the GPIO probe, which is the one accessor the NULL contract
+// had never been checked on: whether the counters are read depends on the
+// validity bits and not on whether the caller wants them, so a discarded
+// probe costs the same three answers the kept one does.
+static void
+test_a_discarded_probe_still_reads_every_register(void)
+{
+    katherine_device_t device;
+    kthread_t thread;
+
+    memset(g_reg, 0, sizeof(g_reg));
+    g_reg[0x09] = (1u << 29) | 0x86u;
+    g_reg[0x0D] = HIGH_TICKS;
+    g_reg[0x0E] = LOW_TICKS;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
+    mock_start(&thread, 3);
+
+    KT_CHECK_EQ(katherine_probe_gpio(&device, NULL), 0);
+    KT_CHECK_EQ(kthread_join(&thread), 0);
+    KT_CHECK_EQ(g_captured_count, 3);
+
+    uint8_t leftover[KATHERINE_CMD_CRD_SIZE];
+    size_t count = sizeof(leftover);
+    KT_CHECK_EQ(katherine_transport_recv_crd(&device.control_transport, leftover, &count), KATHERINE_E_TIMEOUT);
+
+    katherine_transport_fini(&device.control_transport);
+}
+
 // A caller that wants the registers read but not the values passes NULL, and
 // every register is still read off the link: one left behind would be handed
 // to whichever command came next. The same contract katherine_get_tdc_counts()
@@ -889,6 +918,7 @@ main(void)
     KT_RUN(test_i2_channels_the_generator_lacks_take_their_defaults);
     KT_RUN(test_j_the_generator_refuses_what_it_cannot_carry);
     KT_RUN(test_k_the_generator_reports_its_own_clock);
+    KT_RUN(test_a_discarded_probe_still_reads_every_register);
     KT_RUN(test_a_null_out_parameter_discards_what_was_read);
     KT_RUN(test_l_the_edge_counter_is_reset_by_writing_zero);
 #ifdef KATHERINE_TEST_EMULATOR
