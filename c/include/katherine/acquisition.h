@@ -125,7 +125,7 @@ typedef enum katherine_acquisition_state {
 } katherine_acquisition_state_t;
 
 /**
- * What became of katherine_config_t::correct_phase for a given
+ * What became of katherine_tpx3_config_t::correct_clock_phase for a given
  * acquisition. Three outcomes, not two: a device that never staggers its
  * columns and one that corrects the stagger itself are different situations,
  * and only the second leaves an offset that has to be undone to recover the

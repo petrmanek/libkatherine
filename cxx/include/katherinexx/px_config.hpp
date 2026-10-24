@@ -69,7 +69,7 @@ struct px_config: katherine_tpx3_px_config_t {
 
 // The member functions above are the only addition; the C struct remains
 // the sole (standard-layout) subobject, which config.hpp relies upon when
-// viewing katherine_config_t::pixel_config through this type.
+// viewing katherine_tpx3_chip_config_t::pixels through this type.
 static_assert(sizeof(px_config) == sizeof(katherine_tpx3_px_config_t),
     "katherine::px_config must not add data members");
 
