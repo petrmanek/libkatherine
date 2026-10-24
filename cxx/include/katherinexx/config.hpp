@@ -39,7 +39,7 @@ using trigger = katherine_trigger_t;
 constexpr trigger no_trigger{
     // TODO: uncomment in C++2a
     /* .enabled = */ false,
-    /* .channel = */ 0,
+    /* .channel = */ KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL,
     /* .edge = */ KATHERINE_TRIGGER_EDGE_RISING,
     /* .delayed = */ false,
     /* .delay_seconds = */ 0.0,

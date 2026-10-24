@@ -1154,7 +1154,7 @@ cdef class Trigger:
     def __init__(self, enabled=False, channel=0, edge=None, delayed=False, delay_seconds=0.0, cdata=None):
          if cdata is None:
              self._c_trigger.enabled = enabled
-             self._c_trigger.channel = channel
+             self._c_trigger.channel = TriggerSource(channel).value
              self._c_trigger.edge = TriggerEdge.RISING.value if edge is None else TriggerEdge(edge).value
              self._c_trigger.delayed = delayed
              self._c_trigger.delay_seconds = delay_seconds
@@ -1174,11 +1174,11 @@ cdef class Trigger:
 
     @property
     def channel(self):
-         return self._c_trigger.channel
+         return TriggerSource(self._c_trigger.channel)
 
     @channel.setter
     def channel(self, val):
-         self._c_trigger.channel = val
+         self._c_trigger.channel = TriggerSource(val).value
 
     @property
     def edge(self):
@@ -1534,6 +1534,21 @@ class TriggerEdge(_Enum):
     def __str__(self):
         """Render as the C library does, e.g. 'rising'."""
         return cconfig.katherine_str_trigger_edge(self.value).decode('UTF-8')
+
+
+@_unique
+class TriggerSource(_Enum):
+    """What a trigger listens to. Not TdcSource's numbering: zero is the
+    pulse generator's internal channel, so GPIO channel 0 is one."""
+    PULSE_INTERNAL = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL
+    GPIO_0         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_0
+    GPIO_1         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_1
+    GPIO_2         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_2
+    GPIO_3         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_3
+    GPIO_4         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_4
+    GPIO_5         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_5
+    GPIO_6         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_6
+    GPIO_7         = cconfig.katherine_trigger_source_t.KATHERINE_TRIGGER_SOURCE_GPIO_7
 
 
 @_unique

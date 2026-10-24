@@ -160,10 +160,10 @@ test_config_round_trip(void)
 
     katherine::trigger start{};
     start.enabled = true;
-    start.channel = 3;
+    start.channel = KATHERINE_TRIGGER_SOURCE_GPIO_2;
     c.set_start_trigger(start);
     KT_CHECK(c.start_trigger().enabled);
-    KT_CHECK_EQ(c.start_trigger().channel, 3);
+    KT_CHECK_EQ(c.start_trigger().channel, KATHERINE_TRIGGER_SOURCE_GPIO_2);
 
     katherine::trigger stop{};
     stop.enabled = false;

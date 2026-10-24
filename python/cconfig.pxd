@@ -23,9 +23,20 @@ cdef extern from 'katherine/config.h':
 
     const char *katherine_str_trigger_edge(katherine_trigger_edge_t edge)
 
+    ctypedef enum katherine_trigger_source_t:
+        KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL
+        KATHERINE_TRIGGER_SOURCE_GPIO_0
+        KATHERINE_TRIGGER_SOURCE_GPIO_1
+        KATHERINE_TRIGGER_SOURCE_GPIO_2
+        KATHERINE_TRIGGER_SOURCE_GPIO_3
+        KATHERINE_TRIGGER_SOURCE_GPIO_4
+        KATHERINE_TRIGGER_SOURCE_GPIO_5
+        KATHERINE_TRIGGER_SOURCE_GPIO_6
+        KATHERINE_TRIGGER_SOURCE_GPIO_7
+
     ctypedef struct katherine_trigger_t:
         bool enabled
-        char channel
+        katherine_trigger_source_t channel
         katherine_trigger_edge_t edge
         bool delayed
         double delay_seconds

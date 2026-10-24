@@ -80,13 +80,39 @@ KATHERINE_EXPORTED const char *
 katherine_str_trigger_edge(katherine_trigger_edge_t edge);
 
 
+/**
+ * The signal a trigger listens to.
+ *
+ * Zero is the pulse generator's internal channel and one upward are the GPIO
+ * channels, which is the readout's own numbering: acq_control_unit.vhd:373
+ * builds the trigger input as gpio_current_value(7 downto 0) &
+ * coe_internal_trigger_gen(0), indexed by the channel field of the trigger
+ * word.
+ *
+ * Not katherine_tdc_source_t's numbering, where KATHERINE_TDC_SOURCE_GPIO_0
+ * is zero. Both name GPIO channel 0; they encode into different register
+ * fields, and this one spends its zero on the generator. Distinct types, so
+ * that mixing them is a compile error rather than a wrong trigger.
+ */
+typedef enum katherine_trigger_source {
+    KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL = 0, ///< The pulse generator's internal channel.
+    KATHERINE_TRIGGER_SOURCE_GPIO_0         = 1, ///< GPIO channel 0.
+    KATHERINE_TRIGGER_SOURCE_GPIO_1         = 2, ///< GPIO channel 1.
+    KATHERINE_TRIGGER_SOURCE_GPIO_2         = 3, ///< GPIO channel 2.
+    KATHERINE_TRIGGER_SOURCE_GPIO_3         = 4, ///< GPIO channel 3.
+    KATHERINE_TRIGGER_SOURCE_GPIO_4         = 5, ///< GPIO channel 4.
+    KATHERINE_TRIGGER_SOURCE_GPIO_5         = 6, ///< GPIO channel 5.
+    KATHERINE_TRIGGER_SOURCE_GPIO_6         = 7, ///< GPIO channel 6.
+    KATHERINE_TRIGGER_SOURCE_GPIO_7         = 8, ///< GPIO channel 7.
+} katherine_trigger_source_t;
+
 /** One trigger condition, used for both starting and stopping an acquisition. */
 typedef struct katherine_trigger {
-    bool enabled;                  ///< Whether this trigger is armed at all.
-    char channel;                  ///< The trigger's input channel.
-    katherine_trigger_edge_t edge; ///< Rising or falling edge of the input.
-    bool delayed;                  ///< True to hold the shutter for delay_seconds after the trigger.
-    double delay_seconds;          ///< Interval between the trigger and the shutter, honoured to 10 ns or better. Disregarded unless delayed.
+    bool enabled;                       ///< Whether this trigger is armed at all.
+    katherine_trigger_source_t channel; ///< The signal this trigger listens to.
+    katherine_trigger_edge_t edge;      ///< Rising or falling edge of the input.
+    bool delayed;                       ///< True to hold the shutter for delay_seconds after the trigger.
+    double delay_seconds;               ///< Interval between the trigger and the shutter, honoured to 10 ns or better. Disregarded unless delayed.
 } katherine_trigger_t;
 
 KATHERINE_EXPORTED int
