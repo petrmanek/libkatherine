@@ -248,14 +248,6 @@ katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition
 KATHERINE_EXPORTED uint8_t
 katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord);
 
-/**
- * \note Both timeouts are given in milliseconds and measured against a
- *   one-second clock: the read loop compares time(2) values with difftime(3),
- *   so anything under a second behaves as a second and everything else is
- *   rounded to one. A report timeout of 100 delivers partial buffers about
- *   once a second, not ten times. Stated here because the parameter names say
- *   milliseconds and a caller would otherwise have no way to find out.
- */
 KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout);
 
