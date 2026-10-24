@@ -1642,28 +1642,28 @@ cdef class Config:
     # phase count, and is reported afterwards by Acquisition.phase_correction,
     # not by this property.
     @property
-    def correct_phase(self):
-       return self._c_config.correct_phase
+    def correct_clock_phase(self):
+       return self._c_config.correct_clock_phase
 
-    @correct_phase.setter
-    def correct_phase(self, val):
-       self._c_config.correct_phase = val
-
-    @property
-    def phase(self):
-       return Tpx3Phase(self._c_config.phase)
-
-    @phase.setter
-    def phase(self, val):
-       self._c_config.phase = val.value
+    @correct_clock_phase.setter
+    def correct_clock_phase(self, val):
+       self._c_config.correct_clock_phase = val
 
     @property
-    def freq(self):
-       return Tpx3Freq(self._c_config.freq)
+    def clock_phase(self):
+       return Tpx3Phase(self._c_config.clock_phase)
 
-    @freq.setter
-    def freq(self, val):
-       self._c_config.freq = val.value
+    @clock_phase.setter
+    def clock_phase(self, val):
+       self._c_config.clock_phase = val.value
+
+    @property
+    def clock_frequency(self):
+       return Tpx3Freq(self._c_config.clock_frequency)
+
+    @clock_frequency.setter
+    def clock_frequency(self, val):
+       self._c_config.clock_frequency = val.value
 
     @property
     def dacs(self):

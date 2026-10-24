@@ -92,8 +92,8 @@ configure(katherine::config& config)
     config.set_gray_disable(false);
     config.set_polarity(katherine::polarity::electrons);
 
-    config.set_phase(katherine::tpx3::phase::p1);
-    config.set_freq(katherine::tpx3::freq::f40);
+    config.set_clock_phase(katherine::tpx3::phase::p1);
+    config.set_clock_frequency(katherine::tpx3::freq::f40);
 
     katherine::tpx3::dacs dacs{};
     dacs.named.Ibias_Preamp_ON   = 128;

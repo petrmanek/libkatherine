@@ -271,8 +271,8 @@ def build_config(katherine):
     c.gray_disable = False
     c.polarity = katherine.Polarity.ELECTRONS
 
-    c.phase = katherine.Tpx3Phase.PHASE_1
-    c.freq = katherine.Tpx3Freq.FREQ_40
+    c.clock_phase = katherine.Tpx3Phase.PHASE_1
+    c.clock_frequency = katherine.Tpx3Freq.FREQ_40
 
     dacs = katherine.Tpx3Dacs()
     dacs.Ibias_Preamp_ON = 128

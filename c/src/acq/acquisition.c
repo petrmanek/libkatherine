@@ -213,8 +213,8 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
 
     printf("Gray Coding:            %s\n",      config->gray_disable ? "disabled" : "enabled");
     printf("Polarity:               %s\n",      katherine_str_polarity(config->polarity));
-    printf("Phase:                  %d\n",      config->phase);
-    printf("Clock Frequency:        %d\n",      config->freq);
+    printf("Phase:                  %d\n",      config->clock_phase);
+    printf("Clock Frequency:        %d\n",      config->clock_frequency);
     printf("\n");
 
     printf("Pixel Configuration:    %d %d ... %d %d\n",
@@ -711,7 +711,7 @@ static katherine_tpx3_phase_correction_t
 resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_config_t *config)
 {
     // Not applied if not requested, or all columns use the same phase.
-    if (!config->correct_phase) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
+    if (!config->correct_clock_phase) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
     if (acq->phase_count <= 1) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
 
     // Offloaded to hardware if supported.
@@ -916,7 +916,7 @@ err_unsupported:
  * acquisition, because nothing in the read loop will: see the field's
  * description in acquisition.h. katherine_acquisition_abort() is how.
  *
- * fast_vco_enabled is refused with KATHERINE_E_INVAL at any config->freq
+ * fast_vco_enabled is refused with KATHERINE_E_INVAL at any config->clock_frequency
  * where fine time stamping is not coherent, since the resulting stream would
  * carry a fine field that cannot be subtracted from its coarse one.
  * katherine_tpx3_freq_is_fast_vco_supported reports which frequencies qualify, and
@@ -1002,7 +1002,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     // owns the criterion. Refused here rather than passed to the sensor,
     // which would answer with a stream whose fine field cannot be subtracted
     // from its coarse one.
-    if (fast_vco_enabled && !katherine_tpx3_freq_is_fast_vco_supported(config->freq)) {
+    if (fast_vco_enabled && !katherine_tpx3_freq_is_fast_vco_supported(config->clock_frequency)) {
         res = KATHERINE_E_INVAL;
         goto err;
     }
@@ -1027,8 +1027,8 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->pixel_buffer_valid     = 0;
     acq->pixel_buffer_max_valid = 0;
 
-    acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(config->freq);
-    acq->phase_count                   = katherine_tpx3_actual_phases(config->freq, config->phase);
+    acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(config->clock_frequency);
+    acq->phase_count                   = katherine_tpx3_actual_phases(config->clock_frequency, config->clock_phase);
     acq->phase_correction              = resolve_phase_correction(acq, config);
 
     // Only SOFTWARE puts anything in the table. Every other outcome leaves it

@@ -101,10 +101,10 @@ configure(katherine_config_t *config)
     config->gray_disable = false;
     config->polarity     = KATHERINE_POLARITY_ELECTRONS;
 
-    config->phase         = KATHERINE_TPX3_PHASE_1;
-    config->correct_phase = false; // only makes sense to correct phase offset when we request more than 1 phase
+    config->clock_phase         = KATHERINE_TPX3_PHASE_1;
+    config->correct_clock_phase = false; // only makes sense to correct phase offset when we request more than 1 phase
 
-    config->freq = KATHERINE_TPX3_FREQ_40_MHZ;
+    config->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;

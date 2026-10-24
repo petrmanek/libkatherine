@@ -148,10 +148,10 @@ cdef extern from 'katherine/config.h':
         bool gray_disable
         katherine_polarity_t polarity
 
-        bool correct_phase
+        bool correct_clock_phase
 
-        katherine_tpx3_phase_t phase
-        katherine_tpx3_freq_t freq
+        katherine_tpx3_phase_t clock_phase
+        katherine_tpx3_freq_t clock_frequency
         katherine_tpx3_dacs_t dacs
 
         katherine_tpx3_test_pulse_config_t test_pulse_config

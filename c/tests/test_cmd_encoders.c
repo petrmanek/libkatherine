@@ -526,8 +526,8 @@ test_pll_config_word(void)
         0x0E, 0x28, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
     // The vendor's word, and the one case that matters most.
-    config.freq  = KATHERINE_TPX3_FREQ_40_MHZ;
-    config.phase = KATHERINE_TPX3_PHASE_16;
+    config.clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
+    config.clock_phase     = KATHERINE_TPX3_PHASE_16;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
         0x1E, 0x29, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
@@ -535,14 +535,14 @@ test_pll_config_word(void)
     // Each selector isolated, so neither can silently borrow the other's
     // bits: KATHERINE_TPX3_FREQ_160_MHZ fills the divider,
     // KATHERINE_TPX3_PHASE_1 empties the number.
-    config.freq  = KATHERINE_TPX3_FREQ_160_MHZ;
-    config.phase = KATHERINE_TPX3_PHASE_1;
+    config.clock_frequency = KATHERINE_TPX3_FREQ_160_MHZ;
+    config.clock_phase     = KATHERINE_TPX3_PHASE_1;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
         0x3E, 0x28, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);
 
-    config.freq  = KATHERINE_TPX3_FREQ_20_MHZ;
-    config.phase = KATHERINE_TPX3_PHASE_16;
+    config.clock_frequency = KATHERINE_TPX3_FREQ_20_MHZ;
+    config.clock_phase     = KATHERINE_TPX3_PHASE_16;
     CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                   (uint8_t) KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(&config)),
         0x0E, 0x29, 0, 0, KATHERINE_TPX3_REG_PLL_CONFIG, 0, CMD_TYPE_SENSOR_REGISTER_SETTING, 0);

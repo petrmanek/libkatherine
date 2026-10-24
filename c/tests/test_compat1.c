@@ -400,7 +400,8 @@ test_type_aliases(void)
     KT_CHECK_EQ(coord_t.y, 2);
 
     // The field aliases. 1.x read the chip count as a boolean, named the frame
-    // count for its absence, and misspelled the preamplifier cascode DAC.
+    // count for its absence, misspelled the preamplifier cascode DAC, and said
+    // phase where it meant the pixel clock's.
     katherine_comm_status_t comm;
     memset(&comm, 0, sizeof(comm));
     comm.chip_detected = 3;
@@ -420,6 +421,10 @@ test_type_aliases(void)
     config.no_frames = 4;
     KT_CHECK_EQ(config.no_frames, 4);
     KT_CHECK_EQ(config.frame_count, 4);
+
+    config.correct_phase = true;
+    KT_CHECK(config.correct_phase);
+    KT_CHECK(config.correct_clock_phase);
 }
 
 static void

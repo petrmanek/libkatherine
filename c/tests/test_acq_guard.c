@@ -140,9 +140,9 @@ test_fast_vco_refused_where_incoherent(void)
         memset(&device, 0, sizeof(device));
         memset(&acq, 0, sizeof(acq));
         memset(&config, 0, sizeof(config));
-        acq.device         = &device;
-        config.frame_count = 1;
-        config.freq        = all[i];
+        acq.device             = &device;
+        config.frame_count     = 1;
+        config.clock_frequency = all[i];
 
         KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_SEQUENTIAL,
                         KATHERINE_TPX3_PX_TOA_TOT, true, true),

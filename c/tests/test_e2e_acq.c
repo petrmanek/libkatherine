@@ -503,8 +503,8 @@ configure(katherine_config_t *config, double acq_time_ns, uint32_t frame_count)
     config->frame_count = frame_count;
     config->bias        = 230;
 
-    config->phase = KATHERINE_TPX3_PHASE_1;
-    config->freq  = KATHERINE_TPX3_FREQ_40_MHZ;
+    config->clock_phase     = KATHERINE_TPX3_PHASE_1;
+    config->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;
@@ -864,9 +864,9 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
     probe.acq = &acq;
 
     configure(&config, SHORT_ACQ_TIME_NS, 1);
-    config.freq          = freq;
-    config.phase         = phase;
-    config.correct_phase = request;
+    config.clock_frequency     = freq;
+    config.clock_phase         = phase;
+    config.correct_clock_phase = request;
 
     KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE,
                    PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)

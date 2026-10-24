@@ -353,6 +353,13 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
 #define no_frames     frame_count
 
 /**
+ * 1.x called the pixel-clock settings phase, freq and correct_phase, none of
+ * which says which clock. Only this one can be aliased; the note above the
+ * enumerator aliases says why the other two cannot.
+ */
+#define correct_phase correct_clock_phase
+
+/**
  * 1.x spelled the preamplifier cascode DAC VPReamp_NCAS, with a capital R
  * that appears nowhere else in katherine_tpx3_dacs_named_t. 2.0 spells it
  * Vpreamp_NCAS, which is how the manual writes every other V-prefixed DAC
@@ -689,6 +696,16 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 // collect, destroying the chip. There is no safe translation, so the only
 // correct behaviour is the one a missing field already gives: a compile error at
 // every site, each of which has to be read and converted by hand.
+//
+// katherine_config_t's phase and freq fields are absent for a reason of their
+// own: each is a single common word, and a field alias is a macro that rewrites
+// every token of that name in the translation unit. phase would also rewrite
+// katherine_tpx3_test_pulse_config_t::phase, a different field of a different
+// struct that did not move, so every tp.phase in a 1.x source would stop
+// compiling; freq would rewrite whatever the consumer or its other headers call
+// by that name. correct_phase is aliased because nothing else in reach is
+// spelled that way. The two that are not convert by hand, at sites the compiler
+// names.
 //
 // The chip-type names are absent for a different reason: katherine_asic_t and
 // KATHERINE_ASIC_* are 2.0's own, added with the device-recognition table, so

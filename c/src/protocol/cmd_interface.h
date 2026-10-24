@@ -565,8 +565,8 @@ katherine_pll_config_word(const katherine_config_t *config)
     word          = INSERT(word, pll_config, reset_pll, 1);
     word          = INSERT(word, pll_config, select_vcntrl_pll_dac, 1);
     word          = INSERT(word, pll_config, dual_edge_clock, 1);
-    word          = INSERT(word, pll_config, clk_phaseshift_divider, (uint8_t) config->freq);
-    word          = INSERT(word, pll_config, clk_phaseshift_number, (uint8_t) config->phase);
+    word          = INSERT(word, pll_config, clk_phaseshift_divider, (uint8_t) config->clock_frequency);
+    word          = INSERT(word, pll_config, clk_phaseshift_number, (uint8_t) config->clock_phase);
     word          = INSERT(word, pll_config, pll_out_config, KATHERINE_PLL_OUT_SHUTTER_OUT);
     return (int32_t) word;
 }

@@ -62,8 +62,8 @@ def configure():
     c.gray_disable      = False
     c.polarity          = k.Polarity.ELECTRONS
 
-    c.phase             = k.Tpx3Phase.PHASE_1
-    c.freq              = k.Tpx3Freq.FREQ_40
+    c.clock_phase       = k.Tpx3Phase.PHASE_1
+    c.clock_frequency   = k.Tpx3Freq.FREQ_40
 
     dacs = k.Tpx3Dacs()
     dacs.Ibias_Preamp_ON       = 128

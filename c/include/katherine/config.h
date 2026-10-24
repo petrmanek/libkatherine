@@ -318,13 +318,13 @@ typedef struct katherine_config {
      * better distributed in time for a more stable data flow. This
      * performance improvement however comes at the price of having to
      * correct the phase-offsets in hit timestamps to recover true values.
-     * See the correct_phase setting below for that.
+     * See the correct_clock_phase setting below for that.
      */
-    katherine_tpx3_phase_t phase;
-    bool correct_phase; ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
+    katherine_tpx3_phase_t clock_phase;
+    bool correct_clock_phase; ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
 
-    katherine_tpx3_freq_t freq; ///< Pixel clock frequency, which sets the timestamp resolution.
-    katherine_tpx3_dacs_t dacs; ///< The chip's DACs, including the threshold.
+    katherine_tpx3_freq_t clock_frequency; ///< Pixel clock frequency, which sets the timestamp resolution.
+    katherine_tpx3_dacs_t dacs;            ///< The chip's DACs, including the threshold.
 
     katherine_tpx3_test_pulse_config_t test_pulse_config; ///< Test pulses, injected only while katherine_tpx3_test_pulse_config_t::enabled is set.
 } katherine_config_t;

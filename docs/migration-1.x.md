@@ -182,6 +182,20 @@ The field itself is on its way out: 2.0's configuration restructure
 replaces `bias_id` and `bias` with a `bias[]` array addressed by the same
 index, so a caller writing new code should expect to move again.
 
+### The pixel-clock settings say which clock
+
+`katherine_config_t::phase`, `freq` and `correct_phase` are
+`clock_phase`, `clock_frequency` and `correct_clock_phase`. The
+enumerators are untouched: `KATHERINE_TPX3_PHASE_1` and
+`KATHERINE_TPX3_FREQ_40_MHZ` keep their names and values.
+
+`katherine1.h` aliases `correct_phase` only. It cannot alias `phase` or
+`freq`, because a field alias is a macro over a whole translation unit:
+`phase` would also rewrite `katherine_tpx3_test_pulse_config_t::phase`,
+which did not move, and `freq` would rewrite whatever else the consumer
+calls by that name. Those two convert by hand, at sites the compiler
+names.
+
 ### Some acquisition fields moved
 
 `katherine_acquisition_t` still exposes its state, counters and handlers.

@@ -304,8 +304,8 @@ configure(katherine_config_t *config, double acq_time_ns, uint32_t frame_count)
     config->frame_count = frame_count;
     config->bias        = 230;
 
-    config->phase = KATHERINE_TPX3_PHASE_1;
-    config->freq  = KATHERINE_TPX3_FREQ_40_MHZ;
+    config->clock_phase     = KATHERINE_TPX3_PHASE_1;
+    config->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
 
     config->dacs.named.Ibias_Preamp_ON   = 128;
     config->dacs.named.Ibias_Preamp_OFF  = 8;

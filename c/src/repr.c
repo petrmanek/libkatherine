@@ -461,9 +461,9 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->start_trigger);
     REPR_APPENDF(buf, cap, off, ", stop_trigger: ");
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->stop_trigger);
-    REPR_APPENDF(buf, cap, off, ", gray_disable: %s, polarity: %s, phase: %s, freq: %s, dacs: ",
-        katherine_str_bool(v->gray_disable), katherine_str_polarity(v->polarity), katherine_str_phase(v->phase),
-        katherine_str_freq(v->freq));
+    REPR_APPENDF(buf, cap, off, ", gray_disable: %s, polarity: %s, clock_phase: %s, clock_frequency: %s, dacs: ",
+        katherine_str_bool(v->gray_disable), katherine_str_polarity(v->polarity), katherine_str_phase(v->clock_phase),
+        katherine_str_freq(v->clock_frequency));
     REPR_NEST(buf, cap, off, katherine_tpx3_dacs_snprint, &v->dacs);
     REPR_APPENDF(buf, cap, off, ", test_pulse_config: ");
     REPR_NEST(buf, cap, off, katherine_tpx3_test_pulse_config_snprint, &v->test_pulse_config);

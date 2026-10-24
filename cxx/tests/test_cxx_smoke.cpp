@@ -135,10 +135,10 @@ test_config_round_trip(void)
     c.set_gray_disable(false);
     KT_CHECK(!c.gray_disable());
 
-    c.set_correct_phase(true);
-    KT_CHECK(c.correct_phase());
-    c.set_correct_phase(false);
-    KT_CHECK(!c.correct_phase());
+    c.set_correct_clock_phase(true);
+    KT_CHECK(c.correct_clock_phase());
+    c.set_correct_clock_phase(false);
+    KT_CHECK(!c.correct_clock_phase());
 
     // Hole collection is the safe value and the one a zeroed configuration
     // takes; both directions are written and read back here so that the
@@ -149,11 +149,11 @@ test_config_round_trip(void)
     c.set_polarity(katherine::polarity::electrons);
     KT_CHECK(c.polarity() == katherine::polarity::electrons);
 
-    c.set_phase(katherine::tpx3::phase::p4);
-    KT_CHECK(c.phase() == katherine::tpx3::phase::p4);
+    c.set_clock_phase(katherine::tpx3::phase::p4);
+    KT_CHECK(c.clock_phase() == katherine::tpx3::phase::p4);
 
-    c.set_freq(katherine::tpx3::freq::f80);
-    KT_CHECK(c.freq() == katherine::tpx3::freq::f80);
+    c.set_clock_frequency(katherine::tpx3::freq::f80);
+    KT_CHECK(c.clock_frequency() == katherine::tpx3::freq::f80);
 
     c.set_acq_time(std::chrono::milliseconds{250});
     KT_CHECK(c.acq_time() == std::chrono::milliseconds{250});

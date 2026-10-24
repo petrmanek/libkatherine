@@ -258,19 +258,19 @@ public:
      * reported after the fact by
      * katherine::base_acquisition::phase_correction(), not here.
      */
-    bool correct_phase() const { return conf_.correct_phase; }
-    /** \copydoc correct_phase() */
-    void set_correct_phase(bool val) { conf_.correct_phase = val; }
+    bool correct_clock_phase() const { return conf_.correct_clock_phase; }
+    /** \copydoc correct_clock_phase() */
+    void set_correct_clock_phase(bool val) { conf_.correct_clock_phase = val; }
 
     /// Pixel-clock phase count asked for; katherine::tpx3::actual_phases() says what is granted.
-    katherine::tpx3::phase phase() const { return (katherine::tpx3::phase) conf_.phase; }
-    /** \copydoc phase() */
-    void set_phase(katherine::tpx3::phase val) { conf_.phase = (katherine_tpx3_phase_t) val; }
+    katherine::tpx3::phase clock_phase() const { return (katherine::tpx3::phase) conf_.clock_phase; }
+    /** \copydoc clock_phase() */
+    void set_clock_phase(katherine::tpx3::phase val) { conf_.clock_phase = (katherine_tpx3_phase_t) val; }
 
     /// Pixel-clock frequency, which decides both the phase count and the fine oscillator.
-    katherine::tpx3::freq freq() const { return (katherine::tpx3::freq) conf_.freq; }
-    /** \copydoc freq() */
-    void set_freq(katherine::tpx3::freq val) { conf_.freq = (katherine_tpx3_freq_t) val; }
+    katherine::tpx3::freq clock_frequency() const { return (katherine::tpx3::freq) conf_.clock_frequency; }
+    /** \copydoc clock_frequency() */
+    void set_clock_frequency(katherine::tpx3::freq val) { conf_.clock_frequency = (katherine_tpx3_freq_t) val; }
 
     /// The chip's eighteen DACs, which configure() writes to chip 0.
     const katherine::tpx3::dacs& dacs() const { return conf_.dacs; }
