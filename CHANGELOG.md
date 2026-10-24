@@ -229,6 +229,93 @@ for the carrier it does not collect. The guide also names the fourteen Python
 classes a 1.x script loses, each otherwise an `AttributeError` with nothing
 pointing at the replacement.
 
+### The configuration is three structs, and a readout's chips are an array
+
+`katherine_config_t` was one flat struct describing one Timepix3 chip, so
+a readout carrying two could only be configured by calling the granular
+setters per chip after `katherine_configure()` had addressed chip 0. It
+is now split by what a setting belongs to:
+
+| | |
+|---|---|
+| `katherine_config_t` | what any readout takes: `chip_type`, `chip_count`, `acq_time`, `frame_count`, `bias[]`, the two triggers |
+| `katherine_tpx3_config_t` | that as its first member `common`, Timepix3's readout-wide settings, and `chips[]` |
+| `katherine_tpx3_chip_config_t` | one per chip: `polarity`, `gray_disable`, `dacs`, `pixels` |
+
+`katherine_configure()` is `katherine_tpx3_configure()`. It refuses a
+configuration whose `common.chip_type` is not `KATHERINE_CHIP_TPX3`
+before reading anything else, and sends the per-chip settings to every
+chip the configuration declares.
+
+`chips[]` is a C99 flexible array, so the caller allocates:
+
+```c
+katherine_tpx3_config_t *c = calloc(1, sizeof(*c) + n * sizeof(c->chips[0]));
+```
+
+`calloc` rather than `malloc`, because zero is a safe value for every
+field here — `KATHERINE_POLARITY_HOLES` included.
+
+`readout_mode`, `px_mode` and `fast_vco_enable` were arguments to
+`katherine_acquisition_begin()` and are configuration now, so it takes
+three fewer. Unmodified 1.x source does not have to move: `katherine1.h`
+declares `katherine1_config_t` with the whole 1.x layout, shadows the
+name, and translates. `polarity_holes` stays deliberately absent from it.
+
+### Smaller renames in the same sweep
+
+`no_frames` is `frame_count`, and `uint32_t` where 1.x declared `int`;
+`phase`, `freq` and `correct_phase` are `clock_phase`,
+`clock_frequency` and `correct_clock_phase`;
+`test_pulse_config` is `test_pulses`; `bias_id` and the scalar `bias`
+become `bias[KATHERINE_CONFIG_MAX_BIAS_SUPPLIES]`, and
+`katherine_tpx3_configure()` drives **every** supply the readout
+reports rather than one. `katherine_set_acquisition_triggers()`'s
+second parameter is `stop_trigger`, the name of the field it is copied
+into -- a parameter only, since no field was called anything else.
+`katherine_get_tdc_counts()` fills a `katherine_tdc_counts_t` instead of
+a bare array.
+
+### The bindings
+
+A chip index is the first argument of every chip-addressed call and is
+never optional: Python's eleven `chip_index=0` defaults are gone and so
+are C++'s ten chip-0 overloads. A call that does not name a chip said
+nothing about which one it configured, which on a two-chip readout is a
+bug waiting to be written.
+
+C++ has one exception type again. `katherine::error` carries `code()`;
+`katherine::system_error` is a deprecated alias of it. Catching the base
+and reading its code is what a reader writes, and it used not to compile.
+
+Python's `Device` and `Acquisition` follow the contract `io.IOBase`
+sets — `close()`, `closed`, `with`, `ValueError` on use after close, and
+a `ResourceWarning` when collected unclosed. `Acquisition.__dealloc__`
+freed outside its NULL guard, which `close()` would have turned into a
+double free.
+
+### The decoder's state is reserved, not exposed
+
+`katherine_acquisition_t` and `katherine_device_t` each carry a
+fixed-size opaque `priv` member in place of the fields the library keeps
+for itself — the Timepix3 decoder's `phase_offsets[]`,
+`last_toa_offset`, `toa_coarse_tick_to_fine_shift` and `phase_count`,
+and the device's two `udp_*` records. `phase_correction` stays public;
+it is where a phase-correction request is answered.
+
+Reserved inline rather than behind a pointer, so it costs no allocation
+and no dereference on a path that runs per hit. The Timepix3 state
+measures 272 B against a 384 B reserve. What it buys is 2.1: a second
+ASIC changes what is kept inside and the assertion that it fits, rather
+than a layout callers embed.
+
+One side effect is worth stating on its own.
+`sizeof(katherine_device_t)` used to be 152 bytes with UDP compiled in
+and 144 without, because two members sat behind `#ifdef` in a public
+structure. It is now 208 either way, so a consumer built against one
+feature set and linked against another no longer disagrees about where
+the fields are.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:
