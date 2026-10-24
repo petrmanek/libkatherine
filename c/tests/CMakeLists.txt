@@ -6,6 +6,12 @@
 # Pure bitfield/wire-format vectors: no sockets or threads, builds everywhere.
 katherine_add_test(NAME test_bitfields SOURCES test_bitfields.c LABELS unit)
 
+# The structural invariants the configuration restructure rests on: the base
+# struct first so an entry point can read chip_type before it downcasts, the
+# flexible array reachable inside the allocation the header documents, and a
+# budget on the two structs WP34 gives an opaque reserve. Pure C, no sockets.
+katherine_add_test(NAME test_layout SOURCES test_layout.c LABELS unit)
+
 # DAC register range validation (katherine_tpx3_dacs_validate(), config.c) against
 # the per-DAC maxima of Tpx3 manual Table 11. Plain, portable C, no sockets or
 # threads, builds everywhere -- same shape as test_bitfields above.
