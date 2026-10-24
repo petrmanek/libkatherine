@@ -26,9 +26,11 @@
 #include <katherine/transport.h>
 #ifdef KATHERINE_TEST_EMULATOR
 #include <katherine/emulator.h>
-
-#include "transport/udp.h"
 #endif
+
+// Outside the guard above: the mock readout below is sockets and nothing
+// else, and it is compiled whether or not the emulator is in the build.
+#include "transport/udp.h"
 
 #include "protocol/cmd_builder.h"
 #include "protocol/cmd_interface.h"
