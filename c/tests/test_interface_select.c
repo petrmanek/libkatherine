@@ -212,6 +212,22 @@ test_e_a_caller_can_select_the_interface_itself(void)
     KT_CHECK_EQ(payload, 0u);
 }
 
+// f) A link whose kind has no selector byte. The two kinds this version
+// builds both have one, so this reaches the guard by setting the kind
+// directly -- the check runs before anything touches the link, which is why
+// a zeroed device is enough. What it pins is the premise behind
+// katherine_device_init() tolerating this code: it means there is nothing to
+// select, not that selecting failed.
+static void
+test_f_a_link_with_no_selector_byte(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+    device.control_transport.kind = (katherine_transport_kind_t) 99;
+
+    KT_CHECK_EQ(katherine_device_select_interface(&device), KATHERINE_E_UNSUPPORTED);
+}
+
 int
 main(void)
 {
@@ -227,6 +243,7 @@ main(void)
     KT_RUN(test_c_the_flag_suppresses_it);
     KT_RUN(test_d_an_unprobed_readout_is_told_anyway);
     KT_RUN(test_e_a_caller_can_select_the_interface_itself);
+    KT_RUN(test_f_a_link_with_no_selector_byte);
 
     katherine_udp_fini(&g_mock);
     return kt_summary();

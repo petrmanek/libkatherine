@@ -416,7 +416,13 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // 2. Gen2 answers orders of magnitude faster once it has been told which
     //    interface drives it, so this goes before anything that waits.
     if ((flags & KATHERINE_DEVICE_DONT_SELECT_INTERFACE) == 0) {
-        if ((res = katherine_device_select_interface(device)) != KATHERINE_E_OK) {
+        // KATHERINE_E_UNSUPPORTED here means the link's kind has no selector
+        // byte -- there is nothing to tell the readout, not that telling it
+        // failed. Kept out of res so a tolerated code cannot leak into a
+        // later step's check.
+        const katherine_error_t sel = katherine_device_select_interface(device);
+        if (sel != KATHERINE_E_OK && sel != KATHERINE_E_UNSUPPORTED) {
+            res = sel;
             goto err_select;
         }
     }
