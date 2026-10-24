@@ -37,6 +37,24 @@ target_include_directories(katherinexx
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+# The same assertion c/CMakeLists.txt makes about the C headers, for the
+# ones installed here: a consumer may include any single header first, and
+# nothing in this tree would notice one that had come to depend on another
+# arriving before it. Compiled at the interface's own C++11 floor, since a
+# consumer held to that floor is the one a missing include breaks first.
+if(KATHERINE_BUILD_TESTS)
+    set(KATHERINEXX_STANDALONE_TUS "")
+    foreach(hdr IN LISTS KATHERINEXX_HEADERS)
+        get_filename_component(stem "${hdr}" NAME_WE)
+        set(tu "${CMAKE_CURRENT_BINARY_DIR}/standalone/${stem}.cpp")
+        file(WRITE "${tu}" "#include <katherinexx/${stem}.hpp>\n")
+        list(APPEND KATHERINEXX_STANDALONE_TUS "${tu}")
+    endforeach()
+    add_library(katherinexx_headers_standalone OBJECT ${KATHERINEXX_STANDALONE_TUS})
+    target_link_libraries(katherinexx_headers_standalone PRIVATE katherinexx)
+    target_compile_features(katherinexx_headers_standalone PRIVATE cxx_std_11)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/katherinexx.pc.in katherinexx.pc @ONLY)
 
 install(TARGETS katherinexx EXPORT katherine-targets)
