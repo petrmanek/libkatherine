@@ -365,6 +365,39 @@ reports rather than chip 0. `kdac`'s `--chip` is required by `set`,
 index and nothing else: the chip type `list` takes is `--asic <type>`
 now, and each command refuses the flag it does not take.
 
+### The measurement buffer is one size on every link
+
+`katherine_acquisition_init()`'s `md_buffer_size` names the whole buffer
+whatever the link does with it. A UDP session reads into one buffer of
+that size, as before; a USB ring now divides it across the reads it keeps
+outstanding, rounded down to whole frames, where it used to give each of
+them that much. A size chosen for UDP therefore asked a 64-slot ring for
+64 times it and the open failed. `katherine_acquisition_t::md_buffer_size`
+holds what the ring settled on altogether.
+
+A USB ring is held by the kernel while its reads are outstanding, so its
+ceiling is usbfs's rather than the host's memory --
+`/sys/module/usbcore/parameters/usbfs_memory_mb`, 16 MiB by default. A
+larger ring is refused with `KATHERINE_E_NOMEM` however much memory the
+host has, and the examples' 200 MiB is such a size.
+
+### Timing counts survive a readout that splits its answers
+
+`katherine_get_tdc_counts()` tolerates the short reads firmware 5
+interleaves when it answers over USB, where it used to fail the call with
+`KATHERINE_E_BAD_CRD` and hand back some counts and some of the caller's
+own values. The answers themselves arrive whole, so they are read and the
+fragments dropped; a readout that sends nothing but fragments is reported
+as `KATHERINE_E_UNSUPPORTED` once the discard budget runs out. A firmware
+that frames its answers correctly never enters the tolerance, so nothing
+has to be configured to prefer it.
+
+Nothing is written to the caller's structure unless the whole sequence
+arrived. The earlier behaviour -- counts not received left unchanged, so
+that zeroing the array first showed how far the sequence got -- is gone,
+a part of an answer not being distinguishable from the caller's own
+values.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:
