@@ -316,6 +316,55 @@ structure. It is now 208 either way, so a consumer built against one
 feature set and linked against another no longer disagrees about where
 the fields are.
 
+### The transport is no longer a layout a consumer can hold
+
+`katherine_transport_ops_t` is an incomplete type. The public header
+forward-declares the struct and keeps the typedef; the operations move
+to a header that is not installed, and `katherine_transport_t` keeps its
+pointer, a pointer to an incomplete type being all it ever needed. The
+vtable's layout leaves the ABI with it, so a further operation in 2.1
+costs a consumer nothing.
+
+`katherine_transport_set_buffer_size()` is gone. The data buffer size is
+an argument of `katherine_acquisition_init()` instead, and it is a hint
+rather than a demand: a link serves the nearest size it can and reports
+what it settled on in `katherine_acquisition_t::md_buffer_size`, zero
+asks for the link's own size -- which the USB link used to call an error
+-- and a size no link can serve is refused at init with
+`KATHERINE_E_INVAL`.
+
+### A trigger names its source, and an index starts at zero
+
+`katherine_trigger_t::channel` was a `char` and is now
+`katherine_trigger_source_t`, numbered as the readout numbers it:
+`KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL` is zero and GPIO channels 0 to
+7 follow it. `katherine_set_acquisition_triggers()`'s second parameter is
+`stop_trigger`, agreeing with the field it is copied into and with
+`katherine_acquisition_stop()`.
+
+The wrappers follow. C++ takes an enumerator where it used to take an
+integer literal, an unscoped enum accepting none, and Python gains
+`TriggerSource`, which `Trigger.channel` reads and writes the way it
+already does `TriggerEdge` -- so a channel outside the nine is a
+`ValueError` there, where C masks it.
+
+Two conventions that were true and unwritten are now stated once, in the
+C API's own documentation rather than per call. Every index this
+interface exposes counts from zero, whatever the label on a readout's
+case says. And every pointer the interface writes a result through
+accepts `NULL`, which issues the command and discards the answer, while
+every pointer it reads from does not; the one in-out pointer, the count
+the discovery calls take, refuses `NULL` with `KATHERINE_E_INVAL`
+because it carries the buffer's capacity in.
+
+### The examples name the chip they are talking to
+
+`kinfo`, `ktemp`, `krun` and `kdac` address every chip a readout
+reports rather than chip 0. `kdac`'s `--chip` is required by `set`,
+`scan` and `monitor` instead of defaulting to zero, and it means an
+index and nothing else: the chip type `list` takes is `--asic <type>`
+now, and each command refuses the flag it does not take.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:
