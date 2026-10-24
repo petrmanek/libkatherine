@@ -139,7 +139,7 @@ cdef extern from 'katherine/config.h':
         uint8_t bias_index
 
         double acq_time
-        int no_frames
+        uint32_t frame_count
 
         float bias
         katherine_trigger_t start_trigger
@@ -188,7 +188,7 @@ cdef extern from 'katherine/config.h':
     int katherine_tpx3_config_check_snprint(char *buf, size_t cap, const katherine_tpx3_config_check_t *v)
     int katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_config_check_t *check)
     int katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
-    int katherine_set_no_frames(katherine_device_t *device, int no_frames)
+    int katherine_set_frame_count(katherine_device_t *device, uint32_t frame_count)
     int katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_value)
     int katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
     int katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *end_trigger)

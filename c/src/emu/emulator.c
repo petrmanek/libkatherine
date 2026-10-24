@@ -480,7 +480,7 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_NUMBER_OF_FRAMES:
-        emu->regs.no_frames = payload;
+        emu->regs.frame_count = payload;
         queue_ack(emu, (uint8_t) opcode, 0);
         break;
 

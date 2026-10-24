@@ -293,8 +293,8 @@ typedef struct katherine_config {
 
     uint8_t bias_index; ///< Which bias supply to drive, for a readout that has more than one.
 
-    double acq_time; ///< Shutter time per frame, in nanoseconds.
-    int no_frames;   ///< Frames to measure; data-driven readout accepts only one.
+    double acq_time;      ///< Shutter time per frame, in nanoseconds.
+    uint32_t frame_count; ///< Frames to measure; data-driven readout accepts only one.
 
     float bias;                        ///< Sensor bias voltage, in volts. Its sign must match the carriers the sensor collects.
     katherine_trigger_t start_trigger; ///< What starts the acquisition.
@@ -361,7 +361,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_no_frames(katherine_device_t *device, int no_frames);
+katherine_set_frame_count(katherine_device_t *device, uint32_t frame_count);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count);

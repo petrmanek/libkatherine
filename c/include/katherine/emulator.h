@@ -189,7 +189,7 @@ typedef struct katherine_emu_regs {
 
     uint32_t acq_time_lsb; ///< Internal: in units of 10 ns, as sent by the acquisition time commands
     uint32_t acq_time_msb; ///< Internal
-    uint32_t no_frames;    ///< Internal
+    uint32_t frame_count;  ///< Internal
 
     uint8_t px_mode;      ///< Internal: reaches the sensor only once flushed
     bool fast_vco;        ///< Internal: reaches the sensor only once flushed

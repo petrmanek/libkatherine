@@ -214,9 +214,9 @@ public:
     }
 
     /// How many frames the acquisition runs for.
-    int no_frames() const { return conf_.no_frames; }
-    /** \copydoc no_frames() */
-    void set_no_frames(int val) { conf_.no_frames = val; }
+    std::uint32_t frame_count() const { return conf_.frame_count; }
+    /** \copydoc frame_count() */
+    void set_frame_count(std::uint32_t val) { conf_.frame_count = val; }
 
     /// Sensor bias voltage, in Volts, which the readout supplies.
     float bias() const { return conf_.bias; }

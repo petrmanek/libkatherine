@@ -159,14 +159,24 @@ The 1.x functions still have declarations, so a source mentioning them
 compiles, and they decline at runtime. Code that declared a session has to
 be ported rather than recompiled.
 
-### One configuration field was respelled
+### Two configuration fields were respelled
 
 `katherine_config_t::bias_id` is `bias_index`, which is how every other
 index in the library is spelled -- `chip_index`, `px_index`,
-`frame_index` -- and how the reference implementation names it. Nothing
-else about it changed: same type, same meaning, same values.
-`katherine1.h` aliases the old spelling, so a 1.x source that sets it
-keeps compiling.
+`frame_index` -- and how the reference implementation names it.
+
+`katherine_config_t::no_frames` is `frame_count`, and
+`katherine_set_no_frames()` is `katherine_set_frame_count()`. The field
+holds a count, and 1.x named it for the absence of one.
+`katherine_emulator_t`'s register of the same name moved with it.
+
+`bias_id` kept its type and its values. The frame count widened: the
+field and the setter's parameter are `uint32_t`, where 1.x declared both
+`int`. `katherine1.h` aliases both old spellings and
+`katherine_set_no_frames()` keeps the `int` parameter it had, so a 1.x
+source that sets either keeps compiling -- but a negative count, which
+1.x gave no meaning to, now converts to a large positive one instead of
+reaching the readout as a negative number.
 
 The field itself is on its way out: 2.0's configuration restructure
 replaces `bias_id` and `bias` with a `bias[]` array addressed by the same

@@ -195,7 +195,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
 
     printf("Bias ID:                %d\n",      config->bias_index);
     printf("Acquisition Time:       %0.3f s\n", config->acq_time / 1e9);
-    printf("No. of Frames:          %d\n",      config->no_frames);
+    printf("Frame Count:            %u\n",      config->frame_count);
     printf("Bias:                   %0.3f V\n", config->bias);
     printf("\n");
 
@@ -993,7 +993,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     dump_config(acq, config);
 #endif /* KATHERINE_DEBUG_ACQ */
 
-    if (readout_mode == KATHERINE_TPX3_READOUT_DATA_DRIVEN && config->no_frames > 1) {
+    if (readout_mode == KATHERINE_TPX3_READOUT_DATA_DRIVEN && config->frame_count > 1) {
         res = KATHERINE_E_INVAL;
         goto err;
     }
@@ -1019,7 +1019,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     acq->state = KATHERINE_ACQUISITION_STATE_RUNNING;
 
     acq->completed_frames           = 0;
-    acq->requested_frames           = config->no_frames;
+    acq->requested_frames           = (int) config->frame_count;
     acq->requested_frame_duration   = config->acq_time / 1e9;
     acq->dropped_measurement_data   = 0;
     acq->truncated_measurement_data = 0;

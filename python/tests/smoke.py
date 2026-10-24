@@ -262,7 +262,7 @@ def build_config(katherine):
 
     c.bias_index = 0
     c.acq_time = SHORT_ACQ_TIME_NS
-    c.no_frames = 1
+    c.frame_count = 1
     c.bias = 230
 
     c.start_trigger = katherine.Trigger(enabled=False)

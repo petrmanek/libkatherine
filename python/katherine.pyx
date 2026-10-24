@@ -862,8 +862,8 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_acq_mode(self._c_device, px_mode.value, fast_vco_enabled)
          check_return_code(res)
 
-    def set_no_frames(self, int no_frames):
-         res = cconfig.katherine_set_no_frames(self._c_device, no_frames)
+    def set_frame_count(self, uint32_t frame_count):
+         res = cconfig.katherine_set_frame_count(self._c_device, frame_count)
          check_return_code(res)
 
     def set_bias(self, unsigned char bias_index, float bias_value):
@@ -1585,12 +1585,12 @@ cdef class Config:
        self._c_config.acq_time = val
 
     @property
-    def no_frames(self):
-       return self._c_config.no_frames
+    def frame_count(self):
+       return self._c_config.frame_count
 
-    @no_frames.setter
-    def no_frames(self, val):
-       self._c_config.no_frames = val
+    @frame_count.setter
+    def frame_count(self, val):
+       self._c_config.frame_count = val
 
     @property
     def bias(self):

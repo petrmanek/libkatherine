@@ -82,7 +82,7 @@ configure(katherine::config& config)
     // This configuration will produce meaningful results only for: M7-W0005
     config.set_bias_id(0);
     config.set_acq_time(10s);
-    config.set_no_frames(1);
+    config.set_frame_count(1);
     config.set_bias(230); // V
 
 

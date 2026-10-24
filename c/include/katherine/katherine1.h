@@ -191,12 +191,12 @@ katherine1_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_
     return katherine1_map_result(katherine_tpx3_set_acq_mode(device, px_mode, fast_vco_enabled));
 }
 
-/** \legacy1{katherine_set_no_frames} */
+/** \legacy1{katherine_set_frame_count} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_set_no_frames(katherine_device_t *device, int no_frames)
+katherine1_set_no_frames(katherine_device_t *device, int frame_count)
 {
-    return katherine1_map_result(katherine_set_no_frames(device, no_frames));
+    return katherine1_map_result(katherine_set_frame_count(device, (uint32_t) frame_count));
 }
 
 /** \legacy1{katherine_set_bias} */
@@ -340,6 +340,17 @@ katherine1_get_readout_status(katherine_device_t *device, katherine_readout_stat
  * Only the spelling moved.
  */
 #define bias_id       bias_index
+
+/**
+ * 1.x called the frame count no_frames, which reads as a negation rather than
+ * as the count it is.
+ *
+ * An alias is safe here for the same reason bias_id's is: both spellings name
+ * the same field, of the same type, with the same meaning. It renames the
+ * emulator's register of that name along with it, which is why that one moved
+ * to frame_count too.
+ */
+#define no_frames     frame_count
 
 /**
  * 1.x spelled the preamplifier cascode DAC VPReamp_NCAS, with a capital R

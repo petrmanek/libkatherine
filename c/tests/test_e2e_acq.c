@@ -494,14 +494,14 @@ on_data_received(void *ctx, const char *data, size_t count)
 // the matrix contents, so the zeroed matrix left by the memset below is
 // uploaded and accepted like any other.
 static void
-configure(katherine_config_t *config, double acq_time_ns, int no_frames)
+configure(katherine_config_t *config, double acq_time_ns, uint32_t frame_count)
 {
     memset(config, 0, sizeof(*config));
 
-    config->bias_index = 0;
-    config->acq_time   = acq_time_ns;
-    config->no_frames  = no_frames;
-    config->bias       = 230;
+    config->bias_index  = 0;
+    config->acq_time    = acq_time_ns;
+    config->frame_count = frame_count;
+    config->bias        = 230;
 
     config->phase = KATHERINE_TPX3_PHASE_1;
     config->freq  = KATHERINE_TPX3_FREQ_40_MHZ;
@@ -536,7 +536,7 @@ configure(katherine_config_t *config, double acq_time_ns, int no_frames)
 // the run is instead cut short from inside the read loop, by the first
 // handler of the selected chain that reports the shutter open.
 static int
-acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, double acq_time_ns, int no_frames,
+acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, double acq_time_ns, uint32_t frame_count,
     bool decode_data, bool abort_enabled)
 {
     katherine_config_t config;
@@ -548,7 +548,7 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     probe->frame_ticks   = (uint32_t) (acq_time_ns / TICK_NS);
     probe->abort_enabled = abort_enabled;
 
-    configure(&config, acq_time_ns, no_frames);
+    configure(&config, acq_time_ns, frame_count);
 
     res = katherine_acquisition_init(
         acq, &g_device, probe, MD_BUFFER_SIZE, PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS);

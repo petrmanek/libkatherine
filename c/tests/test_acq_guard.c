@@ -98,7 +98,7 @@ test_failed_begin_leaves_the_device_idle(void)
     // Data-driven readout with more than one frame is rejected before any
     // socket is touched, which is what makes this reachable with a device
     // that has none.
-    config.no_frames = 2;
+    config.frame_count = 2;
 
     // Fast time stamping is left off deliberately. A zeroed config selects
     // whichever frequency is enumerated first, which need not be one where
@@ -140,9 +140,9 @@ test_fast_vco_refused_where_incoherent(void)
         memset(&device, 0, sizeof(device));
         memset(&acq, 0, sizeof(acq));
         memset(&config, 0, sizeof(config));
-        acq.device       = &device;
-        config.no_frames = 1;
-        config.freq      = all[i];
+        acq.device         = &device;
+        config.frame_count = 1;
+        config.freq        = all[i];
 
         KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_SEQUENTIAL,
                         KATHERINE_TPX3_PX_TOA_TOT, true, true),

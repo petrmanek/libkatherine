@@ -295,14 +295,14 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
 // uploaded and accepted like any other. Mirrors configure() in
 // test_e2e_acq.c, whose acquisitions these have to compare against.
 static void
-configure(katherine_config_t *config, double acq_time_ns, int no_frames)
+configure(katherine_config_t *config, double acq_time_ns, uint32_t frame_count)
 {
     memset(config, 0, sizeof(*config));
 
-    config->bias_index = 0;
-    config->acq_time   = acq_time_ns;
-    config->no_frames  = no_frames;
-    config->bias       = 230;
+    config->bias_index  = 0;
+    config->acq_time    = acq_time_ns;
+    config->frame_count = frame_count;
+    config->bias        = 230;
 
     config->phase = KATHERINE_TPX3_PHASE_1;
     config->freq  = KATHERINE_TPX3_FREQ_40_MHZ;

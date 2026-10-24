@@ -233,7 +233,7 @@ test_device_and_acquisition(void)
     // begin() configures the device, so it fails the same way its calls do.
     katherine::config c;
     c.set_bias_id(0);
-    c.set_no_frames(1);
+    c.set_frame_count(1);
     c.set_acq_time(std::chrono::milliseconds{1});
 
     threw = false;

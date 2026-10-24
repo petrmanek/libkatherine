@@ -360,7 +360,7 @@ katherine_emu_stream_arm(katherine_emu_t *emu, uint8_t readout_mode)
     // nanosecond units.
     units                 = ((uint64_t) emu->regs.acq_time_msb << 32) | emu->regs.acq_time_lsb;
     stream->frame_len_ns  = units * 10;
-    stream->frames_total  = emu->regs.no_frames;
+    stream->frames_total  = emu->regs.frame_count;
     stream->frame_index   = 0;
     stream->frame_open_ns = emu->now_ns;
     stream->frame_active  = false;

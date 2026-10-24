@@ -399,8 +399,8 @@ test_type_aliases(void)
     KT_CHECK_EQ(coord_t.x, 1);
     KT_CHECK_EQ(coord_t.y, 2);
 
-    // The field aliases. 1.x read the chip count as a boolean, and misspelled
-    // the preamplifier cascode DAC.
+    // The field aliases. 1.x read the chip count as a boolean, named the frame
+    // count for its absence, and misspelled the preamplifier cascode DAC.
     katherine_comm_status_t comm;
     memset(&comm, 0, sizeof(comm));
     comm.chip_detected = 3;
@@ -414,6 +414,12 @@ test_type_aliases(void)
 
     // Same field under either spelling, which is what the alias has to mean.
     KT_CHECK_EQ(dacs.named.Vpreamp_NCAS, 128);
+
+    katherine_config_t config;
+    memset(&config, 0, sizeof(config));
+    config.no_frames = 4;
+    KT_CHECK_EQ(config.no_frames, 4);
+    KT_CHECK_EQ(config.frame_count, 4);
 }
 
 static void

@@ -84,7 +84,7 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     res = katherine_set_acq_time(device, config->acq_time);
     if (res) goto err;
 
-    res = katherine_set_no_frames(device, config->no_frames);
+    res = katherine_set_frame_count(device, config->frame_count);
     if (res) goto err;
 
     res = katherine_set_bias(device, config->bias_index, config->bias);
@@ -771,7 +771,7 @@ err_enumerated:
 /**
  * Set number of acquired frames.
  * \param device Katherine device
- * \param no_frames Number of frames
+ * \param frame_count Number of frames
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   frame count.
@@ -796,7 +796,7 @@ err_enumerated:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_set_no_frames(katherine_device_t *device, int no_frames)
+katherine_set_frame_count(katherine_device_t *device, uint32_t frame_count)
 {
     katherine_error_t res;
 
@@ -805,7 +805,7 @@ katherine_set_no_frames(katherine_device_t *device, int no_frames)
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_number_of_frames(&device->control_transport, no_frames);
+    res = katherine_cmd_set_number_of_frames(&device->control_transport, frame_count);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_NUMBER_OF_FRAMES);

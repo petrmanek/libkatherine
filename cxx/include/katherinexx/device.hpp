@@ -561,9 +561,9 @@ public:
 
     /// How many frames the next acquisition runs for.
     void
-    set_no_frames(int no_frames)
+    set_frame_count(std::uint32_t frame_count)
     {
-        katherine::detail::check(katherine_set_no_frames(&dev_, no_frames));
+        katherine::detail::check(katherine_set_frame_count(&dev_, frame_count));
     }
 
     /// Asks one bias supply for a voltage. It arrives seconds later; the acknowledgement is of the command.

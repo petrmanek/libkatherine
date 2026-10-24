@@ -123,8 +123,8 @@ test_config_round_trip(void)
     c.set_bias_id(7);
     KT_CHECK_EQ(c.bias_index(), 7);
 
-    c.set_no_frames(12);
-    KT_CHECK_EQ(c.no_frames(), 12);
+    c.set_frame_count(12);
+    KT_CHECK_EQ(c.frame_count(), 12);
 
     c.set_bias(150.0f);
     KT_CHECK_CLOSE(c.bias(), 150.0f);
