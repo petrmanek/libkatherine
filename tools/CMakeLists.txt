@@ -28,5 +28,14 @@ if(KATHERINE_BUILD_TESTS)
             LABELS "unit;tools"
             TIMEOUT 120
             SKIP_RETURN_CODE 77)
+
+        # The pretty-printers' list of covered types against the renderers
+        # c/src defines. Sources only, so it needs neither a debugger nor
+        # the library it would attach to.
+        add_test(NAME test_debugger_tags
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/debuggers/tags_selftest.py")
+        set_tests_properties(test_debugger_tags PROPERTIES
+            LABELS "unit;tools"
+            TIMEOUT 60)
     endif()
 endif()

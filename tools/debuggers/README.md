@@ -7,7 +7,8 @@ a debugger prints byte-identically to C, C++ (`operator<<`) and Python
 (`repr()`). Nothing here reimplements any formatting; the shared
 `libkatherine_debuggers.py` holds the one list of covered types, and both
 debugger scripts dispatch through it — adding a new `katherine_*_snprint()`
-means adding exactly one tag there.
+means adding exactly one tag there, which `tags_selftest.py` checks on
+every test run.
 
 Because the rendering is a real function call into the target, a **running,
 stopped process** is required. Against a core dump, GDB falls back to its
@@ -16,7 +17,7 @@ children remain), so nothing breaks — you just get the raw view.
 
 Example, stopped at a breakpoint:
 
-    (gdb) print config.test_pulse_config
+    (gdb) print config.test_pulses
     $1 = test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}
 
 ## GDB
@@ -34,10 +35,12 @@ once with, e.g.:
 auto-load, `source /usr/lib/libkatherine.so.<version>-gdb.py` works in any
 session.
 
-Note that `katherine_config_t` and `katherine_tpx3_px_config_t` embed a 64 KiB
-pixel matrix, which exceeds GDB's default `max-value-size` — GDB refuses to
+Note that `katherine_tpx3_px_config_t` is a 64 KiB pixel matrix, and that
+`katherine_tpx3_chip_config_t` and `katherine_tpx3_config_t` embed one per
+chip; all three exceed GDB's default `max-value-size`, and GDB refuses to
 fetch values that large for any printer. `set max-value-size unlimited`
-first when printing those two.
+first when printing them. `katherine_config_t`, which carries no matrix
+since the 2.0 split, needs nothing.
 
 ## LLDB
 

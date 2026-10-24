@@ -15,7 +15,8 @@
 
 # Struct/union tags covered by c/src/repr.c, i.e. the C type names without
 # the trailing "_t". The rendering function for a tag is always
-# "<tag>_snprint" (see snprint_name()).
+# "<tag>_snprint" (see snprint_name()). tags_selftest.py holds this list to
+# every renderer c/src defines, so a new one cannot be forgotten here.
 TAGS = frozenset((
     'katherine_tpx3_coord',
     'katherine_tpx3_px_f_toa_tot',
@@ -27,15 +28,25 @@ TAGS = frozenset((
     'katherine_trigger',
     'katherine_tpx3_test_pulse_config',
     'katherine_tpx3_dacs',
+    'katherine_tpx3_dac_voltages',
     'katherine_tpx3_px_config',
+    'katherine_tpx3_chip_config',
     'katherine_config',
+    'katherine_tpx3_config',
+    'katherine_tpx3_config_check',
     'katherine_frame_info_time',
     'katherine_frame_info',
     'katherine_acquisition',
     'katherine_readout_status',
     'katherine_comm_status',
+    'katherine_gpio_channel_monitor',
+    'katherine_gpio_monitor',
+    'katherine_tdc_counts',
     'katherine_udp',
+    'katherine_transport',
     'katherine_device',
+    'katherine_device_info',
+    'katherine_device_derived_info',
 ))
 
 # Generous scratch buffer for the inferior call: every covered type's
