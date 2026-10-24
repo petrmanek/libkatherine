@@ -1527,7 +1527,7 @@ err_chip:
  * starts at whatever the readout was holding.
  *
  * The chip has no path for reading a DAC setpoint back, so a caller tracking
- * what it has set must remember it. katherine_tpx3_read_dac_monitor() reports
+ * what it has set must remember it. katherine_tpx3_get_dac_monitor_voltage() reports
  * the voltage at the multiplexer, which is the analogue result rather than
  * the number that produced it.
  *

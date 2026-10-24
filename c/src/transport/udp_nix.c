@@ -1067,7 +1067,7 @@ katherine_udp_get_dropped_datagrams(const katherine_udp_t *u)
  *
  * Off by default, as the OS has it: a socket that has not asked refuses a
  * send to a broadcast address rather than delivering it to one host. Asked
- * for by katherine_udp_discover(), which is the only thing in this library
+ * for by katherine_device_discover_udp(), which is the only thing in this library
  * needs it.
  *
  * \param u UDP session

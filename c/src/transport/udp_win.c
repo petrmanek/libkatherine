@@ -118,10 +118,11 @@ recv_failure(katherine_udp_t *u, int err)
 //
 // One blind spot follows from asking for a byte count: a zero-length
 // datagram is indistinguishable from an empty socket, so it is not drained
-// here. Only katherine_cmd_drain() reaches this path, and it is best-effort
-// by contract -- a datagram it leaves behind is read by the correlation that
-// follows, which rejects anything that is not a whole response. The readout
-// sends no empty datagrams at all.
+// here. The two callers that reach this path -- the pre-command flush of
+// katherine_transport_flush_incoming(), and discovery's collect -- are both
+// best-effort by contract: a datagram either leaves behind is read by the
+// correlation that follows, which rejects anything that is not a whole
+// response. The readout sends no empty datagrams at all.
 static katherine_error_t
 recv_ready(katherine_udp_t *u)
 {
@@ -672,8 +673,8 @@ katherine_udp_recv(katherine_udp_t *u, void *data, size_t *count)
  *   therefore indistinguishable from an empty socket: this code means
  *   nothing readable was found, not that the socket was left empty. The
  *   readout sends no empty datagrams, and the library's own use of this
- *   function -- the pre-command flush of katherine_cmd_drain() -- is
- *   best-effort by contract.
+ *   function -- the pre-command flush of
+ *   katherine_transport_flush_incoming() -- is best-effort by contract.
  * \retval KATHERINE_E_IO if the readiness check or the receive failed at the
  *   OS level for a reason none of the other codes cover; see ioctlsocket(),
  *   recvfrom() and katherine_udp_last_os_error(), which reports the
@@ -1037,7 +1038,7 @@ katherine_udp_get_dropped_datagrams(const katherine_udp_t *u)
  *
  * Off by default, as the OS has it: a socket that has not asked refuses a
  * send to a broadcast address rather than delivering it to one host. Asked
- * for by katherine_udp_discover(), which is the only thing in this library
+ * for by katherine_device_discover_udp(), which is the only thing in this library
  * needs it.
  *
  * \param u UDP session

@@ -37,5 +37,14 @@ if(KATHERINE_BUILD_TESTS)
         set_tests_properties(test_debugger_tags PROPERTIES
             LABELS "unit;tools"
             TIMEOUT 60)
+
+        # Every katherine_*() a doc block points the reader at. A rename
+        # moves the function and leaves the sentence behind, and neither
+        # the compiler nor Doxygen reads prose.
+        add_test(NAME test_prose_refs
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_prose_refs.py")
+        set_tests_properties(test_prose_refs PROPERTIES
+            LABELS "unit;tools"
+            TIMEOUT 60)
     endif()
 endif()

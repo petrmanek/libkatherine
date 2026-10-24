@@ -297,16 +297,16 @@ katherine_cmd_send64_i64(katherine_transport_t *transport, uint8_t val6, uint8_t
  * \retval KATHERINE_E_BAD_CHIP if \a chip is nonzero and this opcode carries
  *   no chip index.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
- *   of the other codes cover; see katherine_transport_last_os_error().
+ *   of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send64_i64_chip(katherine_transport_t *transport, uint8_t val6, uint8_t val4, int64_t value, uint8_t chip)
@@ -333,16 +333,16 @@ katherine_cmd_send64_i64_chip(katherine_transport_t *transport, uint8_t val6, ui
  * \retval KATHERINE_E_BAD_CHIP if \a chip is nonzero and this opcode carries
  *   no chip index.
  * \retval KATHERINE_E_TIMEOUT if the send would have blocked; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
- *   of the other codes cover; see katherine_transport_last_os_error().
+ *   of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the send reported an invalid argument; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
- *   katherine_transport_last_os_error().
+ *   katherine_transport_get_last_os_error().
  */
 static inline katherine_error_t
 katherine_cmd_send60_chip(katherine_transport_t *transport, uint8_t val6, uint8_t val0, uint8_t chip)
