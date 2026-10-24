@@ -130,7 +130,7 @@ through it keeps the fixed ports it may rely on and behaves as it did.
 An address now carries a scheme: `udp://192.168.1.142`, `usb://auto`. A
 bare address is still read as UDP.
 
-## 5. The four things with no shim
+## 5. The changes with no shim
 
 ### `polarity_holes` is gone, and its replacement means the opposite
 
@@ -355,6 +355,28 @@ an open readout holds a claim no other process on the machine can take.
 
 `Device.close()` refuses while an `Acquisition` is open on it. Nothing
 cascades; close the acquisition first, or let `with` nest them.
+
+### A trigger channel is a source, and C will not tell you
+
+`katherine_trigger_t::channel` was a `char` and is now
+`katherine_trigger_source_t`.
+
+```c
+/* 1.x */  trigger.channel = 1;
+/* 2.0 */  trigger.channel = KATHERINE_TRIGGER_SOURCE_GPIO_0;
+```
+
+The values are unchanged -- zero is the pulse generator's internal
+channel and one upward are GPIO 0 to 7 -- so a program that keeps
+assigning integers behaves exactly as it did. **In C it also still
+compiles**, silently, because an `int` converts to an enumeration; in
+C++ the same line stops compiling, which is the only warning either
+language gives. Grep for `.channel` rather than waiting for one.
+
+Python is the exception that does tell you, and only sometimes:
+`Trigger.channel` is a `TriggerSource` now, so a channel of 0 to 8
+reads back as an enumerator and anything else is a `ValueError` where
+1.x stored it and C still masks it.
 
 ### Two smaller signature changes
 

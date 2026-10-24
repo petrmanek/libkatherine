@@ -223,7 +223,7 @@ pointer for the next finalize to free again. One integer through
 
 **Moving from 1.x is written down.** `docs/migration-1.x.md` covers the
 return convention, the `tpx3_` stem, per-chip calls, opening a device, the
-four things with no shim, and linking. Four of those have no shim on purpose,
+changes that have no shim, and linking. Some of those could not have one,
 `polarity_holes` foremost: an alias there would compile and bias the sensor
 for the carrier it does not collect. The guide also names the fourteen Python
 classes a 1.x script loses, each otherwise an `AttributeError` with nothing
