@@ -18,6 +18,9 @@
 #include <katherine/error.h>
 #include <katherine/transport.h>
 
+// Every operation taking a pointer to write through must tolerate NULL and
+// succeed without writing, because katherine.h promises a caller that for
+// the whole interface and these are reached through it.
 typedef struct katherine_transport_ops {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
     katherine_error_t (*send_cmd)(void *ctx, const void *data, size_t count);

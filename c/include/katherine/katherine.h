@@ -23,6 +23,16 @@
  * this library's, and the reference implementation records the offset in its
  * own enumerators for the same reason.
  *
+ * \par Discarding an answer
+ * Every pointer this interface writes a result through may be **NULL**,
+ * which issues the command and throws the answer away: a liveness check, or
+ * a command whose effect on the readout is the point. Pointers it reads
+ * from -- the device, the configuration, an address -- may not. The one
+ * in-out pointer is the exception in both directions: the count
+ * ::katherine_device_discover_udp() and ::katherine_device_discover_usb()
+ * take carries the buffer's capacity in, so NULL earns
+ * ::KATHERINE_E_INVAL rather than a discarded result.
+ *
  * \par
  * One pair looks like an exception and is not.
  * ::KATHERINE_TDC_SOURCE_GPIO_0 is 0 while
