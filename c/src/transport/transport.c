@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "ops.h"
 #include <katherine/transport.h>
 
 // Every operation is reached through one of these rather than through

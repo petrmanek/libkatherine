@@ -35,6 +35,7 @@
 
 #include "atomic.h"
 #include "acq/private.h"
+#include "transport/ops.h"
 #include "ktest.h"
 
 

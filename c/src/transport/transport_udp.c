@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include <katherine/device.h> // the discovery below fills the device's own result type
+#include "ops.h"
 #include <katherine/transport.h>
 
 #include "address.h"

@@ -37,6 +37,7 @@
 #include "monoclock.h"
 #include "msleep.h"
 #include "mutex.h"
+#include "ops.h"
 #include "usb.h"
 #include "protocol/cmd_interface.h"
 

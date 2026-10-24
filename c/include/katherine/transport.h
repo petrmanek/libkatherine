@@ -44,32 +44,18 @@ typedef enum katherine_transport_kind {
 /**
  * Operation set common to every transport.
  *
- * The control plane follows a synchronous scheme: a request followed by its
- * acknowledgement. The data plane is optimized for throughput and so is
- * asynchronous, lending buffers rather than filling the caller's. The
- * transport owns them, hands over a filled one and takes it back, which is
- * what lets an implementation keep several reads outstanding while the
- * caller decodes.
+ * Incomplete on purpose: the library builds these and nothing outside it
+ * constructs one, so the members are not part of the ABI and a thirteenth
+ * operation costs a consumer nothing. A pointer to an incomplete type is all
+ * katherine_transport_t needs.
  *
- * Each member is documented on the katherine_transport_* function that
+ * Each operation is documented on the katherine_transport_* function that
  * calls it, which is also how the rest of the library reaches it.
  */
-typedef struct katherine_transport_ops {
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-    katherine_error_t (*send_cmd)(void *ctx, const void *data, size_t count);
-    katherine_error_t (*recv_crd)(void *ctx, void *crd, size_t *len);
-    katherine_error_t (*flush_incoming)(void *ctx, uint32_t *discarded);
-    katherine_error_t (*acquire_data_buf)(void *ctx, void **buf, size_t *len);
-    katherine_error_t (*release_data_buf)(void *ctx, void *buf);
-    katherine_error_t (*set_timeout)(void *ctx, uint32_t timeout_ms);
-    katherine_error_t (*set_buffer_size)(void *ctx, size_t size);
-    katherine_error_t (*get_dropped_input)(void *ctx, uint64_t *count);
-    katherine_error_t (*mutex_lock)(void *ctx);
-    katherine_error_t (*mutex_unlock)(void *ctx);
-    int (*get_last_os_error)(void *ctx);
-    void (*fini)(void *ctx);
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-} katherine_transport_ops_t;
+struct katherine_transport_ops;
+
+/** Operation set common to every transport. \see katherine_transport_t::ops */
+typedef struct katherine_transport_ops katherine_transport_ops_t;
 
 /** A single communications link, and the operations driving it. */
 typedef struct katherine_transport {

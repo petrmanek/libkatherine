@@ -28,6 +28,7 @@
 #include <katherine/acquisition.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>
+#include "transport/ops.h"
 #include "transport/factory.h"
 #include "transport/usb.h"
 
