@@ -194,10 +194,11 @@ Note the change in effect, not only in spelling: an entry left at zero
 drives that supply to zero, where 1.x left every supply but one alone.
 On a readout with a single supply nothing changes.
 
-`katherine1.h` aliases neither. `bias_id` has no counterpart to alias
-to, and an alias from the scalar `bias` would compile into an assignment
-to the whole array instead of to the supply the source meant -- so both
-are compile errors at every site, which is the only safe outcome.
+Neither name is aliased, because neither can be: `bias_id` has no
+counterpart, and an alias from the scalar `bias` would compile into an
+assignment to the whole array rather than to the supply the source
+meant. A 1.x source does not need one -- see the next section, which
+gives it the whole 1.x structure instead.
 
 ### The pixel-clock settings say which clock
 
@@ -225,6 +226,55 @@ C as `katherine_tpx3_test_pulse_config_t` and in C++ as
 over the whole translation unit, and because the header is includable
 from C++, an alias would rewrite the `katherine::test_pulse_config` type
 wherever both headers are in scope.
+
+### The configuration was split in three, and 1.x source keeps the old one
+
+`katherine_config_t` was one flat struct for one Timepix3 chip. It is now
+three:
+
+| | |
+|---|---|
+| `katherine_config_t` | what every readout takes, whatever chip it drives: `chip_type`, `chip_count`, `acq_time`, `frame_count`, `bias[]`, the two triggers |
+| `katherine_tpx3_config_t` | that as its first member `common`, plus Timepix3's readout-wide settings, plus `chips[]` |
+| `katherine_tpx3_chip_config_t` | one per chip: `polarity`, `gray_disable`, `dacs`, `pixels` |
+
+`readout_mode`, `px_mode` and `fast_vco_enable` were arguments to
+`katherine_acquisition_begin()` and are now fields of the Timepix3
+configuration, so `begin()` takes three fewer:
+
+```c
+katherine_acquisition_begin(&acq, config, decode_data);
+```
+
+`katherine_configure()` is `katherine_tpx3_configure()`, and it sends
+every chip the configuration declares rather than only chip 0.
+
+Because `chips[]` is a flexible array, the caller allocates:
+
+```c
+katherine_tpx3_config_t *c = calloc(1, sizeof(*c) + n * sizeof(c->chips[0]));
+```
+
+`calloc`, not `malloc`: zero is a safe value for every field here, so a
+configuration only partly filled in still selects
+`KATHERINE_POLARITY_HOLES` and an empty matrix rather than whatever the
+allocator last held.
+
+**1.x source does not have to move.** No macro can alias one struct into
+three, so `katherine1.h` declares `katherine1_config_t` with the whole
+1.x layout, shadows the `katherine_config_t` name with it, and
+translates in `katherine1_configure()` and
+`katherine1_acquisition_begin()`. An unmodified 1.x source -- stack
+declaration, `memset`, field assignment, `bias_id` and scalar `bias`
+included -- still compiles and still means what it meant. It costs one
+`malloc` and a 64 KiB matrix copy per configure, on a path that already
+uploads 64 KiB.
+
+`polarity_holes` is deliberately **absent** from `katherine1_config_t`.
+Its sense inverted in 2.0, so a field that shimmed transparently would
+bias an assembly for the carrier it does not collect and destroy the
+chip. A missing member is a compile error naming itself, which is the
+only safe translation there is.
 
 ### Some acquisition fields moved
 

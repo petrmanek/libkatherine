@@ -11,6 +11,7 @@
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, int32_t
+from libc.stdlib cimport calloc, free
 from libc.string cimport memcpy, memset
 from libcpp cimport bool
 # Imported under private names on purpose. A module-scope `from enum import
@@ -827,7 +828,7 @@ cdef class Device:
          check_return_code(res)
 
     def configure(self, Config config):
-         res = cconfig.katherine_configure(self._c_device, &config._c_config)
+         res = cconfig.katherine_tpx3_configure(self._c_device, config._c_config)
          check_return_code(res)
 
     def set_all_pixel_config(self, Tpx3PxConfig px_config, uint8_t chip_index=0):
@@ -1561,49 +1562,69 @@ class Tpx3Reg(_Enum):
 
 
 cdef class Config:
-    cdef cconfig.katherine_config_t _c_config
+    cdef cconfig.katherine_tpx3_config_t *_c_config
+    cdef readonly uint8_t chip_count
 
-    def __init__(self):
-         pass
+    def __cinit__(self, chip_count=1):
+         if chip_count < 1 or chip_count > 255:
+             raise ValueError('chip_count must be between 1 and 255')
+         # The per-chip settings are a flexible array in C, so the size is
+         # not known until the chip count is. calloc, not malloc: zero is a
+         # safe value for every field, Polarity.HOLES included.
+         self._c_config = <cconfig.katherine_tpx3_config_t *> calloc(
+             1, sizeof(cconfig.katherine_tpx3_config_t) + chip_count * sizeof(cconfig.katherine_tpx3_chip_config_t))
+         if self._c_config is NULL:
+             raise MemoryError('cannot allocate a configuration for %d chips' % chip_count)
+         self.chip_count = chip_count
+         self._c_config.common.chip_type = cdevice.KATHERINE_CHIP_TPX3
+         self._c_config.common.chip_count = chip_count
+
+    def __dealloc__(self):
+         free(self._c_config)
+         self._c_config = NULL
 
     def __repr__(self):
-         return _snprint_repr(<snprint_fn_t> cconfig.katherine_config_snprint, &self._c_config)
+         return _snprint_repr(<snprint_fn_t> cconfig.katherine_tpx3_config_snprint, self._c_config)
+
+    cdef _check_chip(self, chip_index):
+         if chip_index < 0 or chip_index >= self.chip_count:
+             raise IndexError('chip %d of %d' % (chip_index, self.chip_count))
 
     @property
     def acq_time(self):
-       return self._c_config.acq_time
+       return self._c_config.common.acq_time
 
     @acq_time.setter
     def acq_time(self, val):
-       self._c_config.acq_time = val
+       self._c_config.common.acq_time = val
 
     @property
     def frame_count(self):
-       return self._c_config.frame_count
+       return self._c_config.common.frame_count
 
     @frame_count.setter
     def frame_count(self, val):
-       self._c_config.frame_count = val
+       self._c_config.common.frame_count = val
 
     @property
     def bias(self):
        """Bias voltage asked of each supply, in volts, addressed from 0. A
        copy of the array, so assign the property to change it."""
-       return [self._c_config.bias[i] for i in range(MAX_BIAS_SUPPLIES)]
+       return [self._c_config.common.bias[i] for i in range(MAX_BIAS_SUPPLIES)]
 
     @bias.setter
     def bias(self, val):
        if len(val) > MAX_BIAS_SUPPLIES:
            raise ValueError('at most %d bias supplies' % MAX_BIAS_SUPPLIES)
        for i in range(MAX_BIAS_SUPPLIES):
-           self._c_config.bias[i] = val[i] if i < len(val) else 0.0
+           self._c_config.common.bias[i] = val[i] if i < len(val) else 0.0
 
     @property
     def start_trigger(self):
-       return Trigger(cdata=self._c_config.start_trigger)
+       return Trigger(cdata=self._c_config.common.start_trigger)
 
     cdef _set_start_trigger(self, Trigger val):
-         memcpy(&self._c_config.start_trigger, &val._c_trigger, sizeof(self._c_config.start_trigger))
+         memcpy(&self._c_config.common.start_trigger, &val._c_trigger, sizeof(self._c_config.common.start_trigger))
 
     @start_trigger.setter
     def start_trigger(self, val):
@@ -1611,30 +1632,34 @@ cdef class Config:
 
     @property
     def stop_trigger(self):
-       return Trigger(cdata=self._c_config.stop_trigger)
+       return Trigger(cdata=self._c_config.common.stop_trigger)
 
     cdef _set_stop_trigger(self, Trigger val):
-         memcpy(&self._c_config.stop_trigger, &val._c_trigger, sizeof(self._c_config.stop_trigger))
+         memcpy(&self._c_config.common.stop_trigger, &val._c_trigger, sizeof(self._c_config.common.stop_trigger))
 
     @stop_trigger.setter
     def stop_trigger(self, val):
          self._set_stop_trigger(val)
 
-    @property
-    def gray_disable(self):
-       return self._c_config.gray_disable
+    def gray_disable(self, chip_index):
+       """True if one chip's timestamps stay in its Gray code."""
+       self._check_chip(chip_index)
+       return self._c_config.chips[chip_index].gray_disable
 
-    @gray_disable.setter
-    def gray_disable(self, val):
-       self._c_config.gray_disable = val
+    def set_gray_disable(self, chip_index, val):
+       """Sets whether one chip's timestamps stay in Gray code."""
+       self._check_chip(chip_index)
+       self._c_config.chips[chip_index].gray_disable = val
 
-    @property
-    def polarity(self):
-       return Polarity(self._c_config.polarity)
+    def polarity(self, chip_index):
+       """Carriers one chip's sensor collects."""
+       self._check_chip(chip_index)
+       return Polarity(self._c_config.chips[chip_index].polarity)
 
-    @polarity.setter
-    def polarity(self, val):
-       self._c_config.polarity = Polarity(val).value
+    def set_polarity(self, chip_index, val):
+       """Sets the carriers one chip's sensor collects."""
+       self._check_chip(chip_index)
+       self._c_config.chips[chip_index].polarity = Polarity(val).value
 
     # A request only: what actually happens depends on the device and on the
     # phase count, and is reported afterwards by Acquisition.phase_correction,
@@ -1663,27 +1688,49 @@ cdef class Config:
     def clock_frequency(self, val):
        self._c_config.clock_frequency = val.value
 
+    def dacs(self, chip_index):
+       """One chip's eighteen DACs."""
+       self._check_chip(chip_index)
+       return Tpx3Dacs(cdata=self._c_config.chips[chip_index].dacs)
+
+    def set_dacs(self, chip_index, Tpx3Dacs val):
+       """Sets one chip's eighteen DACs."""
+       self._check_chip(chip_index)
+       memcpy(&self._c_config.chips[chip_index].dacs, &val._c_dacs, sizeof(val._c_dacs))
+
+    def pixels(self, chip_index):
+       """One chip's pixel matrix."""
+       self._check_chip(chip_index)
+       return Tpx3PxConfig(cdata=self._c_config.chips[chip_index].pixels)
+
+    def set_pixels(self, chip_index, Tpx3PxConfig val):
+       """Sets one chip's pixel matrix."""
+       self._check_chip(chip_index)
+       memcpy(&self._c_config.chips[chip_index].pixels, &val._c_px_config, sizeof(val._c_px_config))
+
     @property
-    def dacs(self):
-       return Tpx3Dacs(cdata=self._c_config.dacs)
+    def readout_mode(self):
+       return Tpx3ReadoutMode(self._c_config.readout_mode)
 
-    cdef _set_dacs(self, Tpx3Dacs val):
-         memcpy(&self._c_config.dacs, &val._c_dacs, sizeof(self._c_config.dacs))
-
-    @dacs.setter
-    def dacs(self, val):
-         self._set_dacs(val)
+    @readout_mode.setter
+    def readout_mode(self, val):
+       self._c_config.readout_mode = val.value
 
     @property
-    def pixel_config(self):
-       return Tpx3PxConfig(cdata=self._c_config.pixel_config)
+    def px_mode(self):
+       return Tpx3PxMode(self._c_config.px_mode)
 
-    cdef _set_pixel_config(self, Tpx3PxConfig val):
-         memcpy(&self._c_config.pixel_config, &val._c_px_config, sizeof(self._c_config.pixel_config))
+    @px_mode.setter
+    def px_mode(self, val):
+       self._c_config.px_mode = val.value
 
-    @pixel_config.setter
-    def pixel_config(self, val):
-         self._set_pixel_config(val)
+    @property
+    def fast_vco_enable(self):
+       return self._c_config.fast_vco_enable
+
+    @fast_vco_enable.setter
+    def fast_vco_enable(self, val):
+       self._c_config.fast_vco_enable = val
 
     @property
     def test_pulses(self):
@@ -2035,8 +2082,12 @@ cdef class Acquisition:
     def __repr__(self):
       return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._c_acq)
 
-    def begin(self, Config config, readout_type, px_mode, bool fast_vco_enabled, bool decode_data=True):
-      if fast_vco_enabled:
+    def begin(self, Config config, bool decode_data=True):
+      """Configures the readout and opens the shutter. The readout mode, the
+      pixel mode and the oscillator setting come from the configuration,
+      where they used to be arguments here."""
+      px_mode = config.px_mode
+      if config.fast_vco_enable:
         if px_mode == Tpx3PxMode.TOA_TOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_tot
         elif px_mode == Tpx3PxMode.ONLY_TOA:
@@ -2051,7 +2102,7 @@ cdef class Acquisition:
         elif px_mode == Tpx3PxMode.EVENT_COUNT_ITOT:
           self._c_acq.handlers.pixels_received = _forward_pixels_received_event_count_itot
 
-      res = cacquisition.katherine_acquisition_begin(self._c_acq, &config._c_config, readout_type.value, px_mode.value, fast_vco_enabled, decode_data)
+      res = cacquisition.katherine_acquisition_begin(self._c_acq, config._c_config, decode_data)
       check_return_code(res)
 
     def abort(self):

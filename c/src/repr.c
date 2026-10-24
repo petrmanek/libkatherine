@@ -454,9 +454,8 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 {
     size_t off = 0;
 
-    REPR_APPENDF(buf, cap, off, "config{pixel_config: ");
-    REPR_NEST(buf, cap, off, katherine_tpx3_px_config_snprint, &v->pixel_config);
-    REPR_APPENDF(buf, cap, off, ", acq_time: %g, frame_count: %u", v->acq_time, (unsigned) v->frame_count);
+    REPR_APPENDF(buf, cap, off, "config{chip_type: %s, chip_count: %u, acq_time: %g, frame_count: %u",
+        katherine_str_chip_type(v->chip_type), (unsigned) v->chip_count, v->acq_time, (unsigned) v->frame_count);
     for (uint8_t i = 0; i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
         REPR_APPENDF(buf, cap, off, ", bias%u: %g", (unsigned) i, (double) v->bias[i]);
     }
@@ -464,12 +463,46 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->start_trigger);
     REPR_APPENDF(buf, cap, off, ", stop_trigger: ");
     REPR_NEST(buf, cap, off, katherine_trigger_snprint, &v->stop_trigger);
-    REPR_APPENDF(buf, cap, off, ", gray_disable: %s, polarity: %s, clock_phase: %s, clock_frequency: %s, dacs: ",
-        katherine_str_bool(v->gray_disable), katherine_str_polarity(v->polarity), katherine_str_phase(v->clock_phase),
-        katherine_str_freq(v->clock_frequency));
+    REPR_APPENDF(buf, cap, off, "}");
+
+    return (int) off;
+}
+
+/** \copydoc katherine_tpx3_coord_snprint */
+int
+katherine_tpx3_chip_config_snprint(char *buf, size_t cap, const katherine_tpx3_chip_config_t *v)
+{
+    size_t off = 0;
+
+    REPR_APPENDF(buf, cap, off, "tpx3_chip_config{polarity: %s, gray_disable: %s, dacs: ",
+        katherine_str_polarity(v->polarity), katherine_str_bool(v->gray_disable));
     REPR_NEST(buf, cap, off, katherine_tpx3_dacs_snprint, &v->dacs);
-    REPR_APPENDF(buf, cap, off, ", test_pulses: ");
+    REPR_APPENDF(buf, cap, off, ", pixels: ");
+    REPR_NEST(buf, cap, off, katherine_tpx3_px_config_snprint, &v->pixels);
+    REPR_APPENDF(buf, cap, off, "}");
+
+    return (int) off;
+}
+
+/** \copydoc katherine_tpx3_coord_snprint */
+int
+katherine_tpx3_config_snprint(char *buf, size_t cap, const katherine_tpx3_config_t *v)
+{
+    size_t off = 0;
+
+    REPR_APPENDF(buf, cap, off, "tpx3_config{common: ");
+    REPR_NEST(buf, cap, off, katherine_config_snprint, &v->common);
+    REPR_APPENDF(buf, cap, off, ", readout_mode: %s, px_mode: %s, fast_vco_enable: %s",
+        katherine_str_readout_mode(v->readout_mode), katherine_str_px_mode(v->px_mode),
+        katherine_str_bool(v->fast_vco_enable));
+    REPR_APPENDF(buf, cap, off, ", clock_phase: %s, correct_clock_phase: %s, clock_frequency: %s, test_pulses: ",
+        katherine_str_phase(v->clock_phase), katherine_str_bool(v->correct_clock_phase),
+        katherine_str_freq(v->clock_frequency));
     REPR_NEST(buf, cap, off, katherine_tpx3_test_pulse_config_snprint, &v->test_pulses);
+    for (uint8_t i = 0; i < v->common.chip_count; ++i) {
+        REPR_APPENDF(buf, cap, off, ", chip%u: ", (unsigned) i);
+        REPR_NEST(buf, cap, off, katherine_tpx3_chip_config_snprint, &v->chips[i]);
+    }
     REPR_APPENDF(buf, cap, off, "}");
 
     return (int) off;

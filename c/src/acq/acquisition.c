@@ -185,7 +185,7 @@ handle_unknown_msg(katherine_acquisition_t *acq, const uint64_t *data)
 #ifdef KATHERINE_DEBUG_ACQ
 // clang-format off
 static inline void
-dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config)
+dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *config)
 {
     printf("---- Begin Acquisition Configuration ----\n");
     printf("Acquisition Mode:       %d\n",      acq->px_mode);
@@ -193,56 +193,59 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("Fast VCO:               %s\n",      acq->fast_vco_enabled ? "enabled" : "disabled");
     printf("\n");
 
-    printf("Acquisition Time:       %0.3f s\n", config->acq_time / 1e9);
-    printf("Frame Count:            %u\n",      config->frame_count);
+    printf("Acquisition Time:       %0.3f s\n", config->common.acq_time / 1e9);
+    printf("Frame Count:            %u\n",      config->common.frame_count);
     for (uint8_t i = 0; i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
-        printf("Bias %u:                 %0.3f V\n", (unsigned) i, (double) config->bias[i]);
+        printf("Bias %u:                 %0.3f V\n", (unsigned) i, (double) config->common.bias[i]);
     }
     printf("\n");
 
-    printf("Start Trigger:          %s\n",      config->start_trigger.enabled ? "true" : "false");
-    printf("Start Trigger Channel:  %d\n",      config->start_trigger.channel);
-    printf("Start Trigger Signal:   %s edge\n", katherine_str_trigger_edge(config->start_trigger.edge));
-    printf("Start Trigger Delay:    %s\n",      config->start_trigger.delayed ? "true" : "false");
-    printf("Start Trigger Delay s:  %g\n",      config->start_trigger.delay_seconds);
-    printf("Stop Trigger:           %s\n",      config->stop_trigger.enabled ? "true" : "false");
-    printf("Stop Trigger Channel:   %d\n",      config->stop_trigger.channel);
-    printf("Stop Trigger Signal:    %s edge\n", katherine_str_trigger_edge(config->stop_trigger.edge));
-    printf("Stop Trigger Delay:     %s\n",      config->stop_trigger.delayed ? "true" : "false");
-    printf("Stop Trigger Delay s:   %g\n",      config->stop_trigger.delay_seconds);
+    printf("Start Trigger:          %s\n",      config->common.start_trigger.enabled ? "true" : "false");
+    printf("Start Trigger Channel:  %d\n",      config->common.start_trigger.channel);
+    printf("Start Trigger Signal:   %s edge\n", katherine_str_trigger_edge(config->common.start_trigger.edge));
+    printf("Start Trigger Delay:    %s\n",      config->common.start_trigger.delayed ? "true" : "false");
+    printf("Start Trigger Delay s:  %g\n",      config->common.start_trigger.delay_seconds);
+    printf("Stop Trigger:           %s\n",      config->common.stop_trigger.enabled ? "true" : "false");
+    printf("Stop Trigger Channel:   %d\n",      config->common.stop_trigger.channel);
+    printf("Stop Trigger Signal:    %s edge\n", katherine_str_trigger_edge(config->common.stop_trigger.edge));
+    printf("Stop Trigger Delay:     %s\n",      config->common.stop_trigger.delayed ? "true" : "false");
+    printf("Stop Trigger Delay s:   %g\n",      config->common.stop_trigger.delay_seconds);
     printf("\n");
 
-    printf("Gray Coding:            %s\n",      config->gray_disable ? "disabled" : "enabled");
-    printf("Polarity:               %s\n",      katherine_str_polarity(config->polarity));
     printf("Phase:                  %d\n",      config->clock_phase);
     printf("Clock Frequency:        %d\n",      config->clock_frequency);
     printf("\n");
 
-    printf("Pixel Configuration:    %d %d ... %d %d\n",
-        config->pixel_config.words[0],      config->pixel_config.words[1],
-        config->pixel_config.words[16382],  config->pixel_config.words[16383]);
-    printf("\n");
+    for (uint8_t i = 0; i < config->common.chip_count; ++i) {
+        const katherine_tpx3_chip_config_t *chip = &config->chips[i];
 
-    printf("DACs:\n");
-    printf("  - Ibias_Preamp_ON:    %d\n",      config->dacs.named.Ibias_Preamp_ON);
-    printf("  - Ibias_Preamp_OFF:   %d\n",      config->dacs.named.Ibias_Preamp_OFF);
-    printf("  - Vpreamp_NCAS:       %d\n",      config->dacs.named.Vpreamp_NCAS);
-    printf("  - Ibias_Ikrum:        %d\n",      config->dacs.named.Ibias_Ikrum);
-    printf("  - Vfbk:               %d\n",      config->dacs.named.Vfbk);
-    printf("  - Vthreshold_fine:    %d\n",      config->dacs.named.Vthreshold_fine);
-    printf("  - Vthreshold_coarse:  %d\n",      config->dacs.named.Vthreshold_coarse);
-    printf("  - Ibias_DiscS1_ON:    %d\n",      config->dacs.named.Ibias_DiscS1_ON);
-    printf("  - Ibias_DiscS1_OFF:   %d\n",      config->dacs.named.Ibias_DiscS1_OFF);
-    printf("  - Ibias_DiscS2_ON:    %d\n",      config->dacs.named.Ibias_DiscS2_ON);
-    printf("  - Ibias_DiscS2_OFF:   %d\n",      config->dacs.named.Ibias_DiscS2_OFF);
-    printf("  - Ibias_PixelDAC:     %d\n",      config->dacs.named.Ibias_PixelDAC);
-    printf("  - Ibias_TPbufferIn:   %d\n",      config->dacs.named.Ibias_TPbufferIn);
-    printf("  - Ibias_TPbufferOut:  %d\n",      config->dacs.named.Ibias_TPbufferOut);
-    printf("  - VTP_coarse:         %d\n",      config->dacs.named.VTP_coarse);
-    printf("  - VTP_fine:           %d\n",      config->dacs.named.VTP_fine);
-    printf("  - Ibias_CP_PLL:       %d\n",      config->dacs.named.Ibias_CP_PLL);
-    printf("  - PLL_Vcntrl:         %d\n",      config->dacs.named.PLL_Vcntrl);
-    printf("\n");
+        printf("Chip %u:\n",                    (unsigned) i);
+        printf("  - Gray Coding:      %s\n",    chip->gray_disable ? "disabled" : "enabled");
+        printf("  - Polarity:         %s\n",    katherine_str_polarity(chip->polarity));
+        printf("  - Pixels:           %d %d ... %d %d\n",
+            chip->pixels.words[0],      chip->pixels.words[1],
+            chip->pixels.words[16382],  chip->pixels.words[16383]);
+        printf("  - DACs:\n");
+        printf("      Ibias_Preamp_ON:    %d\n",       chip->dacs.named.Ibias_Preamp_ON);
+        printf("      Ibias_Preamp_OFF:   %d\n",       chip->dacs.named.Ibias_Preamp_OFF);
+        printf("      Vpreamp_NCAS:       %d\n",       chip->dacs.named.Vpreamp_NCAS);
+        printf("      Ibias_Ikrum:        %d\n",       chip->dacs.named.Ibias_Ikrum);
+        printf("      Vfbk:               %d\n",       chip->dacs.named.Vfbk);
+        printf("      Vthreshold_fine:    %d\n",       chip->dacs.named.Vthreshold_fine);
+        printf("      Vthreshold_coarse:  %d\n",       chip->dacs.named.Vthreshold_coarse);
+        printf("      Ibias_DiscS1_ON:    %d\n",       chip->dacs.named.Ibias_DiscS1_ON);
+        printf("      Ibias_DiscS1_OFF:   %d\n",       chip->dacs.named.Ibias_DiscS1_OFF);
+        printf("      Ibias_DiscS2_ON:    %d\n",       chip->dacs.named.Ibias_DiscS2_ON);
+        printf("      Ibias_DiscS2_OFF:   %d\n",       chip->dacs.named.Ibias_DiscS2_OFF);
+        printf("      Ibias_PixelDAC:     %d\n",       chip->dacs.named.Ibias_PixelDAC);
+        printf("      Ibias_TPbufferIn:   %d\n",       chip->dacs.named.Ibias_TPbufferIn);
+        printf("      Ibias_TPbufferOut:  %d\n",       chip->dacs.named.Ibias_TPbufferOut);
+        printf("      VTP_coarse:         %d\n",       chip->dacs.named.VTP_coarse);
+        printf("      VTP_fine:           %d\n",       chip->dacs.named.VTP_fine);
+        printf("      Ibias_CP_PLL:       %d\n",       chip->dacs.named.Ibias_CP_PLL);
+        printf("      PLL_Vcntrl:         %d\n",       chip->dacs.named.PLL_Vcntrl);
+        printf("\n");
+    }
 
     printf("Test Pulses:            %s\n",      config->test_pulses.enabled ? "enabled" : "disabled");
     printf("  - Destination:        %s\n",      config->test_pulses.digital_only ? "digital" : "analog");
@@ -709,7 +712,7 @@ katherine_tpx3_toa_phase_offset(uint8_t coarse_tick_to_fine_shift, uint8_t phase
  * \param config Readout configuration, which determines phase-correction behavior.
  */
 static katherine_tpx3_phase_correction_t
-resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_config_t *config)
+resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *config)
 {
     // Not applied if not requested, or all columns use the same phase.
     if (!config->correct_clock_phase) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
@@ -917,7 +920,7 @@ err_unsupported:
  * acquisition, because nothing in the read loop will: see the field's
  * description in acquisition.h. katherine_acquisition_abort() is how.
  *
- * fast_vco_enabled is refused with KATHERINE_E_INVAL at any config->clock_frequency
+ * fast_vco_enable is refused with KATHERINE_E_INVAL at any clock_frequency
  * where fine time stamping is not coherent, since the resulting stream would
  * carry a fine field that cannot be subtracted from its coarse one.
  * katherine_tpx3_freq_is_fast_vco_supported reports which frequencies qualify, and
@@ -932,10 +935,8 @@ err_unsupported:
  * \see katherine_tpx3_actual_phases
  *
  * \param acq Acquisition
- * \param config Configuration
- * \param readout_mode Readout mode
- * \param px_mode Acquisition mode
- * \param fast_vco_enabled Enable fast voltage-controlled oscillators
+ * \param config Configuration, which carries the readout mode, the pixel
+ *   mode and the oscillator setting that used to be arguments here
  * \param decode_data True to decode measurement data into pixels and track
  *   the frame lifecycle, false to hand the raw stream to the data_received
  *   handler; see katherine_acquisition_t::decode_data, which this sets
@@ -981,20 +982,20 @@ err_unsupported:
  *   katherine_device_info_t::chip_count.
  */
 katherine_error_t
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_config_t *config, bool decode_data)
 {
     katherine_error_t res = 0;
 
-    acq->px_mode          = px_mode;
-    acq->readout_mode     = readout_mode;
-    acq->fast_vco_enabled = fast_vco_enabled;
+    acq->px_mode          = config->px_mode;
+    acq->readout_mode     = config->readout_mode;
+    acq->fast_vco_enabled = config->fast_vco_enable;
     acq->decode_data      = decode_data;
 
 #if KATHERINE_DEBUG_ACQ > 0
     dump_config(acq, config);
 #endif /* KATHERINE_DEBUG_ACQ */
 
-    if (readout_mode == KATHERINE_TPX3_READOUT_DATA_DRIVEN && config->frame_count > 1) {
+    if (config->readout_mode == KATHERINE_TPX3_READOUT_DATA_DRIVEN && config->common.frame_count > 1) {
         res = KATHERINE_E_INVAL;
         goto err;
     }
@@ -1003,25 +1004,25 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
     // owns the criterion. Refused here rather than passed to the sensor,
     // which would answer with a stream whose fine field cannot be subtracted
     // from its coarse one.
-    if (fast_vco_enabled && !katherine_tpx3_freq_is_fast_vco_supported(config->clock_frequency)) {
+    if (config->fast_vco_enable && !katherine_tpx3_freq_is_fast_vco_supported(config->clock_frequency)) {
         res = KATHERINE_E_INVAL;
         goto err;
     }
 
-    res = katherine_configure(acq->device, config);
+    res = katherine_tpx3_configure(acq->device, config);
     if (res) goto err;
 
-    res = katherine_tpx3_set_seq_readout_start(acq->device, readout_mode);
+    res = katherine_tpx3_set_seq_readout_start(acq->device, config->readout_mode);
     if (res) goto err;
 
-    res = katherine_tpx3_set_acq_mode(acq->device, px_mode, fast_vco_enabled);
+    res = katherine_tpx3_set_acq_mode(acq->device, config->px_mode, config->fast_vco_enable);
     if (res) goto err;
 
     acq->state = KATHERINE_ACQUISITION_STATE_RUNNING;
 
     acq->completed_frames           = 0;
-    acq->requested_frames           = (int) config->frame_count;
-    acq->requested_frame_duration   = config->acq_time / 1e9;
+    acq->requested_frames           = (int) config->common.frame_count;
+    acq->requested_frame_duration   = config->common.acq_time / 1e9;
     acq->dropped_measurement_data   = 0;
     acq->truncated_measurement_data = 0;
 
@@ -1052,7 +1053,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config
 
     acq->acq_start_time = katherine_clock_monotonic_ns();
 
-    res = katherine_cmd_start_acquisition(&acq->device->control_transport, readout_mode);
+    res = katherine_cmd_start_acquisition(&acq->device->control_transport, acq->readout_mode);
     if (res) goto err_cmd;
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);

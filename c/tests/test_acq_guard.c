@@ -28,12 +28,24 @@
  */
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <katherine/katherine.h>
 
 #include "atomic.h"
 #include "ktest.h"
+
+
+// A structure with a flexible array member cannot be a member of another, so
+// one chip's worth of configuration is allocated rather than declared.
+#define CONFIG_SIZE_1 (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
+
+static katherine_tpx3_config_t *
+alloc_config_1(void)
+{
+    return (katherine_tpx3_config_t *) calloc(1, CONFIG_SIZE_1);
+}
 
 static void
 test_sensor_temperature_refused_while_running(void)
@@ -87,18 +99,20 @@ test_failed_begin_leaves_the_device_idle(void)
 {
     katherine_device_t device;
     katherine_acquisition_t acq;
-    katherine_config_t config;
+    katherine_tpx3_config_t *const config_p = alloc_config_1();
+    KT_REQUIRE(config_p != NULL);
 
     memset(&device, 0, sizeof(device));
     memset(&acq, 0, sizeof(acq));
-    memset(&config, 0, sizeof(config));
+    memset(config_p, 0, CONFIG_SIZE_1);
 
     acq.device = &device;
+
 
     // Data-driven readout with more than one frame is rejected before any
     // socket is touched, which is what makes this reachable with a device
     // that has none.
-    config.frame_count = 2;
+    config_p->common.frame_count = 2;
 
     // Fast time stamping is left off deliberately. A zeroed config selects
     // whichever frequency is enumerated first, which need not be one where
@@ -106,10 +120,15 @@ test_failed_begin_leaves_the_device_idle(void)
     // instead, and this test would pass while exercising something other than
     // the frame-count check it names. Switching it off decouples the two
     // without pinning a frequency here.
-    KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_DATA_DRIVEN,
-                    KATHERINE_TPX3_PX_TOA_TOT, false, true),
-        KATHERINE_E_INVAL);
+    config_p->common.chip_type  = KATHERINE_CHIP_TPX3;
+    config_p->common.chip_count = 1;
+    config_p->readout_mode      = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+    config_p->px_mode           = KATHERINE_TPX3_PX_TOA_TOT;
+    config_p->fast_vco_enable   = false;
+
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, config_p, true), KATHERINE_E_INVAL);
     KT_CHECK(device.acquisition == NULL);
+    free(config_p);
 }
 
 // Asking for fine time stamping where it is not coherent is a configuration
@@ -126,7 +145,8 @@ test_fast_vco_refused_where_incoherent(void)
 {
     katherine_device_t device;
     katherine_acquisition_t acq;
-    katherine_config_t config;
+    katherine_tpx3_config_t *const config_p = alloc_config_1();
+    KT_REQUIRE(config_p != NULL);
 
     const katherine_tpx3_freq_t all[] = {KATHERINE_TPX3_FREQ_20_MHZ, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_FREQ_80_MHZ, KATHERINE_TPX3_FREQ_160_MHZ};
     unsigned refused                  = 0;
@@ -139,17 +159,23 @@ test_fast_vco_refused_where_incoherent(void)
 
         memset(&device, 0, sizeof(device));
         memset(&acq, 0, sizeof(acq));
-        memset(&config, 0, sizeof(config));
-        acq.device             = &device;
-        config.frame_count     = 1;
-        config.clock_frequency = all[i];
+        memset(config_p, 0, CONFIG_SIZE_1);
+        acq.device                   = &device;
+        config_p->common.frame_count = 1;
+        config_p->clock_frequency    = all[i];
 
-        KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_SEQUENTIAL,
-                        KATHERINE_TPX3_PX_TOA_TOT, true, true),
-            KATHERINE_E_INVAL);
+        config_p->common.chip_type  = KATHERINE_CHIP_TPX3;
+        config_p->common.chip_count = 1;
+        config_p->readout_mode      = KATHERINE_TPX3_READOUT_SEQUENTIAL;
+        config_p->px_mode           = KATHERINE_TPX3_PX_TOA_TOT;
+        config_p->fast_vco_enable   = true;
+
+        KT_CHECK_EQ(katherine_acquisition_begin(&acq, config_p, true), KATHERINE_E_INVAL);
         KT_CHECK(device.acquisition == NULL);
         ++refused;
     }
+
+    free(config_p);
 
     // A derived loop can pass by running zero times. If every frequency ever
     // becomes coherent, this test has nothing left to say and should fail

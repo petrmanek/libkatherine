@@ -130,10 +130,10 @@ test_config_round_trip(void)
     KT_CHECK_CLOSE(c.bias(0), 150.0f);
 
 
-    c.set_gray_disable(true);
-    KT_CHECK(c.gray_disable());
-    c.set_gray_disable(false);
-    KT_CHECK(!c.gray_disable());
+    c.set_gray_disable(0, true);
+    KT_CHECK(c.gray_disable(0));
+    c.set_gray_disable(0, false);
+    KT_CHECK(!c.gray_disable(0));
 
     c.set_correct_clock_phase(true);
     KT_CHECK(c.correct_clock_phase());
@@ -144,10 +144,10 @@ test_config_round_trip(void)
     // takes; both directions are written and read back here so that the
     // accessor pair cannot silently invert, which on this field destroys the
     // chip (see katherine_polarity_t).
-    c.set_polarity(katherine::polarity::holes);
-    KT_CHECK(c.polarity() == katherine::polarity::holes);
-    c.set_polarity(katherine::polarity::electrons);
-    KT_CHECK(c.polarity() == katherine::polarity::electrons);
+    c.set_polarity(0, katherine::polarity::holes);
+    KT_CHECK(c.polarity(0) == katherine::polarity::holes);
+    c.set_polarity(0, katherine::polarity::electrons);
+    KT_CHECK(c.polarity(0) == katherine::polarity::electrons);
 
     c.set_clock_phase(katherine::tpx3::phase::p4);
     KT_CHECK(c.clock_phase() == katherine::tpx3::phase::p4);
@@ -179,13 +179,13 @@ test_config_round_trip(void)
 
     katherine::tpx3::dacs d{};
     d.named.Vthreshold_fine = 321;
-    c.set_dacs(d);
-    KT_CHECK_EQ(c.dacs().named.Vthreshold_fine, 321);
+    c.set_dacs(0, d);
+    KT_CHECK_EQ(c.dacs(0).named.Vthreshold_fine, 321);
 
     // The non-const accessors hand out references into the owned struct, so a
     // write through one must be visible to the const one.
-    c.dacs().named.Vthreshold_coarse = 8;
-    KT_CHECK_EQ(c.dacs().named.Vthreshold_coarse, 8);
+    c.dacs(0).named.Vthreshold_coarse = 8;
+    KT_CHECK_EQ(c.dacs(0).named.Vthreshold_coarse, 8);
 }
 
 // ------------------------------------------------------------------

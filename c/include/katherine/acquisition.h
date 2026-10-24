@@ -101,25 +101,6 @@ typedef struct katherine_acquisition_handlers {
     void (*data_received)(void *, const char *, size_t); ///< Raw, undecoded measurement data as received
 } katherine_acquisition_handlers_t;
 
-/**
- * How the sensor moves hits out of the matrix.
- *
- * \internal
- * 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
- * 1.2.17, the argument of CMD_TYPE_SEQ_READOUT_START): at least one mature
- * client implementation of this protocol inverts its own internal enum
- * (data-driven = 0) and compensates for it when encoding the command. Do
- * not "fix" this enum to match such an implementation; its values already
- * match the wire directly.
- */
-typedef enum katherine_tpx3_readout_mode {
-    KATHERINE_TPX3_READOUT_SEQUENTIAL  = 0, ///< Frame-based mode: hits are sequentially read out from the matrix at the end of each frame, potentially resulting in dead time between frames. At most the entire matrix (65k pixels) can be hit.
-    KATHERINE_TPX3_READOUT_DATA_DRIVEN = 1  ///< Data-driven mode: hits are propagated through super-pixels while the measurement is ongoing, causing local (but importantly, not global) dead time. Be careful in noisy or data-intensive environments, this mode can produce a lot of data (up to 40 Mhit/s).
-} katherine_tpx3_readout_mode_t;
-
-KATHERINE_EXPORTED const char *
-katherine_str_readout_mode(katherine_tpx3_readout_mode_t mode);
-
 /** Where an acquisition has got to; read it from katherine_acquisition_t::state. */
 typedef enum katherine_acquisition_state {
     KATHERINE_ACQUISITION_STATE_NOT_STARTED = 0, ///< The detector is not sensitive, call katherine_acquisition_begin to start measurement.
@@ -282,7 +263,7 @@ KATHERINE_EXPORTED void
 katherine_acquisition_fini(katherine_acquisition_t *acq);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data);
+katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_config_t *config, bool decode_data);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_acquisition_abort(katherine_acquisition_t *acq);

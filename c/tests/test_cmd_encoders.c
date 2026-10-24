@@ -401,15 +401,15 @@ test_i64_boundary(void)
 
 // ------------------------------------------------------------------
 // 5. katherine_general_config_word(): the GeneralConfig sensor register
-// built from named bits of katherine_config_t, encoded via
-// katherine_cmd_send64_i64 exactly as katherine_configure() (config.c)
+// built from named bits of katherine_tpx3_chip_config_t, encoded via
+// katherine_cmd_send64_i64 exactly as katherine_tpx3_configure() (config.c)
 // sends it: opcode CMD_TYPE_SENSOR_REGISTER_SETTING, sub-index
 // KATHERINE_TPX3_REG_GENERAL_CONFIG.
 
 static void
 test_general_config_word(void)
 {
-    katherine_config_t config;
+    katherine_tpx3_chip_config_t config;
     memset(&config, 0, sizeof(config));
 
     // All-zero config: AckCommand_en and Fast_lo_en are pinned on (no
@@ -439,11 +439,12 @@ test_general_config_word(void)
     // and only ever ORed the field in, so bit 3 stayed set whatever was asked
     // for.
     //
-    // test_pulse_config.enabled appears here only to be shown irrelevant.
-    // Tp_en stays clear and the test-pulse command carries the enable
-    // instead, so each pair of rows differing only in that field encodes the
-    // same word. Hardware A/B confirms pulses fire either way, for analog
-    // and digital alike.
+    // The test-pulse rows are kept although the word can no longer see the
+    // setting: it lives on the readout-wide configuration and this word is
+    // built from one chip's. Tp_en stays clear and the test-pulse command
+    // carries the enable instead, so each pair of rows encodes the same
+    // word. Hardware A/B confirms pulses fire either way, for analog and
+    // digital alike.
     static const struct {
         bool gray_disable;
         katherine_polarity_t polarity;
@@ -465,9 +466,9 @@ test_general_config_word(void)
 
     for (size_t i = 0; i < sizeof(general_config_cases) / sizeof(general_config_cases[0]); i++) {
         memset(&config, 0, sizeof(config));
-        config.gray_disable        = general_config_cases[i].gray_disable;
-        config.polarity            = general_config_cases[i].polarity;
-        config.test_pulses.enabled = general_config_cases[i].test_pulses;
+        config.gray_disable = general_config_cases[i].gray_disable;
+        config.polarity     = general_config_cases[i].polarity;
+        (void) general_config_cases[i].test_pulses;
 
         CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                       (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),
@@ -515,7 +516,7 @@ check_setup_word(katherine_device_t *dev, katherine_udp_t *capture, const kather
 static void
 test_pll_config_word(void)
 {
-    katherine_config_t config;
+    katherine_tpx3_config_t config;
     memset(&config, 0, sizeof(config));
 
     // All-zero config: KATHERINE_TPX3_FREQ_20_MHZ and KATHERINE_TPX3_PHASE_1

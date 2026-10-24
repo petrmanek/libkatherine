@@ -13,6 +13,8 @@
 #pragma once
 
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 #include <katherine/error.h>
 
 #include <katherine/katherine.h>
@@ -159,12 +161,100 @@ katherine1_dacs_validate(const katherine_tpx3_dacs_t *v)
     return katherine1_map_result(katherine_tpx3_dacs_validate(v));
 }
 
-/** \legacy1{katherine_configure} */
+/**
+ * The 1.x katherine_config_t: one flat struct for one Timepix3 chip.
+ *
+ * 2.0 split it into katherine_config_t, katherine_tpx3_config_t and a
+ * per-chip array, which no macro can alias a field at a time. This declares
+ * the old shape instead, and katherine1_configure() translates it, so an
+ * unmodified 1.x source -- stack declaration, memset, field assignment --
+ * still compiles and still means what it meant.
+ *
+ * polarity_holes is deliberately absent. Its sense inverted in 2.0: 1.x's
+ * false selected electrons where katherine_polarity_t's zero is
+ * KATHERINE_POLARITY_HOLES, so a field that shimmed transparently would bias
+ * an assembly for the carrier it does not collect and destroy the chip. A
+ * missing member is a compile error naming itself, which is the only safe
+ * translation there is.
+ */
+typedef struct katherine1_config {
+    katherine_tpx3_px_config_t pixel_config; ///< Per-pixel settings, which 2.0 carries per chip as katherine_tpx3_chip_config_t::pixels.
+    uint8_t bias_id;                         ///< Bias supply to drive, which 2.0 carries as the subscript of katherine_config_t::bias.
+    double acq_time;                         ///< Shutter time per frame, in nanoseconds.
+
+    /**
+     * Frames to measure, in 1.x's int. Spelled the 2.0 way, as
+     * correct_clock_phase below is: those two fields kept their shape, so
+     * this header aliases their 1.x spellings further down and the alias
+     * would rewrite a 1.x member declared here. The fields whose shape changed -- bias, pixel_config,
+     * phase, freq, test_pulse_config -- have no alias and keep 1.x's name.
+     */
+    int frame_count;
+
+    float bias;                                           ///< Sensor bias voltage for the supply bias_id names, in volts.
+    katherine_trigger_t start_trigger;                    ///< The condition that starts the acquisition.
+    katherine_trigger_t stop_trigger;                     ///< The condition that stops it.
+    bool gray_disable;                                    ///< True to turn off the sensor's Gray-coded counters.
+    katherine_polarity_t polarity;                        ///< Carriers the sensor collects. 1.x's polarity_holes is deliberately absent; see above.
+    katherine_tpx3_phase_t phase;                         ///< Pixel-clock phase count, 2.0's katherine_tpx3_config_t::clock_phase.
+    bool correct_clock_phase;                             ///< True to ask for per-double-column clock phase correction.
+    katherine_tpx3_freq_t freq;                           ///< Pixel-clock frequency, 2.0's katherine_tpx3_config_t::clock_frequency.
+    katherine_tpx3_dacs_t dacs;                           ///< The chip's DACs, which 2.0 carries per chip.
+    katherine_tpx3_test_pulse_config_t test_pulse_config; ///< Test pulses, 2.0's katherine_tpx3_config_t::test_pulses.
+} katherine1_config_t;
+
+/**
+ * Fills a 2.0 single-chip configuration from a 1.x one.
+ *
+ * Internal to the shim. The caller owns the result and frees it; NULL means
+ * the allocation failed, which is the only way this can fail.
+ */
+static inline katherine_tpx3_config_t *
+katherine1_config_translate(const katherine1_config_t *config)
+{
+    katherine_tpx3_config_t *c2 = (katherine_tpx3_config_t *) calloc(1, sizeof(*c2) + sizeof(c2->chips[0]));
+    if (c2 == NULL) return NULL;
+
+    c2->common.chip_type  = KATHERINE_CHIP_TPX3;
+    c2->common.chip_count = 1;
+    c2->common.acq_time   = config->acq_time;
+
+    c2->common.frame_count = (uint32_t) config->frame_count;
+
+    // 1.x named one supply and gave it one voltage; 2.0 carries one per
+    // supply, so the index becomes the subscript and the rest stay at zero.
+    if (config->bias_id < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES) c2->common.bias[config->bias_id] = config->bias;
+
+    c2->common.start_trigger = config->start_trigger;
+    c2->common.stop_trigger  = config->stop_trigger;
+
+    c2->clock_phase         = config->phase;
+    c2->correct_clock_phase = config->correct_clock_phase;
+    c2->clock_frequency     = config->freq;
+    c2->test_pulses         = config->test_pulse_config;
+
+    c2->chips[0].polarity     = config->polarity;
+    c2->chips[0].gray_disable = config->gray_disable;
+    c2->chips[0].dacs         = config->dacs;
+    c2->chips[0].pixels       = config->pixel_config;
+
+    return c2;
+}
+
+/** \legacy1{katherine_tpx3_configure} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_configure(katherine_device_t *device, const katherine_config_t *config)
+katherine1_configure(katherine_device_t *device, const katherine1_config_t *config)
 {
-    return katherine1_map_result(katherine_configure(device, config));
+    katherine_tpx3_config_t *c2 = katherine1_config_translate(config);
+    if (c2 == NULL) return ENOMEM;
+
+    // The real function parenthesised: this header gives katherine_configure
+    // a function-like macro of its own, and an unparenthesised call here
+    // would expand into itself.
+    const int res = katherine1_map_result((katherine_tpx3_configure) (device, c2));
+    free(c2);
+    return res;
 }
 
 /** \legacy1{katherine_tpx3_set_all_pixel_config} */
@@ -420,9 +510,19 @@ katherine1_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *de
 /** \legacy1{katherine_acquisition_begin} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
+katherine1_acquisition_begin(katherine_acquisition_t *acq, const katherine1_config_t *config, katherine_tpx3_readout_mode_t readout_mode, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled, bool decode_data)
 {
-    return katherine1_map_result(katherine_acquisition_begin(acq, config, readout_mode, px_mode, fast_vco_enabled, decode_data));
+    katherine_tpx3_config_t *c2 = katherine1_config_translate(config);
+    if (c2 == NULL) return ENOMEM;
+
+    // The three modes were arguments in 1.x and are configuration in 2.0.
+    c2->readout_mode    = readout_mode;
+    c2->px_mode         = px_mode;
+    c2->fast_vco_enable = fast_vco_enabled;
+
+    const int res = katherine1_map_result((katherine_acquisition_begin) (acq, c2, decode_data));
+    free(c2);
+    return res;
 }
 
 /** \legacy1{katherine_acquisition_abort} */
@@ -611,6 +711,12 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 
 #define katherine_tpx3_dacs_validate(...)         katherine1_dacs_validate(__VA_ARGS__)
 #define katherine_configure(...)                  katherine1_configure(__VA_ARGS__)
+
+// An object-like macro, not a function-like one: 1.x source names this type
+// in a declaration, where there is nothing to expand arguments into. It has
+// to come after katherine/katherine.h above, which declares the 2.0 struct
+// this shadows.
+#define katherine_config_t                        katherine1_config_t
 #define katherine_set_all_pixel_config(...)       katherine1_set_all_pixel_config(__VA_ARGS__)
 #define katherine_set_acq_time(...)               katherine1_set_acq_time(__VA_ARGS__)
 #define katherine_set_acq_mode(...)               katherine1_set_acq_mode(__VA_ARGS__)

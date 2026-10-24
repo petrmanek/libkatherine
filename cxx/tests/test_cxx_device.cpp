@@ -237,7 +237,7 @@ test_device_and_acquisition(void)
 
     threw = false;
     try {
-        acq.begin(c, katherine::tpx3::readout_mode::data_driven);
+        acq.begin(c);
     } catch (const katherine::error&) {
         threw = true;
     }

@@ -8,7 +8,7 @@
 
 from libcpp cimport bool
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, int32_t
-from cdevice cimport katherine_device_t
+from cdevice cimport katherine_device_t, katherine_chip_type_t
 from cpx_config cimport katherine_tpx3_px_config_t
 
 cdef extern from 'katherine/config.h':
@@ -134,8 +134,13 @@ cdef extern from 'katherine/config.h':
         KATHERINE_TPX3_FREQ_80_MHZ
         KATHERINE_TPX3_FREQ_160_MHZ
 
+    ctypedef enum katherine_tpx3_readout_mode_t:
+        KATHERINE_TPX3_READOUT_SEQUENTIAL
+        KATHERINE_TPX3_READOUT_DATA_DRIVEN
+
     ctypedef struct katherine_config_t:
-        katherine_tpx3_px_config_t pixel_config
+        katherine_chip_type_t chip_type
+        uint8_t chip_count
 
         double acq_time
         uint32_t frame_count
@@ -144,18 +149,30 @@ cdef extern from 'katherine/config.h':
         katherine_trigger_t start_trigger
         katherine_trigger_t stop_trigger
 
-        bool gray_disable
+    ctypedef struct katherine_tpx3_chip_config_t:
         katherine_polarity_t polarity
+        bool gray_disable
+        katherine_tpx3_dacs_t dacs
+        katherine_tpx3_px_config_t pixels
 
-        bool correct_clock_phase
+    ctypedef struct katherine_tpx3_config_t:
+        katherine_config_t common
+
+        katherine_tpx3_readout_mode_t readout_mode
+        katherine_tpx3_px_mode_t px_mode
+        bool fast_vco_enable
 
         katherine_tpx3_phase_t clock_phase
+        bool correct_clock_phase
         katherine_tpx3_freq_t clock_frequency
-        katherine_tpx3_dacs_t dacs
 
         katherine_tpx3_test_pulse_config_t test_pulses
 
+        katherine_tpx3_chip_config_t chips[1]
+
     int katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
+    int katherine_tpx3_chip_config_snprint(char *buf, size_t cap, const katherine_tpx3_chip_config_t *v)
+    int katherine_tpx3_config_snprint(char *buf, size_t cap, const katherine_tpx3_config_t *v)
 
     ctypedef enum katherine_tpx3_reg_t:
         KATHERINE_TPX3_REG_TEST_PULSE_METHOD
@@ -172,7 +189,7 @@ cdef extern from 'katherine/config.h':
         KATHERINE_TPX3_REG_SENSE_DAC_SELECTOR
         KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
-    int katherine_configure(katherine_device_t *device, const katherine_config_t *config)
+    int katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config_t *config)
     int katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_px_config_t *px_config)
     int katherine_set_acq_time(katherine_device_t *device, double ns)
     int katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)

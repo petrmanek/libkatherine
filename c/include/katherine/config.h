@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
+#include <katherine/device.h>
 #include <katherine/px_config.h>
 
 /**
@@ -34,14 +35,27 @@
 extern "C" {
 #endif
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-// Forward declaration, to avoid a circular include with device.h. The
-// definition, and its documentation, live there.
-typedef struct katherine_device katherine_device_t;
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+/**
+ * The route the sensor moves hits out of the matrix by.
+ *
+ * \internal
+ * 0 = sequential, 1 = data-driven is the wire truth (readout manual sec.
+ * 1.2.17, the argument of CMD_TYPE_SEQ_READOUT_START): at least one mature
+ * client implementation of this protocol inverts its own internal enum
+ * (data-driven = 0) and compensates for it when encoding the command. Do
+ * not "fix" this enum to match such an implementation; its values already
+ * match the wire directly.
+ */
+typedef enum katherine_tpx3_readout_mode {
+    KATHERINE_TPX3_READOUT_SEQUENTIAL  = 0, ///< Frame-based mode: hits are sequentially read out from the matrix at the end of each frame, potentially resulting in dead time between frames. At most the entire matrix (65k pixels) can be hit.
+    KATHERINE_TPX3_READOUT_DATA_DRIVEN = 1  ///< Data-driven mode: hits are propagated through super-pixels while the measurement is ongoing, causing local (but importantly, not global) dead time. Be careful in noisy or data-intensive environments, this mode can produce a lot of data (up to 40 Mhit/s).
+} katherine_tpx3_readout_mode_t;
 
-/** What a pixel reports: which quantities a hit carries, and so which hit type the decoder produces. */
+KATHERINE_EXPORTED const char *
+katherine_str_readout_mode(katherine_tpx3_readout_mode_t mode);
+
+/** The quantities a hit carries, and so the hit type the decoder yields for it. */
 typedef enum katherine_tpx3_px_mode {
     KATHERINE_TPX3_PX_TOA_TOT          = 0, ///< Time of arrival and time over threshold.
     KATHERINE_TPX3_PX_ONLY_TOA         = 1, ///< Time of arrival alone.
@@ -288,11 +302,18 @@ katherine_str_polarity(katherine_polarity_t polarity);
 #define KATHERINE_CONFIG_MAX_BIAS_SUPPLIES 4
 
 /**
- * Everything katherine_configure() sends to a readout before an acquisition.
- * Designed to render safe settings when zero-initialized.
+ * Settings common to every readout, whatever chip is attached.
+ *
+ * The first member of every per-ASIC configuration, so that an entry point
+ * can read chip_type and refuse a configuration meant for another ASIC
+ * before it reads anything else.
  */
 typedef struct katherine_config {
-    katherine_tpx3_px_config_t pixel_config; ///< Per-pixel settings for the whole matrix.
+    katherine_chip_type_t chip_type; ///< ASIC the rest of this configuration describes, which must be the device's own.
+    uint8_t chip_count;              ///< Chips filled in below, from 1 to the device's attached count.
+
+    /** Reserved, so that a later version can add a field without moving the flexible array that follows the enclosing ASIC configuration. Zero. */
+    uint32_t reserved[6];
 
     double acq_time;      ///< Shutter time per frame, in nanoseconds.
     uint32_t frame_count; ///< Frames to measure; data-driven readout accepts only one.
@@ -300,22 +321,66 @@ typedef struct katherine_config {
     /**
      * Sensor bias voltage per supply, in volts, addressed from 0 as
      * katherine_device_derived_info_t::bias_supply_count counts them.
-     * katherine_configure() sends every supply the readout has, so an entry
-     * left at zero drives that supply to zero rather than leaving it alone.
-     * Each sign must match the carriers the sensor on that supply collects.
+     * Configuring a readout sends every supply it has, so an entry left at
+     * zero drives that supply to zero rather than leaving it alone. Each
+     * sign must match the carriers the sensor on that supply collects.
      */
     float bias[KATHERINE_CONFIG_MAX_BIAS_SUPPLIES];
-    katherine_trigger_t start_trigger; ///< What starts the acquisition.
-    katherine_trigger_t stop_trigger;  ///< What stops it.
 
-    bool gray_disable; ///< True to turn off the sensor's Gray-coded counters, which then count in plain binary.
+    katherine_trigger_t start_trigger; ///< The condition that starts the acquisition.
+    katherine_trigger_t stop_trigger;  ///< The condition that stops it.
+} katherine_config_t;
 
+/** Settings one Timepix3 chip takes, one per chip of katherine_tpx3_config_t. */
+typedef struct katherine_tpx3_chip_config {
     /**
      * Carriers the sensor collects. Zero is KATHERINE_POLARITY_HOLES, so a
      * configuration whose fields are not all filled in selects the polarity
      * that cannot destroy the chip.
      */
     katherine_polarity_t polarity;
+
+    bool gray_disable; ///< True to turn off the sensor's Gray-coded counters, which then count in plain binary.
+
+    katherine_tpx3_dacs_t dacs;        ///< The chip's DACs, including the threshold.
+    katherine_tpx3_px_config_t pixels; ///< Per-pixel settings for the whole matrix.
+} katherine_tpx3_chip_config_t;
+
+KATHERINE_EXPORTED int
+katherine_tpx3_chip_config_snprint(char *buf, size_t cap, const katherine_tpx3_chip_config_t *v);
+
+/**
+ * Everything katherine_tpx3_configure() sends to a readout driving Timepix3.
+ *
+ * The caller allocates it, because the per-chip settings are a flexible
+ * array sized at run time:
+ *
+ * \code
+ * katherine_tpx3_config_t *c = calloc(1, sizeof(*c) + n * sizeof(c->chips[0]));
+ * \endcode
+ *
+ * calloc() rather than malloc(), and not only for tidiness: zero is a safe
+ * value for every field here, so a configuration the caller has only partly
+ * filled in still selects KATHERINE_POLARITY_HOLES and an empty matrix
+ * rather than whatever the allocator last held.
+ */
+// C99 has flexible array members and C++ has none, so a C++ translation unit
+// that includes this header -- katherinexx is one -- is told so by -Wpedantic,
+// and MSVC says the same as C4200. Every compiler this library builds with
+// accepts the member; only the diagnostic has to be turned off, and only here.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+typedef struct katherine_tpx3_config {
+    katherine_config_t common; ///< The settings every readout takes. Its chip_type must be KATHERINE_CHIP_TPX3.
+
+    katherine_tpx3_readout_mode_t readout_mode; ///< The route the readout delivers hits by: as they arrive, or a frame at a time.
+    katherine_tpx3_px_mode_t px_mode;           ///< The quantities a hit carries, and so the decoder's hit type.
+    bool fast_vco_enable;                       ///< True to run the fine oscillator fast. Only some pixel clock frequencies accept it.
 
     /**
      * Phase distribution of clock signals across the ASIC. A single phase
@@ -332,17 +397,29 @@ typedef struct katherine_config {
     bool correct_clock_phase; ///< Ask for per-double-column clock phase correction. What actually happens depends on the device and on the phase count, and is reported by katherine_acquisition_t::phase_correction once an acquisition begins.
 
     katherine_tpx3_freq_t clock_frequency; ///< Pixel clock frequency, which sets the timestamp resolution.
-    katherine_tpx3_dacs_t dacs;            ///< The chip's DACs, including the threshold.
 
     katherine_tpx3_test_pulse_config_t test_pulses; ///< Test pulses, injected only while katherine_tpx3_test_pulse_config_t::enabled is set.
-} katherine_config_t;
+
+    /** Reserved, so that a later version can add a readout-wide Timepix3 field without moving chips[]. Zero. */
+    uint32_t reserved[6];
+
+    katherine_tpx3_chip_config_t chips[]; ///< One entry per chip, addressed from 0. The caller sizes it and declares the count in common.chip_count.
+} katherine_tpx3_config_t;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 KATHERINE_EXPORTED int
 katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v);
 
+KATHERINE_EXPORTED int
+katherine_tpx3_config_snprint(char *buf, size_t cap, const katherine_tpx3_config_t *v);
+
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_configure(katherine_device_t *device, const katherine_config_t *config);
+katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config_t *config);
 
 /**
  * Result of the readout's verification of the configuration held by the chip.

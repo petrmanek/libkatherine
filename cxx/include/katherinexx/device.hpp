@@ -522,11 +522,11 @@ public:
     // only models the parameter struct) to match where the Python wrapper
     // puts the equivalent calls: on the device.
 
-    /// Sends a whole configuration, step by step, addressing chip 0 throughout.
+    /// Sends a whole configuration, step by step, to every chip it declares.
     void
     configure(const katherine::config& config)
     {
-        katherine::detail::check(katherine_configure(&dev_, config.c_config()));
+        katherine::detail::check(katherine_tpx3_configure(&dev_, config.c_config()));
     }
 
     /// Uploads a whole pixel matrix to chip 0.

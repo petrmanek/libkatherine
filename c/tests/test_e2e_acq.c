@@ -52,6 +52,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -488,41 +489,56 @@ on_data_received(void *ctx, const char *data, size_t count)
     request_abort(probe);
 }
 
+// A structure with a flexible array member cannot be a member of another, so
+// one chip's worth of configuration is allocated rather than declared.
+#define CONFIG_SIZE_1 (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
+
+static katherine_tpx3_config_t *
+alloc_config_1(void)
+{
+    return (katherine_tpx3_config_t *) calloc(1, CONFIG_SIZE_1);
+}
+
 // Fills in a configuration equivalent to the one c/examples/krun.c uses,
 // less the pixel matrix: the emulated readout models the upload protocol
 // (it counts the 16384 configuration words and acknowledges them) but not
 // the matrix contents, so the zeroed matrix left by the memset below is
 // uploaded and accepted like any other.
 static void
-configure(katherine_config_t *config, double acq_time_ns, uint32_t frame_count)
+configure(katherine_tpx3_config_t *config, double acq_time_ns, uint32_t frame_count)
 {
-    memset(config, 0, sizeof(*config));
+    memset(config, 0, CONFIG_SIZE_1);
 
-    config->acq_time    = acq_time_ns;
-    config->frame_count = frame_count;
-    config->bias[0]     = 230;
+    config->common.chip_type   = KATHERINE_CHIP_TPX3;
+    config->common.chip_count  = 1;
+    config->common.acq_time    = acq_time_ns;
+    config->common.frame_count = frame_count;
+    config->common.bias[0]     = 230;
+
+    config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
+    config->fast_vco_enable = true;
 
     config->clock_phase     = KATHERINE_TPX3_PHASE_1;
     config->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
 
-    config->dacs.named.Ibias_Preamp_ON   = 128;
-    config->dacs.named.Ibias_Preamp_OFF  = 8;
-    config->dacs.named.Vpreamp_NCAS      = 128;
-    config->dacs.named.Ibias_Ikrum       = 15;
-    config->dacs.named.Vfbk              = 164;
-    config->dacs.named.Vthreshold_fine   = 476;
-    config->dacs.named.Vthreshold_coarse = 8;
-    config->dacs.named.Ibias_DiscS1_ON   = 100;
-    config->dacs.named.Ibias_DiscS1_OFF  = 8;
-    config->dacs.named.Ibias_DiscS2_ON   = 128;
-    config->dacs.named.Ibias_DiscS2_OFF  = 8;
-    config->dacs.named.Ibias_PixelDAC    = 128;
-    config->dacs.named.Ibias_TPbufferIn  = 128;
-    config->dacs.named.Ibias_TPbufferOut = 128;
-    config->dacs.named.VTP_coarse        = 128;
-    config->dacs.named.VTP_fine          = 256;
-    config->dacs.named.Ibias_CP_PLL      = 128;
-    config->dacs.named.PLL_Vcntrl        = 128;
+    config->chips[0].dacs.named.Ibias_Preamp_ON   = 128;
+    config->chips[0].dacs.named.Ibias_Preamp_OFF  = 8;
+    config->chips[0].dacs.named.Vpreamp_NCAS      = 128;
+    config->chips[0].dacs.named.Ibias_Ikrum       = 15;
+    config->chips[0].dacs.named.Vfbk              = 164;
+    config->chips[0].dacs.named.Vthreshold_fine   = 476;
+    config->chips[0].dacs.named.Vthreshold_coarse = 8;
+    config->chips[0].dacs.named.Ibias_DiscS1_ON   = 100;
+    config->chips[0].dacs.named.Ibias_DiscS1_OFF  = 8;
+    config->chips[0].dacs.named.Ibias_DiscS2_ON   = 128;
+    config->chips[0].dacs.named.Ibias_DiscS2_OFF  = 8;
+    config->chips[0].dacs.named.Ibias_PixelDAC    = 128;
+    config->chips[0].dacs.named.Ibias_TPbufferIn  = 128;
+    config->chips[0].dacs.named.Ibias_TPbufferOut = 128;
+    config->chips[0].dacs.named.VTP_coarse        = 128;
+    config->chips[0].dacs.named.VTP_fine          = 256;
+    config->chips[0].dacs.named.Ibias_CP_PLL      = 128;
+    config->chips[0].dacs.named.PLL_Vcntrl        = 128;
 
     // The triggers, the delayed start and the test pulse generator are all
     // left disabled by the memset above.
@@ -538,7 +554,8 @@ static int
 acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, double acq_time_ns, uint32_t frame_count,
     bool decode_data, bool abort_enabled)
 {
-    katherine_config_t config;
+    katherine_tpx3_config_t *storage = alloc_config_1();
+    if (storage == NULL) return KATHERINE_E_NOMEM;
     int res;
 
     memset(acq, 0, sizeof(*acq));
@@ -547,7 +564,7 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     probe->frame_ticks   = (uint32_t) (acq_time_ns / TICK_NS);
     probe->abort_enabled = abort_enabled;
 
-    configure(&config, acq_time_ns, frame_count);
+    configure(storage, acq_time_ns, frame_count);
 
     res = katherine_acquisition_init(
         acq, &g_device, probe, MD_BUFFER_SIZE, PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS);
@@ -562,7 +579,8 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     // and after any earlier acquisition because read() cleared it.
     KT_CHECK(g_device.acquisition == NULL);
 
-    res = katherine_acquisition_begin(acq, &config, readout_mode, KATHERINE_TPX3_PX_TOA_TOT, true, decode_data);
+    storage->readout_mode = readout_mode;
+    res                   = katherine_acquisition_begin(acq, storage, decode_data);
     if (res != 0) return res;
 
     // The device reports a measurement in flight for exactly the span between
@@ -577,6 +595,7 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     res = katherine_acquisition_read(acq);
 
     KT_CHECK(g_device.acquisition == NULL);
+    free(storage);
     return res;
 }
 
@@ -729,7 +748,8 @@ test_abort_from_another_thread(void)
 {
     katherine_acquisition_t acq;
     acq_probe_t probe;
-    katherine_config_t config;
+    katherine_tpx3_config_t *storage = alloc_config_1();
+    KT_REQUIRE(storage != NULL);
     kthread_t aborter;
 
     memset(&acq, 0, sizeof(acq));
@@ -737,7 +757,7 @@ test_abort_from_another_thread(void)
     probe.acq         = &acq;
     probe.frame_ticks = (uint32_t) (LONG_ACQ_TIME_NS / TICK_NS);
 
-    configure(&config, LONG_ACQ_TIME_NS, 1);
+    configure(storage, LONG_ACQ_TIME_NS, 1);
 
     KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE,
                    PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
@@ -748,9 +768,8 @@ test_abort_from_another_thread(void)
     acq.handlers.pixels_received = on_pixels_received;
     acq.handlers.data_received   = on_data_received;
 
-    KT_REQUIRE(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_DATA_DRIVEN,
-                   KATHERINE_TPX3_PX_TOA_TOT, true, true)
-        == 0);
+    storage->readout_mode = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+    KT_REQUIRE(katherine_acquisition_begin(&acq, storage, true) == 0);
 
     // Started before the blocking read below, so the abort lands while the
     // loop is turning rather than before it or after it.
@@ -763,6 +782,7 @@ test_abort_from_another_thread(void)
     KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
 
     katherine_acquisition_fini(&acq);
+    free(storage);
 }
 
 // ------------------------------------------------------------------
@@ -856,16 +876,17 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
 {
     katherine_acquisition_t acq;
     acq_probe_t probe;
-    katherine_config_t config;
+    katherine_tpx3_config_t *storage = alloc_config_1();
+    KT_REQUIRE(storage != NULL);
 
     memset(&acq, 0, sizeof(acq));
     memset(&probe, 0, sizeof(probe));
     probe.acq = &acq;
 
-    configure(&config, SHORT_ACQ_TIME_NS, 1);
-    config.clock_frequency     = freq;
-    config.clock_phase         = phase;
-    config.correct_clock_phase = request;
+    configure(storage, SHORT_ACQ_TIME_NS, 1);
+    storage->clock_frequency     = freq;
+    storage->clock_phase         = phase;
+    storage->correct_clock_phase = request;
 
     KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE,
                    PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
@@ -873,9 +894,9 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
 
     // Sequential readout so the run ends on its own; the hits are irrelevant
     // here, only the state begin() left behind.
-    KT_REQUIRE(katherine_acquisition_begin(
-                   &acq, &config, KATHERINE_TPX3_READOUT_SEQUENTIAL, KATHERINE_TPX3_PX_TOA_TOT, false, true)
-        == 0);
+    storage->readout_mode    = KATHERINE_TPX3_READOUT_SEQUENTIAL;
+    storage->fast_vco_enable = false;
+    KT_REQUIRE(katherine_acquisition_begin(&acq, storage, true) == 0);
 
     KT_CHECK_EQ(acq.phase_correction, expect);
     KT_CHECK_EQ(acq.phase_count, katherine_tpx3_actual_phases(freq, phase));
@@ -915,6 +936,7 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
 
     (void) katherine_acquisition_read(&acq);
     katherine_acquisition_fini(&acq);
+    free(storage);
 }
 
 static void

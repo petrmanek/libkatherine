@@ -32,18 +32,6 @@ namespace katherine {
 /// Size of one measurement-data word, in bytes.
 constexpr std::size_t md_size = KATHERINE_MD_SIZE;
 
-// Timepix3's, like phase, freq and px_mode in config.hpp, and named for the C
-// side's katherine_tpx3_readout_mode_t rather than the 1.x "type".
-namespace tpx3 {
-
-/// How the chip delivers its hits: at the end of each frame, or as they happen.
-enum class readout_mode {
-    sequential  = KATHERINE_TPX3_READOUT_SEQUENTIAL,
-    data_driven = KATHERINE_TPX3_READOUT_DATA_DRIVEN
-};
-
-} // namespace tpx3
-
 /// Where an acquisition has got to.
 enum class acq_state {
     not_started = KATHERINE_ACQUISITION_STATE_NOT_STARTED,
@@ -197,15 +185,14 @@ public:
 
     /**
      * Configures the readout and opens the shutter.
-     * \param config The configuration to send before acquiring.
-     * \param readout_mode The route the chip delivers its hits by.
+     * \param config The configuration to send before acquiring. It carries
+     *   the readout mode, the pixel mode and the oscillator setting, which
+     *   used to be arguments here.
      */
     void
-    begin(const katherine::config& config, katherine::tpx3::readout_mode readout_mode)
+    begin(const katherine::config& config)
     {
-        katherine::detail::check(katherine_acquisition_begin(&acq_, config.c_config(),
-            (katherine_tpx3_readout_mode_t) readout_mode,
-            (katherine_tpx3_px_mode_t) mode_, fast_vco_enabled_, decode_data_));
+        katherine::detail::check(katherine_acquisition_begin(&acq_, config.c_config(), decode_data_));
     }
 
     /// Stops at once and discards what has not arrived.

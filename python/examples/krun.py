@@ -48,8 +48,8 @@ def paint_test_pixels(px_config):
     print('Test pulses enabled for %d pixels.' % n_painted)
 
 
-def configure():
-    c = k.Config()
+def configure(chip_count):
+    c = k.Config(chip_count)
 
     c.acq_time          = 10e9 # ns
     c.frame_count         = 1
@@ -58,8 +58,9 @@ def configure():
     c.start_trigger     = k.Trigger(enabled=False)
     c.stop_trigger      = k.Trigger(enabled=False)
 
-    c.gray_disable      = False
-    c.polarity          = k.Polarity.ELECTRONS
+    c.readout_mode      = k.Tpx3ReadoutMode.DATA_DRIVEN
+    c.px_mode           = k.Tpx3PxMode.TOA_TOT
+    c.fast_vco_enable   = True
 
     c.clock_phase       = k.Tpx3Phase.PHASE_1
     c.clock_frequency   = k.Tpx3Freq.FREQ_40
@@ -101,8 +102,11 @@ def configure():
 
         paint_test_pixels(px_config)
 
-    c.dacs = dacs
-    c.pixel_config = px_config
+    for i in range(c.chip_count):
+        c.set_gray_disable(i, False)
+        c.set_polarity(i, k.Polarity.ELECTRONS)
+        c.set_dacs(i, dacs)
+        c.set_pixels(i, px_config)
 
     return c
 
@@ -144,7 +148,7 @@ def run_acquisition(dev, c):
     acq.observer = MyObserver()
 
     print('Acquisition started')
-    acq.begin(c, k.Tpx3ReadoutMode.DATA_DRIVEN, k.Tpx3PxMode.TOA_TOT, True)
+    acq.begin(c)
 
     tic = timer()
     acq.read()
@@ -164,8 +168,11 @@ def run_acquisition(dev, c):
 if __name__ == '__main__':
     remote_address = 'udp://192.168.1.145'
 
-    config = configure()
-
     device = k.Device(remote_address)
+
+    # After the open, not before: the per-chip settings are sized at
+    # construction and the readout is what says how many chips there are.
+    config = configure(device.info.chip_count)
+
     print_chip_id(device)
     run_acquisition(device, config)

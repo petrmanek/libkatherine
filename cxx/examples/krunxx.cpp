@@ -88,8 +88,9 @@ configure(katherine::config& config)
     config.set_start_trigger(katherine::no_trigger);
     config.set_stop_trigger(katherine::no_trigger);
 
-    config.set_gray_disable(false);
-    config.set_polarity(katherine::polarity::electrons);
+    config.set_readout_mode(katherine::tpx3::readout_mode::data_driven);
+    config.set_px_mode(katherine::tpx3::px_mode::toa_tot);
+    config.set_fast_vco_enable(true);
 
     config.set_clock_phase(katherine::tpx3::phase::p1);
     config.set_clock_frequency(katherine::tpx3::freq::f40);
@@ -113,18 +114,29 @@ configure(katherine::config& config)
     dacs.named.VTP_fine          = 256;
     dacs.named.Ibias_CP_PLL      = 128;
     dacs.named.PLL_Vcntrl        = 128;
-    config.set_dacs(std::move(dacs));
+
 
     katherine::px_config px_config = katherine::load_bmc_file("chipconfig.bmc");
-    config.set_pixel_config(std::move(px_config));
+
+    // One chip's settings for every chip: this example has only the one
+    // calibration to hand, and a readout with two chips still has to be
+    // told about both.
+    for (std::uint8_t i = 0; i < config.chip_count(); ++i) {
+        config.set_gray_disable(i, false);
+        config.set_polarity(i, katherine::polarity::electrons);
+        config.set_dacs(i, dacs);
+        config.set_pixels(i, px_config);
+    }
 
     // Test pulses are disabled unless requested above. (No explicit setup
     // is needed: a value-initialized config keeps them off.)
     if (test_pulse) {
         // Pulse the analog front-end with amplitude given by the difference
         // of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
-        config.dacs().named.VTP_coarse = 128;
-        config.dacs().named.VTP_fine   = 352;
+        for (std::uint8_t i = 0; i < config.chip_count(); ++i) {
+            config.dacs(i).named.VTP_coarse = 128;
+            config.dacs(i).named.VTP_fine   = 352;
+        }
 
         katherine::test_pulse_config tp{};
         tp.enabled      = true;
@@ -135,7 +147,7 @@ configure(katherine::config& config)
         tp.phase        = 0;
         config.set_test_pulses(std::move(tp));
 
-        paint_test_pixels(config.pixel_config());
+        for (std::uint8_t i = 0; i < config.chip_count(); ++i) paint_test_pixels(config.pixels(i));
     }
 }
 
@@ -198,7 +210,7 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
     acq.set_frame_ended_handler(frame_ended);
     acq.set_pixels_received_handler(pixels_received);
 
-    acq.begin(c, katherine::tpx3::readout_mode::data_driven);
+    acq.begin(c);
     std::cerr << "Acquisition started." << std::endl;
 
     auto tic = steady_clock::now();
@@ -222,10 +234,13 @@ main(int argc, char *argv[])
     (void) argc;
     (void) argv;
 
-    katherine::config c{};
+    katherine::device device{remote_address};
+
+    // After the open, not before: the per-chip settings are sized at
+    // construction and the readout is what says how many chips there are.
+    katherine::config c{device.info().chip_count};
     configure(c);
 
-    katherine::device device{remote_address};
     print_chip_id(device);
     run_acquisition(device, c);
 

@@ -47,6 +47,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // katherine/katherine.h must precede kspawn.h: on Windows it transitively
@@ -287,6 +288,16 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
     KT_CHECK_EQ(info->received_pixels, HITS_PER_FRAME);
     KT_CHECK_EQ(info->lost_pixels, LOST_PER_FRAME);
 }
+// A structure with a flexible array member cannot be a member of another, so
+// one chip's worth of configuration is allocated rather than declared.
+#define CONFIG_SIZE_1 (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
+
+static katherine_tpx3_config_t *
+alloc_config_1(void)
+{
+    return (katherine_tpx3_config_t *) calloc(1, CONFIG_SIZE_1);
+}
+
 
 // Fills in a configuration equivalent to the one c/examples/krun.c uses,
 // less the pixel matrix: the emulated readout models the upload protocol
@@ -295,35 +306,40 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
 // uploaded and accepted like any other. Mirrors configure() in
 // test_e2e_acq.c, whose acquisitions these have to compare against.
 static void
-configure(katherine_config_t *config, double acq_time_ns, uint32_t frame_count)
+configure(katherine_tpx3_config_t *config, double acq_time_ns, uint32_t frame_count)
 {
-    memset(config, 0, sizeof(*config));
+    memset(config, 0, CONFIG_SIZE_1);
 
-    config->acq_time    = acq_time_ns;
-    config->frame_count = frame_count;
-    config->bias[0]     = 230;
+    config->common.chip_type   = KATHERINE_CHIP_TPX3;
+    config->common.chip_count  = 1;
+    config->common.acq_time    = acq_time_ns;
+    config->common.frame_count = frame_count;
+    config->common.bias[0]     = 230;
+
+    config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
+    config->fast_vco_enable = true;
 
     config->clock_phase     = KATHERINE_TPX3_PHASE_1;
     config->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
 
-    config->dacs.named.Ibias_Preamp_ON   = 128;
-    config->dacs.named.Ibias_Preamp_OFF  = 8;
-    config->dacs.named.Vpreamp_NCAS      = 128;
-    config->dacs.named.Ibias_Ikrum       = 15;
-    config->dacs.named.Vfbk              = 164;
-    config->dacs.named.Vthreshold_fine   = 476;
-    config->dacs.named.Vthreshold_coarse = 8;
-    config->dacs.named.Ibias_DiscS1_ON   = 100;
-    config->dacs.named.Ibias_DiscS1_OFF  = 8;
-    config->dacs.named.Ibias_DiscS2_ON   = 128;
-    config->dacs.named.Ibias_DiscS2_OFF  = 8;
-    config->dacs.named.Ibias_PixelDAC    = 128;
-    config->dacs.named.Ibias_TPbufferIn  = 128;
-    config->dacs.named.Ibias_TPbufferOut = 128;
-    config->dacs.named.VTP_coarse        = 128;
-    config->dacs.named.VTP_fine          = 256;
-    config->dacs.named.Ibias_CP_PLL      = 128;
-    config->dacs.named.PLL_Vcntrl        = 128;
+    config->chips[0].dacs.named.Ibias_Preamp_ON   = 128;
+    config->chips[0].dacs.named.Ibias_Preamp_OFF  = 8;
+    config->chips[0].dacs.named.Vpreamp_NCAS      = 128;
+    config->chips[0].dacs.named.Ibias_Ikrum       = 15;
+    config->chips[0].dacs.named.Vfbk              = 164;
+    config->chips[0].dacs.named.Vthreshold_fine   = 476;
+    config->chips[0].dacs.named.Vthreshold_coarse = 8;
+    config->chips[0].dacs.named.Ibias_DiscS1_ON   = 100;
+    config->chips[0].dacs.named.Ibias_DiscS1_OFF  = 8;
+    config->chips[0].dacs.named.Ibias_DiscS2_ON   = 128;
+    config->chips[0].dacs.named.Ibias_DiscS2_OFF  = 8;
+    config->chips[0].dacs.named.Ibias_PixelDAC    = 128;
+    config->chips[0].dacs.named.Ibias_TPbufferIn  = 128;
+    config->chips[0].dacs.named.Ibias_TPbufferOut = 128;
+    config->chips[0].dacs.named.VTP_coarse        = 128;
+    config->chips[0].dacs.named.VTP_fine          = 256;
+    config->chips[0].dacs.named.Ibias_CP_PLL      = 128;
+    config->chips[0].dacs.named.PLL_Vcntrl        = 128;
 
     // The triggers, the delayed start and the test pulse generator are all
     // left disabled by the memset above.
@@ -339,12 +355,13 @@ check_one_frame(void)
 {
     katherine_acquisition_t acq;
     acq_probe_t probe;
-    katherine_config_t config;
+    katherine_tpx3_config_t *storage = alloc_config_1();
+    KT_REQUIRE(storage != NULL);
 
     memset(&acq, 0, sizeof(acq));
     memset(&probe, 0, sizeof(probe));
 
-    configure(&config, SHORT_ACQ_TIME_NS, 1);
+    configure(storage, SHORT_ACQ_TIME_NS, 1);
 
     KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE, PIXEL_BUFFER_HITS * sizeof(px_t),
                    REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
@@ -356,9 +373,10 @@ check_one_frame(void)
 
     // One frame only: katherine_acquisition_begin() rejects a data-driven
     // acquisition of more than one frame outright (KATHERINE_E_INVAL).
-    KT_CHECK_EQ(katherine_acquisition_begin(&acq, &config, KATHERINE_TPX3_READOUT_DATA_DRIVEN, KATHERINE_TPX3_PX_TOA_TOT, true, true),
-        0);
+    storage->readout_mode = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, storage, true), 0);
     KT_CHECK_EQ(katherine_acquisition_read(&acq), 0);
+    free(storage);
 
     KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, 1);

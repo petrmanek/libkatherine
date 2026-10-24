@@ -498,11 +498,11 @@ katherine_cmd_send64_f32(katherine_transport_t *transport, uint8_t val6, uint8_t
  * \return Register word, ready for a sensor-register write.
  */
 static inline int32_t
-katherine_general_config_word(const katherine_config_t *config)
+katherine_general_config_word(const katherine_tpx3_chip_config_t *chip)
 {
     uint64_t word = 0;
-    word          = INSERT(word, general_config, polarity, config->polarity);
-    word          = INSERT(word, general_config, gray_count_en, !config->gray_disable);
+    word          = INSERT(word, general_config, polarity, chip->polarity);
+    word          = INSERT(word, general_config, gray_count_en, !chip->gray_disable);
     word          = INSERT(word, general_config, ackcommand_en, 1);
     word          = INSERT(word, general_config, fast_lo_en, 1);
     return (int32_t) word;
@@ -558,7 +558,7 @@ katherine_general_config_word(const katherine_config_t *config)
  * \return Register word, ready for a sensor-register write.
  */
 static inline int32_t
-katherine_pll_config_word(const katherine_config_t *config)
+katherine_pll_config_word(const katherine_tpx3_config_t *config)
 {
     uint64_t word = 0;
     word          = INSERT(word, pll_config, bypass_pll, 0);

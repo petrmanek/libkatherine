@@ -411,11 +411,18 @@ operator<<(std::ostream& os, const katherine::device& v)
     return detail::stream_snprint(os, v.c_dev(), katherine_device_snprint);
 }
 
+/** Renders a katherine_tpx3_chip_config_t (via katherine_tpx3_chip_config_snprint()). */
+inline std::ostream&
+operator<<(std::ostream& os, const katherine_tpx3_chip_config_t& v)
+{
+    return katherine::detail::stream_snprint(os, &v, katherine_tpx3_chip_config_snprint);
+}
+
 /** Renders a katherine::config over its c_config() accessor. */
 inline std::ostream&
 operator<<(std::ostream& os, const katherine::config& v)
 {
-    return detail::stream_snprint(os, v.c_config(), katherine_config_snprint);
+    return detail::stream_snprint(os, v.c_config(), katherine_tpx3_config_snprint);
 }
 
 /**

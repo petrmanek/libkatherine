@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -490,66 +491,90 @@ test_str_enums(void)
 // nested inside the whole dacs golden string, inside the whole config
 // string, with the pixel matrix rendered as the words/xor64 digest.
 
-static const char *CONFIG_GOLDEN = "config{pixel_config: px_config{words: 16384, xor64: 0x1111111122222222}, "
+static const char *CONFIG_GOLDEN = "tpx3_config{common: config{chip_type: Timepix3, chip_count: 1, "
                                    "acq_time: 400000, frame_count: 1, bias0: 230, bias1: 12.5, "
                                    "bias2: 0, bias3: 0, "
                                    "start_trigger: trigger{enabled: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}, "
-                                   "stop_trigger: trigger{enabled: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}, "
-                                   "gray_disable: true, polarity: electrons, clock_phase: phase_1, "
-                                   "clock_frequency: freq_40, "
+                                   "stop_trigger: trigger{enabled: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}}, "
+                                   "readout_mode: data_driven, px_mode: toa_tot, fast_vco_enable: true, "
+                                   "clock_phase: phase_1, correct_clock_phase: false, clock_frequency: freq_40, "
+                                   "test_pulses: test_pulse_config{enabled: true, digital_only: false, "
+                                   "external: false, count: 100, period: 65, phase: 0}, "
+                                   "chip0: tpx3_chip_config{polarity: electrons, gray_disable: true, "
                                    "dacs: dacs{Ibias_Preamp_ON: 128, Ibias_Preamp_OFF: 8, Vpreamp_NCAS: 128, "
                                    "Ibias_Ikrum: 15, Vfbk: 164, Vthreshold_fine: 476, Vthreshold_coarse: 8, "
                                    "Ibias_DiscS1_ON: 100, Ibias_DiscS1_OFF: 8, Ibias_DiscS2_ON: 128, "
                                    "Ibias_DiscS2_OFF: 8, Ibias_PixelDAC: 128, Ibias_TPbufferIn: 128, "
                                    "Ibias_TPbufferOut: 128, VTP_coarse: 128, VTP_fine: 256, Ibias_CP_PLL: 128, "
                                    "PLL_Vcntrl: 128}, "
-                                   "test_pulses: test_pulse_config{enabled: true, digital_only: false, "
-                                   "external: false, count: 100, period: 65, phase: 0}}";
+                                   "pixels: px_config{words: 16384, xor64: 0x1111111122222222}}}";
+
+
+// A structure with a flexible array member cannot be a member of another, so
+// one chip's worth of configuration is allocated rather than declared.
+#define CONFIG_SIZE_1 (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
+
+static katherine_tpx3_config_t *
+alloc_config_1(void)
+{
+    return (katherine_tpx3_config_t *) calloc(1, CONFIG_SIZE_1);
+}
 
 static void
-build_config(katherine_config_t *c)
+build_config(katherine_tpx3_config_t *c)
 {
-    memset(c, 0, sizeof(*c));
+    memset(c, 0, CONFIG_SIZE_1);
 
-    fill_px_config(&c->pixel_config);
-    c->acq_time        = 400000.0;
-    c->frame_count     = 1;
-    c->bias[0]         = 230.0f;
-    c->bias[1]         = 12.5f;
-    c->start_trigger   = g_start_trigger;
-    c->stop_trigger    = g_stop_trigger;
-    c->gray_disable    = true;
-    c->polarity        = KATHERINE_POLARITY_ELECTRONS;
+    c->common.chip_type     = KATHERINE_CHIP_TPX3;
+    c->common.chip_count    = 1;
+    c->common.acq_time      = 400000.0;
+    c->common.frame_count   = 1;
+    c->common.bias[0]       = 230.0f;
+    c->common.bias[1]       = 12.5f;
+    c->common.start_trigger = g_start_trigger;
+    c->common.stop_trigger  = g_stop_trigger;
+
+    c->readout_mode    = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+    c->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
+    c->fast_vco_enable = true;
     c->clock_phase     = KATHERINE_TPX3_PHASE_1;
     c->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
-    fill_dacs(&c->dacs);
-    c->test_pulses = g_tp_config;
+    c->test_pulses     = g_tp_config;
+
+    c->chips[0].gray_disable = true;
+    c->chips[0].polarity     = KATHERINE_POLARITY_ELECTRONS;
+    fill_dacs(&c->chips[0].dacs);
+    fill_px_config(&c->chips[0].pixels);
 }
 
 static void
 test_config(void)
 {
-    katherine_config_t c;
-    build_config(&c);
+    katherine_tpx3_config_t *c = alloc_config_1();
+    KT_REQUIRE(c != NULL);
+    build_config(c);
 
     char buf[2048];
-    int n = katherine_config_snprint(buf, sizeof(buf), &c);
+    int n = katherine_tpx3_config_snprint(buf, sizeof(buf), c);
     CHECK_GOLDEN(n, buf, CONFIG_GOLDEN);
+    free(c);
 }
 
 static void
 test_config_nests_dacs_verbatim(void)
 {
-    katherine_config_t c;
-    build_config(&c);
+    katherine_tpx3_config_t *c = alloc_config_1();
+    KT_REQUIRE(c != NULL);
+    build_config(c);
 
     char config_buf[2048];
-    katherine_config_snprint(config_buf, sizeof(config_buf), &c);
+    katherine_tpx3_config_snprint(config_buf, sizeof(config_buf), c);
 
     char dacs_buf[512];
-    katherine_tpx3_dacs_snprint(dacs_buf, sizeof(dacs_buf), &c.dacs);
+    katherine_tpx3_dacs_snprint(dacs_buf, sizeof(dacs_buf), &c->chips[0].dacs);
 
     KT_CHECK(strstr(config_buf, dacs_buf) != NULL);
+    free(c);
 }
 
 // ------------------------------------------------------------------

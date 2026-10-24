@@ -267,8 +267,12 @@ def build_config(katherine):
     c.start_trigger = katherine.Trigger(enabled=False)
     c.stop_trigger = katherine.Trigger(enabled=False)
 
-    c.gray_disable = False
-    c.polarity = katherine.Polarity.ELECTRONS
+    c.readout_mode = katherine.Tpx3ReadoutMode.DATA_DRIVEN
+    c.px_mode = katherine.Tpx3PxMode.TOA_TOT
+    c.fast_vco_enable = True
+
+    c.set_gray_disable(0, False)
+    c.set_polarity(0, katherine.Polarity.ELECTRONS)
 
     c.clock_phase = katherine.Tpx3Phase.PHASE_1
     c.clock_frequency = katherine.Tpx3Freq.FREQ_40
@@ -292,9 +296,9 @@ def build_config(katherine):
     dacs.VTP_fine = 256
     dacs.Ibias_CP_PLL = 128
     dacs.PLL_Vcntrl = 128
-    c.dacs = dacs
+    c.set_dacs(0, dacs)
 
-    c.pixel_config = katherine.Tpx3PxConfig()
+    c.set_pixels(0, katherine.Tpx3PxConfig())
 
     return c
 
@@ -332,7 +336,7 @@ def run_acquisition(katherine, device):
     probe = make_probe(katherine)
     acq.observer = probe
 
-    acq.begin(config, katherine.Tpx3ReadoutMode.DATA_DRIVEN, katherine.Tpx3PxMode.TOA_TOT, True)
+    acq.begin(config)
     acq.read()
 
     return acq, probe

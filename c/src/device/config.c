@@ -66,7 +66,7 @@
  *   included; see katherine_device_info_t::chip_count.
  */
 katherine_error_t
-katherine_configure(katherine_device_t *device, const katherine_config_t *config)
+katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config_t *config)
 {
     katherine_error_t res;
 
@@ -78,51 +78,71 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
         goto err;
     }
 
-    res = katherine_tpx3_set_all_pixel_config(device, 0, &config->pixel_config);
+    // Before anything is read past common: the rest of this struct is
+    // Timepix3's, and chip_type is what says so.
+    if (config->common.chip_type != KATHERINE_CHIP_TPX3 || device->derived_info.chip_type != KATHERINE_CHIP_TPX3) {
+        res = KATHERINE_E_INVAL;
+        goto err;
+    }
+
+    if (config->common.chip_count < 1 || config->common.chip_count > device->info.chip_count) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err;
+    }
+
+    res = katherine_set_acq_time(device, config->common.acq_time);
     if (res) goto err;
 
-    res = katherine_set_acq_time(device, config->acq_time);
-    if (res) goto err;
-
-    res = katherine_set_frame_count(device, config->frame_count);
+    res = katherine_set_frame_count(device, config->common.frame_count);
     if (res) goto err;
 
     // The second bound is the array's own: a readout that named more supplies
     // than katherine_config_t carries would otherwise index past it.
     for (uint8_t i = 0; i < device->derived_info.bias_supply_count && i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
-        res = katherine_set_bias(device, i, config->bias[i]);
+        res = katherine_set_bias(device, i, config->common.bias[i]);
         if (res) goto err;
     }
 
-    res = katherine_set_acquisition_triggers(device, &config->start_trigger, &config->stop_trigger);
+    res = katherine_set_acquisition_triggers(device, &config->common.start_trigger, &config->common.stop_trigger);
     if (res) goto err;
 
-    res = katherine_tpx3_set_sensor_register(
-        device, 0, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(config));
-    if (res) goto err;
+    // The PLL word is readout-wide but the register is per chip, so it is
+    // composed once and written to each.
+    const int32_t pll_word = katherine_pll_config_word(config);
 
-    res = katherine_tpx3_set_sensor_register(device, 0, KATHERINE_TPX3_REG_PLL_CONFIG, katherine_pll_config_word(config));
-    if (res) goto err;
+    for (uint8_t chip_index = 0; chip_index < config->common.chip_count; ++chip_index) {
+        const katherine_tpx3_chip_config_t *chip = &config->chips[chip_index];
 
-    // Commits the output block's own configuration, which this library never
-    // writes: the readout firmware owns the channel mask and the link clock
-    // selector, and reports the mask it settled on through the communication
-    // status. So this is a commit for a register nobody here sets, kept
-    // because the sensor still needs the trigger to latch what the firmware
-    // put there.
-    res = katherine_tpx3_output_block_config_update(device, 0);
-    if (res) goto err;
+        res = katherine_tpx3_set_all_pixel_config(device, chip_index, &chip->pixels);
+        if (res) goto err;
 
-    // Carries the register writes above to the sensor. Without it they sit in
-    // the readout's register image and never reach the chip.
-    res = katherine_tpx3_update_sensor_registers(device, 0);
-    if (res) goto err;
+        res = katherine_tpx3_set_sensor_register(
+            device, chip_index, KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(chip));
+        if (res) goto err;
 
-    res = katherine_tpx3_timer_set(device, 0);
-    if (res) goto err;
+        res = katherine_tpx3_set_sensor_register(device, chip_index, KATHERINE_TPX3_REG_PLL_CONFIG, pll_word);
+        if (res) goto err;
 
-    res = katherine_tpx3_set_dacs(device, 0, &config->dacs);
-    if (res) goto err;
+        // Commits the output block's own configuration, which this library
+        // never writes: the readout firmware owns the channel mask and the
+        // link clock selector, and reports the mask it settled on through
+        // the communication status. So this is a commit for a register
+        // nobody here sets, kept because the sensor still needs the trigger
+        // to latch what the firmware put there.
+        res = katherine_tpx3_output_block_config_update(device, chip_index);
+        if (res) goto err;
+
+        // Carries the register writes above to the sensor. Without it they
+        // sit in the readout's register image and never reach the chip.
+        res = katherine_tpx3_update_sensor_registers(device, chip_index);
+        if (res) goto err;
+
+        res = katherine_tpx3_timer_set(device, chip_index);
+        if (res) goto err;
+
+        res = katherine_tpx3_set_dacs(device, chip_index, &chip->dacs);
+        if (res) goto err;
+    }
 
     // The test-pulse command carries the enable flag as well as the pulse
     // parameters, and it is the only thing that needs to: GeneralConfig's
