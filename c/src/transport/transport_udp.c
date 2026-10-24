@@ -30,13 +30,11 @@
 #include "protocol/cmd_interface.h"
 
 /**
- * What a session is opened at, before a reader names a size of its own with
- * katherine_transport_set_buffer_size(). Small on purpose: nothing reads
- * measurement data between a link being opened and an acquisition being set
- * up on it, so this is allocated and then replaced. Its job is to put an
- * allocation failure at open time rather than halfway through a measurement.
+ * What a session is opened at when its caller names no size of its own.
+ * Small on purpose: a control session never reads measurement data, and a
+ * data session is told the size it wants at construction.
  */
-#define DEFAULT_BUFFER_SIZE 4096
+#define DEFAULT_BUFFER_SIZE KATHERINE_UDP_DEFAULT_BUFFER_SIZE
 
 /**
  * The UDP transport's own state: one session and the one buffer it reads into.
@@ -54,7 +52,7 @@ typedef struct katherine_transport_udp {
      * eight-byte load, which reaches two bytes past what arrived.
      */
     char *buffer;
-    size_t capacity; ///< Bytes of #buffer a datagram may fill; katherine_transport_set_buffer_size() is what changes it.
+    size_t capacity; ///< Bytes of #buffer a datagram may fill, settled at construction from katherine_udp_config_t::buffer_size.
     bool lent;       ///< True if the one buffer is in the caller's hands.
 } katherine_transport_udp_t;
 
@@ -332,7 +330,6 @@ udp_t_mutex_unlock(void *ctx)
     return katherine_udp_mutex_unlock(&t->udp);
 }
 
-
 /**
  * The OS code the last failed operation reported.
  * \param ctx Session to ask.
@@ -344,62 +341,6 @@ udp_t_get_last_os_error(void *ctx)
     katherine_transport_udp_t *t = ctx;
 
     return katherine_udp_last_os_error(&t->udp);
-}
-
-/**
- * Resize the buffer one datagram is received into.
- * \param ctx Session to resize.
- * \param size Bytes it is to hold.
- *
- * \retval KATHERINE_E_OK on success, the buffer now holding exactly \p size
- *   bytes of datagram.
- * \retval KATHERINE_E_INVAL if \p size is zero, or within a word of SIZE_MAX,
- *   which is where this transport's own headroom can no longer be added to it.
- * \retval KATHERINE_E_STATE if the one buffer is lent out, since resizing it
- *   would leave the caller holding freed memory.
- * \retval KATHERINE_E_NOMEM if the new buffer could not be allocated, the
- *   session keeping the one it had.
- */
-static katherine_error_t
-udp_t_set_buffer_size(void *ctx, size_t size)
-{
-    katherine_error_t res;
-    katherine_transport_udp_t *t = ctx;
-
-    // The headroom below is added to this, and a size within a word of
-    // SIZE_MAX makes that sum wrap. Rejecting it here rather than relying on
-    // the allocator: a sum that wraps to zero reaches realloc() as a request
-    // for nothing, which frees the buffer and returns NULL -- indistinguishable
-    // from the failure the code below believes it is handling, and a double
-    // free at the next finalize.
-    if (size == 0 || size > SIZE_MAX - sizeof(uint64_t)) {
-        res = KATHERINE_E_INVAL;
-        goto err_size;
-    }
-    // The one buffer is the one that would move, so resizing under a caller
-    // holding it would hand them a pointer into freed memory.
-    if (t->lent) {
-        res = KATHERINE_E_STATE;
-        goto err_lent;
-    }
-
-    // Into a separate pointer, because realloc() leaves the original intact
-    // when it fails and the transport then keeps reading at the size it had.
-    char *resized = realloc(t->buffer, size + sizeof(uint64_t));
-    if (resized == NULL) {
-        res = KATHERINE_E_NOMEM;
-        goto err_alloc;
-    }
-
-    t->buffer   = resized;
-    t->capacity = size;
-
-    return KATHERINE_E_OK;
-
-err_alloc:
-err_lent:
-err_size:
-    return res;
 }
 
 /**
@@ -424,7 +365,6 @@ static const katherine_transport_ops_t udp_ops = {
     .acquire_data_buf  = udp_t_acquire_data_buf,
     .release_data_buf  = udp_t_release_data_buf,
     .set_timeout       = udp_t_set_timeout,
-    .set_buffer_size   = udp_t_set_buffer_size,
     .get_dropped_input = udp_t_get_dropped_input,
     .mutex_lock        = udp_t_mutex_lock,
     .mutex_unlock      = udp_t_mutex_unlock,
@@ -437,9 +377,8 @@ static const katherine_transport_ops_t udp_ops = {
  * \param transport Transport to fill in.
  * \param config Session to open, which the transport closes with itself.
  *
- * The lent buffer starts at a small size of this backend's choosing. A
- * reader that needs a particular one asks for it with
- * katherine_transport_set_buffer_size().
+ * The lent buffer is katherine_udp_config_t::buffer_size bytes, or this
+ * backend's own small default where that is zero.
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if no transport or no configuration was given,
@@ -475,13 +414,22 @@ katherine_transport_init_udp(katherine_transport_t *transport, const katherine_u
         goto err_args;
     }
 
+    // Zero asks for the session's own; anything the allocation below cannot
+    // be computed for is refused here rather than at the allocator, where a
+    // sum that wrapped to zero would read as a failure and free the buffer.
+    const size_t capacity = config->buffer_size == 0 ? DEFAULT_BUFFER_SIZE : config->buffer_size;
+    if (capacity > SIZE_MAX - sizeof(uint64_t)) {
+        res = KATHERINE_E_INVAL;
+        goto err_args;
+    }
+
     katherine_transport_udp_t *t = calloc(1, sizeof(*t));
     if (t == NULL) {
         res = KATHERINE_E_NOMEM;
         goto err_alloc;
     }
 
-    t->buffer = malloc(DEFAULT_BUFFER_SIZE + sizeof(uint64_t));
+    t->buffer = malloc(capacity + sizeof(uint64_t));
     if (t->buffer == NULL) {
         res = KATHERINE_E_NOMEM;
         goto err_buffer;
@@ -502,7 +450,7 @@ katherine_transport_init_udp(katherine_transport_t *transport, const katherine_u
     if (config->rcvbuf != 0 && (res = katherine_udp_set_rcvbuf(&t->udp, config->rcvbuf)) != KATHERINE_E_OK)
         goto err_rcvbuf;
 
-    t->capacity = DEFAULT_BUFFER_SIZE;
+    t->capacity = capacity;
 
     transport->ops                     = &udp_ops;
     transport->kind                    = KATHERINE_TRANSPORT_UDP;

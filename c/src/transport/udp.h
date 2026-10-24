@@ -93,6 +93,9 @@ struct katherine_udp {
 KATHERINE_NOT_EXPORTED int
 katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);
 
+/** The size a session reads at when its caller names none. */
+#define KATHERINE_UDP_DEFAULT_BUFFER_SIZE 4096
+
 /** A UDP session to open: which ports it binds and talks to, and how it behaves once open. */
 typedef struct katherine_udp_config {
     const char *local_address;  ///< Address to bind to, or NULL for every address the host has.
@@ -101,6 +104,7 @@ typedef struct katherine_udp_config {
     uint16_t remote_port;       ///< Port on the readout.
     uint32_t timeout_ms;        ///< Time a receive waits before reporting KATHERINE_E_TIMEOUT.
     uint32_t rcvbuf;            ///< Receive queue to ask the OS for, or zero for the session's own default.
+    size_t buffer_size;         ///< Bytes one datagram may fill, or zero for the session's own default.
     bool count_drops;           ///< True to ask the kernel how many datagrams it dropped for want of queue space; see katherine_transport_get_dropped_input().
     bool pin_remote;            ///< True to refuse datagrams from anywhere but the remote named here; see katherine_udp_pin_remote().
 } katherine_udp_config_t;

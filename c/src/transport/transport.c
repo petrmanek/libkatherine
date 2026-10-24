@@ -188,38 +188,6 @@ katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeo
 }
 
 /**
- * Make one lent buffer carry exactly \p size bytes, or fail.
- *
- * Exact rather than advisory, so that a caller which sized something else to
- * match still knows the capacity afterwards. A transport whose buffers the
- * link fixes refuses outright rather than settling on another size.
- * \param transport Transport to resize.
- * \param size Bytes one lent buffer is to carry, at least one.
- *
- * \retval KATHERINE_E_OK on success, the capacity now being exactly \p size.
- * \retval KATHERINE_E_UNSUPPORTED if this transport's buffers are fixed.
- * \retval KATHERINE_E_STATE if a buffer is lent out, which resizing would
- *   leave dangling in the caller's hands.
- * \retval KATHERINE_E_INVAL if the size is zero, or above what this transport
- *   can carry in one buffer: the UDP link refuses a size within a word of
- *   SIZE_MAX, where its own read headroom can no longer be added, and the USB
- *   link refuses anything past the int a libusb transfer's length is.
- * \retval KATHERINE_E_NOMEM if the new buffer could not be allocated, the
- *   transport keeping the one it had.
- * \note No transport yet refuses outright, so KATHERINE_E_UNSUPPORTED is
- *   documented ahead of the first whose buffers a link fixes. The index
- *   reports it unreachable until then, which is the honest state.
- * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
- *   released, which a transport serializing its own access can report;
- *   see katherine_transport_get_last_os_error().
- */
-katherine_error_t
-katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t size)
-{
-    return transport->ops->set_buffer_size(transport->ctx, size);
-}
-
-/**
  * Input the link lost before this library read it.
  * \param transport Link to ask.
  * \param count Datagrams, or whatever unit the link delivers, lost for want

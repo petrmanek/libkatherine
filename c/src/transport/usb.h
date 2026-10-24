@@ -60,19 +60,19 @@ katherine_str_usb_stream(katherine_usb_stream_t stream);
 // response and data endpoints are the reverse of the obvious order.
 
 /// Endpoint a readout reads commands from.
-#define KATHERINE_USB_EP_CMD_OUT      ((uint8_t) 0x02)
+#define KATHERINE_USB_EP_CMD_OUT          ((uint8_t) 0x02)
 
 /// Endpoint a readout writes command responses to.
-#define KATHERINE_USB_EP_CMD_IN       ((uint8_t) 0x82)
+#define KATHERINE_USB_EP_CMD_IN           ((uint8_t) 0x82)
 
 /// Endpoint a readout writes measurement data to.
-#define KATHERINE_USB_EP_DATA_IN      ((uint8_t) 0x81)
+#define KATHERINE_USB_EP_DATA_IN          ((uint8_t) 0x81)
 
 /**
  * Tiers a USB tree can be deep, which is what the specification allows and so
  * the longest chain of port numbers a readout can sit at the end of.
  */
-#define KATHERINE_USB_PORT_DEPTH      7
+#define KATHERINE_USB_PORT_DEPTH          7
 
 /**
  * Bytes the readout's measurement endpoint sends per data frame.
@@ -82,7 +82,10 @@ katherine_str_usb_stream(katherine_usb_stream_t stream);
  * comes from. Deriving it from the endpoint's maximum packet size happens
  * to agree at SuperSpeed and disagrees at every other speed.
  */
-#define KATHERINE_USB_DATA_FRAME_SIZE 1024
+#define KATHERINE_USB_DATA_FRAME_SIZE     1024
+
+/** The size a ring reads at when its caller names none: 48 KiB, which the default configuration has always asked for. */
+#define KATHERINE_USB_DEFAULT_BUFFER_SIZE (48u * 1024u)
 
 /**
  * Readout to open, and the strategy for reading it.
@@ -118,7 +121,7 @@ typedef struct katherine_usb_config {
     uint8_t ep_in;                 ///< Endpoint read from, or zero for a transport that receives nothing.
     katherine_usb_stream_t stream; ///< Read strategy, where a ring was asked for.
     uint32_t queue_len;            ///< Reads kept outstanding by KATHERINE_USB_STREAM_ASYNC.
-    uint32_t buffer_size;          ///< Bytes one read can carry.
+    uint32_t buffer_size;          ///< Bytes one read can carry, or zero for the ring's own default.
     uint32_t timeout_ms;           ///< Time a read waits before reporting KATHERINE_E_TIMEOUT.
 } katherine_usb_config_t;
 

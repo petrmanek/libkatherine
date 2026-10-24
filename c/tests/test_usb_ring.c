@@ -373,7 +373,6 @@ test_a_message_transport_lends_no_buffers(void)
 
     KT_CHECK(t.ops->acquire_data_buf == NULL);
     KT_CHECK(t.ops->release_data_buf == NULL);
-    KT_CHECK(t.ops->set_buffer_size == NULL);
 
     /* And it does play its own. */
     KT_CHECK(t.ops->send_cmd != NULL);
@@ -505,7 +504,7 @@ test_the_data_factory_adopts_the_control_transport(void)
 
     katherine_transport_t control, data;
     KT_REQUIRE(katherine_transport_init_for_control("usb://1-1", false, &control) == KATHERINE_E_OK);
-    KT_REQUIRE(katherine_transport_init_for_data("usb://1-1", &control, 0, &data) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_for_data("usb://1-1", &control, 0, 0, NULL, &data) == KATHERINE_E_OK);
 
     /* One open and one claim between them, and the ring is up. */
     KT_CHECK_EQ(fake_usb_opens(), 1);
@@ -731,7 +730,9 @@ test_a_failed_open_gives_back_what_it_took(void)
 
 /* A transfer's length is an int to libusb and a uint32_t in the ring, so a
  * size past INT_MAX cannot be carried and is refused rather than stored as
- * some other number. Zero is refused for the same reason it always was. */
+ * some other number. Asked at construction now, which is the only place the
+ * size is settled -- and zero no longer means an error there but the ring's
+ * own size, which the second half checks by counting what it posted. */
 static void
 test_an_unreachable_buffer_size_is_refused(void)
 {
@@ -739,13 +740,16 @@ test_an_unreachable_buffer_size_is_refused(void)
     fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
 
     katherine_transport_t t;
-    const katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+    katherine_usb_config_t config = config_for(KATHERINE_USB_STREAM_ASYNC);
+
+    config.buffer_size = (uint32_t) INT_MAX + 1u;
+    KT_CHECK_EQ(katherine_transport_init_usb(&t, &config), KATHERINE_E_INVAL);
+
+    /* Zero asks for the ring's own, so this opens and posts its full ring. */
+    config             = config_for(KATHERINE_USB_STREAM_ASYNC);
+    config.buffer_size = 0;
     KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
 
-    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, 0), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, (size_t) INT_MAX + 1), KATHERINE_E_INVAL);
-
-    /* And the ring still reads at the size it had. */
     uint32_t inflight = 0;
     KT_CHECK_EQ(katherine_transport_usb_get_inflight_transfers(&t, &inflight), KATHERINE_E_OK);
     KT_CHECK_EQ(inflight, (uint32_t) RING);

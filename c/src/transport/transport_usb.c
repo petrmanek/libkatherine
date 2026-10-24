@@ -925,116 +925,6 @@ drain_inflight(katherine_transport_usb_t *u)
 }
 
 /**
- * Rebuild the ring so each read carries a different number of bytes.
- *
- * Replacements are allocated before any original is given up, so running out
- * leaves the transport reading at the size it already had.
- * \param ctx Link to resize.
- * \param size Bytes one read is to carry, at most INT_MAX.
- *
- * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_INVAL if \a size is zero, or larger than the int a
- *   libusb transfer's length is.
- * \retval KATHERINE_E_STATE if a buffer is lent out, the ring being the
- *   lender's for as long as it holds one.
- * \retval KATHERINE_E_NOMEM if the replacement table or any buffer in it
- *   could not be allocated; the ring is left reading at the size it had.
- * \retval KATHERINE_E_SYSTEM if the ring's lock could not be taken or
- *   released; see pthread_mutex_lock(3) and
- *   katherine_transport_get_last_os_error().
- */
-static katherine_error_t
-usb_t_set_buffer_size(void *ctx, size_t size)
-{
-    katherine_error_t res;
-    katherine_transport_usb_t *u = ctx;
-    uint8_t **fresh              = NULL;
-    uint32_t allocated           = 0;
-
-    // A transfer's length is an int to libusb, and the ring keeps the size in
-    // a uint32_t, so anything past INT_MAX would be stored and submitted as
-    // some other number entirely.
-    if (size == 0 || size > (size_t) INT_MAX) {
-        res = KATHERINE_E_INVAL;
-        goto err_size;
-    }
-
-    // Asked before anything is torn down, because a refusal must leave the ring
-    // untouched. Only acquire_data_buf() lends, and no caller is inside both.
-    if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_probe_lock;
-
-    bool lent = false;
-    for (uint32_t i = 0; i < u->config.queue_len; ++i)
-        if (u->slots[i].state == KATHERINE_RING_SLOT_LENT) lent = true;
-
-    if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_probe_lock;
-
-    if (lent) {
-        res = KATHERINE_E_STATE;
-        goto err_lent;
-    }
-
-    fresh = calloc(u->config.queue_len, sizeof(*fresh));
-    if (fresh == NULL) {
-        res = KATHERINE_E_NOMEM;
-        goto err_table;
-    }
-
-    // A whole word past the capacity, as the UDP transport allocates: a decoder
-    // reads the last six-byte item through an eight-byte load.
-    for (; allocated < u->config.queue_len; ++allocated) {
-        fresh[allocated] = malloc(size + sizeof(uint64_t));
-        if (fresh[allocated] == NULL) {
-            res = KATHERINE_E_NOMEM;
-            goto err_buffers;
-        }
-    }
-
-    // libusb is writing into the originals, so none of them can be freed
-    // while the bus still holds one.
-    if (u->config.stream == KATHERINE_USB_STREAM_ASYNC) drain_inflight(u);
-
-    if ((res = katherine_mutex_lock(&u->lock)) != KATHERINE_E_OK) goto err_buffers;
-
-    for (uint32_t i = 0; i < u->config.queue_len; ++i) {
-        free(u->slots[i].buf);
-        u->slots[i].buf   = fresh[i];
-        u->slots[i].len   = 0;
-        u->slots[i].state = KATHERINE_RING_SLOT_IDLE;
-
-        if (u->slots[i].xfer != NULL)
-            libusb_fill_bulk_transfer(u->slots[i].xfer, u->handle, u->config.ep_in, u->slots[i].buf, (int) size, on_transfer_done, &u->slots[i], u->config.timeout_ms);
-    }
-
-    // The queue of filled slots goes with the freed buffers. Resizing happens
-    // between opening a link and setting up a measurement, with nothing to lose.
-    u->ready_head         = 0;
-    u->ready_count        = 0;
-    u->draining           = false;
-    u->config.buffer_size = (uint32_t) size;
-
-    // Past the swap the fresh buffers are the ring's, so a failure from here
-    // on releases the table alone.
-    if ((res = katherine_mutex_unlock(&u->lock)) != KATHERINE_E_OK) goto err_swapped;
-
-    // Not resubmitted here: acquire_data_buf() reposts every idle slot before it
-    // waits, so this call has no failure of its own to report.
-    free(fresh);
-
-    return KATHERINE_E_OK;
-
-err_buffers:
-    while (allocated > 0) free(fresh[--allocated]);
-err_swapped:
-    free(fresh);
-err_table:
-err_lent:
-err_probe_lock:
-err_size:
-    return res;
-}
-
-/**
  * Close the link, after the bus has given back everything it owns.
  * \param ctx Link to close.
  */
@@ -1091,7 +981,6 @@ static const katherine_transport_ops_t usb_ops_stream_sync = {
     .acquire_data_buf  = usb_t_acquire_data_buf_sync,
     .release_data_buf  = usb_t_release_data_buf_sync,
     .set_timeout       = usb_t_set_timeout,
-    .set_buffer_size   = usb_t_set_buffer_size,
     .get_dropped_input = usb_t_get_dropped_input,
     .mutex_lock        = usb_t_mutex_lock,
     .mutex_unlock      = usb_t_mutex_unlock,
@@ -1103,7 +992,6 @@ static const katherine_transport_ops_t usb_ops_stream_async = {
     .acquire_data_buf  = usb_t_acquire_data_buf_async,
     .release_data_buf  = usb_t_release_data_buf_async,
     .set_timeout       = usb_t_set_timeout,
-    .set_buffer_size   = usb_t_set_buffer_size,
     .get_dropped_input = usb_t_get_dropped_input,
     .mutex_lock        = usb_t_mutex_lock,
     .mutex_unlock      = usb_t_mutex_unlock,
@@ -1419,7 +1307,7 @@ katherine_usb_config_default(void)
         .ep_in       = KATHERINE_USB_EP_DATA_IN,
         .stream      = KATHERINE_USB_STREAM_ASYNC,
         .queue_len   = 64,
-        .buffer_size = 48 * 1024,
+        .buffer_size = KATHERINE_USB_DEFAULT_BUFFER_SIZE,
         .timeout_ms  = 100,
     };
 
@@ -1475,10 +1363,24 @@ katherine_transport_init_usb(katherine_transport_t *transport, const katherine_u
     const bool has_in     = config->ep_in != 0;
     const bool wants_ring = config->queue_len != 0;
 
-    if (wants_ring ? (has_out || !has_in || config->buffer_size == 0) : (!has_out || !has_in)) {
+    if (wants_ring ? (has_out || !has_in) : (!has_out || !has_in)) {
         res = KATHERINE_E_INVAL;
         goto err_config;
     }
+
+    // Zero asks for the ring's own size rather than being an error: a caller
+    // who does not care should not have to repeat the number. A transfer's
+    // length is an int to libusb and the slot keeps it in a uint32_t, so
+    // anything past INT_MAX would be submitted as some other number.
+    katherine_usb_config_t cfg = *config;
+    if (wants_ring) {
+        if (cfg.buffer_size == 0) cfg.buffer_size = KATHERINE_USB_DEFAULT_BUFFER_SIZE;
+        if (cfg.buffer_size > (uint32_t) INT_MAX) {
+            res = KATHERINE_E_INVAL;
+            goto err_config;
+        }
+    }
+    config = &cfg;
 
     // The synchronous shape reads into one buffer, whatever depth was asked
     // for: there is never more than one read outstanding to fill a second.

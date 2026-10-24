@@ -286,24 +286,24 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  *   katherine_acquisition_t::report_timeout.
  * \param fail_timeout Timeout for any device communication (ms). Set zero to disable.
  *
- * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_STATE if the device has no open link, so there is
- *   nothing for this acquisition to read from.
- * \retval KATHERINE_E_NOMEM if the device's transport could not resize its
- *   buffer to \p md_buffer_size, or the pixel buffer could not be allocated;
- *   see malloc(3). The device is not contacted either way, and a failed pixel
- *   buffer leaves the resize in place rather than leaking it -- the buffer is
- *   the device's, and the next acquisition resizes it again.
+ * \retval KATHERINE_E_OK on success, with
+ *   katherine_acquisition_t::md_buffer_size holding the size the link
+ *   settled on rather than the one asked for.
+ * \retval KATHERINE_E_NOMEM if the data link's buffer or the pixel buffer
+ *   could not be allocated; see malloc(3). The device is not contacted
+ *   either way.
  *
  * The codes below belong to the data link this opens, not to the acquisition.
- * Nothing is sent to the readout here -- the link is opened and sized, and
- * every one of these is a failure of that.
+ * Nothing is sent to the readout here -- the link is opened at the size asked
+ * for, and every one of these is a failure of that.
  *
  * \retval KATHERINE_E_ADDRESS if the device's address names no link this
  *   build can open, or names one malformed; see katherine_device_init().
  * \retval KATHERINE_E_INVAL if the device's address carries a scheme this
- *   build was compiled without, or the data link rejected an argument of its
- *   own open.
+ *   build was compiled without, the data link rejected an argument of its own
+ *   open, or \p md_buffer_size is a size this link cannot serve at all. A
+ *   size it can approximate is approximated; one outside its range is an
+ *   error, and this is where it is reported rather than mid-measurement.
  * \retval KATHERINE_E_UNSUPPORTED if the address names a transport this
  *   build does not carry at all; see KATHERINE_FEATURE_UDP and
  *   KATHERINE_FEATURE_USB.
@@ -351,17 +351,15 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     const uint16_t data_port = 0;
 #endif /* KATHERINE_FEATURE_UDP */
 
-    res = katherine_transport_init_for_data(device->address, &device->control_transport, data_port, &acq->data_transport);
+    // The buffer the loop decodes belongs to the transport, so the size is
+    // told to its constructor rather than allocated here -- and it is a hint:
+    // a link serves the nearest size it can, zero asks for its own, and one
+    // it cannot serve at all is refused here rather than mid-measurement.
+    // What it settled on comes back, because truncated_measurement_data
+    // counts against the size in force rather than the size asked for.
+    res = katherine_transport_init_for_data(
+        device->address, &device->control_transport, data_port, md_buffer_size, &acq->md_buffer_size, &acq->data_transport);
     if (res) goto err_no_transport;
-
-    acq->md_buffer_size = md_buffer_size;
-
-    // The buffer the loop decodes belongs to the transport, so the size asked
-    // for here is a request made of that rather than an allocation of this
-    // acquisition's own. Exact, which is what lets
-    // truncated_measurement_data keep comparing against md_buffer_size.
-    res = katherine_transport_set_buffer_size(&acq->data_transport, md_buffer_size);
-    if (res) goto err_buffer_size;
 
     acq->pixel_buffer_size  = pixel_buffer_size;
     acq->pixel_buffer       = (char *) malloc(acq->pixel_buffer_size);
@@ -377,7 +375,6 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     return KATHERINE_E_OK;
 
 err_pixel_buffer:
-err_buffer_size:
     katherine_transport_fini(&acq->data_transport);
 err_no_transport:
     return res;

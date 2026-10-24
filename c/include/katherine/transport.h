@@ -99,9 +99,6 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_transport_set_buffer_size(katherine_transport_t *transport, size_t size);
-
-KATHERINE_EXPORTED katherine_error_t
 katherine_transport_get_dropped_input(const katherine_transport_t *transport, uint64_t *count);
 
 KATHERINE_EXPORTED katherine_error_t

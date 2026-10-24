@@ -176,7 +176,7 @@ err_args:
  * \retval KATHERINE_E_SYSTEM if a lock could not be created.
  */
 static inline katherine_error_t
-katherine_transport_init_for_data(const char *address, const katherine_transport_t *control, uint16_t local_udp_port, katherine_transport_t *data)
+katherine_transport_init_for_data(const char *address, const katherine_transport_t *control, uint16_t local_udp_port, size_t md_buffer_size, size_t *actual_buffer_size, katherine_transport_t *data)
 {
     katherine_error_t res;
 
@@ -213,9 +213,15 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
             .timeout_ms     = KATHERINE_UDP_DATA_TIMEOUT,
             .pin_remote     = true,
             .count_drops    = true,
+            .buffer_size    = md_buffer_size,
         };
 
         res = katherine_transport_init_udp(data, &session);
+        if (res == KATHERINE_E_OK && actual_buffer_size != NULL) {
+            // A UDP session serves the size it was asked for exactly, so
+            // the hint and the answer only differ where the hint was zero.
+            *actual_buffer_size = md_buffer_size == 0 ? KATHERINE_UDP_DEFAULT_BUFFER_SIZE : md_buffer_size;
+        }
         break;
     }
 #endif /* KATHERINE_FEATURE_UDP */
@@ -227,7 +233,16 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
         if ((res = katherine_usb_config_set_address(&config, address)) != KATHERINE_E_OK) break;
         if ((res = katherine_usb_config_borrow_device(&config, control)) != KATHERINE_E_OK) break;
 
+        if (md_buffer_size > (size_t) UINT32_MAX) {
+            res = KATHERINE_E_INVAL;
+            break;
+        }
+        config.buffer_size = (uint32_t) md_buffer_size;
+
         res = katherine_transport_init_usb(data, &config);
+        if (res == KATHERINE_E_OK && actual_buffer_size != NULL) {
+            *actual_buffer_size = md_buffer_size == 0 ? KATHERINE_USB_DEFAULT_BUFFER_SIZE : md_buffer_size;
+        }
         break;
     }
 #endif /* KATHERINE_FEATURE_USB */

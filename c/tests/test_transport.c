@@ -22,6 +22,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -207,24 +208,25 @@ test_a_udp_transport_says_so(void)
     katherine_transport_fini(&t);
 }
 
-/* Resizing is exact, so a caller that sized something else to match still
- * knows the capacity afterwards -- which is what lets an acquisition keep its
- * own buffer size as the truth about the buffer it reads from. */
+/* The size a session reads at is settled at construction and is exact, so a
+ * caller that sized something else to match still knows the capacity -- which
+ * is what lets an acquisition keep its own md_buffer_size as the truth about
+ * the buffer it reads from. */
 static void
-test_a_transport_resizes_exactly(void)
+test_a_session_reads_at_the_size_it_was_built_with(void)
 {
     katherine_udp_t sender;
-    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
     KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
 
-    katherine_transport_t t;
-    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
-
-    /* Grown, then shrunk: a datagram filling the new size comes back whole at
-     * each, which is the capacity the caller was promised. */
+    /* Large, then small: a datagram filling the size comes back whole at
+     * each, which is the capacity the caller asked the constructor for. */
     const size_t sizes[2] = {BUF_BYTES * 4, BUF_BYTES / 2};
     for (size_t i = 0; i < 2; ++i) {
-        KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, sizes[i]), KATHERINE_E_OK);
+        katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
+        receiver.buffer_size            = sizes[i];
+
+        katherine_transport_t t;
+        KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
         uint8_t *probe = (uint8_t *) malloc(sizes[i]);
         KT_REQUIRE(probe != NULL);
@@ -238,55 +240,66 @@ test_a_transport_resizes_exactly(void)
         KT_CHECK(memcmp(buf, probe, sizes[i]) == 0);
         KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
         free(probe);
+        katherine_transport_fini(&t);
     }
 
-    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, 0), KATHERINE_E_INVAL);
-
-    /* And a size within a word of SIZE_MAX, which the transport adds its
-     * read-ahead headroom to. The sum wraps to zero, realloc() reads that as
-     * a request for nothing and FREES the buffer, and the code that believes
-     * it is handling an allocation failure then leaves a pointer the next
-     * finalize frees again. Refused before any of that can happen. */
-    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, SIZE_MAX - sizeof(uint64_t) + 1),
-        KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, SIZE_MAX), KATHERINE_E_INVAL);
-
-    /* The largest size the addition survives is still accepted, so the bound
-     * is the wrap and not a round number somebody picked. */
-    KT_CHECK(katherine_transport_set_buffer_size(&t, SIZE_MAX - sizeof(uint64_t))
-        != KATHERINE_E_INVAL);
-
-    katherine_transport_fini(&t);
     katherine_udp_fini(&sender);
 }
 
-/* Resizing under a caller still holding the buffer would hand them a pointer
- * into freed memory, so it is refused rather than done. */
+/* Zero is not an error here but a request for the session's own size, which
+ * is the half of the contract that inverted when the size moved to the
+ * constructor. A datagram of that size comes back whole; one byte more is
+ * truncated to it. */
 static void
-test_resizing_while_lent_is_refused(void)
+test_zero_asks_for_the_session_s_own_size(void)
 {
     katherine_udp_t sender;
-    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
     KT_REQUIRE(open_session(&sender, PORT_A, PORT_B) == KATHERINE_E_OK);
+
+    katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
+    receiver.buffer_size            = 0;
 
     katherine_transport_t t;
     KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
 
-    const uint8_t payload[4] = {1, 2, 3, 4};
-    KT_REQUIRE(katherine_udp_send_exact(&sender, payload, sizeof(payload)) == KATHERINE_E_OK);
+    uint8_t *probe = (uint8_t *) malloc(KATHERINE_UDP_DEFAULT_BUFFER_SIZE);
+    KT_REQUIRE(probe != NULL);
+    memset(probe, 0xA5, KATHERINE_UDP_DEFAULT_BUFFER_SIZE);
+    KT_REQUIRE(katherine_udp_send_exact(&sender, probe, KATHERINE_UDP_DEFAULT_BUFFER_SIZE) == KATHERINE_E_OK);
 
     void *buf  = NULL;
     size_t len = 0;
-    KT_REQUIRE(katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_OK);
+    KT_CHECK_EQ(len, (size_t) KATHERINE_UDP_DEFAULT_BUFFER_SIZE);
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_OK);
 
-    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, BUF_BYTES * 2), KATHERINE_E_STATE);
-
-    /* Given back, it resizes. */
-    KT_REQUIRE(katherine_transport_release_data_buf(&t, buf) == KATHERINE_E_OK);
-    KT_CHECK_EQ(katherine_transport_set_buffer_size(&t, BUF_BYTES * 2), KATHERINE_E_OK);
-
+    free(probe);
     katherine_transport_fini(&t);
     katherine_udp_fini(&sender);
+}
+
+/* A size within a word of SIZE_MAX, which the session adds its read-ahead
+ * headroom to. The sum wraps to zero, malloc() reads that as a request for
+ * nothing, and the code that believes it is handling an allocation failure
+ * carries on with a buffer that is not there. Refused at the constructor
+ * before any of that, which is where the check moved with the size. */
+static void
+test_a_size_the_headroom_cannot_be_added_to_is_refused(void)
+{
+    katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
+    katherine_transport_t t;
+
+    receiver.buffer_size = SIZE_MAX - sizeof(uint64_t) + 1;
+    KT_CHECK_EQ(katherine_transport_init_udp(&t, &receiver), KATHERINE_E_INVAL);
+
+    receiver.buffer_size = SIZE_MAX;
+    KT_CHECK_EQ(katherine_transport_init_udp(&t, &receiver), KATHERINE_E_INVAL);
+
+    /* The largest size the addition survives is refused for want of memory
+     * rather than for being out of range, so the bound is the wrap and not a
+     * round number somebody picked. */
+    receiver.buffer_size = SIZE_MAX - sizeof(uint64_t);
+    KT_CHECK_EQ(katherine_transport_init_udp(&t, &receiver), KATHERINE_E_NOMEM);
 }
 
 /* The lock round-trips through the transport. That it is the session's own
@@ -363,7 +376,7 @@ test_the_factories_open_both_transports(void)
     KT_CHECK(control_port != KATHERINE_UDP_CONTROL_PORT);
 
     /* The port a device would have told the readout to send to. */
-    KT_REQUIRE(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, &data) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, 0, NULL, &data) == KATHERINE_E_OK);
 
     KT_CHECK_EQ(control.kind, KATHERINE_TRANSPORT_UDP);
     KT_CHECK_EQ(data.kind, KATHERINE_TRANSPORT_UDP);
@@ -386,9 +399,9 @@ test_a_factory_refuses_a_missing_argument(void)
     KT_CHECK_EQ(katherine_transport_init_for_control(NULL, true, &control), KATHERINE_E_INVAL);
     KT_CHECK_EQ(katherine_transport_init_for_control(HOST_LOCAL_ADDRESS, true, NULL), KATHERINE_E_INVAL);
 
-    KT_CHECK_EQ(katherine_transport_init_for_data(NULL, &control, 0, &data), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, NULL, 0, &data), KATHERINE_E_INVAL);
-    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, NULL), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_data(NULL, &control, 0, 0, NULL, &data), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, NULL, 0, 0, NULL, &data), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, 0, NULL, NULL), KATHERINE_E_INVAL);
 }
 
 /* A refusal leaves the transport closed, so a caller that finalises anyway
@@ -412,7 +425,7 @@ test_the_data_factory_refuses_a_mismatched_control(void)
     katherine_transport_t control, data;
 
     memset(&control, 0, sizeof(control));
-    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, &data), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_transport_init_for_data(HOST_LOCAL_ADDRESS, &control, 0, 0, NULL, &data), KATHERINE_E_INVAL);
     KT_CHECK(data.ops == NULL);
 }
 
@@ -442,8 +455,12 @@ test_a_misconfigured_open_is_refused(void)
     KT_CHECK_EQ(katherine_transport_init_usb(NULL, &c), KATHERINE_E_INVAL);
     KT_CHECK_EQ(katherine_transport_init_usb(&t, NULL), KATHERINE_E_INVAL);
 
+    /* A size past what libusb can carry in an int, which the slot would keep
+     * as some other number entirely. Zero is NOT an error here: it asks for
+     * the ring's own size, which is the contract the buffer size moved to
+     * the constructor under. */
     c             = katherine_usb_config_default();
-    c.buffer_size = 0;
+    c.buffer_size = (uint32_t) INT_MAX + 1u;
     KT_CHECK_EQ(katherine_transport_init_usb(&t, &c), KATHERINE_E_INVAL);
 
     /* A ring of no buffers can hold nothing, and would divide by zero when
@@ -500,8 +517,9 @@ main(void)
     KT_RUN(test_silence_times_out);
     KT_RUN(test_the_timeout_is_what_was_last_set);
     KT_RUN(test_a_udp_transport_says_so);
-    KT_RUN(test_a_transport_resizes_exactly);
-    KT_RUN(test_resizing_while_lent_is_refused);
+    KT_RUN(test_a_session_reads_at_the_size_it_was_built_with);
+    KT_RUN(test_zero_asks_for_the_session_s_own_size);
+    KT_RUN(test_a_size_the_headroom_cannot_be_added_to_is_refused);
     KT_RUN(test_the_lock_round_trips);
     KT_RUN(test_the_os_error_comes_through);
     KT_RUN(test_the_factories_open_both_transports);

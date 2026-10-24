@@ -26,7 +26,6 @@ typedef struct katherine_transport_ops {
     katherine_error_t (*acquire_data_buf)(void *ctx, void **buf, size_t *len);
     katherine_error_t (*release_data_buf)(void *ctx, void *buf);
     katherine_error_t (*set_timeout)(void *ctx, uint32_t timeout_ms);
-    katherine_error_t (*set_buffer_size)(void *ctx, size_t size);
     katherine_error_t (*get_dropped_input)(void *ctx, uint64_t *count);
     katherine_error_t (*mutex_lock)(void *ctx);
     katherine_error_t (*mutex_unlock)(void *ctx);
