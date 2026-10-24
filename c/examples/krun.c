@@ -91,13 +91,16 @@ configure(katherine_tpx3_config_t *config, uint8_t chip_count)
 
     config->common.acq_time    = 10e9; // ns
     config->common.frame_count = 1;
-    config->common.bias[0]     = 230; // V
+    // One entry per bias supply, addressed from 0. katherine_tpx3_configure()
+    // drives every supply the readout reports, so an entry left at zero
+    // drives that supply to zero rather than leaving it where it was.
+    config->common.bias[0] = 230; // V
 
     config->common.start_trigger.enabled = false;
-    config->common.start_trigger.channel = 0;
+    config->common.start_trigger.channel = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
     config->common.start_trigger.edge    = KATHERINE_TRIGGER_EDGE_RISING;
     config->common.stop_trigger.enabled  = false;
-    config->common.stop_trigger.channel  = 0;
+    config->common.stop_trigger.channel  = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
     config->common.stop_trigger.edge     = KATHERINE_TRIGGER_EDGE_RISING;
 
     config->readout_mode    = KATHERINE_TPX3_READOUT_DATA_DRIVEN;

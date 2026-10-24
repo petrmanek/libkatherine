@@ -82,6 +82,9 @@ configure(katherine::config& config)
     // This configuration will produce meaningful results only for: M7-W0005
     config.set_acq_time(10s);
     config.set_frame_count(1);
+    // One entry per bias supply, addressed from 0. Configuring drives every
+    // supply the readout reports, so a supply left unset is driven to zero
+    // rather than left where it was.
     config.set_bias(0, 230); // V
 
 

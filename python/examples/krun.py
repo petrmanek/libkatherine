@@ -53,7 +53,10 @@ def configure(chip_count):
 
     c.acq_time          = 10e9 # ns
     c.frame_count         = 1
-    c.bias              = [230]  # V, one entry per supply
+    # One entry per bias supply, addressed from 0. Configuring drives every
+    # supply the readout reports, so a supply left unset is driven to zero
+    # rather than left where it was.
+    c.bias              = [230]  # V
 
     c.start_trigger     = k.Trigger(enabled=False)
     c.stop_trigger      = k.Trigger(enabled=False)
