@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <katherine/katherine.h>
 
+#include "device/private.h"
 #include "repr_append.h"
 
 
@@ -615,7 +616,7 @@ katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
     REPR_APPENDF(buf, cap, off, "device{address: \"%s\", control_transport: ", v->address);
     REPR_NEST(buf, cap, off, katherine_transport_snprint, &v->control_transport);
 #ifdef KATHERINE_FEATURE_UDP
-    REPR_APPENDF(buf, cap, off, ", udp_data_port: %u}", (unsigned) v->udp_data_port);
+    REPR_APPENDF(buf, cap, off, ", udp_data_port: %u}", (unsigned) katherine_device_state_const(v)->udp_data_port);
 #else
     REPR_APPENDF(buf, cap, off, "}");
 #endif /* KATHERINE_FEATURE_UDP */

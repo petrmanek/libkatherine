@@ -29,6 +29,7 @@
 #include "transport/udp.h"
 
 #include "kports.h"
+#include "device/private.h"
 #include "ktest.h"
 
 // Requires the snprint call to have rendered exactly `expected`: the return
@@ -437,7 +438,7 @@ test_device(void)
     };
     KT_REQUIRE(katherine_transport_init_udp(&dev.control_transport, &control) == 0);
     strcpy(dev.address, "udp://" UDP_HOST);
-    dev.udp_data_port = UDP_TEST_PORT4;
+    katherine_device_state(&dev)->udp_data_port = UDP_TEST_PORT4;
 
     char buf[384];
     int n = katherine_device_snprint(buf, sizeof(buf), &dev);

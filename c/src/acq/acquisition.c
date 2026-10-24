@@ -19,6 +19,7 @@
 #include "atomic.h"
 #include "monoclock.h"
 #include "protocol/cmd_interface.h"
+#include "device/private.h"
 #include "acq/private.h"
 #include "protocol/md.h"
 #include "transport/factory.h"
@@ -343,7 +344,7 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // not acquiring. A link claimed once is driven through the control
     // transport's claim, which is why that one outlives this.
 #ifdef KATHERINE_FEATURE_UDP
-    const uint16_t data_port = device->udp_data_port;
+    const uint16_t data_port = katherine_device_state(device)->udp_data_port;
 
 #else
     // No link with a port space was built in, so there is no number to name.

@@ -22,6 +22,7 @@
 #include <katherine/status.h>
 #include "../address.h"
 #include "../protocol/cmd_interface.h"
+#include "private.h"
 #include "../transport/factory.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -225,7 +226,7 @@ claim_private_ports(katherine_device_t *device)
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 
-    if (res == KATHERINE_E_OK) device->udp_data_port = data;
+    if (res == KATHERINE_E_OK) katherine_device_state(device)->udp_data_port = data;
 
 err_lock:
 err_control:
@@ -241,9 +242,11 @@ err_control:
 static void
 restore_standard_ports(katherine_device_t *device)
 {
-    if (!device->udp_ports_changed) return;
+    katherine_device_state_t *state = katherine_device_state(device);
 
-    device->udp_ports_changed = false;
+    if (!state->udp_ports_changed) return;
+
+    state->udp_ports_changed = false;
 
     if (katherine_transport_mutex_lock(&device->control_transport) != KATHERINE_E_OK) return;
 
@@ -337,7 +340,7 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 
 #ifdef KATHERINE_FEATURE_UDP
     // Not zero, so it survives the clear above.
-    device->udp_data_port = KATHERINE_UDP_DATA_PORT;
+    katherine_device_state(device)->udp_data_port = KATHERINE_UDP_DATA_PORT;
 #endif /* KATHERINE_FEATURE_UDP */
 
     // An acquisition opens its own link from this, after the caller's string
@@ -409,7 +412,7 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
         }
 
 #ifdef KATHERINE_FEATURE_UDP
-        device->udp_ports_changed = true;
+        katherine_device_state(device)->udp_ports_changed = true;
 #endif /* KATHERINE_FEATURE_UDP */
     }
 

@@ -95,6 +95,8 @@ test_public_structs_stay_within_budget(void)
     // measuring the wrong thing.
     KT_CHECK_EQ(sizeof(katherine_acquisition_priv_t), (size_t) KATHERINE_ACQUISITION_PRIV_SIZE);
     KT_CHECK(alignof(katherine_acquisition_priv_t) >= alignof(uint64_t));
+    KT_CHECK_EQ(sizeof(katherine_device_priv_t), (size_t) KATHERINE_DEVICE_PRIV_SIZE);
+    KT_CHECK(alignof(katherine_device_priv_t) >= alignof(uint64_t));
 
     // Both hold uint64_t members, so neither may be aligned more loosely.
     KT_CHECK(alignof(katherine_acquisition_t) >= alignof(uint64_t));

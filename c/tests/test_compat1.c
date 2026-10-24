@@ -52,6 +52,7 @@
 #include <katherine/katherine1.h>
 
 #include "kports.h"
+#include "device/private.h"
 #include "ktest.h"
 
 #define HOST            "127.0.0.1"
@@ -130,7 +131,7 @@ test_acquisition_init_huge_buffer_maps_to_enomem(void)
     katherine_device_t dev = {0};
     // The acquisition opens its own data link from the device.
     strcpy(dev.address, "udp://" HOST);
-    dev.udp_data_port = PORT_NOMEM + 1;
+    katherine_device_state(&dev)->udp_data_port = PORT_NOMEM + 1;
 
     const katherine_udp_config_t control = {
         .local_address  = HOST,

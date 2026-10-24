@@ -141,6 +141,20 @@ KATHERINE_EXPORTED katherine_device_derived_info_t
 katherine_device_derived_info_recognize(uint8_t hw_type);
 
 
+/** Bytes katherine_device_t reserves for what the library keeps about it. */
+#define KATHERINE_DEVICE_PRIV_SIZE 64
+
+/**
+ * Opaque storage for a device's private state.
+ *
+ * A caller has no business reading this. The second member is there for its
+ * alignment, not for its value.
+ */
+typedef union katherine_device_priv {
+    uint8_t storage[KATHERINE_DEVICE_PRIV_SIZE]; ///< The bytes themselves. Never read as bytes.
+    uint64_t alignment;                          ///< Never read. Its presence is the union's alignment.
+} katherine_device_priv_t;
+
 /**
  * An open connection to a readout: its communication channel, what it
  * reported about itself, and what this library derives from that.
@@ -149,10 +163,15 @@ typedef struct katherine_device {
     char address[KATHERINE_DEVICE_ADDRESS_STR_SIZE]; ///< Address this device was opened with, which an acquisition opens its own link from.
     katherine_transport_t control_transport;         ///< Slow control channel, used to send commands and receive acknowledgements. Owned by the device.
 
-#ifdef KATHERINE_FEATURE_UDP
-    uint16_t udp_data_port; ///< Port the readout was told to send measurement data to, which an acquisition binds. Valid only for udp:// transport.
-    bool udp_ports_changed; ///< True where this device moved the readout off the standard UDP ports, so that katherine_device_fini() knows to put it back. Valid only for udp:// transport.
-#endif
+    /**
+     * The library's own record of this device, which a caller does not read.
+     *
+     * Reserved inline, for the reasons katherine_acquisition_t::priv is. It
+     * also takes the two members that used to sit here under
+     * KATHERINE_FEATURE_UDP, so this structure's layout no longer depends on
+     * which transports the library was built with.
+     */
+    katherine_device_priv_t priv;
 
     void *acquisition; ///< The acquisition measuring on this device, or NULL when none is. Opaque by design. It points into this device's transports while it lives, so katherine_acquisition_fini() must run before katherine_device_fini().
 

@@ -32,6 +32,7 @@
 
 #include "kports.h"
 #include "acq/private.h"
+#include "device/private.h"
 #include "ktest.h"
 #include "monoclock.h"
 
@@ -115,7 +116,7 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     // The acquisition opens its own data link from the device's address,
     // control link and port.
     strcpy(dev.address, "udp://127.0.0.1");
-    dev.udp_data_port = PORT_DATA;
+    katherine_device_state(&dev)->udp_data_port = PORT_DATA;
 
     const katherine_udp_config_t control = {
         .local_address  = "127.0.0.1",
