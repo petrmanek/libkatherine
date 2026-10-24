@@ -56,6 +56,7 @@ cdef extern from 'katherine/device.h':
         ctransport.katherine_transport_t control_transport
         katherine_device_info_t info
         katherine_device_derived_info_t derived_info
+        void *acquisition
 
     int katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info_t *v)
     int katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_device_derived_info_t *v)

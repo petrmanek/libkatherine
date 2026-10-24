@@ -693,28 +693,103 @@ cdef class DeviceDerivedInfo:
 
 
 cdef class Device:
+    """An open readout. Follows the contract io.IOBase sets: close() is
+    idempotent, closed says whether it has run, and the object is a context
+    manager, so
+
+        with Device(address) as dev:
+            ...
+
+    releases the readout however the block is left."""
+
     cdef cdevice.katherine_device_t* _c_device
+    # Acquisitions still alive on this device. The C library registers one
+    # only at begin(), but katherine_acquisition_init() already stores the
+    # device pointer and katherine_acquisition_fini() dereferences it, so
+    # closing underneath an acquisition that has merely been initialized
+    # would leave that pointer dangling. Counted here because the C guard
+    # does not cover it.
+    cdef int _acquisitions
+
     def __cinit__(self, address, uint32_t flags=0):
+         # Encode before allocating, for the reason Acquisition.__cinit__
+         # gives: an address that is not a string raises here, and
+         # __dealloc__ would otherwise finalize a device that was never
+         # initialized.
+         cdef bytes addr = address.encode()
+
          self._c_device = <cdevice.katherine_device_t*> PyMem_Malloc(sizeof(cdevice.katherine_device_t))
          if self._c_device is NULL:
              raise MemoryError()
 
-         res = cdevice.katherine_device_init(self._c_device, address.encode(), flags)
-         check_return_code(res)
+         res = cdevice.katherine_device_init(self._c_device, addr, flags)
+         if res != 0:
+             # Nothing was opened, so there is nothing to finalize -- but the
+             # allocation has to go, or __dealloc__ would finalize a device
+             # that never came up.
+             PyMem_Free(self._c_device)
+             self._c_device = NULL
+             check_return_code(res)
+
+    # Every method reaches the C device through this rather than through the
+    # field, so that use after close is one check in one place instead of
+    # forty-nine, and a method added later cannot forget it.
+    cdef cdevice.katherine_device_t* _dev(self) except NULL:
+         if self._c_device is NULL:
+             raise ValueError('operation on a closed Device')
+         return self._c_device
+
+    @property
+    def closed(self):
+         """True once close() has run, or if construction failed. The
+         negative sense is io's, and it makes a half-constructed object read
+         as closed rather than as one missing an attribute."""
+         return self._c_device is NULL
+
+    def close(self):
+         """Releases the readout. Idempotent, and what __exit__ calls.
+
+         Raises ValueError while an Acquisition is still open on this
+         device: the C library refuses to finalize one in that state and
+         returns without freeing, so closing anyway would free memory it
+         still holds. Close the acquisition first; nothing cascades."""
+         if self._c_device is NULL:
+             return
+         if self._acquisitions > 0 or self._c_device.acquisition is not NULL:
+             raise ValueError('cannot close a Device while an Acquisition is open on it')
+         cdevice.katherine_device_fini(self._c_device)
+         PyMem_Free(self._c_device)
+         self._c_device = NULL
+
+    def __enter__(self):
+         self._dev()
+         return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+         self.close()
+         return False
 
     def __dealloc__(self):
          if self._c_device is not NULL:
+             # A readout left open holds a claim no other process on this
+             # machine can take, so this is a leak worth a warning rather
+             # than a quiet cleanup. Suppressed during interpreter shutdown,
+             # where warnings machinery may already be gone.
+             try:
+                 _warnings.warn('unclosed Device', ResourceWarning, stacklevel=2)
+             except Exception:
+                 pass
              cdevice.katherine_device_fini(self._c_device)
              PyMem_Free(self._c_device)
              self._c_device = NULL
 
 
     def set_strict_ack(self, bint strict):
-         ctransport.katherine_transport_set_strict_ack(&self._c_device.control_transport, strict)
+         ctransport.katherine_transport_set_strict_ack(&self._dev().control_transport, strict)
 
     @property
     def stray_command_responses(self):
-         return self._c_device.control_transport.stray_command_responses
+         return self._dev().control_transport.stray_command_responses
 
     @property
     def last_os_error(self):
@@ -725,7 +800,7 @@ cdef class Device:
          WSAGetLastError() value on Windows, a libusb code over USB.
          Meaningful only directly after a call that failed, and 0 where
          nothing has."""
-         return ctransport.katherine_transport_get_last_os_error(&self._c_device.control_transport)
+         return ctransport.katherine_transport_get_last_os_error(&self._dev().control_transport)
 
     def set_timeout(self, uint32_t timeout_ms):
          """Set how long a control exchange waits for the readout.
@@ -734,23 +809,23 @@ cdef class Device:
          makes a readout that is not there fail sooner and a slow one fail
          wrongly."""
          check_return_code(ctransport.katherine_transport_set_timeout(
-             &self._c_device.control_transport, timeout_ms))
+             &self._dev().control_transport, timeout_ms))
 
     def __repr__(self):
-         return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._c_device)
+         return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._dev())
 
     def can_correct_timestamp_phase(self):
-         return cdevice.katherine_device_can_correct_timestamp_phase(self._c_device)
+         return cdevice.katherine_device_can_correct_timestamp_phase(self._dev())
 
     def get_readout_status(self):
          cdef ReadoutStatus status = ReadoutStatus()
-         res = cstatus.katherine_get_readout_status(self._c_device, &status._c_status)
+         res = cstatus.katherine_get_readout_status(self._dev(), &status._c_status)
          check_return_code(res)
          return status
 
     def get_comm_status(self):
          cdef CommStatus status = CommStatus()
-         res = cstatus.katherine_get_comm_status(self._c_device, &status._c_status)
+         res = cstatus.katherine_get_comm_status(self._dev(), &status._c_status)
          check_return_code(res)
          return status
 
@@ -763,7 +838,7 @@ cdef class Device:
          refuses those calls rather than guessing a generation. Call this once
          the readout is demonstrably answering.
          """
-         res = cdevice.katherine_device_enumerate(self._c_device)
+         res = cdevice.katherine_device_enumerate(self._dev())
          check_return_code(res)
 
     def declare(self, DeviceInfo info):
@@ -773,7 +848,7 @@ cdef class Device:
          The only way to run the generation-dependent calls on a device
          opened with DeviceFlags.DONT_ENUMERATE, and the only way to drive a
          readout that does not answer the enumeration at all."""
-         res = cdevice.katherine_device_declare(self._c_device, &info._c_info)
+         res = cdevice.katherine_device_declare(self._dev(), &info._c_info)
          check_return_code(res)
 
     def select_interface(self):
@@ -784,14 +859,14 @@ cdef class Device:
          and has not been told answers every later command orders of
          magnitude more slowly, and will not start an acquisition over UDP at
          all."""
-         res = cdevice.katherine_device_select_interface(self._c_device)
+         res = cdevice.katherine_device_select_interface(self._dev())
          check_return_code(res)
 
     def get_chip_id(self, uint8_t chip_index=0):
          """Ask one chip of the readout for its own identifier."""
          cdef char[:] chip_id = _array.array('b', [0] * cstatus.KATHERINE_CHIP_ID_STR_SIZE)
          cdef char *c_chip_id = &chip_id[0]
-         res = cstatus.katherine_get_chip_id(self._c_device, chip_index, c_chip_id)
+         res = cstatus.katherine_get_chip_id(self._dev(), chip_index, c_chip_id)
          check_return_code(res)
          
          if chip_id[0] == 0:
@@ -801,34 +876,34 @@ cdef class Device:
 
     def get_readout_temperature(self):
          cdef float temp
-         res = cstatus.katherine_get_readout_temperature(self._c_device, &temp)
+         res = cstatus.katherine_get_readout_temperature(self._dev(), &temp)
          check_return_code(res)
          return temp
 
     def get_sensor_temperature(self, uint8_t chip_index=0):
          """Measure one chip's own on-die temperature sensor."""
          cdef float temp
-         res = cstatus.katherine_get_sensor_temperature(self._c_device, chip_index, &temp)
+         res = cstatus.katherine_get_sensor_temperature(self._dev(), chip_index, &temp)
          check_return_code(res)
          return temp
 
     def perform_digital_test(self, uint8_t chip_index=0):
          """Test the link between the readout and one of its chips."""
-         res = cstatus.katherine_tpx3_perform_digital_test(self._c_device, chip_index)
+         res = cstatus.katherine_tpx3_perform_digital_test(self._dev(), chip_index)
          check_return_code(res)
 
     def get_adc_voltage(self, unsigned char channel_id):
          cdef float voltage
-         res = cstatus.katherine_get_adc_voltage(self._c_device, channel_id, &voltage)
+         res = cstatus.katherine_get_adc_voltage(self._dev(), channel_id, &voltage)
          check_return_code(res)
          return voltage
 
     def set_test_pulses(self, Tpx3TestPulseConfig test_pulse_config):
-         res = cconfig.katherine_tpx3_set_test_pulses(self._c_device, &test_pulse_config._c_test_pulse_config)
+         res = cconfig.katherine_tpx3_set_test_pulses(self._dev(), &test_pulse_config._c_test_pulse_config)
          check_return_code(res)
 
     def configure(self, Config config):
-         res = cconfig.katherine_tpx3_configure(self._c_device, config._c_config)
+         res = cconfig.katherine_tpx3_configure(self._dev(), config._c_config)
          check_return_code(res)
 
     def set_all_pixel_config(self, Tpx3PxConfig px_config, uint8_t chip_index=0):
@@ -836,11 +911,11 @@ cdef class Device:
 
          chip_index trails the matrix here, rather than leading it as it does
          in C, so that callers written against 1.x keep working."""
-         res = cconfig.katherine_tpx3_set_all_pixel_config(self._c_device, chip_index, &px_config._c_px_config)
+         res = cconfig.katherine_tpx3_set_all_pixel_config(self._dev(), chip_index, &px_config._c_px_config)
          check_return_code(res)
 
     def set_acq_time(self, double ns):
-         res = cconfig.katherine_set_acq_time(self._c_device, ns)
+         res = cconfig.katherine_set_acq_time(self._dev(), ns)
          check_return_code(res)
 
     def verify_config(self, uint8_t chip_index=0):
@@ -848,7 +923,7 @@ cdef class Device:
 
          Second generation only."""
          cdef Tpx3ConfigCheck check = Tpx3ConfigCheck()
-         res = cconfig.katherine_tpx3_verify_config(self._c_device, chip_index, &check._c_check)
+         res = cconfig.katherine_tpx3_verify_config(self._dev(), chip_index, &check._c_check)
          check_return_code(res)
          return check
 
@@ -857,27 +932,27 @@ cdef class Device:
 
          Deliberately not part of configure(), which leaves whatever the
          readout holds: this is the only way to choose it."""
-         res = cconfig.katherine_tpx3_set_token_count(self._c_device, token_count)
+         res = cconfig.katherine_tpx3_set_token_count(self._dev(), token_count)
          check_return_code(res)
 
     def set_acq_mode(self, px_mode, bool fast_vco_enabled):
-         res = cconfig.katherine_tpx3_set_acq_mode(self._c_device, px_mode.value, fast_vco_enabled)
+         res = cconfig.katherine_tpx3_set_acq_mode(self._dev(), px_mode.value, fast_vco_enabled)
          check_return_code(res)
 
     def set_frame_count(self, uint32_t frame_count):
-         res = cconfig.katherine_set_frame_count(self._c_device, frame_count)
+         res = cconfig.katherine_set_frame_count(self._dev(), frame_count)
          check_return_code(res)
 
     def set_bias(self, unsigned char bias_index, float bias_value):
-         res = cconfig.katherine_set_bias(self._c_device, bias_index, bias_value)
+         res = cconfig.katherine_set_bias(self._dev(), bias_index, bias_value)
          check_return_code(res)
 
     def set_seq_readout_start(self, int arg):
-         res = cconfig.katherine_tpx3_set_seq_readout_start(self._c_device, arg)
+         res = cconfig.katherine_tpx3_set_seq_readout_start(self._dev(), arg)
          check_return_code(res)
 
     def set_acquisition_triggers(self, Trigger start_trigger, Trigger end_trigger):
-         res = cconfig.katherine_set_acquisition_triggers(self._c_device, &start_trigger._c_trigger, &end_trigger._c_trigger)
+         res = cconfig.katherine_set_acquisition_triggers(self._dev(), &start_trigger._c_trigger, &end_trigger._c_trigger)
          check_return_code(res)
 
     def set_sensor_register(self, reg_idx, int32_t reg_value, uint8_t chip_index=0):
@@ -888,22 +963,22 @@ cdef class Device:
 
          chip_index trails the values here, rather than leading them as it
          does in C, so that callers written against 1.x keep working."""
-         res = cconfig.katherine_tpx3_set_sensor_register(self._c_device, chip_index, reg_idx.value, reg_value)
+         res = cconfig.katherine_tpx3_set_sensor_register(self._dev(), chip_index, reg_idx.value, reg_value)
          check_return_code(res)
 
     def update_sensor_registers(self, uint8_t chip_index=0):
          """Carry one chip's register image to its sensor."""
-         res = cconfig.katherine_tpx3_update_sensor_registers(self._c_device, chip_index)
+         res = cconfig.katherine_tpx3_update_sensor_registers(self._dev(), chip_index)
          check_return_code(res)
 
     def output_block_config_update(self, uint8_t chip_index=0):
          """Latch one chip's output block configuration."""
-         res = cconfig.katherine_tpx3_output_block_config_update(self._c_device, chip_index)
+         res = cconfig.katherine_tpx3_output_block_config_update(self._dev(), chip_index)
          check_return_code(res)
 
     def timer_set(self, uint8_t chip_index=0):
          """Set one chip's timer."""
-         res = cconfig.katherine_tpx3_timer_set(self._c_device, chip_index)
+         res = cconfig.katherine_tpx3_timer_set(self._dev(), chip_index)
          check_return_code(res)
 
     @property
@@ -911,14 +986,14 @@ cdef class Device:
          """What this readout said it is, or what a caller declared on its
          behalf. Zeroed until one of the two has happened."""
          cdef DeviceInfo info = DeviceInfo()
-         info._c_info = self._c_device.info
+         info._c_info = self._dev().info
          return info
 
     @property
     def derived_info(self):
          """What this readout is, as recognized from its hardware type."""
          cdef DeviceDerivedInfo info = DeviceDerivedInfo()
-         info._c_info = self._c_device.derived_info
+         info._c_info = self._dev().derived_info
          return info
 
     def set_dacs(self, Tpx3Dacs dacs, uint8_t chip_index=0):
@@ -926,7 +1001,7 @@ cdef class Device:
 
          chip_index trails the values here, rather than leading them as it
          does in C, so that callers written against 1.x keep working."""
-         res = cconfig.katherine_tpx3_set_dacs(self._c_device, chip_index, &dacs._c_dacs)
+         res = cconfig.katherine_tpx3_set_dacs(self._dev(), chip_index, &dacs._c_dacs)
          check_return_code(res)
 
     def set_dac(self, dac, uint16_t value, uint8_t chip_index=0):
@@ -935,12 +1010,12 @@ cdef class Device:
          The other seventeen keep whatever the readout last held, which is
          its own memory and is lost on a power cycle; set_dacs() is how a
          caller establishes a baseline it knows."""
-         res = cconfig.katherine_tpx3_set_dac(self._c_device, chip_index, dac.value, value)
+         res = cconfig.katherine_tpx3_set_dac(self._dev(), chip_index, dac.value, value)
          check_return_code(res)
 
     def get_bias(self, unsigned char bias_index):
          cdef float voltage
-         res = cstatus.katherine_get_bias(self._c_device, bias_index, &voltage)
+         res = cstatus.katherine_get_bias(self._dev(), bias_index, &voltage)
          check_return_code(res)
          return voltage
 
@@ -948,19 +1023,19 @@ cdef class Device:
          """Volts across the sense resistor, not amperes: the conversion needs
          a per-unit zero, which is the caller's to calibrate."""
          cdef float voltage
-         res = cstatus.katherine_get_bias_leakage(self._c_device, bias_index, &voltage)
+         res = cstatus.katherine_get_bias_leakage(self._dev(), bias_index, &voltage)
          check_return_code(res)
          return voltage
 
     def get_dac_monitor_voltage(self, uint8_t chip_index, monitor):
          cdef float voltage
-         res = cstatus.katherine_tpx3_get_dac_monitor_voltage(self._c_device, chip_index, monitor.value, &voltage)
+         res = cstatus.katherine_tpx3_get_dac_monitor_voltage(self._dev(), chip_index, monitor.value, &voltage)
          check_return_code(res)
          return voltage
 
     def get_dac_monitor_voltages(self, uint8_t chip_index):
          cdef Tpx3DacVoltages voltages = Tpx3DacVoltages()
-         res = cstatus.katherine_tpx3_get_dac_monitor_voltages(self._c_device, chip_index, &voltages._c_voltages)
+         res = cstatus.katherine_tpx3_get_dac_monitor_voltages(self._dev(), chip_index, &voltages._c_voltages)
          check_return_code(res)
          return voltages
 
@@ -968,18 +1043,18 @@ cdef class Device:
          """Takes a sequence of GpioChannelConfig, one per channel."""
          cdef cgpio.katherine_gpio_config_t config
          _fill_gpio_config(&config, channels)
-         res = cgpio.katherine_set_gpio_config(self._c_device, &config)
+         res = cgpio.katherine_set_gpio_config(self._dev(), &config)
          check_return_code(res)
 
     def set_composed_ready_signal(self, channels):
          cdef cgpio.katherine_gpio_config_t config
          _fill_gpio_config(&config, channels)
-         res = cgpio.katherine_set_composed_ready_signal(self._c_device, &config)
+         res = cgpio.katherine_set_composed_ready_signal(self._dev(), &config)
          check_return_code(res)
 
     def probe_gpio(self):
          cdef GpioMonitor state = GpioMonitor()
-         res = cgpio.katherine_probe_gpio(self._c_device, &state._c_state)
+         res = cgpio.katherine_probe_gpio(self._dev(), &state._c_state)
          check_return_code(res)
          return state
 
@@ -987,27 +1062,27 @@ cdef class Device:
          """Takes a sequence of TdcChannelConfig, one per channel."""
          cdef ctdc.katherine_tdc_config_t config
          _fill_tdc_config(&config, channels)
-         res = ctdc.katherine_set_tdc_config(self._c_device, &config)
+         res = ctdc.katherine_set_tdc_config(self._dev(), &config)
          check_return_code(res)
 
     def get_tdc_counts(self):
          cdef uint32_t counts[ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT]
-         res = ctdc.katherine_get_tdc_counts(self._c_device, counts)
+         res = ctdc.katherine_get_tdc_counts(self._dev(), counts)
          check_return_code(res)
          return [counts[i] for i in range(ctdc.KATHERINE_MAX_TDC_CHANNEL_COUNT)]
 
     def set_pulse_generator(self, PulseConfig config):
-         res = cpulse.katherine_set_pulse_generator(self._c_device, &config._c_config)
+         res = cpulse.katherine_set_pulse_generator(self._dev(), &config._c_config)
          check_return_code(res)
 
     def get_pulse_generator_counts(self):
          cdef PulseCounts counts = PulseCounts()
-         res = cpulse.katherine_get_pulse_generator_counts(self._c_device, &counts._c_counts)
+         res = cpulse.katherine_get_pulse_generator_counts(self._dev(), &counts._c_counts)
          check_return_code(res)
          return counts
 
     def reset_pulse_generator_counts(self):
-         res = cpulse.katherine_reset_pulse_generator_counts(self._c_device)
+         res = cpulse.katherine_reset_pulse_generator_counts(self._dev())
          check_return_code(res)
 
 
@@ -2056,31 +2131,93 @@ cdef class Tpx3PxEventCountItot:
 
 
 cdef class Acquisition:
+    """A measurement on an open readout. Follows the same contract Device
+    does: close() is idempotent, closed says whether it has run, and the
+    object is a context manager. Nesting unwinds inner-first, which is the
+    order the C library requires an acquisition and its device be finalized
+    in, so the `with` form cannot get it wrong -- including where the block
+    is left by an exception."""
+
     cdef cacquisition.katherine_acquisition_t* _c_acq
     cdef public AcquisitionObserver observer
+    # A strong reference, so the device cannot be collected while this holds
+    # a pointer into it.
+    cdef Device _device
 
     def __cinit__(self, Device dev, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout):
+      # Ask the device for its pointer first. _dev() refuses a closed one, and
+      # __dealloc__ runs even when __cinit__ raises, so anything that can
+      # raise has to happen before there is an allocation to finalize.
+      cdef cdevice.katherine_device_t* d = dev._dev()
+
       self._c_acq = <cacquisition.katherine_acquisition_t*> PyMem_Malloc(sizeof(cacquisition.katherine_acquisition_t))
       if self._c_acq is NULL:
           raise MemoryError()
 
-      res = cacquisition.katherine_acquisition_init(self._c_acq, dev._c_device, <void*> self, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout)
-      check_return_code(res)
+      res = cacquisition.katherine_acquisition_init(self._c_acq, d, <void*> self, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout)
+      if res != 0:
+          PyMem_Free(self._c_acq)
+          self._c_acq = NULL
+          check_return_code(res)
 
       self._c_acq.handlers.frame_started = _forward_frame_started
       self._c_acq.handlers.frame_ended = _forward_frame_ended
       self._c_acq.handlers.pixels_received = NULL
       self._c_acq.handlers.data_received = _forward_data_received
       self.observer = AcquisitionObserver()
+      self._device = dev
+      dev._acquisitions += 1
+
+    # As Device._dev(): one check in one place, so a method added later
+    # cannot reach a freed acquisition.
+    cdef cacquisition.katherine_acquisition_t* _acq(self) except NULL:
+      if self._c_acq is NULL:
+          raise ValueError('operation on a closed Acquisition')
+      return self._c_acq
+
+    @property
+    def closed(self):
+      """True once close() has run, or if construction failed."""
+      return self._c_acq is NULL
+
+    def close(self):
+      """Ends the measurement and releases its buffers. Idempotent, and
+      what __exit__ calls. Must happen before the Device it runs on is
+      closed, which Device.close() enforces."""
+      if self._c_acq is NULL:
+          return
+      cacquisition.katherine_acquisition_fini(self._c_acq)
+      PyMem_Free(self._c_acq)
+      self._c_acq = NULL
+      if self._device is not None:
+          self._device._acquisitions -= 1
+          self._device = None
+
+    def __enter__(self):
+      self._acq()
+      return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+      self.close()
+      return False
 
     def __dealloc__(self):
+      # The free used to sit outside this guard and never cleared the
+      # pointer, so close() and collection would both have freed it.
       if self._c_acq is not NULL:
+         try:
+             _warnings.warn('unclosed Acquisition', ResourceWarning, stacklevel=2)
+         except Exception:
+             pass
          cacquisition.katherine_acquisition_fini(self._c_acq)
-
-      PyMem_Free(self._c_acq)
+         PyMem_Free(self._c_acq)
+         self._c_acq = NULL
+         if self._device is not None:
+             self._device._acquisitions -= 1
+             self._device = None
 
     def __repr__(self):
-      return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._c_acq)
+      return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._acq())
 
     def begin(self, Config config, bool decode_data=True):
       """Configures the readout and opens the shutter. The readout mode, the
@@ -2089,57 +2226,57 @@ cdef class Acquisition:
       px_mode = config.px_mode
       if config.fast_vco_enable:
         if px_mode == Tpx3PxMode.TOA_TOT:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_tot
+          self._acq().handlers.pixels_received = _forward_pixels_received_f_toa_tot
         elif px_mode == Tpx3PxMode.ONLY_TOA:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_f_toa_only
+          self._acq().handlers.pixels_received = _forward_pixels_received_f_toa_only
         elif px_mode == Tpx3PxMode.EVENT_COUNT_ITOT:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_f_event_count_itot
+          self._acq().handlers.pixels_received = _forward_pixels_received_f_event_count_itot
       else:
         if px_mode == Tpx3PxMode.TOA_TOT:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_tot
+          self._acq().handlers.pixels_received = _forward_pixels_received_toa_tot
         elif px_mode == Tpx3PxMode.ONLY_TOA:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_toa_only
+          self._acq().handlers.pixels_received = _forward_pixels_received_toa_only
         elif px_mode == Tpx3PxMode.EVENT_COUNT_ITOT:
-          self._c_acq.handlers.pixels_received = _forward_pixels_received_event_count_itot
+          self._acq().handlers.pixels_received = _forward_pixels_received_event_count_itot
 
-      res = cacquisition.katherine_acquisition_begin(self._c_acq, config._c_config, decode_data)
+      res = cacquisition.katherine_acquisition_begin(self._acq(), config._c_config, decode_data)
       check_return_code(res)
 
     def abort(self):
-      res = cacquisition.katherine_acquisition_abort(self._c_acq)
+      res = cacquisition.katherine_acquisition_abort(self._acq())
       check_return_code(res)
 
     def stop(self):
-      res = cacquisition.katherine_acquisition_stop(self._c_acq)
+      res = cacquisition.katherine_acquisition_stop(self._acq())
       check_return_code(res)
          
     def read(self):
-      res = cacquisition.katherine_acquisition_read(self._c_acq)
+      res = cacquisition.katherine_acquisition_read(self._acq())
       check_return_code(res)
 
     @property
     def state(self):
-       return AcquisitionState(self._c_acq.state)
+       return AcquisitionState(self._acq().state)
 
     @property
     def aborted(self):
-       return self._c_acq.aborted
+       return self._acq().aborted
 
     @property
     def requested_frames(self):
-       return self._c_acq.requested_frames
+       return self._acq().requested_frames
 
     @property
     def completed_frames(self):
-       return self._c_acq.completed_frames
+       return self._acq().completed_frames
 
     @property
     def dropped_measurement_data(self):
-       return self._c_acq.dropped_measurement_data
+       return self._acq().dropped_measurement_data
 
     @property
     def truncated_measurement_data(self):
-       return self._c_acq.truncated_measurement_data
+       return self._acq().truncated_measurement_data
 
     @property
     def dropped_input(self):
@@ -2151,14 +2288,14 @@ cdef class Acquisition:
        among them."""
        cdef uint64_t count = 0
        check_return_code(ctransport.katherine_transport_get_dropped_input(
-           &self._c_acq.data_transport, &count))
+           &self._acq().data_transport, &count))
        return count
 
     @property
     def last_os_error(self):
        """The OS-level code behind the data link's last failure; see
        Device.last_os_error."""
-       return ctransport.katherine_transport_get_last_os_error(&self._c_acq.data_transport)
+       return ctransport.katherine_transport_get_last_os_error(&self._acq().data_transport)
 
     def set_timeout(self, uint32_t timeout_ms):
        """Set how long a data read waits before it reports a timeout.
@@ -2166,50 +2303,50 @@ cdef class Acquisition:
        What report_timeout is measured in steps of, so a report timeout
        shorter than this one is never observed sooner than this one."""
        check_return_code(ctransport.katherine_transport_set_timeout(
-           &self._c_acq.data_transport, timeout_ms))
+           &self._acq().data_transport, timeout_ms))
 
     @property
     def readout_mode(self):
-       return Tpx3ReadoutMode(self._c_acq.readout_mode)
+       return Tpx3ReadoutMode(self._acq().readout_mode)
 
     @property
     def px_mode(self):
-       return Tpx3PxMode(self._c_acq.px_mode)
+       return Tpx3PxMode(self._acq().px_mode)
 
     @property
     def fast_vco_enabled(self):
-       return self._c_acq.fast_vco_enabled
+       return self._acq().fast_vco_enabled
 
     @property
     def decode_data(self):
-       return self._c_acq.decode_data
+       return self._acq().decode_data
 
     @property
     def md_buffer_size(self):
-       return self._c_acq.md_buffer_size
+       return self._acq().md_buffer_size
 
     @property
     def pixel_buffer_size(self):
-       return self._c_acq.pixel_buffer_size
+       return self._acq().pixel_buffer_size
 
     @property
     def requested_frame_duration(self):
-       return self._c_acq.requested_frame_duration
+       return self._acq().requested_frame_duration
 
     @property
     def report_timeout(self):
-       return self._c_acq.report_timeout
+       return self._acq().report_timeout
 
     @property
     def fail_timeout(self):
-       return self._c_acq.fail_timeout
+       return self._acq().fail_timeout
 
     @property
     def phase_correction(self):
-       return Tpx3PhaseCorrection(self._c_acq.phase_correction)
+       return Tpx3PhaseCorrection(self._acq().phase_correction)
 
     def timestamp_phase_offset(self, int x, int y):
-       return cacquisition.katherine_acquisition_timestamp_phase_offset(self._c_acq, Tpx3PxConfig._coord(x, y))
+       return cacquisition.katherine_acquisition_timestamp_phase_offset(self._acq(), Tpx3PxConfig._coord(x, y))
 
 
 cdef void _forward_frame_started(void *user_ctx, int frame_idx) noexcept:

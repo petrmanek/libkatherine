@@ -27,6 +27,7 @@ with its own identifier are reported as an environmental skip (TAP
 skip contract for CTest). Every later failure is a genuine assertion failure.
 """
 
+import gc
 import os
 import re
 import subprocess
@@ -207,7 +208,7 @@ def wait_ready(ksim, katherine):
 
             return device, None
 
-        del device
+        device.close()
 
         if ksim.poll() is not None:
             return None, ('ksim exited during startup: it could not bind %s (not aliased by default on macOS), '
@@ -980,6 +981,81 @@ def check_1x_names(tap, katherine):
         tap.check('an unknown name raises', True)
 
 
+def check_io_contract(tap, katherine):
+    """The contract io.IOBase sets, which the README's `with Device(...)`
+    has promised for longer than the binding has honoured it."""
+    dev = katherine.Device(KSIM_DEVICE_ADDRESS)
+    tap.check('a fresh Device is not closed', not dev.closed)
+
+    with dev as entered:
+        tap.check('__enter__ returns the device itself', entered is dev)
+    tap.check('leaving the with block closes it', dev.closed)
+
+    # Idempotent, which is what lets __exit__ and __dealloc__ share a body.
+    dev.close()
+    tap.check('close() is idempotent', dev.closed)
+
+    # Use after close is a programming error, so ValueError rather than one
+    # of the Error subclasses a readout failure raises.
+    try:
+        dev.get_chip_id()
+        tap.check('use after close raises ValueError', False, 'it did not raise')
+    except ValueError as e:
+        tap.check('use after close raises ValueError', not isinstance(e, katherine.Error),
+                  'raised %s' % type(e).__name__)
+
+    # An acquisition keeps its device open: the C library refuses to
+    # finalize one in that state and returns without freeing, so a close
+    # that went ahead would free memory the library still holds.
+    dev = katherine.Device(KSIM_DEVICE_ADDRESS)
+    acq = katherine.Acquisition(dev, katherine.MD_SIZE() * 128,
+                                katherine.Tpx3PxFastToaTot.RAW_SIZE() * 128, 100, 1000)
+    try:
+        dev.close()
+        tap.check('close() refuses while an Acquisition is open', False, 'it closed')
+    except ValueError:
+        tap.check('close() refuses while an Acquisition is open', True)
+    tap.check('and the device is still open afterwards', not dev.closed)
+
+    acq.close()
+    tap.check('the acquisition closes', acq.closed)
+    dev.close()
+    tap.check('and then so does the device', dev.closed)
+
+    # __dealloc__ runs on an object whose __cinit__ raised, so the refusal
+    # has to come before the buffer exists. It used to arrive after, and
+    # finalizing the uninitialized buffer segfaulted the interpreter.
+    try:
+        katherine.Acquisition(dev, katherine.MD_SIZE() * 128,
+                              katherine.Tpx3PxFastToaTot.RAW_SIZE() * 128, 100, 1000)
+        tap.check('an Acquisition on a closed Device raises ValueError', False, 'it did not raise')
+    except ValueError:
+        tap.check('an Acquisition on a closed Device raises ValueError', True)
+    gc.collect()
+    tap.check('and collecting the failed Acquisition does not crash', True)
+
+    # The same rule at the other constructor: the address is encoded before
+    # the device is allocated, so a non-string aborted the interpreter in
+    # katherine_device_fini()'s assert rather than raising.
+    try:
+        katherine.Device(KSIM_DEVICE_ADDRESS.encode())
+        tap.check('a Device address that is not a string raises', False, 'it did not raise')
+    except AttributeError:
+        tap.check('a Device address that is not a string raises', True)
+    gc.collect()
+    tap.check('and collecting the failed Device does not crash', True)
+
+    # Collected unclosed is a leak worth hearing about: a readout holds a
+    # claim no other process on this machine can take.
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        katherine.Device(KSIM_DEVICE_ADDRESS)
+        gc.collect()
+    tap.check('an unclosed Device warns when collected',
+              any(issubclass(w.category, ResourceWarning) for w in caught),
+              'caught %s' % [w.category.__name__ for w in caught])
+
+
 def run_checks(tap, katherine, device):
     check_1x_names(tap, katherine)
     check_enums(tap, katherine)
@@ -995,6 +1071,7 @@ def run_checks(tap, katherine, device):
     check_pixel_types(tap, katherine)
     check_error_codes(tap, katherine)
     check_error_mapping(tap, katherine)
+    check_io_contract(tap, katherine)
 
     tap.check_eq('get_chip_id() reports the expected identifier', device.get_chip_id(), EXPECTED_CHIP_ID)
 
@@ -1114,7 +1191,7 @@ def main():
             except Exception as e:
                 tap.check('unexpected exception during checks', False, '%s: %s' % (type(e).__name__, e))
         finally:
-            del device
+            device.close()
     finally:
         stop_ksim(ksim)
 
