@@ -233,15 +233,34 @@ katherine_transport_init_for_data(const char *address, const katherine_transport
         if ((res = katherine_usb_config_set_address(&config, address)) != KATHERINE_E_OK) break;
         if ((res = katherine_usb_config_borrow_device(&config, control)) != KATHERINE_E_OK) break;
 
-        if (md_buffer_size > (size_t) UINT32_MAX) {
-            res = KATHERINE_E_INVAL;
-            break;
+        // The hint names the whole buffer, the same quantity it names on
+        // UDP, so a ring spends it across its slots rather than giving each
+        // one that much. Undivided, a size chosen for UDP asks for queue_len
+        // times what the caller meant and the open is refused for want of
+        // memory.
+        const uint32_t slots = (config.stream == KATHERINE_USB_STREAM_ASYNC && config.queue_len != 0)
+            ? config.queue_len
+            : 1;
+
+        if (md_buffer_size != 0) {
+            // Whole frames: the streamer emits them whole, and a slot ending
+            // mid-frame would split one across two reads.
+            size_t per_slot = md_buffer_size / slots;
+            per_slot -= per_slot % KATHERINE_USB_DATA_FRAME_SIZE;
+            if (per_slot == 0) per_slot = KATHERINE_USB_DATA_FRAME_SIZE;
+            if (per_slot > (size_t) UINT32_MAX) {
+                res = KATHERINE_E_INVAL;
+                break;
+            }
+
+            config.buffer_size = (uint32_t) per_slot;
         }
-        config.buffer_size = (uint32_t) md_buffer_size;
 
         res = katherine_transport_init_usb(data, &config);
         if (res == KATHERINE_E_OK && actual_buffer_size != NULL) {
-            *actual_buffer_size = md_buffer_size == 0 ? KATHERINE_USB_DEFAULT_BUFFER_SIZE : md_buffer_size;
+            // What the ring holds altogether, which is what the hint named
+            // and what a truncated datagram is counted against.
+            *actual_buffer_size = (size_t) config.buffer_size * slots;
         }
         break;
     }

@@ -273,12 +273,17 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  * 65 kB, and a smaller buffer risks silently truncating a datagram (see
  * katherine_acquisition_t::truncated_measurement_data).
  *
+ * The figure is the whole buffer, whatever the link makes of it: a UDP
+ * session reads into one buffer of that size, while a USB ring divides it
+ * across the reads it keeps outstanding, each rounded down to a whole frame.
+ *
  * \param acq Acquisition to initialize
  * \param device Katherine device
  * \param ctx User context (may be used to convey useful info)
- * \param md_buffer_size Size of the measurement data buffer in bytes. It has
- *   to exceed the largest datagram the readout sends, which depends on the
- *   model; 65536 covers every model measured so far.
+ * \param md_buffer_size Size of the measurement data buffer in bytes, taken
+ *   together rather than per read. It has to exceed the largest datagram the
+ *   readout sends, which depends on the model; 65536 covers every model
+ *   measured so far. Zero asks the link for its own size.
  * \param pixel_buffer_size Size of the pixel buffer in bytes
  * \param report_timeout Silence after which a partly filled pixel buffer is
  *   delivered (ms). Set zero to disable. Noticed in steps of the data link's
@@ -291,7 +296,10 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  *   settled on rather than the one asked for.
  * \retval KATHERINE_E_NOMEM if the data link's buffer or the pixel buffer
  *   could not be allocated; see malloc(3). The device is not contacted
- *   either way.
+ *   either way. A USB ring is held by the kernel while its reads are
+ *   outstanding, and the budget for that is usbfs's rather than the host's:
+ *   /sys/module/usbcore/parameters/usbfs_memory_mb, 16 MiB by default. A
+ *   ring asking for more is refused here however much memory the host has.
  *
  * The codes below belong to the data link this opens, not to the acquisition.
  * Nothing is sent to the readout here -- the link is opened at the size asked

@@ -518,6 +518,68 @@ test_the_data_factory_adopts_the_control_transport(void)
     KT_CHECK_EQ(fake_usb_releases(), 1);
 }
 
+/* The size a caller names is the whole buffer, the quantity it names on UDP
+ * too. A ring spends it across its slots rather than giving each one that
+ * much: undivided, a size chosen for UDP asks for queue_len times it, and at
+ * the default depth of 64 the open is refused for want of memory. */
+static void
+test_the_data_factory_divides_the_buffer_across_the_ring(void)
+{
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    const katherine_usb_config_t defaults = katherine_usb_config_default();
+    const size_t per_slot                 = 4096;
+    const size_t whole                    = per_slot * defaults.queue_len;
+
+    katherine_transport_t control, data;
+    size_t settled = 0;
+    KT_REQUIRE(katherine_transport_init_for_control("usb://1-1", false, &control) == KATHERINE_E_OK);
+    KT_REQUIRE(katherine_transport_init_for_data("usb://1-1", &control, 0, whole, &settled, &data) == KATHERINE_E_OK);
+
+    /* What came back is the whole buffer, not one slot of it. */
+    KT_CHECK_EQ(settled, whole);
+
+    /* And a slot really is that big and no bigger: the stand-in refuses to
+     * complete a transfer carrying more than the slot it was filled for. */
+    static uint8_t payload[2 * 4096];
+    KT_CHECK_EQ(fake_usb_complete_oldest_with(LIBUSB_TRANSFER_COMPLETED, payload, (int) per_slot), 0);
+    KT_CHECK_EQ(fake_usb_complete_oldest_with(LIBUSB_TRANSFER_COMPLETED, payload, (int) per_slot + 1), -1);
+
+    katherine_transport_fini(&data);
+    katherine_transport_fini(&control);
+}
+
+/* A size the ring cannot divide evenly is rounded down to whole frames, the
+ * streamer emitting them whole, and one too small for a single frame still
+ * gets one. */
+static void
+test_a_buffer_that_does_not_divide_evenly_is_rounded_down(void)
+{
+    const katherine_usb_config_t defaults = katherine_usb_config_default();
+
+    fake_usb_reset();
+    fake_usb_attach(0x16D0, 0x118A, 1, (const uint8_t[]) {1}, 1);
+
+    katherine_transport_t control, data;
+    size_t settled = 0;
+    KT_REQUIRE(katherine_transport_init_for_control("usb://1-1", false, &control) == KATHERINE_E_OK);
+
+    /* One frame and a bit per slot, which keeps the frame and drops the bit. */
+    const size_t ragged = defaults.queue_len * (KATHERINE_USB_DATA_FRAME_SIZE + 1);
+    KT_REQUIRE(katherine_transport_init_for_data("usb://1-1", &control, 0, ragged, &settled, &data) == KATHERINE_E_OK);
+    KT_CHECK_EQ(settled, (size_t) defaults.queue_len * KATHERINE_USB_DATA_FRAME_SIZE);
+    katherine_transport_fini(&data);
+
+    /* Less than one frame for the whole ring: every slot still gets a frame,
+     * since a shorter read cannot carry one. */
+    KT_REQUIRE(katherine_transport_init_for_data("usb://1-1", &control, 0, 1, &settled, &data) == KATHERINE_E_OK);
+    KT_CHECK_EQ(settled, (size_t) defaults.queue_len * KATHERINE_USB_DATA_FRAME_SIZE);
+    katherine_transport_fini(&data);
+
+    katherine_transport_fini(&control);
+}
+
 /* What the readout's USB bridge adds to the stream, and what the transport
  * owes the decoder: whole six-byte words, with the bridge's own padding and
  * its 0x55 idle filler gone. */
@@ -819,6 +881,8 @@ main(void)
     KT_RUN(test_a_stream_transport_sends_nothing);
     KT_RUN(test_a_second_independent_open_is_refused);
     KT_RUN(test_a_second_transport_adopts_the_first);
+    KT_RUN(test_the_data_factory_divides_the_buffer_across_the_ring);
+    KT_RUN(test_a_buffer_that_does_not_divide_evenly_is_rounded_down);
     KT_RUN(test_the_bridge_padding_and_filler_are_stripped);
     KT_RUN(test_a_short_read_does_not_shift_the_next);
     KT_RUN(test_padding_that_is_not_padding_is_counted);
