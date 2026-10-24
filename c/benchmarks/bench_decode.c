@@ -50,6 +50,7 @@
 // the platform monotonic clock.
 #include <stdbool.h>
 
+#include "acq/private.h"
 #include "protocol/md.h"
 #include "monoclock.h"
 
@@ -141,15 +142,16 @@ build_canned_buffer(uint8_t *buf, size_t words, bool gen2)
     bench_decode_##SUFFIX##TAG(const uint8_t *buf, size_t words, uint64_t *out_checksum) \
     { \
         static katherine_tpx3_px_##SUFFIX##_t slot[BENCH_SLOT_BYTES / sizeof(katherine_tpx3_px_##SUFFIX##_t)]; \
-        const size_t max_valid      = sizeof(slot) / sizeof(slot[0]); \
-        size_t valid                = 0; \
-        katherine_acquisition_t acq = {0}; \
+        const size_t max_valid                  = sizeof(slot) / sizeof(slot[0]); \
+        size_t valid                            = 0; \
+        katherine_acquisition_t acq             = {0}; \
+        katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(&acq); \
         /* Zero would let the compiler fold the coarse-tick multiply away and \
            measure a decoder that does less work than the real one. */ \
-        acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ); \
-        acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ); \
-        uint64_t acc                      = 0; \
-        const uint8_t *p                  = buf; \
+        priv->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ); \
+        priv->last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ); \
+        uint64_t acc                        = 0; \
+        const uint8_t *p                    = buf; \
         for (size_t i = 0; i < words; ++i, p += KATHERINE_MD_SIZE) { \
             uint64_t word; \
             /* A fixed-size memcpy is the strict-aliasing-safe spelling of \

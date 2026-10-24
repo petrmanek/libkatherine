@@ -101,6 +101,21 @@ typedef struct katherine_acquisition_handlers {
     void (*data_received)(void *, const char *, size_t); ///< Raw, undecoded measurement data as received
 } katherine_acquisition_handlers_t;
 
+/** Bytes katherine_acquisition_t reserves for the decoder's private state. */
+#define KATHERINE_ACQUISITION_PRIV_SIZE 384
+
+/**
+ * Opaque storage for an acquisition's decoder state.
+ *
+ * A caller has no business reading this and the library casts it to whatever
+ * the ASIC in hand needs. The second member is there for its alignment, not
+ * for its value.
+ */
+typedef union katherine_acquisition_priv {
+    uint8_t storage[KATHERINE_ACQUISITION_PRIV_SIZE]; ///< The bytes themselves. Never read as bytes.
+    uint64_t alignment;                               ///< Never read. Its presence is the union's alignment.
+} katherine_acquisition_priv_t;
+
 /** Where an acquisition has got to; read it from katherine_acquisition_t::state. */
 typedef enum katherine_acquisition_state {
     KATHERINE_ACQUISITION_STATE_NOT_STARTED = 0, ///< The detector is not sensitive, call katherine_acquisition_begin to start measurement.
@@ -209,35 +224,20 @@ typedef struct katherine_acquisition {
     katherine_acquisition_handlers_t handlers; ///< The callbacks; set them after katherine_acquisition_init() and before beginning.
     katherine_frame_info_t current_frame_info; ///< Internal: the frame being filled, handed to frame_ended when it closes.
 
-    /**
-     * Timestamp offset in effect, in fine-oscillator ticks. Carries the epoch
-     * bias described at katherine_tpx3_px_f_toa_tot_t::timestamp, so it is never
-     * zero during an acquisition and is not the offset the stream delivered.
-     */
-    uint64_t last_toa_offset;
-
-    /**
-     * Shift taking a coarse tick to the fine ticks that make it up, resolved
-     * by katherine_acquisition_begin(). The ratio itself is 1 << this.
-     */
-    uint8_t toa_coarse_tick_to_fine_shift;
-
     /** What the phase request resolved to, decided by katherine_acquisition_begin(). */
     katherine_tpx3_phase_correction_t phase_correction;
 
     /**
-     * Pixel-clock phases this configuration actually yields, which the clock
-     * divider may clamp below what katherine_tpx3_phase_t asked for.
+     * The decoder's own state, which belongs to the ASIC being read out and
+     * is not part of this interface.
+     *
+     * Reserved inline rather than behind a pointer so that it costs no
+     * allocation and no dereference, and sized for the largest any ASIC this
+     * library drives needs. A later ASIC changes what is kept here and the
+     * assertion that it fits, nothing else -- which is what lets 2.1 add one
+     * without moving a public field or changing the SONAME.
      */
-    uint8_t phase_count;
-
-    /**
-     * Per-column phase offsets in fine-oscillator ticks, added by the decoder.
-     * Filled only when phase_correction is SOFTWARE; all zeroes otherwise, so
-     * the decoder needs no test for whether correction is in effect. Read it
-     * through katherine_acquisition_timestamp_phase_offset().
-     */
-    uint8_t phase_offsets[KATHERINE_TPX3_MATRIX_WIDTH];
+    katherine_acquisition_priv_t priv;
 
     bool frame_active; ///< Internal: whether a frame is currently open.
 } katherine_acquisition_t;

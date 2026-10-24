@@ -34,6 +34,7 @@
 #include <katherine/katherine.h>
 
 #include "atomic.h"
+#include "acq/private.h"
 #include "ktest.h"
 
 
@@ -294,11 +295,13 @@ test_a_failed_link_ends_the_read_instead_of_being_retried(void)
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
-    acq.device                        = &device;
-    acq.state                         = KATHERINE_ACQUISITION_STATE_RUNNING;
-    acq.readout_mode                  = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
-    acq.px_mode                       = KATHERINE_TPX3_PX_TOA_TOT;
-    acq.toa_coarse_tick_to_fine_shift = 4;
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(&acq);
+
+    acq.device                          = &device;
+    acq.state                           = KATHERINE_ACQUISITION_STATE_RUNNING;
+    acq.readout_mode                    = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
+    acq.px_mode                         = KATHERINE_TPX3_PX_TOA_TOT;
+    priv->toa_coarse_tick_to_fine_shift = 4;
     /* Bounded, so the behaviour this replaces ends the test rather than
        hanging it. In the field this was commonly 0, where the old loop
        had no exit at all. */

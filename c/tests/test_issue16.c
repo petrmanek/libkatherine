@@ -16,6 +16,7 @@
 #include "transport/udp.h"
 
 #include "kports.h"
+#include "acq/private.h"
 #include "ktest.h"
 #include "monoclock.h"
 
@@ -122,6 +123,8 @@ run_case(bool send_frame_finished, struct stats *s)
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(&acq);
+
     res = katherine_acquisition_init(&acq, &dev, s,
         1024 * MD_SIZE /* md buffer */,
         65536 /* pixel buffer, never fills */,
@@ -142,14 +145,14 @@ run_case(bool send_frame_finished, struct stats *s)
     acq.state = KATHERINE_ACQUISITION_STATE_RUNNING;
     // Resolved by katherine_acquisition_begin() in a real run; the decoder is
     // instantiated per pixel-clock divider and refuses to guess one.
-    acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ);
-    acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ);
-    acq.px_mode                       = KATHERINE_TPX3_PX_TOA_TOT;
-    acq.fast_vco_enabled              = false;
-    acq.decode_data                   = true;
-    acq.requested_frames              = 1;
-    acq.requested_frame_duration      = 0.0;
-    acq.acq_start_time                = katherine_clock_monotonic_ns();
+    priv->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ);
+    priv->last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ);
+    acq.px_mode                         = KATHERINE_TPX3_PX_TOA_TOT;
+    acq.fast_vco_enabled                = false;
+    acq.decode_data                     = true;
+    acq.requested_frames                = 1;
+    acq.requested_frame_duration        = 0.0;
+    acq.acq_start_time                  = katherine_clock_monotonic_ns();
 
     // Craft the stream: frame start, 5 pixels, optionally frame finished.
     unsigned char packet[7 * MD_SIZE];

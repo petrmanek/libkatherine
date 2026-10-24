@@ -36,6 +36,7 @@
 
 #include <katherine/katherine.h>
 
+#include "acq/private.h"
 #include "protocol/md.h"
 
 #include "ktest.h"
@@ -60,15 +61,17 @@ expected_offset(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, uint8_
 static void
 fixture(katherine_acquisition_t *acq, katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool correct)
 {
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
+
     memset(acq, 0, sizeof(*acq));
-    acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(freq);
-    acq->phase_count                   = katherine_tpx3_actual_phases(freq, phase);
-    acq->last_toa_offset               = katherine_tpx3_toa_epoch_bias(acq->toa_coarse_tick_to_fine_shift);
-    acq->phase_correction              = correct ? KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE : KATHERINE_TPX3_PHASE_CORRECTION_NONE;
+    priv->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(freq);
+    priv->phase_count                   = katherine_tpx3_actual_phases(freq, phase);
+    priv->last_toa_offset               = katherine_tpx3_toa_epoch_bias(priv->toa_coarse_tick_to_fine_shift);
+    acq->phase_correction               = correct ? KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE : KATHERINE_TPX3_PHASE_CORRECTION_NONE;
 
     if (correct) {
         for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
-            acq->phase_offsets[x] = expected_offset(freq, phase, (uint8_t) x);
+            priv->phase_offsets[x] = expected_offset(freq, phase, (uint8_t) x);
         }
     }
 }
@@ -244,6 +247,8 @@ test_recovery_undoes_correction(void)
     katherine_acquisition_t on;
     fixture(&on, KATHERINE_TPX3_FREQ_40_MHZ, KATHERINE_TPX3_PHASE_16, true);
 
+    const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(&on);
+
     unsigned checked = 0;
 
     for (unsigned dc = 0; dc < 16; ++dc) {
@@ -254,7 +259,7 @@ test_recovery_undoes_correction(void)
 
         uint64_t toa = 0;
         uint8_t ftoa = 0;
-        katherine_tpx3_timestamp_to_toa_ftoa(on.toa_coarse_tick_to_fine_shift, phi, t, &toa, &ftoa);
+        katherine_tpx3_timestamp_to_toa_ftoa(priv->toa_coarse_tick_to_fine_shift, phi, t, &toa, &ftoa);
 
         KT_CHECK_EQ(toa, 4321u);
         KT_CHECK_EQ(ftoa, 9u);
@@ -262,7 +267,7 @@ test_recovery_undoes_correction(void)
 
         // Forgetting the offset is wrong wherever there is one to forget.
         if (phi != 0) {
-            katherine_tpx3_timestamp_to_toa_ftoa(on.toa_coarse_tick_to_fine_shift, 0, t, &toa, &ftoa);
+            katherine_tpx3_timestamp_to_toa_ftoa(priv->toa_coarse_tick_to_fine_shift, 0, t, &toa, &ftoa);
             KT_CHECK(toa != 4321u || ftoa != 9u);
         }
     }

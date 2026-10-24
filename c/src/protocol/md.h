@@ -23,6 +23,8 @@
 #include "bitfields.h"
 #include <katherine/px.h>
 
+#include "acq/private.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -129,6 +131,12 @@ extern "C" {
     pmd_##SUFFIX##_s##TAG##_map(katherine_tpx3_px_##SUFFIX##_t *dst, const uint64_t *src, \
         const katherine_acquisition_t *acq, uint8_t chip)
 
+// The decoder's own state, cast out of the acquisition's opaque reserve, and
+// the line every body below opens with. A cast the compiler folds away rather
+// than a hop through a pointer: this is read per hit.
+#define DEFINE_PMD_PRIV() \
+    const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(acq)
+
 // The name carries a tag rather than the shift itself, so that a variant
 // whose shift is an expression can be named too -- which is what
 // DEFINE_PMD_MAP_RUNTIME_SHIFT below is for.
@@ -143,7 +151,7 @@ extern "C" {
 // the cost of the four specializations can be measured rather than argued,
 // which is what c/benchmarks/bench_decode.c does with it. An unused static
 // inline costs nothing in a build that does not call it.
-#define DEFINE_PMD_MAP_RUNTIME_SHIFT(M) M(r, acq->toa_coarse_tick_to_fine_shift)
+#define DEFINE_PMD_MAP_RUNTIME_SHIFT(M) M(r, priv->toa_coarse_tick_to_fine_shift)
 
 #define DEFINE_PMD_PAIR(NAME, TYPE, BASE_TYPE) \
     dst->NAME = (TYPE) EXTRACT(*src, BASE_TYPE, NAME)
@@ -164,7 +172,7 @@ extern "C" {
 // notes in px.h -- the bias is visible to callers and must not be removed
 // here without removing it there.
 //
-// acq->last_toa_offset carries that bias and is kept in fine ticks, so no
+// priv->last_toa_offset carries that bias and is kept in fine ticks, so no
 // scaling happens per hit.
 //
 // The double-column phase offset is ADDED. A later clock phase means a later
@@ -176,8 +184,8 @@ extern "C" {
 // effect. DEFINE_PMD_PAIR_COORD must therefore run FIRST: the lookup reads the
 // coordinate this line depends on.
 #define DEFINE_PMD_PAIR_TIMESTAMP(BASE_TYPE, SHIFT, FTOA) \
-    dst->timestamp = (((uint64_t) EXTRACT(*src, BASE_TYPE, toa) << (SHIFT)) + acq->last_toa_offset) \
-        - (uint64_t) (FTOA) + acq->phase_offsets[dst->coord.x]
+    dst->timestamp = (((uint64_t) EXTRACT(*src, BASE_TYPE, toa) << (SHIFT)) + priv->last_toa_offset) \
+        - (uint64_t) (FTOA) + priv->phase_offsets[dst->coord.x]
 
 // The chip is not in the word: on the readouts that carry more than one it is
 // the measurement-data header, which the decode loop has already extracted, so
@@ -222,6 +230,7 @@ extern "C" {
 #define DEFINE_PMD_MAP_F_TOA_TOT(TAG, SHIFT) \
     DEFINE_PMD_MAP_S(f_toa_tot, TAG) \
     { \
+        DEFINE_PMD_PRIV(); \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_f_toa_tot); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_f_toa_tot, SHIFT, EXTRACT(*src, pmd_f_toa_tot, ftoa)); \
@@ -253,6 +262,7 @@ DEFINE_PMD_MAP_RUNTIME_SHIFT(DEFINE_PMD_MAP_F_TOA_TOT)
 #define DEFINE_PMD_MAP_TOA_TOT(TAG, SHIFT) \
     DEFINE_PMD_MAP_S(toa_tot, TAG) \
     { \
+        DEFINE_PMD_PRIV(); \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_toa_tot); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_toa_tot, SHIFT, 0); \
@@ -281,6 +291,7 @@ DEFINE_PMD_MAP_RUNTIME_SHIFT(DEFINE_PMD_MAP_TOA_TOT)
 #define DEFINE_PMD_MAP_F_TOA_ONLY(TAG, SHIFT) \
     DEFINE_PMD_MAP_S(f_toa_only, TAG) \
     { \
+        DEFINE_PMD_PRIV(); \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_f_toa_only); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_f_toa_only, SHIFT, EXTRACT(*src, pmd_f_toa_only, ftoa)); \
@@ -307,6 +318,7 @@ DEFINE_PMD_MAP_RUNTIME_SHIFT(DEFINE_PMD_MAP_F_TOA_ONLY)
 #define DEFINE_PMD_MAP_TOA_ONLY(TAG, SHIFT) \
     DEFINE_PMD_MAP_S(toa_only, TAG) \
     { \
+        DEFINE_PMD_PRIV(); \
         DEFINE_PMD_PAIR_CHIP(); \
         DEFINE_PMD_PAIR_COORD(pmd_toa_only); \
         DEFINE_PMD_PAIR_TIMESTAMP(pmd_toa_only, SHIFT, 0); \
@@ -380,6 +392,7 @@ DEFINE_PMD_MAP(event_count_itot)
 
 #undef DEFINE_PMD_MAP
 #undef DEFINE_PMD_MAP_S
+#undef DEFINE_PMD_PRIV
 #undef DEFINE_PMD_PAIR
 #undef DEFINE_PMD_PAIR_COORD
 #undef DEFINE_PMD_PAIR_TIMESTAMP

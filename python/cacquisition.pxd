@@ -82,10 +82,7 @@ cdef extern from 'katherine/acquisition.h':
         katherine_acquisition_handlers_t handlers
         katherine_frame_info_t current_frame_info
 
-        uint64_t last_toa_offset
-
         katherine_tpx3_phase_correction_t phase_correction
-        uint8_t phase_count
 
         bool frame_active
 

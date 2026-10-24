@@ -89,6 +89,13 @@ test_public_structs_stay_within_budget(void)
     KT_CHECK(sizeof(katherine_acquisition_t) <= 1024);
     KT_CHECK(sizeof(katherine_device_t) <= 512);
 
+    // The reserve is exactly what it says. A union whose largest member is
+    // the byte array should be that array's size, and if padding ever made
+    // it otherwise, every assertion sized against the macro would be
+    // measuring the wrong thing.
+    KT_CHECK_EQ(sizeof(katherine_acquisition_priv_t), (size_t) KATHERINE_ACQUISITION_PRIV_SIZE);
+    KT_CHECK(alignof(katherine_acquisition_priv_t) >= alignof(uint64_t));
+
     // Both hold uint64_t members, so neither may be aligned more loosely.
     KT_CHECK(alignof(katherine_acquisition_t) >= alignof(uint64_t));
     KT_CHECK(alignof(katherine_device_t) >= alignof(uint64_t));

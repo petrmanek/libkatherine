@@ -169,6 +169,12 @@ configure(katherine_tpx3_config_t *config, uint8_t chip_count)
 
 static uint64_t n_hits;
 
+// The shift taking a coarse tick to the fine ticks inside it. Resolved from
+// the clock frequency this program configured, by the same function the
+// library resolves it with -- a handler is given the acquisition, and what
+// the decoder keeps inside one is the decoder's.
+static uint8_t g_toa_shift;
+
 void
 frame_started(void *user_ctx, int frame_idx)
 {
@@ -260,7 +266,7 @@ pixels_received_counters(void *user_ctx, const void *px, size_t count)
     n_hits += count;
 
     // Fixed for the acquisition, so it is read once rather than per hit.
-    const uint8_t shift = acq->toa_coarse_tick_to_fine_shift;
+    const uint8_t shift = g_toa_shift;
 
     const px_t *dpx = (const px_t *) px;
     for (size_t i = 0; i < count; ++i) {
@@ -313,6 +319,8 @@ run_acquisition(katherine_device_t *dev, const katherine_tpx3_config_t *c)
     } else {
         acq.handlers.pixels_received = pixels_received_counters;
     }
+
+    g_toa_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(c->clock_frequency);
 
     res = katherine_acquisition_begin(&acq, c, true);
     if (res != 0) {

@@ -31,6 +31,7 @@
 #include "transport/udp.h"
 
 #include "kports.h"
+#include "acq/private.h"
 #include "ktest.h"
 #include "monoclock.h"
 
@@ -134,6 +135,8 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(&acq);
+
     res = katherine_acquisition_init(&acq, &dev, s, 1024 * MD_SIZE, 65536, 0, 1);
     KT_CHECK(res == KATHERINE_E_OK);
     if (res != KATHERINE_E_OK) {
@@ -146,14 +149,14 @@ run_stream(uint8_t gen, const unsigned char *stream, size_t words, struct stats 
     acq.handlers.frame_ended     = frame_ended;
 
     // Stands in for katherine_acquisition_begin(), which needs hardware.
-    acq.state                         = KATHERINE_ACQUISITION_STATE_RUNNING;
-    acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ);
-    acq.last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ);
-    acq.px_mode                       = KATHERINE_TPX3_PX_TOA_TOT;
-    acq.fast_vco_enabled              = false;
-    acq.decode_data                   = true;
-    acq.requested_frames              = 1;
-    acq.acq_start_time                = katherine_clock_monotonic_ns();
+    acq.state                           = KATHERINE_ACQUISITION_STATE_RUNNING;
+    priv->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(KATHERINE_TPX3_FREQ_40_MHZ);
+    priv->last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ);
+    acq.px_mode                         = KATHERINE_TPX3_PX_TOA_TOT;
+    acq.fast_vco_enabled                = false;
+    acq.decode_data                     = true;
+    acq.requested_frames                = 1;
+    acq.acq_start_time                  = katherine_clock_monotonic_ns();
 
     katherine_udp_t sender;
     KT_CHECK(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_DATA, 0)

@@ -33,6 +33,7 @@
 
 // The pixel mapping functions of md.h are written against the acquisition,
 // so its declaration has to precede them.
+#include "acq/private.h"
 #include "protocol/md.h"
 
 #include "kports.h"
@@ -224,6 +225,8 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(&acq);
+
     res = katherine_acquisition_init(&acq, &dev, probe, MD_BUFFER_MDS * KATHERINE_MD_SIZE,
         PIXEL_BUFFER_HITS * sizeof(px_t), 0 /* report_timeout disabled */, FAIL_TIMEOUT_MS);
     KT_CHECK(res == 0);
@@ -242,15 +245,15 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     // The divider shift and the biased offset are the exceptions and must be
     // set: begin() resolves them from the configured frequency, and the read
     // loop refuses a divider it was not built for rather than guessing one.
-    acq.toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(TOA_FREQ);
-    acq.last_toa_offset               = TOA_FINE;
-    acq.state                         = KATHERINE_ACQUISITION_STATE_RUNNING;
-    acq.px_mode                       = KATHERINE_TPX3_PX_TOA_TOT;
-    acq.fast_vco_enabled              = false;
-    acq.decode_data                   = true;
-    acq.requested_frames              = frames;
-    acq.requested_frame_duration      = 0.0;
-    acq.acq_start_time                = katherine_clock_monotonic_ns();
+    priv->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(TOA_FREQ);
+    priv->last_toa_offset               = TOA_FINE;
+    acq.state                           = KATHERINE_ACQUISITION_STATE_RUNNING;
+    acq.px_mode                         = KATHERINE_TPX3_PX_TOA_TOT;
+    acq.fast_vco_enabled                = false;
+    acq.decode_data                     = true;
+    acq.requested_frames                = frames;
+    acq.requested_frame_duration        = 0.0;
+    acq.acq_start_time                  = katherine_clock_monotonic_ns();
 
     katherine_udp_t sender;
     KT_CHECK(katherine_udp_init_bound(&sender, "127.0.0.1", PORT_SENDER, "127.0.0.1", PORT_DATA, 0) == 0);
@@ -320,8 +323,10 @@ combine_f_toa_tot(uint16_t coarse, uint8_t ftoa, uint64_t offset, uint8_t fine_s
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
-    acq.toa_coarse_tick_to_fine_shift = fine_shift;
-    acq.last_toa_offset               = bias + offset;
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(&acq);
+
+    priv->toa_coarse_tick_to_fine_shift = fine_shift;
+    priv->last_toa_offset               = bias + offset;
 
     katherine_tpx3_px_f_toa_tot_t dst;
     memset(&dst, 0, sizeof(dst));

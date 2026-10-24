@@ -19,6 +19,7 @@
 #include "atomic.h"
 #include "monoclock.h"
 #include "protocol/cmd_interface.h"
+#include "acq/private.h"
 #include "protocol/md.h"
 #include "transport/factory.h"
 
@@ -38,12 +39,12 @@ flush_buffer(katherine_acquisition_t *acq)
 // The epoch bias, resolved once per acquisition rather than per use. Its size
 // and the reasons for it live with katherine_tpx3_toa_epoch_bias(); this is
 // only the spelling the cold paths below use.
-#define KATHERINE_TOA_EPOCH_BIAS(acq) \
-    katherine_tpx3_toa_epoch_bias((acq)->toa_coarse_tick_to_fine_shift)
+#define KATHERINE_TOA_EPOCH_BIAS(priv) katherine_tpx3_toa_epoch_bias((priv)->toa_coarse_tick_to_fine_shift)
 
 static inline void
 handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
     (void) data;
 
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
@@ -55,7 +56,7 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
     // previous frame delivered no longer applies: the hits arriving before
     // the first offset of this frame belong to its first window. Reset to the
     // epoch bias rather than to zero -- see katherine_acquisition_begin().
-    acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq);
+    priv->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(priv);
 
     if (acq->handlers.frame_started != NULL) {
         acq->handlers.frame_started(acq->user_ctx, acq->completed_frames);
@@ -66,13 +67,15 @@ handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 static inline void
 handle_timestamp_offset_driven_mode(katherine_acquisition_t *acq, const uint64_t *data)
 {
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
+
     // The datum counts wraps of the chip's 14-bit coarse counter; scaling by
     // the coarse tick puts the offset in the fine ticks the timestamp uses, so
     // the decoder adds it without scaling anything per hit. The product stays a
     // whole multiple of the coarse tick, which is what lets the chip's own
     // counters be recovered from a timestamp later.
-    acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq)
-        + ((uint64_t) EXTRACT(*data, md_time_offset, offset) << (14 + acq->toa_coarse_tick_to_fine_shift));
+    priv->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(priv)
+        + ((uint64_t) EXTRACT(*data, md_time_offset, offset) << (14 + priv->toa_coarse_tick_to_fine_shift));
 }
 
 static inline void
@@ -714,9 +717,11 @@ katherine_tpx3_toa_phase_offset(uint8_t coarse_tick_to_fine_shift, uint8_t phase
 static katherine_tpx3_phase_correction_t
 resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *config)
 {
+    const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(acq);
+
     // Not applied if not requested, or all columns use the same phase.
     if (!config->correct_clock_phase) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
-    if (acq->phase_count <= 1) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
+    if (priv->phase_count <= 1) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
 
     // Offloaded to hardware if supported.
     if (katherine_device_can_correct_timestamp_phase(acq->device))
@@ -750,15 +755,17 @@ resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_tpx
 uint8_t
 katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord)
 {
+    const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(acq);
+
     // The table is filled only where the decoder does the work. Where the
     // readout did it instead, the offset is real but absent from the table, so
     // it is computed -- this is a cold path and the arithmetic is the same
     // closed form the table was built from.
     if (acq->phase_correction == KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE) {
-        return katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, coord.x);
+        return katherine_tpx3_toa_phase_offset(priv->toa_coarse_tick_to_fine_shift, priv->phase_count, coord.x);
     }
 
-    return acq->phase_offsets[coord.x];
+    return priv->phase_offsets[coord.x];
 }
 
 
@@ -776,14 +783,15 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * generation is decided once per call, never inside the loop.
  *
  * \param acq Acquisition to read
+ * \param priv Its decoder state, which the pixel-clock divider is read from
  * \param res Lvalue the loop's result is assigned to
  * \param GEN Readout generation whose loops to dispatch to
  */
-#define ACQ_DISPATCH(acq, res, GEN) \
+#define ACQ_DISPATCH(acq, priv, res, GEN) \
     switch ((acq)->px_mode) { \
     case KATHERINE_TPX3_PX_TOA_TOT: \
         if ((acq)->fast_vco_enabled) { \
-            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            switch ((priv)->toa_coarse_tick_to_fine_shift) { \
             case 2:  (res) = acquisition_read_f_toa_tot_s2##_##GEN(acq); break; \
             case 3:  (res) = acquisition_read_f_toa_tot_s3##_##GEN(acq); break; \
             case 4:  (res) = acquisition_read_f_toa_tot_s4##_##GEN(acq); break; \
@@ -791,7 +799,7 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
             default: (res) = KATHERINE_E_INVAL; break; \
             } \
         } else { \
-            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            switch ((priv)->toa_coarse_tick_to_fine_shift) { \
             case 2:  (res) = acquisition_read_toa_tot_s2##_##GEN(acq); break; \
             case 3:  (res) = acquisition_read_toa_tot_s3##_##GEN(acq); break; \
             case 4:  (res) = acquisition_read_toa_tot_s4##_##GEN(acq); break; \
@@ -802,7 +810,7 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
         break; \
     case KATHERINE_TPX3_PX_ONLY_TOA: \
         if ((acq)->fast_vco_enabled) { \
-            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            switch ((priv)->toa_coarse_tick_to_fine_shift) { \
             case 2:  (res) = acquisition_read_f_toa_only_s2##_##GEN(acq); break; \
             case 3:  (res) = acquisition_read_f_toa_only_s3##_##GEN(acq); break; \
             case 4:  (res) = acquisition_read_f_toa_only_s4##_##GEN(acq); break; \
@@ -810,7 +818,7 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
             default: (res) = KATHERINE_E_INVAL; break; \
             } \
         } else { \
-            switch ((acq)->toa_coarse_tick_to_fine_shift) { \
+            switch ((priv)->toa_coarse_tick_to_fine_shift) { \
             case 2:  (res) = acquisition_read_toa_only_s2##_##GEN(acq); break; \
             case 3:  (res) = acquisition_read_toa_only_s3##_##GEN(acq); break; \
             case 4:  (res) = acquisition_read_toa_only_s4##_##GEN(acq); break; \
@@ -892,6 +900,7 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
 katherine_error_t
 katherine_acquisition_read(katherine_acquisition_t *acq)
 {
+    const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(acq);
     katherine_error_t res;
 
     // The dispatch depends on generation, i.e. we need a successfully enumerated device.
@@ -901,9 +910,9 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
     }
 
     if (acq->device->derived_info.gen >= 2) {
-        ACQ_DISPATCH(acq, res, GEN2);
+        ACQ_DISPATCH(acq, priv, res, GEN2);
     } else {
-        ACQ_DISPATCH(acq, res, GEN1);
+        ACQ_DISPATCH(acq, priv, res, GEN1);
     }
 
 #undef ACQ_DISPATCH
@@ -984,7 +993,8 @@ err_unsupported:
 katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_config_t *config, bool decode_data)
 {
-    katherine_error_t res = 0;
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
+    katherine_error_t res                   = 0;
 
     acq->px_mode          = config->px_mode;
     acq->readout_mode     = config->readout_mode;
@@ -1029,22 +1039,22 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     acq->pixel_buffer_valid     = 0;
     acq->pixel_buffer_max_valid = 0;
 
-    acq->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(config->clock_frequency);
-    acq->phase_count                   = katherine_tpx3_actual_phases(config->clock_frequency, config->clock_phase);
-    acq->phase_correction              = resolve_phase_correction(acq, config);
+    priv->toa_coarse_tick_to_fine_shift = katherine_tpx3_toa_coarse_tick_to_fine_shift(config->clock_frequency);
+    priv->phase_count                   = katherine_tpx3_actual_phases(config->clock_frequency, config->clock_phase);
+    acq->phase_correction               = resolve_phase_correction(acq, config);
 
     // Only SOFTWARE puts anything in the table. Every other outcome leaves it
     // zeroed, which is what lets the decoder add unconditionally.
-    memset(acq->phase_offsets, 0, sizeof(acq->phase_offsets));
+    memset(priv->phase_offsets, 0, sizeof(priv->phase_offsets));
     if (acq->phase_correction == KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE) {
         // uint16_t, not uint8_t: the width is 256, so an eight-bit counter
         // is always below it and this loop would never end.
         for (uint16_t x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
-            acq->phase_offsets[x] = katherine_tpx3_toa_phase_offset(acq->toa_coarse_tick_to_fine_shift, acq->phase_count, (uint8_t) x);
+            priv->phase_offsets[x] = katherine_tpx3_toa_phase_offset(priv->toa_coarse_tick_to_fine_shift, priv->phase_count, (uint8_t) x);
         }
     }
-    acq->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(acq);
-    acq->frame_active    = false;
+    priv->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(priv);
+    acq->frame_active     = false;
 
     res = katherine_transport_mutex_lock(&acq->device->control_transport);
     if (res) goto err;

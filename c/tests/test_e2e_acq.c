@@ -64,6 +64,7 @@
 
 #include "kspawn.h"
 #include "kthread.h"
+#include "acq/private.h"
 #include "ktest.h"
 #include "msleep.h"
 
@@ -883,6 +884,8 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
     memset(&probe, 0, sizeof(probe));
     probe.acq = &acq;
 
+    const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(&acq);
+
     configure(storage, SHORT_ACQ_TIME_NS, 1);
     storage->clock_frequency     = freq;
     storage->clock_phase         = phase;
@@ -899,7 +902,7 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
     KT_REQUIRE(katherine_acquisition_begin(&acq, storage, true) == 0);
 
     KT_CHECK_EQ(acq.phase_correction, expect);
-    KT_CHECK_EQ(acq.phase_count, katherine_tpx3_actual_phases(freq, phase));
+    KT_CHECK_EQ(priv->phase_count, katherine_tpx3_actual_phases(freq, phase));
 
     // The table is the mechanism, so it must agree with the outcome: filled
     // only for SOFTWARE, zero everywhere else -- which is what lets the decoder
@@ -916,7 +919,7 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
     unsigned mismatched = 0, nonzero = 0;
 
     for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
-        const uint8_t got = acq.phase_offsets[x];
+        const uint8_t got = priv->phase_offsets[x];
         uint8_t want      = 0;
         if (expect == KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE && n > 1) {
             want = (uint8_t) (((x / 2u) % n) * (fine / n));
