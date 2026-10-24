@@ -951,8 +951,8 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_seq_readout_start(self._dev(), arg)
          check_return_code(res)
 
-    def set_acquisition_triggers(self, Trigger start_trigger, Trigger end_trigger):
-         res = cconfig.katherine_set_acquisition_triggers(self._dev(), &start_trigger._c_trigger, &end_trigger._c_trigger)
+    def set_acquisition_triggers(self, Trigger start_trigger, Trigger stop_trigger):
+         res = cconfig.katherine_set_acquisition_triggers(self._dev(), &start_trigger._c_trigger, &stop_trigger._c_trigger)
          check_return_code(res)
 
     def set_sensor_register(self, uint8_t chip_index, reg_idx, int32_t reg_value):

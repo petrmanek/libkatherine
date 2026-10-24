@@ -909,7 +909,7 @@ err_lock:
  *
  * \param device Katherine device
  * \param start_trigger I/O trigger signalling acquisition start
- * \param end_trigger I/O trigger signalling acquisition end
+ * \param stop_trigger I/O trigger signalling acquisition end
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged the
  *   trigger setup.
@@ -939,7 +939,7 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *end_trigger)
+katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *stop_trigger)
 {
     katherine_error_t res;
 
@@ -968,7 +968,7 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     // Both bytes of the second generation's word carry the delay flag, and
     // the shutter generator tests each of them; the first generation's end
     // byte has no such bit, so there is nowhere to put the request.
-    if (end_trigger->delayed && !gen2) {
+    if (stop_trigger->delayed && !gen2) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
@@ -980,14 +980,14 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     static const double tick_ns = 10.0;
 
     const double start_f = start_trigger->delay_seconds * 1e9 / tick_ns;
-    const double stop_f  = end_trigger->delay_seconds * 1e9 / tick_ns;
+    const double stop_f  = stop_trigger->delay_seconds * 1e9 / tick_ns;
 
     if (start_trigger->delayed && !(start_f >= 0.0 && start_f <= (double) UINT32_MAX)) {
         res = KATHERINE_E_INVAL;
         goto err_start_delay;
     }
 
-    if (end_trigger->delayed && !(stop_f >= 0.0 && stop_f <= (double) UINT32_MAX)) {
+    if (stop_trigger->delayed && !(stop_f >= 0.0 && stop_f <= (double) UINT32_MAX)) {
         res = KATHERINE_E_INVAL;
         goto err_stop_delay;
     }
@@ -997,10 +997,10 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     start |= (uint32_t) (start_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
     start |= (uint32_t) start_trigger->delayed << delayed_shift;
 
-    uint32_t end = (uint32_t) end_trigger->enabled;
-    end |= (uint32_t) (end_trigger->channel & channel_mask) << 1;
-    end |= (uint32_t) (end_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
-    end |= (uint32_t) end_trigger->delayed << delayed_shift;
+    uint32_t end = (uint32_t) stop_trigger->enabled;
+    end |= (uint32_t) (stop_trigger->channel & channel_mask) << 1;
+    end |= (uint32_t) (stop_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
+    end |= (uint32_t) stop_trigger->delayed << delayed_shift;
 
     // One register of the acquisition unit, the start trigger in its low byte
     // and the end trigger in the next.
@@ -1020,7 +1020,7 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
         if (res) goto err_start_write;
     }
 
-    if (end_trigger->delayed) {
+    if (stop_trigger->delayed) {
         res = katherine_cmd_acq_unit_write(
             &device->control_transport, KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY, (uint32_t) (stop_f + 0.5));
         if (res) goto err_stop_write;

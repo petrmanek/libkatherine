@@ -308,12 +308,12 @@ katherine1_set_seq_readout_start(katherine_device_t *device, int arg)
 /** \legacy1{katherine_set_acquisition_triggers} */
 KATHERINE1_DEPRECATED
 static inline int
-katherine1_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *end_trigger)
+katherine1_acquisition_setup(katherine_device_t *device, const katherine_trigger_t *start_trigger, bool delayed_start, const katherine_trigger_t *stop_trigger)
 {
     katherine_trigger_t start = *start_trigger;
     start.delayed             = delayed_start;
 
-    return katherine1_map_result(katherine_set_acquisition_triggers(device, &start, end_trigger));
+    return katherine1_map_result(katherine_set_acquisition_triggers(device, &start, stop_trigger));
 }
 
 /** \legacy1{katherine_tpx3_set_sensor_register} */

@@ -207,7 +207,7 @@ cdef extern from 'katherine/config.h':
     int katherine_set_frame_count(katherine_device_t *device, uint32_t frame_count)
     int katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_value)
     int katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
-    int katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *end_trigger)
+    int katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *stop_trigger)
     int katherine_tpx3_set_sensor_register(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_reg_t reg_idx, int32_t reg_value)
     int katherine_tpx3_update_sensor_registers(katherine_device_t *device, uint8_t chip_index)
     int katherine_tpx3_output_block_config_update(katherine_device_t *device, uint8_t chip_index)

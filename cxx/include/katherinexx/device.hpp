@@ -554,9 +554,9 @@ public:
 
     /// What opens and closes the shutter.
     void
-    set_acquisition_triggers(const katherine::trigger& start_trigger, const katherine::trigger& end_trigger)
+    set_acquisition_triggers(const katherine::trigger& start_trigger, const katherine::trigger& stop_trigger)
     {
-        katherine::detail::check(katherine_set_acquisition_triggers(&dev_, &start_trigger, &end_trigger));
+        katherine::detail::check(katherine_set_acquisition_triggers(&dev_, &start_trigger, &stop_trigger));
     }
 
 

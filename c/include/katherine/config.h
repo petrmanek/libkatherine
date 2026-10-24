@@ -470,7 +470,7 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg);
  */
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *end_trigger);
+katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_trigger_t *start_trigger, const katherine_trigger_t *stop_trigger);
 
 /** \} */
 
