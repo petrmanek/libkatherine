@@ -129,7 +129,7 @@ test_device_and_acquisition(void)
     katherine_error_t code = KATHERINE_E_OK;
     try {
         (void) dev.verify_config();
-    } catch (const katherine::system_error& e) {
+    } catch (const katherine::error& e) {
         code = e.code();
     }
     KT_CHECK_EQ(code, KATHERINE_E_STATE);
@@ -164,7 +164,7 @@ test_device_and_acquisition(void)
     code = KATHERINE_E_OK;
     try {
         (void) dev.verify_config();
-    } catch (const katherine::system_error& e) {
+    } catch (const katherine::error& e) {
         code = e.code();
     }
     KT_CHECK_EQ(code, KATHERINE_E_TIMEOUT);
@@ -260,7 +260,7 @@ test_device_and_acquisition(void)
     threw = false;
     try {
         acq.begin(wrong);
-    } catch (const katherine::system_error& e) {
+    } catch (const katherine::error& e) {
         threw = (e.code() == KATHERINE_E_INVAL);
     }
     KT_CHECK(threw);

@@ -337,7 +337,7 @@ test_clock_helpers(void)
     katherine_error_t code  = KATHERINE_E_OK;
     try {
         katherine::tpx3::validate(d);
-    } catch (const katherine::system_error& e) {
+    } catch (const katherine::error& e) {
         code = e.code();
     }
     KT_CHECK_EQ(code, KATHERINE_E_INVAL);
@@ -389,21 +389,23 @@ static void
 test_errors(void)
 {
     // katherine::error is a std::runtime_error, which is what lets a caller
-    // who does not know this library still catch it.
+    // who does not know this library still catch it. Its message is the
+    // code's own, rendered through katherine_strerror().
     bool caught_as_runtime_error = false;
     try {
-        throw katherine::error{"smoke"};
+        throw katherine::error{KATHERINE_E_TIMEOUT};
     } catch (const std::runtime_error& e) {
-        caught_as_runtime_error = (std::string(e.what()) == "smoke");
+        caught_as_runtime_error = (std::string(e.what()) == katherine_strerror(KATHERINE_E_TIMEOUT));
     }
     KT_CHECK(caught_as_runtime_error);
 
-    // katherine::system_error carries a library error code and renders it
-    // through katherine_strerror(), so its message is the code's own.
+    // One class now, which is the whole point of the merge: catching
+    // katherine::error and then reading e.code() is what a reader writes,
+    // and it used not to compile.
     bool caught_as_katherine_error = false;
     std::string what;
     try {
-        throw katherine::system_error{KATHERINE_E_TIMEOUT};
+        throw katherine::error{KATHERINE_E_TIMEOUT};
     } catch (const katherine::error& e) {
         caught_as_katherine_error = true;
         what                      = e.what();
@@ -417,10 +419,15 @@ test_errors(void)
     katherine_error_t code = KATHERINE_E_OK;
     try {
         katherine::detail::check(KATHERINE_E_BAD_CHIP);
-    } catch (const katherine::system_error& e) {
+    } catch (const katherine::error& e) {
         code = e.code();
     }
     KT_CHECK_EQ(code, KATHERINE_E_BAD_CHIP);
+
+    // And the old name still resolves, for source written against the two
+    // classes there used to be.
+    static_assert(std::is_same<katherine::system_error, katherine::error>::value,
+        "system_error is an alias of error");
 
     // And a successful code throws nothing at all.
     katherine::detail::check(KATHERINE_E_OK);

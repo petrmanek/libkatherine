@@ -25,22 +25,23 @@ namespace katherine {
  */
 
 /**
- * Base of every exception this wrapper throws.
+ * The exception this wrapper throws, carrying the code it was raised from.
  *
- * A caller that does not care which failure it was catches this; one that
- * does catches katherine::system_error and reads its code.
+ * One class rather than two. There used to be a base with no code() and a
+ * derived system_error with one, but nothing ever threw the base, so the two
+ * selected the same set and the only thing the split achieved was that
+ * `catch (const katherine::error& e)` followed by `e.code()` -- the natural
+ * thing to write, and what the README wrote -- did not compile.
+ *
+ * The name std::system_error was wrong for it besides: that means an
+ * operating-system error, and KATHERINE_E_STATE is not one. It also makes
+ * C++ read like Python, where katherine.Error itself carries .code and there
+ * is no second class.
  */
 class error: public std::runtime_error {
 public:
-    /// \param what Message std::runtime_error::what() returns.
-    error(std::string what) : runtime_error{what} { }
-};
-
-/// A failure the library reported, carrying the code it reported.
-class system_error: public error {
-public:
     /// \param rc Code the library returned, which what() is rendered from.
-    system_error(katherine_error_t rc) : error{katherine_strerror(rc)}, code_{rc} { }
+    error(katherine_error_t rc) : runtime_error{katherine_strerror(rc)}, code_{rc} { }
 
     /**
      * The code this was raised from.
@@ -59,12 +60,18 @@ private:
     katherine_error_t code_;
 };
 
+/**
+ * \deprecated The old name for katherine::error, kept so that source written
+ *   against the two-class shape still compiles. Removed in 3.0.
+ */
+using system_error = error;
+
 /** \} */
 
 namespace detail {
 
 /**
- * A katherine::system_error for a failed return code, and nothing for
+ * A katherine::error for a failed return code, and nothing for
  * KATHERINE_E_OK.
  *
  * Every wrapper in this library calls exactly one C function and has nothing
@@ -76,7 +83,7 @@ inline void
 check(katherine_error_t res)
 {
     if (res != KATHERINE_E_OK) {
-        throw katherine::system_error{res};
+        throw katherine::error{res};
     }
 }
 

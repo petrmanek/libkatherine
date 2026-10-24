@@ -87,13 +87,13 @@ if (result == KATHERINE_E_OK) {
 ```
 
 In C++ this mechanism makes use of runtime exceptions, which derive from
-`katherine::system_error`. Here is an example how such exceptions can be handled:
+`katherine::error`. Here is an example how such exceptions can be handled:
 
 ```cpp
 try {
   const std::string chip_id = dev.chip_id(0);   // Exception can be thrown here.
   std::cout << "Device " << address << " has chip 0 with id: " << chip_id << std::endl;
-} catch (const katherine::system_error& err) {
+} catch (const katherine::error& err) {
   std::cout << "katherine::device::chip_id failed with code " << err.code() << ": " << err.what() << std::endl;
 }
 ```
