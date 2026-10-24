@@ -276,11 +276,94 @@ bias an assembly for the carrier it does not collect and destroy the
 chip. A missing member is a compile error naming itself, which is the
 only safe translation there is.
 
-### Some acquisition fields moved
+### The decoder's own state went behind a reserve
 
 `katherine_acquisition_t` still exposes its state, counters and handlers.
-Fields marked `Internal:` in `acquisition.h` are not part of the interface
-and may move again.
+What it no longer exposes is what the decoder keeps between hits:
+`last_toa_offset`, `toa_coarse_tick_to_fine_shift`, `phase_count` and
+`phase_offsets[]` now live in an opaque `priv` member, and
+`katherine_device_t`'s two `udp_*` members do the same.
+
+`phase_correction` **stays readable** -- it is where a phase-correction
+request is answered, which is interface rather than bookkeeping.
+
+A 1.x source that read any of the others was reading the decoder's
+workings, and there is no alias for it; the compile error is the point.
+What such a caller usually wanted is available without them:
+
+| was | use |
+|---|---|
+| `acq.toa_coarse_tick_to_fine_shift` | `katherine_tpx3_toa_coarse_tick_to_fine_shift(freq)`, with the frequency you configured |
+| `acq.phase_count` | `katherine_tpx3_actual_phases(freq, phase)` |
+| `acq.phase_offsets[x]` | `katherine_acquisition_timestamp_phase_offset(&acq, coord)` |
+| `dev.udp_data_port` | nothing public. It was never a setting, only a record of one. |
+
+The reserve is why 2.1 can add Timepix4 without another SONAME: a new
+ASIC changes what is kept inside it and the assertion that it fits,
+rather than the layout of a structure callers embed.
+
+**One structure also stopped changing size with the build.**
+`sizeof(katherine_device_t)` was 152 bytes with UDP compiled in and 144
+without, because those two members sat behind `#ifdef`. It is now the
+same either way, so a consumer built against one feature set and linked
+against another no longer disagrees about where the fields are.
+
+### C++ throws one type, and it is the one with the code
+
+`katherine::error` carries `code()` now. There used to be a base with
+no `code()` and a `katherine::system_error` deriving from it, and since
+nothing ever threw the base, the only thing the split achieved was that
+the natural
+
+```cpp
+} catch (const katherine::error& err) {
+    std::cerr << err.code();
+}
+```
+
+did not compile. `katherine::system_error` remains as a deprecated
+alias, so existing `catch` clauses keep working.
+
+### A chip index is the first argument, and never optional
+
+Python's chip-addressed methods took `chip_index=0` last; C++ offered a
+chip-0 overload beside each indexed one. Both are gone: the index comes
+first and must be passed.
+
+```python
+dev.get_chip_id()                 ->  dev.get_chip_id(0)
+dev.set_dacs(dacs)                ->  dev.set_dacs(0, dacs)
+dev.set_sensor_register(r, v)     ->  dev.set_sensor_register(0, r, v)
+```
+
+```cpp
+dev.chip_id()                     ->  dev.chip_id(0)
+dev.set_all_pixel_config(px)      ->  dev.set_all_pixel_config(0, px)
+```
+
+A call that did not name a chip read identically whether its author had
+thought about the question or not, which on a two-chip readout is a bug
+waiting to be written.
+
+### Python objects close like files
+
+`Device` and `Acquisition` follow the contract `io.IOBase` sets:
+`close()` (idempotent), a `closed` property, `with` support, and
+`ValueError` -- not one of the `Error` subclasses -- on use after
+close. An object collected unclosed raises `ResourceWarning`, because
+an open readout holds a claim no other process on the machine can take.
+
+`Device.close()` refuses while an `Acquisition` is open on it. Nothing
+cascades; close the acquisition first, or let `with` nest them.
+
+### Two smaller signature changes
+
+`katherine_set_acquisition_triggers()`'s second argument is
+`stop_trigger`, matching the struct field and
+`katherine_acquisition_stop()`. `katherine_get_tdc_counts()` fills a
+`katherine_tdc_counts_t` rather than a bare
+`uint32_t[KATHERINE_MAX_TDC_CHANNEL_COUNT]`; the counts are at
+`.channel[]`.
 
 ### Python renamed fourteen classes, and thirteen of them still answer
 
