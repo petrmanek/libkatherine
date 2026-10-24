@@ -154,7 +154,7 @@ cdef extern from 'katherine/config.h':
         katherine_tpx3_freq_t clock_frequency
         katherine_tpx3_dacs_t dacs
 
-        katherine_tpx3_test_pulse_config_t test_pulse_config
+        katherine_tpx3_test_pulse_config_t test_pulses
 
     int katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 

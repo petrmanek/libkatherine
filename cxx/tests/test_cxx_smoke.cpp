@@ -173,9 +173,9 @@ test_config_round_trip(void)
     katherine::test_pulse_config tp{};
     tp.enabled = true;
     tp.count   = 5;
-    c.set_test_pulse_config(tp);
-    KT_CHECK(c.test_pulse_config().enabled);
-    KT_CHECK_EQ(c.test_pulse_config().count, 5);
+    c.set_test_pulses(tp);
+    KT_CHECK(c.test_pulses().enabled);
+    KT_CHECK_EQ(c.test_pulses().count, 5);
 
     katherine::tpx3::dacs d{};
     d.named.Vthreshold_fine = 321;

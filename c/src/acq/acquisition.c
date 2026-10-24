@@ -243,12 +243,12 @@ dump_config(const katherine_acquisition_t *acq, const katherine_config_t *config
     printf("  - PLL_Vcntrl:         %d\n",      config->dacs.named.PLL_Vcntrl);
     printf("\n");
 
-    printf("Test Pulses:            %s\n",      config->test_pulse_config.enabled ? "enabled" : "disabled");
-    printf("  - Destination:        %s\n",      config->test_pulse_config.digital_only ? "digital" : "analog");
-    printf("  - Source:             %s\n",      config->test_pulse_config.external ? "external" : "internal");
-    printf("  - Count:              %d\n",      config->test_pulse_config.count);
-    printf("  - Period:             %d cc\n",   config->test_pulse_config.period);
-    printf("  - Phase:              %d\n",      config->test_pulse_config.phase);
+    printf("Test Pulses:            %s\n",      config->test_pulses.enabled ? "enabled" : "disabled");
+    printf("  - Destination:        %s\n",      config->test_pulses.digital_only ? "digital" : "analog");
+    printf("  - Source:             %s\n",      config->test_pulses.external ? "external" : "internal");
+    printf("  - Count:              %d\n",      config->test_pulses.count);
+    printf("  - Period:             %d cc\n",   config->test_pulses.period);
+    printf("  - Phase:              %d\n",      config->test_pulses.phase);
 
     printf("----  End Acquisition Configuration  ----\n");
 }

@@ -282,13 +282,13 @@ public:
     void set_dacs(katherine::tpx3::dacs&& dacs) { conf_.dacs = dacs; }
 
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    const katherine::test_pulse_config& test_pulse_config() const { return conf_.test_pulse_config; }
+    const katherine::test_pulse_config& test_pulses() const { return conf_.test_pulses; }
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    katherine::test_pulse_config& test_pulse_config() { return conf_.test_pulse_config; }
+    katherine::test_pulse_config& test_pulses() { return conf_.test_pulses; }
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    void set_test_pulse_config(const katherine::test_pulse_config& tp) { conf_.test_pulse_config = tp; }
+    void set_test_pulses(const katherine::test_pulse_config& tp) { conf_.test_pulses = tp; }
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    void set_test_pulse_config(katherine::test_pulse_config&& tp) { conf_.test_pulse_config = tp; }
+    void set_test_pulses(katherine::test_pulse_config&& tp) { conf_.test_pulses = tp; }
 };
 
 /** \} */

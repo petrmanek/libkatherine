@@ -196,6 +196,19 @@ which did not move, and `freq` would rewrite whatever else the consumer
 calls by that name. Those two convert by hand, at sites the compiler
 names.
 
+### The test pulses are the pulses, not a configuration
+
+`katherine_config_t::test_pulse_config` is `test_pulses`, which is what
+the device call that sends it has always been called
+(`katherine_tpx3_set_test_pulses()`). The struct type keeps its name, in
+C as `katherine_tpx3_test_pulse_config_t` and in C++ as
+`katherine::test_pulse_config`; only the member moved.
+
+`katherine1.h` does not alias this one either. The field alias is a macro
+over the whole translation unit, and because the header is includable
+from C++, an alias would rewrite the `katherine::test_pulse_config` type
+wherever both headers are in scope.
+
 ### Some acquisition fields moved
 
 `katherine_acquisition_t` still exposes its state, counters and handlers.

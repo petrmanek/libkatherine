@@ -134,7 +134,7 @@ configure(katherine::config& config)
         tp.count        = 100;
         tp.period       = 6401; // clock cycles, ~160 us @ 40 MHz
         tp.phase        = 0;
-        config.set_test_pulse_config(std::move(tp));
+        config.set_test_pulses(std::move(tp));
 
         paint_test_pixels(config.pixel_config());
     }

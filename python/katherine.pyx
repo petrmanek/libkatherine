@@ -1688,15 +1688,15 @@ cdef class Config:
          self._set_pixel_config(val)
 
     @property
-    def test_pulse_config(self):
-       return Tpx3TestPulseConfig(cdata=self._c_config.test_pulse_config)
+    def test_pulses(self):
+       return Tpx3TestPulseConfig(cdata=self._c_config.test_pulses)
 
-    cdef _set_test_pulse_config(self, Tpx3TestPulseConfig val):
-         memcpy(&self._c_config.test_pulse_config, &val._c_test_pulse_config, sizeof(self._c_config.test_pulse_config))
+    cdef _set_test_pulses(self, Tpx3TestPulseConfig val):
+         memcpy(&self._c_config.test_pulses, &val._c_test_pulse_config, sizeof(self._c_config.test_pulses))
 
-    @test_pulse_config.setter
-    def test_pulse_config(self, val):
-         self._set_test_pulse_config(val)
+    @test_pulses.setter
+    def test_pulses(self, val):
+         self._set_test_pulses(val)
 
 
 @_unique

@@ -133,7 +133,7 @@ configure(katherine_config_t *config)
     }
 
     // Test pulses are disabled unless requested above.
-    config->test_pulse_config = (katherine_tpx3_test_pulse_config_t) {0};
+    config->test_pulses = (katherine_tpx3_test_pulse_config_t) {0};
 
     if (test_pulse) {
         // Pulse the analog front-end with amplitude given by the difference
@@ -141,12 +141,12 @@ configure(katherine_config_t *config)
         config->dacs.named.VTP_coarse = 128;
         config->dacs.named.VTP_fine   = 352;
 
-        config->test_pulse_config.enabled      = true;
-        config->test_pulse_config.digital_only = false;
-        config->test_pulse_config.external     = false;
-        config->test_pulse_config.count        = 100;
-        config->test_pulse_config.period       = 6401; // clock cycles, ~160 us @ 40 MHz
-        config->test_pulse_config.phase        = 0;
+        config->test_pulses.enabled      = true;
+        config->test_pulses.digital_only = false;
+        config->test_pulses.external     = false;
+        config->test_pulses.count        = 100;
+        config->test_pulses.period       = 6401; // clock cycles, ~160 us @ 40 MHz
+        config->test_pulses.phase        = 0;
 
         paint_test_pixels(&config->pixel_config);
     }

@@ -129,8 +129,8 @@ katherine_configure(katherine_device_t *device, const katherine_config_t *config
     // Issued last so the register updates above cannot override it, and
     // skipped when pulses are disabled, keeping the wire traffic identical
     // to configurations that predate test pulse support.
-    if (config->test_pulse_config.enabled) {
-        res = katherine_tpx3_set_test_pulses(device, &config->test_pulse_config);
+    if (config->test_pulses.enabled) {
+        res = katherine_tpx3_set_test_pulses(device, &config->test_pulses);
         if (res) goto err;
     }
 

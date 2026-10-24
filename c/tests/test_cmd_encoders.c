@@ -465,9 +465,9 @@ test_general_config_word(void)
 
     for (size_t i = 0; i < sizeof(general_config_cases) / sizeof(general_config_cases[0]); i++) {
         memset(&config, 0, sizeof(config));
-        config.gray_disable              = general_config_cases[i].gray_disable;
-        config.polarity                  = general_config_cases[i].polarity;
-        config.test_pulse_config.enabled = general_config_cases[i].test_pulses;
+        config.gray_disable        = general_config_cases[i].gray_disable;
+        config.polarity            = general_config_cases[i].polarity;
+        config.test_pulses.enabled = general_config_cases[i].test_pulses;
 
         CHECK_CMD(katherine_cmd_send64_i64(&g_sender_link, (uint8_t) CMD_TYPE_SENSOR_REGISTER_SETTING,
                       (uint8_t) KATHERINE_TPX3_REG_GENERAL_CONFIG, katherine_general_config_word(&config)),

@@ -326,7 +326,7 @@ typedef struct katherine_config {
     katherine_tpx3_freq_t clock_frequency; ///< Pixel clock frequency, which sets the timestamp resolution.
     katherine_tpx3_dacs_t dacs;            ///< The chip's DACs, including the threshold.
 
-    katherine_tpx3_test_pulse_config_t test_pulse_config; ///< Test pulses, injected only while katherine_tpx3_test_pulse_config_t::enabled is set.
+    katherine_tpx3_test_pulse_config_t test_pulses; ///< Test pulses, injected only while katherine_tpx3_test_pulse_config_t::enabled is set.
 } katherine_config_t;
 
 KATHERINE_EXPORTED int

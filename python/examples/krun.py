@@ -95,7 +95,7 @@ def configure():
         dacs.VTP_coarse = 128
         dacs.VTP_fine   = 352
 
-        c.test_pulse_config = k.Tpx3TestPulseConfig(
+        c.test_pulses = k.Tpx3TestPulseConfig(
             enabled=True,
             count=100,
             period=6401)  # clock cycles, ~160 us @ 40 MHz

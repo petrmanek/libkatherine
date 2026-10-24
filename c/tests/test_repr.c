@@ -502,7 +502,7 @@ static const char *CONFIG_GOLDEN = "config{pixel_config: px_config{words: 16384,
                                    "Ibias_DiscS2_OFF: 8, Ibias_PixelDAC: 128, Ibias_TPbufferIn: 128, "
                                    "Ibias_TPbufferOut: 128, VTP_coarse: 128, VTP_fine: 256, Ibias_CP_PLL: 128, "
                                    "PLL_Vcntrl: 128}, "
-                                   "test_pulse_config: test_pulse_config{enabled: true, digital_only: false, "
+                                   "test_pulses: test_pulse_config{enabled: true, digital_only: false, "
                                    "external: false, count: 100, period: 65, phase: 0}}";
 
 static void
@@ -522,7 +522,7 @@ build_config(katherine_config_t *c)
     c->clock_phase     = KATHERINE_TPX3_PHASE_1;
     c->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
     fill_dacs(&c->dacs);
-    c->test_pulse_config = g_tp_config;
+    c->test_pulses = g_tp_config;
 }
 
 static void
