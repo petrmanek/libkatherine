@@ -185,13 +185,25 @@ public:
 
     /**
      * Configures the readout and opens the shutter.
+     *
      * \param config The configuration to send before acquiring. It carries
      *   the readout mode, the pixel mode and the oscillator setting, which
      *   used to be arguments here.
+     *
+     * \throws katherine::error with KATHERINE_E_INVAL if the configuration
+     *   asks for a pixel mode or an oscillator setting other than the one
+     *   this object's template argument fixed. The hit type the handler is
+     *   given comes from that argument and the stream's comes from the
+     *   configuration, so the two disagreeing would reinterpret one hit
+     *   type as another rather than fail.
      */
     void
     begin(const katherine::config& config)
     {
+        if (config.px_mode() != mode_ || config.fast_vco_enable() != fast_vco_enabled_) {
+            katherine::detail::check(KATHERINE_E_INVAL);
+        }
+
         katherine::detail::check(katherine_acquisition_begin(&acq_, config.c_config(), decode_data_));
     }
 

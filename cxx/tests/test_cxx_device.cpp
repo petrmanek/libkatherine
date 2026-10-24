@@ -230,16 +230,38 @@ test_device_and_acquisition(void)
     acq.set_frame_ended_handler([](int, bool, const katherine::frame_info&) { });
     acq.set_data_received_handler([](const char *, std::size_t) { });
 
-    // begin() configures the device, so it fails the same way its calls do.
+    // begin() configures the device, so it fails the same way its calls do --
+    // but only once past the guard below, hence the two settings matching the
+    // template argument.
     katherine::config c;
     c.set_frame_count(1);
     c.set_acq_time(std::chrono::milliseconds{1});
+    c.set_px_mode(katherine::acq::f_toa_tot::mode);
+    c.set_fast_vco_enable(katherine::acq::f_toa_tot::fast_vco_enabled);
 
     threw = false;
     try {
         acq.begin(c);
     } catch (const katherine::error&) {
         threw = true;
+    }
+    KT_CHECK(threw);
+
+    // And the guard itself: the hit type the handler is given comes from the
+    // template argument while the stream's comes from the configuration, so a
+    // configuration asking for another mode is refused rather than decoded
+    // into the wrong struct.
+    katherine::config wrong;
+    wrong.set_frame_count(1);
+    wrong.set_acq_time(std::chrono::milliseconds{1});
+    wrong.set_px_mode(katherine::tpx3::px_mode::event_count_itot);
+    wrong.set_fast_vco_enable(katherine::acq::f_toa_tot::fast_vco_enabled);
+
+    threw = false;
+    try {
+        acq.begin(wrong);
+    } catch (const katherine::system_error& e) {
+        threw = (e.code() == KATHERINE_E_INVAL);
     }
     KT_CHECK(threw);
 }
