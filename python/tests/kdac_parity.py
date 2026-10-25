@@ -35,25 +35,32 @@ RUN_TIMEOUT_S = 60
 
 # Every case is run through all three. The device-dependent ones all use
 # --json, which is what the three are contracted to agree on; `list` is here
-# in both forms because it is the one case that needs no readout at all.
+# in both forms because it is the one case that needs no readout at all; and
+# every command that addresses a chip carries --chip, which WP40 made
+# required. Without it a case compares two refusals rather than two readouts,
+# which is worth one case per command family and is not worth eleven.
 CASES = [
     ['list'],
     ['list', '--json'],
     ['list', '--si'],
-    ['monitor', '--json'],
-    ['monitor', '--json', 'BandGap_Temp'],
-    ['monitor', '--json', 'Vthreshold_fine'],
-    ['scan', '--json', 'Vfbk', '0', '6'],
-    ['scan', '--json', '--si', 'VTP_coarse', '0', '3'],
-    ['set', '--si', 'Vthreshold_coarse', '7'],
-    ['set', 'Vthreshold_fine', '388'],
-    ['set'] + [str(i) for i in range(1, 19)],
+    ['monitor', '--json', '--chip', '0'],
+    ['monitor', '--json', '--chip', '0', 'BandGap_Temp'],
+    ['monitor', '--json', '--chip', '0', 'Vthreshold_fine'],
+    ['scan', '--json', '--chip', '0', 'Vfbk', '0', '6'],
+    ['scan', '--json', '--si', '--chip', '0', 'VTP_coarse', '0', '3'],
+    ['set', '--si', '--chip', '0', 'Vthreshold_coarse', '7'],
+    ['set', '--chip', '0', 'Vthreshold_fine', '388'],
+    ['set', '--chip', '0'] + [str(i) for i in range(1, 19)],
     # Argument errors are part of the contract too: all three reject the same
     # inputs with the same words.
-    ['set', 'Nonesuch', '1'],
-    ['set', 'Vthreshold_coarse', '999'],
+    ['set', '--chip', '0', 'Nonesuch', '1'],
+    ['set', '--chip', '0', 'Vthreshold_coarse', '999'],
     ['scan'],
-    ['monitor', '--json', 'Nonesuch'],
+    ['monitor', '--json', '--chip', '0', 'Nonesuch'],
+    # And the refusal when the chip is left out, which is what used to make
+    # every case above a comparison of two refusals.
+    ['monitor', '--json'],
+    ['set', 'Vthreshold_fine', '388'],
 ]
 
 NEEDS_READOUT = {'monitor', 'scan', 'set'}
@@ -89,7 +96,7 @@ def wait_ready(ksim, c_kdac, env):
     """Waits until the C implementation can read the monitors, which is the
     same readiness the other two need."""
     for _ in range(READY_ATTEMPTS):
-        code, _out = run([c_kdac, 'monitor', '--json', '--address', KSIM_LISTEN_ADDR], env)
+        code, _out = run([c_kdac, 'monitor', '--json', '--chip', '0', '--address', KSIM_LISTEN_ADDR], env)
         if code == 0:
             return None
 
@@ -138,11 +145,17 @@ def main(argv):
 
             # Sequential by construction: the three bind the same local ports.
             results = []
-            for name, argv_prefix in (
-                    ('c', [c_kdac]),
-                    ('c++', [cxx_kdac]),
-                    ('python', [sys.executable, py_kdac])):
-                results.append((name,) + run(argv_prefix + args, env))
+            for name, argv_prefix, own_path in (
+                    ('c', [c_kdac], c_kdac),
+                    ('c++', [cxx_kdac], cxx_kdac),
+                    ('python', [sys.executable, py_kdac], py_kdac)):
+                code, out = run(argv_prefix + args, env)
+
+                # The usage block opens with the program's own name, which is
+                # a different path for each of the three and is not part of
+                # what they have to agree on. Every other byte is.
+                out = out.replace(own_path.encode(), b'<kdac>')
+                results.append((name, code, out))
 
             reference_name, reference_code, reference_out = results[0]
             disagreed = [r for r in results[1:]
