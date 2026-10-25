@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <cstdlib>
 #include <iostream>
 #include <katherinexx/katherinexx.hpp>
 
@@ -50,8 +51,8 @@ test_ip_address(const std::string& address)
 void
 abort_parsing(char *argv[], const std::string& message)
 {
-    std::cout << argv[0] << ": error parsing address range, " << message << std::endl;
-    std::abort();
+    std::cerr << argv[0] << ": error parsing address range, " << message << std::endl;
+    std::exit(EXIT_FAILURE);
 }
 
 void

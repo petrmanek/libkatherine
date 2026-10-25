@@ -10,10 +10,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <stdio.h>   // printf, snprintf
+#include <stdio.h>   // printf, fprintf, snprintf
 #include <string.h>  // strchr
 #include <stdbool.h> // bool
-#include <stdlib.h>  // abort
+#include <stdlib.h>  // atoi, exit
 #include <katherine/katherine.h>
 
 static bool have_address = true;
@@ -66,11 +66,13 @@ test_ip_address(void)
     katherine_device_fini(&device);
 }
 
+// abort() does not flush stdio, so a printf() before it is lost whenever
+// stdout is a pipe or a file -- which is every script that runs this.
 static void
 abort_parsing(char *argv[], const char *message)
 {
-    printf("%s: error parsing address range, %s\n", argv[0], message);
-    abort();
+    fprintf(stderr, "%s: error parsing address range, %s\n", argv[0], message);
+    exit(EXIT_FAILURE);
 }
 
 static void
