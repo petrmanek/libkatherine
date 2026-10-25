@@ -46,5 +46,14 @@ if(KATHERINE_BUILD_TESTS)
         set_tests_properties(test_prose_refs PROPERTIES
             LABELS "unit;tools"
             TIMEOUT 60)
+
+        # The house style the compiler cannot check: half-converted error
+        # paths, native integer types, and doc blocks that ask rather than
+        # name. Scoped to c/src, which is the part that is at zero.
+        add_test(NAME test_style
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_style.py")
+        set_tests_properties(test_style PROPERTIES
+            LABELS "unit;tools"
+            TIMEOUT 60)
     endif()
 endif()
