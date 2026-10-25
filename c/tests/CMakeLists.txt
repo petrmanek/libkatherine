@@ -89,6 +89,7 @@ katherine_add_test(NAME test_acq_mode SOURCES test_acq_mode.c LABELS unit)
 # ahead of the session lock, so an uninitialized device exercises it -- which
 # also pins that the guard comes first.
 katherine_add_test(NAME test_acq_guard SOURCES test_acq_guard.c LABELS unit)
+katherine_add_test(NAME test_acq_unopened SOURCES test_acq_unopened.c LABELS unit)
 
 # Correlation of command responses with their requests (the exchange
 # primitives of protocol/cmd_interface.h) against a mock readout on its own

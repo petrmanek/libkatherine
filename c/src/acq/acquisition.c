@@ -412,6 +412,10 @@ err_no_transport:
  * lives, so the device cannot be finalized under it; katherine_device_fini()
  * asserts on a device still holding one, and leaks its link rather than
  * tearing it down.
+ *
+ * \note The acquisition is spent afterwards, not reset: it releases its
+ *   device and every later call refuses with KATHERINE_E_STATE. Reuse means
+ *   katherine_acquisition_init() again.
  */
 void
 katherine_acquisition_fini(katherine_acquisition_t *acq)
@@ -898,8 +902,9 @@ katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq,
  * \retval KATHERINE_E_STATE if the acquisition was not running when the call
  *   was made, so the read loop never ran and nothing was read -- an
  *   acquisition katherine_acquisition_begin() never brought to
- *   KATHERINE_ACQUISITION_STATE_RUNNING -- or if the device has been neither
- *   enumerated nor declared, or is one this version cannot drive, since the
+ *   KATHERINE_ACQUISITION_STATE_RUNNING -- or if the acquisition holds no
+ *   device at all, or if that device has been neither enumerated nor
+ *   declared, or is one this version cannot drive, since the
  *   measurement-data header map depends on a readout generation that is then
  *   not known. Reading an acquisition that already finished is neither case:
  *   it reports the outcome it finished with again.
@@ -934,6 +939,13 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
     const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(acq);
     katherine_error_t res;
 
+    // An acquisition katherine_acquisition_init() never filled, or that
+    // katherine_acquisition_fini() has since released, holds no device.
+    if (acq->device == NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_device;
+    }
+
     // The dispatch depends on generation, i.e. we need a successfully enumerated device.
     if (!acq->device->derived_info.supported) {
         res = KATHERINE_E_STATE;
@@ -950,6 +962,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 
 err_unsupported:
     if (acq->device->acquisition == acq) acq->device->acquisition = NULL;
+err_device:
     return res;
 }
 
@@ -1011,8 +1024,9 @@ err_unsupported:
  *   see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_UNSUPPORTED if the end trigger's delay is armed on a
  *   readout of the first generation; see katherine_set_acquisition_triggers().
- * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared, or is one this version cannot drive. Refused here rather than at
+ * \retval KATHERINE_E_STATE if the acquisition holds no device, or if that
+ *   device has been neither enumerated nor declared, or is one this version
+ *   cannot drive. Refused here rather than at
  *   the first katherine_acquisition_read(), so a caller learns before the
  *   detector is made sensitive; katherine_configure() would refuse it anyway,
  *   on the acquisition time.
@@ -1026,6 +1040,13 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
 {
     katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
     katherine_error_t res                   = 0;
+
+    // An acquisition katherine_acquisition_init() never filled, or that
+    // katherine_acquisition_fini() has since released, holds no device.
+    if (acq->device == NULL) {
+        res = KATHERINE_E_STATE;
+        goto err;
+    }
 
     acq->px_mode          = config->px_mode;
     acq->readout_mode     = config->readout_mode;
@@ -1146,9 +1167,10 @@ err:
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_STATE if the acquisition's device has no control link,
- *   which is one katherine_device_init() was never called on or whose call
- *   failed.
+ * \retval KATHERINE_E_STATE if the acquisition holds no device, which is one
+ *   katherine_acquisition_init() never filled or that
+ *   katherine_acquisition_fini() has since released, or if its device has no
+ *   control link.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
  *   katherine_transport_get_last_os_error().
@@ -1157,6 +1179,13 @@ katherine_error_t
 katherine_acquisition_stop(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
+
+    // An acquisition katherine_acquisition_init() never filled, or that
+    // katherine_acquisition_fini() has since released, holds no device.
+    if (acq->device == NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_device;
+    }
 
     res = katherine_device_control_lock(acq->device);
     if (res) goto err_lock;
@@ -1172,6 +1201,7 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
 err_send:
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
 err_lock:
+err_device:
     return res;
 }
 
@@ -1211,9 +1241,10 @@ err_lock:
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_STATE if the acquisition's device has no control link,
- *   which is one katherine_device_init() was never called on or whose call
- *   failed.
+ * \retval KATHERINE_E_STATE if the acquisition holds no device, which is one
+ *   katherine_acquisition_init() never filled or that
+ *   katherine_acquisition_fini() has since released, or if its device has no
+ *   control link.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
  *   katherine_transport_get_last_os_error().
@@ -1243,6 +1274,13 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
 
+    // An acquisition katherine_acquisition_init() never filled, or that
+    // katherine_acquisition_fini() has since released, holds no device.
+    if (acq->device == NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_device;
+    }
+
     // Before the command, not after it succeeds: the flag is this call's local
     // half, and a readout that can no longer be told to stop is exactly when
     // the read loop most needs to know the run is over. Raising it only on a
@@ -1262,6 +1300,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
 
 err_stop:
 err_lock:
+err_device:
     return res;
 }
 
