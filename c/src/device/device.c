@@ -357,7 +357,8 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // An acquisition opens its own link from this, after the caller's string
     // may be gone.
     if (address == NULL || strlen(address) >= sizeof(device->address)) {
-        return KATHERINE_E_ADDRESS;
+        res = KATHERINE_E_ADDRESS;
+        goto err_address;
     }
     strcpy(device->address, address);
 
