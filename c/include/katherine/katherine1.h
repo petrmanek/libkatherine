@@ -28,13 +28,31 @@
  * 2.0 replaced the return convention of every function in this group: each
  * used to return 0 on success and a `<errno.h>` value on failure, and now
  * returns 0 or a katherine_error_t enumerator (see katherine/error.h). This
- * header lets source written against 1.x keep compiling unmodified against
- * the 2.0 library: for each affected function, it defines a
+ * header lets most source written against 1.x keep compiling against the
+ * 2.0 library: for each affected function, it defines a
  * `katherine1_<name>()` wrapper that calls the 2.0 function and translates
  * the result back to the 1.x convention, then renames the 1.x symbol onto
- * that wrapper with a function-like macro. Nothing here changes behavior
- * beyond the return value -- arguments, semantics and struct layouts are
- * exactly the 2.0 ones.
+ * that wrapper with a function-like macro. For those functions nothing
+ * changes beyond the return value -- arguments, semantics and struct
+ * layouts are the 2.0 ones.
+ *
+ * **Most, not all, and the exceptions are deliberate.** Three kinds of 1.x
+ * source still need an edit, because shimming them would be worse than
+ * breaking them:
+ *
+ *   - `polarity_holes`, whose sense inverted; see katherine1_config_t
+ *     below. An alias here would bias an assembly for the carrier it does
+ *     not collect.
+ *   - The 1.x spellings of fields whose *shape* changed -- `bias`,
+ *     `pixel_config`, `phase`, `freq`, `test_pulse_config` -- which keep
+ *     their 1.x names in katherine1_config_t precisely because no alias
+ *     could carry the change.
+ *   - Anything that was renamed to a word common enough that an
+ *     object-like macro would rewrite unrelated identifiers in the
+ *     caller's own code. That is why the alias list below is short.
+ *
+ * A compile error in those cases is the intended outcome rather than a gap
+ * in this header.
  *
  * Not every 1.x function needs a wrapper: `katherine_*_snprint()` (a
  * snprintf()-style length, never an error code), the `str_*()` lookups, and
