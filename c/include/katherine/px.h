@@ -71,6 +71,16 @@ extern "C" {
 // coarse tick later than katherine_frame_info_t.start_time would suggest,
 // which at 40 MHz is exactly one of that field's own 25 ns ticks.
 //
+// What phase correction buys, and what it does not. Correcting the
+// double-column phase makes hits in different columns comparable to each
+// other -- it equalises ACROSS double columns. It does not make a timestamp
+// absolute to a fine tick: the pixel matrix also has a y-dependent delay
+// down each column, which nothing here measures or removes. So a corrected
+// timestamp is the right quantity for ordering hits, clustering them, and
+// subtracting one from another, and the wrong one for claiming when a hit
+// arrived to 1.5625 ns. Stated because the opposite is an easy thing to
+// assume from the word "corrected".
+//
 // katherine_frame_info_t.start_time/end_time (acquisition.h) tick at a fixed
 // 25 ns Clk40 instead (sec. 4.2.5.5), so they are not in these units. The
 // chip's coarse counter is 14 bits and unambiguous only within 16384 of its
