@@ -115,6 +115,7 @@ enum {
     OPT_DROP_PX_CHUNK,
     OPT_DROP_CRD,
     OPT_STRAY_CRD,
+    OPT_MUTE_OPCODE,
     OPT_LOG,
 };
 
@@ -134,6 +135,7 @@ static const ksim_opt_t OPTS[] = {
     {"drop-px-chunk", '\0', true, OPT_DROP_PX_CHUNK},
     {"drop-crd", '\0', true, OPT_DROP_CRD},
     {"stray-crd", '\0', false, OPT_STRAY_CRD},
+    {"mute-opcode", '\0', true, OPT_MUTE_OPCODE},
     {"log", '\0', true, OPT_LOG},
     {"quiet", 'q', false, 'q'},
     {"help", 'h', false, 'h'},
@@ -169,6 +171,7 @@ typedef struct daemon_options {
 
     uint32_t drop_px_chunk;
     uint32_t drop_crd;
+    uint16_t mute_opcode;
     bool stray_crd;
 
     const char *log_path;
@@ -209,6 +212,9 @@ print_usage(FILE *out, const char *prog)
         "                               completion acknowledgement\n"
         "  --stray-crd                  send one unsolicited response datagram right\n"
         "                               after the first command arrives\n"
+        "  --mute-opcode <code>         drop every command carrying this operation\n"
+        "                               code, answering nothing and applying nothing,\n"
+        "                               0 to disable; accepts 0x03 or 3\n"
         "  --log <file>                 append one line per received command to file\n"
         "  --quiet                      suppress the startup banner\n"
         "  --help                       print this message and exit\n",
@@ -228,6 +234,24 @@ parse_u64(const char *s, uint64_t *out)
     if (errno != 0 || *end != '\0') return false;
 
     *out = (uint64_t) v;
+    return true;
+}
+
+// Base 0, unlike parse_u64(): an operation code is written in hex
+// everywhere else, and "--mute-opcode 0x03" should mean what it looks like.
+static bool
+parse_opcode(const char *s, uint16_t *out)
+{
+    char *end;
+    unsigned long long v;
+
+    if (s == NULL || *s == '\0') return false;
+
+    errno = 0;
+    v     = strtoull(s, &end, 0);
+    if (errno != 0 || *end != '\0' || v > UINT16_MAX) return false;
+
+    *out = (uint16_t) v;
     return true;
 }
 
@@ -393,6 +417,13 @@ parse_options(int argc, char *argv[], daemon_options_t *options)
             }
             break;
 
+        case OPT_MUTE_OPCODE:
+            if (!parse_opcode(value, &options->mute_opcode)) {
+                fprintf(stderr, "ksim: invalid --mute-opcode '%s'\n", value);
+                return EXIT_FAILURE;
+            }
+            break;
+
         case OPT_STRAY_CRD:
             options->stray_crd = true;
             break;
@@ -553,6 +584,7 @@ main(int argc, char *argv[])
     if (options.lost_set) profile.lost_per_frame = options.lost_per_frame;
     if (options.pattern_set) profile.pattern = options.pattern;
     if (options.ack_latency_set) profile.ack_latency_ns = options.ack_latency_us * 1000ull;
+    profile.mute_opcode = options.mute_opcode;
 
     katherine_emu_t emu;
     if (katherine_emu_init(&emu, &profile) != 0) {

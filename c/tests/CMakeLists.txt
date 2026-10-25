@@ -252,11 +252,20 @@ if(KATHERINE_BUILD_EMULATOR)
     add_dependencies(test_px_recovery ksim)
     # See test_e2e_acq above: same single-threaded strerror() usage.
     target_compile_definitions(test_px_recovery PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+
+    # An acquisition whose start command the daemon is told to drop. Same
+    # daemon and same fixed ports again, so the same properties.
+    katherine_add_test(NAME test_acq_begin_unanswered SOURCES test_acq_begin_unanswered.c
+        ARGS "$<TARGET_FILE:ksim>"
+        LABELS e2e
+        PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
+    add_dependencies(test_acq_begin_unanswered ksim)
+    target_compile_definitions(test_acq_begin_unanswered PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 endif()
 
 # Every test source above must have been registered. The end-to-end tests are
 # registered only when the emulator feature is on, and the USB ring test only
 # where libusb was found, so they are named as such rather than looking like
 # omissions.
-katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c test_bias.c
+katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
     test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c)

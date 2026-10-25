@@ -118,6 +118,24 @@ typedef struct katherine_emu_profile {
     katherine_emu_pattern_t pattern; ///< Spatial distribution of the emulated hits
     uint32_t hits_per_frame;         ///< Number of pixel MDs emitted per frame
     uint32_t lost_per_frame;         ///< Number of hits reported lost per frame, zero to omit the lost pixel MD
+
+    /**
+     * Operation code this readout does not answer, zero to answer every one
+     * it knows.
+     *
+     * The command is logged and then dropped whole: no response, and no
+     * effect on the register file either, which is what an operation code
+     * the dispatcher does not recognize already does. It is how a test
+     * reaches an error path that otherwise needs a readout to misbehave --
+     * muting the acquisition-start code (0x03) makes
+     * katherine_acquisition_begin() fail at the one command it cannot
+     * retry.
+     *
+     * Named rather than counted, unlike the response ordinals ksim's
+     * --drop-crd uses, so that it keeps naming the same command when the
+     * sequence around it changes.
+     */
+    uint16_t mute_opcode;
 } katherine_emu_profile_t;
 
 /**

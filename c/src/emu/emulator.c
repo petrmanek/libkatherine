@@ -342,6 +342,10 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
 
     log_cmd(emu, cmd);
 
+    // Dropped whole, exactly as an operation code with no branch in the
+    // dispatcher is: logged, unanswered, and with nothing applied.
+    if (emu->profile.mute_opcode != 0 && opcode == emu->profile.mute_opcode) return;
+
     switch (opcode) {
     case CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB:
         if (emu_gen(emu) >= 2) {
@@ -642,6 +646,8 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
     profile->pattern        = KATHERINE_EMU_PATTERN_UNIFORM;
     profile->hits_per_frame = 1000;
     profile->lost_per_frame = 0;
+
+    profile->mute_opcode = 0;
 }
 
 /**
