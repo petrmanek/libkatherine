@@ -43,10 +43,33 @@ flush_buffer(katherine_acquisition_t *acq)
 #define KATHERINE_TOA_EPOCH_BIAS(priv) katherine_tpx3_toa_epoch_bias((priv)->toa_coarse_tick_to_fine_shift)
 
 static inline void
+handle_acquisition_interrupted(katherine_acquisition_t *acq)
+{
+    acq->current_frame_info.end_time_observed = time(NULL);
+
+    flush_buffer(acq);
+
+    acq->frame_active = false;
+
+    // The frame-finished MD did not arrive, so sent_pixels is unknown and
+    // current_frame_info.completed remains false.
+    if (acq->handlers.frame_ended != NULL) {
+        acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, false, &acq->current_frame_info);
+    }
+}
+
+static inline void
 handle_new_frame(katherine_acquisition_t *acq, const uint64_t *data)
 {
     katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
     (void) data;
+
+    // A frame still open when the next one starts means its finish never
+    // arrived -- a lost datagram, or a readout that moved on. Closing it
+    // here keeps frame_started and frame_ended paired, which is what a
+    // caller that opens a file per frame depends on; without it the two
+    // frames' hits arrive as one and nothing says so.
+    if (acq->frame_active) handle_acquisition_interrupted(acq);
 
     memset(&acq->current_frame_info, 0, sizeof(katherine_frame_info_t));
     acq->current_frame_info.start_time_observed = time(NULL);
@@ -98,22 +121,6 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
 
     if (acq->completed_frames == acq->requested_frames) {
         acq->state = KATHERINE_ACQUISITION_STATE_SUCCEEDED;
-    }
-}
-
-static inline void
-handle_acquisition_interrupted(katherine_acquisition_t *acq)
-{
-    acq->current_frame_info.end_time_observed = time(NULL);
-
-    flush_buffer(acq);
-
-    acq->frame_active = false;
-
-    // The frame-finished MD did not arrive, so sent_pixels is unknown and
-    // current_frame_info.completed remains false.
-    if (acq->handlers.frame_ended != NULL) {
-        acq->handlers.frame_ended(acq->user_ctx, acq->completed_frames, false, &acq->current_frame_info);
     }
 }
 

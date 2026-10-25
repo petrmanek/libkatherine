@@ -193,3 +193,83 @@ kemu_device_fini(katherine_device_t *device, kemu_transport_t *t)
     device->control_transport.ctx = NULL;
     katherine_emu_fini(&t->emu);
 }
+
+// ------------------------------------------------------------------
+// The data plane.
+//
+// katherine_acquisition_init() opens a real UDP session from the device's
+// address, which binds a port and is never spoken to. A test that wants
+// hits replaces it with this after init: one buffer of measurement data,
+// served once, and a timeout from then on, so the read loop ends on its
+// own fail_timeout rather than running forever. The acquire and release
+// counts are here because every acquired buffer has to come back.
+
+/** One stream of measurement data, and what the loop did with it. */
+typedef struct kemu_data {
+    const void *md; ///< Measurement data to serve, whole, once.
+    size_t len;     ///< Its length in bytes, a multiple of KATHERINE_MD_SIZE.
+    int served;     ///< Times the buffer has been handed over.
+    int acquires;   ///< Buffers lent to the read loop.
+    int releases;   ///< Buffers it gave back; equal to acquires on every path.
+} kemu_data_t;
+
+static inline katherine_error_t
+kemu_data_acquire(void *ctx, void **buf, size_t *len)
+{
+    kemu_data_t *d = (kemu_data_t *) ctx;
+
+    if (d->served++ > 0) return KATHERINE_E_TIMEOUT;
+
+    ++d->acquires;
+    *buf = (void *) (uintptr_t) d->md;
+    *len = d->len;
+    return KATHERINE_E_OK;
+}
+
+static inline katherine_error_t
+kemu_data_release(void *ctx, void *buf)
+{
+    kemu_data_t *d = (kemu_data_t *) ctx;
+    (void) buf;
+    ++d->releases;
+    return KATHERINE_E_OK;
+}
+
+static inline katherine_error_t
+kemu_data_dropped(void *ctx, uint64_t *count)
+{
+    (void) ctx;
+    if (count != NULL) *count = 0;
+    return KATHERINE_E_OK;
+}
+
+static const katherine_transport_ops_t KEMU_DATA_OPS = {
+    .acquire_data_buf  = kemu_data_acquire,
+    .release_data_buf  = kemu_data_release,
+    .set_timeout       = kemu_set_timeout,
+    .get_dropped_input = kemu_data_dropped,
+    .mutex_lock        = kemu_lock,
+    .mutex_unlock      = kemu_lock,
+    .get_last_os_error = kemu_last_os_error,
+};
+
+/**
+ * Puts the stream behind the acquisition's data plane, in place of the UDP
+ * session katherine_acquisition_init() opened. Call after init and before
+ * katherine_acquisition_begin(); kemu_data_detach() before finalizing.
+ */
+static inline void
+kemu_data_attach(katherine_acquisition_t *acq, kemu_data_t *data)
+{
+    katherine_transport_fini(&acq->data_transport);
+    acq->data_transport.ops = &KEMU_DATA_OPS;
+    acq->data_transport.ctx = data;
+}
+
+/** Takes it away again, so katherine_acquisition_fini() finalizes nothing. */
+static inline void
+kemu_data_detach(katherine_acquisition_t *acq)
+{
+    acq->data_transport.ops = NULL;
+    acq->data_transport.ctx = NULL;
+}

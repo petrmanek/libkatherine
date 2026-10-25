@@ -101,8 +101,8 @@ typedef struct katherine_acquisition_handlers {
     // If katherine_acquisition_t::decode_data == true, you may register
     // handlers for the following callbacks:
     void (*pixels_received)(void *, const void *, size_t);                  ///< Decoded pixels, in batches
-    void (*frame_started)(void *, int);                                     ///< New frame opened
-    void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *); ///< Current frame closed, with its info
+    void (*frame_started)(void *, int);                                     ///< New frame opened. The int is katherine_acquisition_t::completed_frames, a running count and not an identifier: a frame the readout abandons does not raise it, so the next frame is announced with the same number.
+    void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *); ///< Current frame closed, with its info. Raised for every frame frame_started() announced, the bool saying whether the readout finished it.
 
     // If katherine_acquisition_t::decode_data == false, you may register
     // handlers for the following callbacks:
