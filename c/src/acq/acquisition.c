@@ -507,6 +507,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     { \
         static const int PIXEL_SIZE = sizeof(katherine_tpx3_px_##SUFFIX##_t); \
 \
+        /* The one lock in the library that is taken without draining first. \
+           Every control exchange flushes inside its lock so a stale \
+           response cannot be read as an acknowledgement; this is the data \
+           link, where what is waiting is measurement data and discarding \
+           it would lose hits rather than noise. */ \
         katherine_error_t lock_res = katherine_transport_mutex_lock(&acq->data_transport); \
         if (lock_res != KATHERINE_E_OK) return lock_res; \
 \

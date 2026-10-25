@@ -222,6 +222,12 @@ claim_private_ports(katherine_device_t *device)
     res = katherine_transport_mutex_lock(&device->control_transport);
     if (res) goto err_lock;
 
+    // The port change is acknowledged, so a response an earlier exchange
+    // left behind could be read as this one's. Correlation catches a
+    // response identified as another command's; only the flush catches a
+    // stale response of this same command.
+    katherine_transport_flush_incoming(&device->control_transport);
+
     res = katherine_cmd_change_udp_ports(&device->control_transport, control, data);
 
     (void) katherine_transport_mutex_unlock(&device->control_transport);
@@ -249,6 +255,11 @@ restore_standard_ports(katherine_device_t *device)
     state->udp_ports_changed = false;
 
     if (katherine_transport_mutex_lock(&device->control_transport) != KATHERINE_E_OK) return;
+
+    // Flushed for the reason claim_private_ports() gives, and it matters
+    // more here: this runs at finalize, after whatever the session was last
+    // doing, so the socket is likelier to be carrying something.
+    katherine_transport_flush_incoming(&device->control_transport);
 
     (void) katherine_cmd_change_udp_ports(&device->control_transport, KATHERINE_UDP_CONTROL_PORT, KATHERINE_UDP_DATA_PORT);
     (void) katherine_transport_mutex_unlock(&device->control_transport);
