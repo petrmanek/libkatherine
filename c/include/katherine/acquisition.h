@@ -157,11 +157,17 @@ typedef struct katherine_acquisition {
     bool aborted;                        ///< Internal: true once an abort has been requested, which is how the read loop tells a dried-up stream from a lost one. Read and written atomically by the library, katherine_acquisition_abort() being callable from another thread than the one reading.
 
     // PINNED for the ASIC work (Petr, 2026-09-04): nothing in an acquisition
-    // should be chip-type aware, and these two are Timepix3's. They belong in
-    // the device's own record of what it last configured -- written by
-    // katherine_configure(), read back by katherine_acquisition_begin() --
-    // which is where the configuration restructure puts them. Left here until
-    // Timepix2 or Timepix4 lands and forces the issue.
+    // should be chip-type aware, and these three are Timepix3's. They belong
+    // in the device's own record of what it last configured -- written by
+    // katherine_tpx3_configure(), read back by katherine_acquisition_begin().
+    //
+    // The configuration restructure was where that record was to appear and
+    // it did not: WP21 landed with begin() taking a katherine_tpx3_config_t
+    // and calling configure() itself, so these three are still read out of
+    // the caller's configuration rather than out of the device. The fields
+    // stay here until Timepix2 or Timepix4 forces the issue, and the record
+    // is still unbuilt -- which is also why a configure() followed by a
+    // begin() uploads every chip's pixel matrix twice.
     katherine_tpx3_readout_mode_t readout_mode; ///< Readout mode in force, chosen at katherine_acquisition_begin().
     katherine_tpx3_px_mode_t px_mode;           ///< Pixel mode in force, which decides the hit type the handlers receive.
     bool fast_vco_enabled;                      ///< Whether the fast oscillator is on, which decides the fast hit variant.
