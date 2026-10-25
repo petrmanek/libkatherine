@@ -15,6 +15,25 @@ stopped process** is required. Against a core dump, GDB falls back to its
 default struct display and LLDB simply shows no summary (the expandable
 children remain), so nothing breaks — you just get the raw view.
 
+**One structure can take the inferior down with it, and it is the one you
+are most likely to be printing when something is wrong.**
+`katherine_tpx3_config_t` ends in a flexible array whose length is
+`common.chip_count`, and the renderer walks that many entries. Printing a
+configuration whose count does not match its allocation therefore faults
+*inside the target*: GDB reports `SIGSEGV` in
+`katherine_tpx3_px_config_snprint`, prints the struct's default view, and
+leaves the process dead — the frame you were stopped in is gone. Measured
+with a count of 200 against an allocation for one.
+
+A count that is merely wrong rather than wild does the same thing more
+quietly, so there is no bound the script could check. If the structure is
+suspect, read `common.chip_count` first, or print the members you want one
+at a time:
+
+    (gdb) print cfg->common.chip_count
+    (gdb) print cfg->common
+    (gdb) print cfg->chips[0]
+
 Example, stopped at a breakpoint:
 
     (gdb) print config.test_pulses
