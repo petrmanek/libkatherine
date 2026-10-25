@@ -940,7 +940,7 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
         goto err_unsupported;
     }
 
-    if (acq->device->derived_info.gen >= 2) {
+    if (katherine_device_gen(acq->device) >= 2) {
         ACQ_DISPATCH(acq, priv, res, GEN2);
     } else {
         ACQ_DISPATCH(acq, priv, res, GEN1);

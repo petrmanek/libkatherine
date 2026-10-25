@@ -15,6 +15,7 @@
 #include <katherine/config.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
+#include "device/private.h"
 #include "protocol/cmd_interface.h"
 #include "msleep.h"
 
@@ -582,7 +583,7 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
         goto err_unsupported;
     }
 
-    if (device->derived_info.gen >= 2) {
+    if (katherine_device_gen(device) >= 2) {
         res = katherine_set_acq_time_gen2(device, ns);
     } else {
         res = katherine_set_acq_time_gen1(device, ns);
@@ -993,7 +994,7 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     // A falling edge encoded the first way sets the top bit of the second
     // way's channel, which is how a Gen2 readout came to listen on the wrong
     // input.
-    const bool gen2         = device->derived_info.gen >= 2;
+    const bool gen2         = katherine_device_gen(device) >= 2;
     const int channel_mask  = gen2 ? 0xF : 0x7;
     const int edge_shift    = gen2 ? 5 : 4;
     const int delayed_shift = gen2 ? 6 : 5;
@@ -1949,7 +1950,7 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
         res = KATHERINE_E_STATE;
         goto err_enumerated;
     }
-    if (device->derived_info.gen < 2) {
+    if (katherine_device_gen(device) < 2) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }

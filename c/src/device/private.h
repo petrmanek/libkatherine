@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <assert.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -48,4 +49,25 @@ static inline const katherine_device_state_t *
 katherine_device_state_const(const katherine_device_t *device)
 {
     return (const katherine_device_state_t *) &device->priv;
+}
+
+/**
+ * The readout generation, which may only be asked for once the device is
+ * known.
+ *
+ * A device that has been neither enumerated nor declared carries a zeroed
+ * derived record, where gen reads 0 -- indistinguishable from a genuine
+ * first-generation readout. Every caller therefore tests
+ * katherine_device_derived_info_t::supported first, and nine of them do.
+ *
+ * This is where the tenth is caught. The assertion costs nothing in a
+ * release build and fails the Debug ones CI runs under both sanitizers, so
+ * a forgotten guard stops being a readout silently driven as the wrong
+ * generation and becomes a test that aborts.
+ */
+static inline uint8_t
+katherine_device_gen(const katherine_device_t *device)
+{
+    assert(device->derived_info.supported);
+    return device->derived_info.gen;
 }

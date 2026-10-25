@@ -13,6 +13,7 @@
 #include <string.h>
 #include <katherine/tdc.h>
 #include <katherine/device.h>
+#include "device/private.h"
 #include "protocol/cmd_interface.h"
 
 // Walked by a uint8_t counter; see c/src/device/gpio.c.
@@ -107,7 +108,7 @@ katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_
     static const uint8_t gen1_edge_shift    = 8;    // where the edge mask starts
     static const uint32_t gen2_falling_edge = 0x8u; // top bit of a field
 
-    const bool gen2    = device->derived_info.gen >= 2;
+    const bool gen2    = katherine_device_gen(device) >= 2;
     const uint8_t have = device->derived_info.tdc_channel_count;
 
     for (uint8_t i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {

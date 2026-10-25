@@ -13,6 +13,7 @@
 #include <string.h>
 #include <katherine/pulse.h>
 #include <katherine/device.h>
+#include "device/private.h"
 #include "protocol/cmd_interface.h"
 
 // Walked by a uint8_t counter; see c/src/device/gpio.c.
@@ -117,7 +118,7 @@ katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_
         res = KATHERINE_E_STATE;
         goto err_enumerated;
     }
-    if (device->derived_info.gen < 2) {
+    if (katherine_device_gen(device) < 2) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
@@ -292,7 +293,7 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
         res = KATHERINE_E_STATE;
         goto err_enumerated;
     }
-    if (device->derived_info.gen < 2) {
+    if (katherine_device_gen(device) < 2) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
@@ -368,7 +369,7 @@ katherine_reset_pulse_generator_counts(katherine_device_t *device)
         res = KATHERINE_E_STATE;
         goto err_enumerated;
     }
-    if (device->derived_info.gen < 2) {
+    if (katherine_device_gen(device) < 2) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
