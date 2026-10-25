@@ -454,7 +454,42 @@ now fails at configure time with the reason, instead of configuring
 cleanly and failing at the link with an unhelpful error: the code uses
 `libusb_init_context()`, which that release introduced.
 
-### Smaller, in the bindings
+### A pixel buffer too small for one hit is refused
+
+`katherine_acquisition_begin()` refuses with `KATHERINE_E_INVAL` when the
+pixel buffer `katherine_acquisition_init()` was given cannot hold a single
+hit of the mode and oscillator asked for. The decode loop used to write
+past the end of it on every decoded hit. The check is at `begin()` and not
+at `init()`, because the width of a hit depends on the pixel mode and the
+fast oscillator, and neither is known until then; a raw stream writes no
+hits and still needs no pixel buffer.
+
+### Frame boundaries survive a lost frame-finished datum
+
+`frame_started` and `frame_ended` are now raised in pairs. A frame still
+open when the next one starts -- which is what a lost frame-finished datum
+leaves behind, and on UDP a lost datagram is all it takes -- is reported
+ended and incomplete before the new one is announced. It used to be
+dropped silently, so two frames' hits reached the handler as one with
+nothing to say so.
+
+Callers see one more `frame_ended` than before, for a frame they were
+previously told about only by `frame_started`. The `int` both handlers
+carry is `katherine_acquisition_t::completed_frames`, a running count
+rather than an identifier: a frame the readout abandons does not raise it,
+so the next frame is announced with the same number.
+
+### Smaller
+
+`katherine_strerror(KATHERINE_E_IO)` reads "i/o error" rather than
+"transport i/o error", and the enumerator names both the link case and the
+file case -- `katherine_tpx3_px_config_load_bmc_file()` returns it for a
+calibration file that cannot be opened, which is not a transport failing.
+
+The `krun` examples take the readout's address as their first argument in
+all three languages, as only the C one did; the C++ one reports a readout
+that does not answer instead of ending in `std::terminate`; and all three
+report a missing `chipconfig.bmc` the same way.
 
 A closed Python `Device` or `Acquisition` renders as
 `<katherine.Device [closed]>` rather than raising, which is what a closed
