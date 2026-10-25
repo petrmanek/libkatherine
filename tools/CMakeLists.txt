@@ -3,11 +3,12 @@
 #
 # SPDX-License-Identifier: MIT
 
-# ksim hosts the protocol emulator on real UDP sockets, so it needs the
-# emulator built in. Its platform-specific bits (long-option parsing, the
-# stop signal, the monotonic clock) are wrapped in small private headers
-# under ksim/, so it builds on Windows as well as on POSIX.
-if(KATHERINE_BUILD_EMULATOR)
+# ksim hosts the protocol emulator on real UDP sockets, so it needs both the
+# emulator and that transport -- which is what KATHERINE_BUILD_KSIM is. Its
+# platform-specific bits (long-option parsing, the stop signal, the monotonic
+# clock) are wrapped in small private headers under ksim/, so it builds on
+# Windows as well as on POSIX.
+if(KATHERINE_BUILD_KSIM)
     add_subdirectory(ksim)
 endif()
 

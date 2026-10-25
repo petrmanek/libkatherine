@@ -115,7 +115,7 @@ endif()
 # emulator (tools/ksim), driven through the built extension module. Guarded
 # the same way c/tests guards its own e2e test against the same daemon:
 # KATHERINE_BUILD_TESTS is what turns on test registration at all, and
-# KATHERINE_BUILD_EMULATOR is what brings the ksim target into the build (the
+# KATHERINE_BUILD_KSIM is what brings the ksim target into the build (the
 # daemon the script spawns). No add_dependencies() on ksim is needed here,
 # unlike in c/tests/CMakeLists.txt: that dependency orders the *build* of one
 # target against another for a parallel build, but this test is not a build
@@ -127,7 +127,7 @@ endif()
 # generous multiple of the couple of seconds a healthy run takes.
 # SKIP_RETURN_CODE lets the script report at run time that its environment
 # cannot host the daemon (see python/tests/smoke.py) rather than failing.
-if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_EMULATOR)
+if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_KSIM)
     add_test(NAME test_python_smoke
              COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/smoke.py"
                      "$<TARGET_FILE:ksim>" "$<TARGET_FILE_DIR:pykatherine>")
@@ -143,7 +143,7 @@ endif()
 # enumeration whose order drifted, shows up as a diff. Needs all three built,
 # so it is guarded by the features that bring them in and skips rather than
 # fails when any is absent.
-if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_EMULATOR AND KATHERINE_BUILD_EXAMPLES AND KATHERINE_BUILD_CXX)
+if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_KSIM AND KATHERINE_BUILD_EXAMPLES AND KATHERINE_BUILD_CXX)
     add_test(NAME test_kdac_parity
              COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/kdac_parity.py"
                      "$<TARGET_FILE:ksim>" "$<TARGET_FILE:kdac>" "$<TARGET_FILE:kdacxx>"

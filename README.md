@@ -152,8 +152,9 @@ in the `examples/` subdirectory for each library, or in the table below:
 ### Trying Without Hardware
 
 When no readout is available, the [ksim](./tools/ksim/)
-daemon (built when `KATHERINE_BUILD_EMULATOR` is enabled) hosts an
-emulated readout that the examples can talk to over loopback:
+daemon (built when `KATHERINE_BUILD_EMULATOR` and `KATHERINE_TRANSPORT_UDP`
+are both enabled) hosts an emulated readout that the examples can talk to
+over loopback:
 
 ```shell
 ./ksim --listen 127.0.0.2 &
@@ -251,9 +252,12 @@ configuration with `no transport selected`. Each transport that is enabled
 defines its own macro in the generated `katherine/features.h`
 (`KATHERINE_FEATURE_UDP`, `KATHERINE_FEATURE_USB`), so a consumer can tell
 which address schemes the installed library opens. Disabling
-`KATHERINE_TRANSPORT_UDP` also disables the emulator, the examples, the test
-suite and the benchmarks, which address readouts by host; the configuration
-says so for each of them rather than failing.
+`KATHERINE_TRANSPORT_UDP` also disables the examples, the test suite and the
+benchmarks, which address readouts by host; the configuration says so for
+each of them rather than failing. The emulator is not among them -- what the
+library compiles in has no socket of its own and is built either way -- but
+the `ksim` daemon that hosts it on real sockets needs the UDP transport and
+is not built without it.
 
 A summary table of all feature flags and their configured state is printed
 at configuration time. The pre-1.0 option names (`BUILD_CXX`, `BUILD_PYTHON`,

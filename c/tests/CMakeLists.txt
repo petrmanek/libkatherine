@@ -227,7 +227,7 @@ target_compile_options(test_compat1 PRIVATE
 # The fixed ports 1555/1556 are a global resource, so the test must not run
 # beside anything else that binds them (RUN_SERIAL); the timeout is a
 # generous multiple of the couple of seconds a healthy run takes.
-if(KATHERINE_BUILD_EMULATOR)
+if(KATHERINE_BUILD_KSIM)
     katherine_add_test(NAME test_e2e_acq SOURCES test_e2e_acq.c
         ARGS "$<TARGET_FILE:ksim>"
         LABELS e2e

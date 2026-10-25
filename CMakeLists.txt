@@ -54,21 +54,33 @@ katherine_declare_feature(TRANSPORT_USB       "enable USB transport (requires li
 katherine_feature_summary()
 
 # What is built around the library, rather than the library itself, still
-# assumes the UDP transport: the emulator hosts the protocol on sockets, and
-# the examples and the test suite address readouts by host. Each is skipped
-# rather than failed, so that turning the transport off needs no other flag.
-# The Python binding is not among them: it drops the one wrapper that needs
-# the transport and is built either way.
+# assumes the UDP transport: the examples and the test suite address readouts
+# by host. Each is skipped rather than failed, so that turning the transport
+# off needs no other flag. The Python binding is not among them: it drops the
+# one wrapper that needs the transport and is built either way.
 #
 # This is why a build without UDP currently has no tests. Gating the suite
 # per test, so the USB ones still run, is worth doing and is not done here.
 if(NOT KATHERINE_TRANSPORT_UDP)
-    foreach(part EMULATOR EXAMPLES TESTS BENCHMARKS)
+    foreach(part EXAMPLES TESTS BENCHMARKS)
         if(KATHERINE_BUILD_${part})
             message(STATUS "katherine: skipping ${part}, which needs the UDP transport")
             set(KATHERINE_BUILD_${part} OFF)
         endif()
     endforeach()
+endif()
+
+# The emulator is not among them: what the library compiles in is a protocol
+# state machine with no socket of its own, and only ksim, the daemon that
+# hosts it on real sockets, needs the transport. KATHERINE_BUILD_KSIM is that
+# narrower condition, derived rather than offered as an option.
+if(KATHERINE_BUILD_EMULATOR AND KATHERINE_TRANSPORT_UDP)
+    set(KATHERINE_BUILD_KSIM ON)
+else()
+    set(KATHERINE_BUILD_KSIM OFF)
+    if(KATHERINE_BUILD_EMULATOR)
+        message(STATUS "katherine: skipping ksim, which needs the UDP transport")
+    endif()
 endif()
 
 # The dialect this project's own binaries are built with. The guarded
