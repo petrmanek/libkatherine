@@ -71,13 +71,13 @@ its own.
 Command responses are now correlated with the request that provoked them,
 instead of the next datagram to arrive being taken as the answer: a
 session flushes what an earlier exchange left behind before it sends,
-steps over responses belonging to no request of its own — counting them
-in `katherine_udp_t::stray_command_responses`, and giving up with
+steps over responses belonging to no request of its own — counting them in
+`katherine_transport_t::stray_command_responses`, and giving up with
 `KATHERINE_E_STRAY` rather than waiting forever — and reports a response
 of the wrong length as `KATHERINE_E_BAD_CRD`. The identifiers the readout
 firmware substitutes for a request's own operation code are accepted by
-default; `katherine_udp_set_strict_ack()` turns that tolerance off once a
-peer has been shown not to need it.
+default; `katherine_transport_set_strict_ack()` turns that tolerance off
+once a peer has been shown not to need it.
 
 Acquisition modes now actually reach the sensor. The acquisition-mode
 command is a GeneralConfig accessor — the readout merges the pixel mode
