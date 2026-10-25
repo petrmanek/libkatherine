@@ -222,13 +222,18 @@ cache, by environment variables or using the `-D<option>=<value>` options.
 | `KATHERINE_BUILD_TESTS`      | `ON`          | Enables the test suite (run with `ctest`)             |
 | `KATHERINE_BUILD_BENCHMARKS` | `ON`          | Enables performance benchmarks (run with `ctest`)     |
 | `KATHERINE_BUILD_EMULATOR`   | `ON`          | Enables the readout emulator (`katherine/emulator.h`) |
+| `KATHERINE_TRANSPORT_UDP`    | `ON`          | Enables the UDP transport (`udp://` addresses)        |
+| `KATHERINE_TRANSPORT_USB`    | _detected_    | Enables the USB transport (see requirements)          |
 
-The default values of `KATHERINE_BUILD_PYTHON` and `KATHERINE_BUILD_DOXYGEN`
-are detected at configuration time. The former is `ON` if a Python 3
-interpreter with development headers and the Cython compiler are found; the
-latter is `ON` if Doxygen 1.8.13 or newer is found. Both default to `OFF`
-otherwise. Setting either option explicitly overrides the detection (forcing
-it `ON` without the requirements makes the configuration fail). When
+The default values of `KATHERINE_BUILD_PYTHON`, `KATHERINE_BUILD_DOXYGEN` and
+`KATHERINE_TRANSPORT_USB` are detected at configuration time. The first is
+`ON` if a Python 3 interpreter with development headers and the Cython
+compiler are found; the second is `ON` if Doxygen 1.8.13 or newer is found;
+the third is `ON` if libusb 1.0.27 or newer is findable, by the same lookup
+the build itself uses, so a host where it is reachable only through
+`LIBUSB_ROOT` still detects as `ON`. All three default to `OFF` otherwise.
+Setting any of them explicitly overrides the detection (forcing it `ON`
+without the requirements makes the configuration fail). When
 `KATHERINE_BUILD_DOXYGEN` is enabled, the `docs` target builds the
 documentation website, and the install step deposits it under
 `share/doc/katherine`.
@@ -240,6 +245,15 @@ with a series of performance benchmarks. When `KATHERINE_BUILD_EMULATOR` is
 enabled, a deterministic emulator of the readout is compiled into the library
 and its `katherine/emulator.h` header is installed, allowing development and
 testing without hardware.
+
+A build needs at least one transport: disabling both stops the
+configuration with `no transport selected`. Each transport that is enabled
+defines its own macro in the generated `katherine/features.h`
+(`KATHERINE_FEATURE_UDP`, `KATHERINE_FEATURE_USB`), so a consumer can tell
+which address schemes the installed library opens. Disabling
+`KATHERINE_TRANSPORT_UDP` also disables the emulator, the examples, the test
+suite and the benchmarks, which address readouts by host; the configuration
+says so for each of them rather than failing.
 
 A summary table of all feature flags and their configured state is printed
 at configuration time. The pre-1.0 option names (`BUILD_CXX`, `BUILD_PYTHON`,
