@@ -1034,6 +1034,24 @@ def check_io_contract(tap, katherine):
     gc.collect()
     tap.check('and collecting the failed Acquisition does not crash', True)
 
+    # repr() is the one member that answers after close, as a closed file's
+    # does. A __repr__ that raises takes a debugger, a %r in a log line and
+    # a failing assertion down with it, at the moment the object is most
+    # worth looking at.
+    closed_file = open(__file__)
+    closed_file.close()
+    tap.check("a closed file still reprs", 'TextIOWrapper' in repr(closed_file))
+
+    dev = katherine.Device(KSIM_DEVICE_ADDRESS)
+    acq = katherine.Acquisition(dev, katherine.MD_SIZE() * 128,
+                                katherine.Tpx3PxFastToaTot.RAW_SIZE() * 128, 100, 1000)
+    acq.close()
+    dev.close()
+    tap.check('a closed Device reprs', repr(dev) == '<katherine.Device [closed]>',
+              'got %r' % repr(dev))
+    tap.check('a closed Acquisition reprs', repr(acq) == '<katherine.Acquisition [closed]>',
+              'got %r' % repr(acq))
+
     # The same rule at the other constructor: the address is encoded before
     # the device is allocated, so a non-string aborted the interpreter in
     # katherine_device_fini()'s assert rather than raising.

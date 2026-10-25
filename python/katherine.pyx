@@ -812,7 +812,13 @@ cdef class Device:
              &self._dev().control_transport, timeout_ms))
 
     def __repr__(self):
-         return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._dev())
+         # The one method that does not go through _dev(). A closed file
+         # still reprs in Python, and a __repr__ that raises takes a
+         # debugger, a %r in a log line and a failing assertion down with
+         # it -- at exactly the moment the object is worth looking at.
+         if self._c_device is NULL:
+             return '<katherine.Device [closed]>'
+         return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._c_device)
 
     def can_correct_timestamp_phase(self):
          return cdevice.katherine_device_can_correct_timestamp_phase(self._dev())
@@ -2233,7 +2239,10 @@ cdef class Acquisition:
              self._device = None
 
     def __repr__(self):
-      return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._acq())
+      # As Device.__repr__: the one method that answers after close.
+      if self._c_acq is NULL:
+          return '<katherine.Acquisition [closed]>'
+      return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._c_acq)
 
     def begin(self, Config config, bool decode_data=True):
       """Configures the readout and opens the shutter. The readout mode, the
