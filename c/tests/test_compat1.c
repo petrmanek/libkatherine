@@ -47,6 +47,8 @@
 
 // The session header first: katherine1.h renames the 1.x session calls with
 // macros, and a macro reaching a declaration rewrites that too.
+#include "protocol/cmd_interface.h"
+#include "transport/ops.h"
 #include "transport/udp.h"
 
 #include <katherine/katherine1.h>
@@ -272,6 +274,149 @@ test_hit_layouts_keep_their_1x_spellings(void)
     KT_CHECK(katherine_px_event_itot_snprint(buf, sizeof(buf), &f) > 0);
     KT_CHECK_EQ(f.coord.y + f.event_count + f.integral_tot, 2 + 4 + 5);
     KT_CHECK_EQ(f.hit_count, 0);
+}
+
+// ------------------------------------------------------------------
+// The one shim function that is not a rename.
+//
+// katherine1_acquisition_setup() took the delayed start as its own argument
+// where 2.0 carries it in the trigger, so it copies the caller's trigger and
+// sets the flag on the copy. Both halves of that are worth pinning: the flag
+// has to reach the wire, and the caller's const trigger has to come back
+// unchanged.
+//
+// A recording stub stands in for the readout, which also settles the claim
+// on record that a mock cannot be borrowed here because katherine1.h renames
+// the 2.0 symbols. It renames the 1.x spellings; the transport vtable has no
+// 1.x spelling, so the two share this translation unit without complaint.
+
+static uint8_t g_stub_last[8];
+static int g_stub_sends;
+
+static katherine_error_t
+stub_ok(void *ctx)
+{
+    (void) ctx;
+    return KATHERINE_E_OK;
+}
+
+static katherine_error_t
+stub_flush_incoming(void *ctx, uint32_t *discarded)
+{
+    (void) ctx;
+    if (discarded != NULL) *discarded = 0;
+    return KATHERINE_E_OK;
+}
+
+static katherine_error_t
+stub_send_cmd(void *ctx, const void *data, size_t count)
+{
+    (void) ctx;
+    if (count >= sizeof(g_stub_last)) memcpy(g_stub_last, data, sizeof(g_stub_last));
+    ++g_stub_sends;
+    return KATHERINE_E_OK;
+}
+
+// What a readout answers: the operation code of the request echoed in byte 6
+// of an otherwise empty datagram.
+static katherine_error_t
+stub_recv_crd(void *ctx, void *crd, size_t *len)
+{
+    (void) ctx;
+    memset(crd, 0, KATHERINE_CMD_CRD_SIZE);
+    ((uint8_t *) crd)[6] = g_stub_last[6];
+    if (len != NULL) *len = KATHERINE_CMD_CRD_SIZE;
+    return KATHERINE_E_OK;
+}
+
+static katherine_error_t
+stub_set_timeout(void *ctx, uint32_t timeout_ms)
+{
+    (void) ctx;
+    (void) timeout_ms;
+    return KATHERINE_E_OK;
+}
+
+static int
+stub_last_os_error(void *ctx)
+{
+    (void) ctx;
+    return 0;
+}
+
+static const katherine_transport_ops_t stub_recording_ops = {
+    .send_cmd          = stub_send_cmd,
+    .recv_crd          = stub_recv_crd,
+    .flush_incoming    = stub_flush_incoming,
+    .set_timeout       = stub_set_timeout,
+    .mutex_lock        = stub_ok,
+    .mutex_unlock      = stub_ok,
+    .get_last_os_error = stub_last_os_error,
+};
+
+// A second-generation readout that records rather than answers. Declared
+// rather than enumerated, which is what gives it a generation without a
+// link, and then given the stub's table.
+static void
+stub_device(katherine_device_t *device)
+{
+    const katherine_device_info_t info = {
+        .hw_type       = 0x03,
+        .hw_revision   = 3,
+        .serial_number = 1,
+        .fw_version    = 5,
+        .chip_count    = 1,
+    };
+
+    memset(device, 0, sizeof(*device));
+    KT_REQUIRE(katherine_device_declare(device, &info) == KATHERINE_E_OK);
+    device->control_transport.ops = &stub_recording_ops;
+
+    memset(g_stub_last, 0, sizeof(g_stub_last));
+    g_stub_sends = 0;
+}
+
+static void
+test_acquisition_setup_puts_the_delayed_start_on_the_wire(void)
+{
+    katherine_device_t device;
+    stub_device(&device);
+
+    katherine_trigger_t start = {0};
+    katherine_trigger_t stop  = {0};
+    start.enabled             = true;
+    start.channel             = (katherine_trigger_source_t) 2;
+
+    const katherine_trigger_t before = start;
+
+    KT_CHECK_EQ(katherine_acquisition_setup(&device, &start, true, &stop), 0);
+    KT_CHECK(g_stub_sends > 0);
+
+    // The last datagram is the trigger-setup register write. On a
+    // second-generation readout the word carries the enable at bit 0, a
+    // four-bit channel at bit 1, the edge at 5 and the delayed start at 6.
+    KT_CHECK_EQ((int) g_stub_last[6], (int) CMD_TYPE_ACQUISITION_SETUP);
+    KT_CHECK_EQ((int) (g_stub_last[0] & 0x01), 1);
+    KT_CHECK_EQ((int) ((g_stub_last[0] >> 1) & 0x0F), 2);
+    KT_CHECK_EQ((int) ((g_stub_last[0] >> 6) & 0x01), 1);
+
+    // And the trigger the caller lent is theirs still.
+    KT_CHECK_MEM_EQ(&start, &before, sizeof(start));
+}
+
+static void
+test_acquisition_setup_without_a_delay_clears_the_bit(void)
+{
+    katherine_device_t device;
+    stub_device(&device);
+
+    katherine_trigger_t start = {0};
+    katherine_trigger_t stop  = {0};
+    start.enabled             = true;
+    start.channel             = (katherine_trigger_source_t) 2;
+
+    KT_CHECK_EQ(katherine_acquisition_setup(&device, &start, false, &stop), 0);
+    KT_CHECK_EQ((int) ((g_stub_last[0] >> 6) & 0x01), 0);
 }
 
 // ------------------------------------------------------------------
@@ -501,6 +646,8 @@ main(void)
     KT_RUN(test_udp_calls_decline);
     KT_RUN(test_coord_keeps_its_1x_spellings);
     KT_RUN(test_hit_layouts_keep_their_1x_spellings);
+    KT_RUN(test_acquisition_setup_puts_the_delayed_start_on_the_wire);
+    KT_RUN(test_acquisition_setup_without_a_delay_clears_the_bit);
     KT_RUN(test_function_aliases);
     KT_RUN(test_type_aliases);
     KT_RUN(test_enumerator_aliases);
