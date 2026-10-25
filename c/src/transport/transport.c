@@ -22,7 +22,12 @@
 // Each is the call and nothing else. The transport is the caller's to have
 // opened, exactly as katherine_udp_send_exact() takes a session the caller
 // opened, and this layer does not re-check what the rest of the library
-// leaves unchecked either.
+// leaves unchecked either. Four are safe on a transport that was never
+// opened: katherine_transport_fini(), katherine_transport_snprint(),
+// katherine_transport_set_strict_ack() and
+// katherine_transport_get_last_os_error(). The rest dereference its
+// operation table and the device layer is what keeps them from being
+// reached that way.
 //
 // The \retval lists below give only what this layer can say. Which codes a
 // call actually produces belongs to the transport behind it, and gathering
@@ -262,11 +267,18 @@ katherine_transport_mutex_unlock(katherine_transport_t *transport)
  * libusb code on a bus -- so it is read with the transport's kind in hand.
  * \param transport Transport to ask.
  *
- * \return The code, or 0 where the transport has recorded none.
+ * \return The code, or 0 where the transport has recorded none and where
+ *   it has no link to have recorded one.
  */
 int
 katherine_transport_get_last_os_error(const katherine_transport_t *transport)
 {
+    // Unlike its neighbours this one answers for a transport that was never
+    // opened, because it is where a failure sends the caller and a failure
+    // early enough leaves nothing open -- katherine_device_init() rejecting
+    // an address, for one.
+    if (transport->ops == NULL) return 0;
+
     return transport->ops->get_last_os_error(transport->ctx);
 }
 

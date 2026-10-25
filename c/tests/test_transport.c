@@ -353,6 +353,25 @@ test_the_os_error_comes_through(void)
     katherine_transport_fini(&t);
 }
 
+/* And it answers for a transport with no link at all, which is what a
+   katherine_device_init() that failed on the address leaves behind -- the
+   call the failure sends the caller to must not be the one that crashes. */
+static void
+test_the_os_error_answers_for_a_transport_that_was_never_opened(void)
+{
+    katherine_transport_t t;
+    memset(&t, 0, sizeof(t));
+
+    KT_CHECK_EQ(katherine_transport_get_last_os_error(&t), 0);
+
+    /* And once finalized, which reads the same: fini clears the table. */
+    const katherine_udp_config_t receiver = session_config(PORT_B, PORT_A);
+    KT_REQUIRE(katherine_transport_init_udp(&t, &receiver) == KATHERINE_E_OK);
+    katherine_transport_fini(&t);
+
+    KT_CHECK_EQ(katherine_transport_get_last_os_error(&t), 0);
+}
+
 // ------------------------------------------------------------------
 // The transports a device drives, each built on its own.
 
@@ -522,6 +541,7 @@ main(void)
     KT_RUN(test_a_size_the_headroom_cannot_be_added_to_is_refused);
     KT_RUN(test_the_lock_round_trips);
     KT_RUN(test_the_os_error_comes_through);
+    KT_RUN(test_the_os_error_answers_for_a_transport_that_was_never_opened);
     KT_RUN(test_the_factories_open_both_transports);
     KT_RUN(test_a_factory_refuses_a_missing_argument);
     KT_RUN(test_a_refused_factory_leaves_nothing_open);
