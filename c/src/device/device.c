@@ -194,11 +194,11 @@ katherine_device_select_interface(katherine_device_t *device)
     res = katherine_cmd_send60(&device->control_transport, CMD_TYPE_INTERFACE_SELECTION, INTERFACE_BYTE[kind]);
     if (res) goto err_send;
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_kind:
     return res;
@@ -232,7 +232,7 @@ claim_private_ports(katherine_device_t *device)
 
     res = katherine_cmd_change_udp_ports(&device->control_transport, control, data);
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 
     if (res == KATHERINE_E_OK) katherine_device_state(device)->udp_data_port = data;
 
@@ -264,7 +264,7 @@ restore_standard_ports(katherine_device_t *device)
     katherine_transport_flush_incoming(&device->control_transport);
 
     (void) katherine_cmd_change_udp_ports(&device->control_transport, KATHERINE_UDP_CONTROL_PORT, KATHERINE_UDP_DATA_PORT);
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 }
 
 #else

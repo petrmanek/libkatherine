@@ -77,3 +77,28 @@ katherine_acquisition_tpx3_priv_const(const katherine_acquisition_t *acquisition
 {
     return (const katherine_acquisition_tpx3_priv_t *) &acquisition->priv;
 }
+
+/**
+ * Take the data link's lock.
+ *
+ * Named rather than spelled out at the call site for the reason
+ * katherine_device_control_lock() is: a lock and its release that share a
+ * name can be audited for balance by grep, and a raw
+ * katherine_transport_mutex_lock() under c/src outside c/src/transport is
+ * then a defect by construction.
+ *
+ * No NULL-ops guard. An acquisition that reaches its read loop opened this
+ * transport in katherine_acquisition_init().
+ */
+static inline katherine_error_t
+katherine_acquisition_data_lock(katherine_acquisition_t *acq)
+{
+    return katherine_transport_mutex_lock(&acq->data_transport);
+}
+
+/** Release the lock katherine_acquisition_data_lock() took. */
+static inline katherine_error_t
+katherine_acquisition_data_unlock(katherine_acquisition_t *acq)
+{
+    return katherine_transport_mutex_unlock(&acq->data_transport);
+}

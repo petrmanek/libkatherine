@@ -72,6 +72,24 @@ katherine_device_control_lock(katherine_device_t *device)
 }
 
 /**
+ * Release the lock katherine_device_control_lock() took.
+ *
+ * Paired with it by name so that a control-plane function can be read for
+ * balance without resolving which transport each side names: every lock in
+ * c/src/device is one of these and every unlock is the other, and a call to
+ * katherine_transport_mutex_unlock() there is now a defect by construction.
+ *
+ * Takes no NULL-ops guard. Reaching an unlock means the matching lock
+ * returned KATHERINE_E_OK, which it cannot have done on a device with no
+ * link.
+ */
+static inline katherine_error_t
+katherine_device_control_unlock(katherine_device_t *device)
+{
+    return katherine_transport_mutex_unlock(&device->control_transport);
+}
+
+/**
  * The readout generation, which may only be asked for once the device is
  * known.
  *

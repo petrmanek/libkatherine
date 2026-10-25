@@ -538,7 +538,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
            response cannot be read as an acknowledgement; this is the data \
            link, where what is waiting is measurement data and discarding \
            it would lose hits rather than noise. */ \
-        katherine_error_t lock_res = katherine_transport_mutex_lock(&acq->data_transport); \
+        katherine_error_t lock_res = katherine_acquisition_data_lock(acq); \
         if (lock_res != KATHERINE_E_OK) return lock_res; \
 \
         uint64_t last_data_received = katherine_clock_monotonic_ns(); \
@@ -630,7 +630,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
             flush_buffer(acq); \
         } \
 \
-        (void) katherine_transport_mutex_unlock(&acq->data_transport); \
+        (void) katherine_acquisition_data_unlock(acq); \
         /* What the link failed with, where it failed: more precise than the \
            timeout the state alone can express, and the state is the one the \
            caller already handles. */ \
@@ -1167,7 +1167,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     res = katherine_cmd_start_acquisition(&acq->device->control_transport, acq->readout_mode);
     if (res) goto err_cmd;
 
-    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+    (void) katherine_device_control_unlock(acq->device);
 
     // Last, and after the readout has been told to start. Set before the
     // lock above, as it used to be, a failed lock or a failed start command
@@ -1181,7 +1181,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     return KATHERINE_E_OK;
 
 err_cmd:
-    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+    (void) katherine_device_control_unlock(acq->device);
 err:
     return res;
 }
@@ -1245,11 +1245,11 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
     res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
     if (res) goto err_send;
 
-    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+    (void) katherine_device_control_unlock(acq->device);
     return KATHERINE_E_OK;
 
 err_send:
-    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+    (void) katherine_device_control_unlock(acq->device);
 err_lock:
 err_device:
     return res;
@@ -1343,7 +1343,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
 
     res = katherine_cmd_stop_acquisition(&acq->device->control_transport, acq->readout_mode);
 
-    (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+    (void) katherine_device_control_unlock(acq->device);
     if (res) goto err_stop;
 
     return KATHERINE_E_OK;

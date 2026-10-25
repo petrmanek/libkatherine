@@ -84,12 +84,12 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
         status->fw_version       = EXTRACT(status_crd, readout_status_crd, fw_version);
     }
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
     return res;
 }
@@ -158,12 +158,12 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
         status->chip_count = EXTRACT(status_crd, comm_status_crd, chip_count);
     }
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
     return res;
 }
@@ -286,13 +286,13 @@ katherine_get_chip_id(katherine_device_t *device, uint8_t chip_index, char *s_ch
 
     if (s_chip_id != NULL) katherine_chip_id_format(s_chip_id, chip_id);
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_echo:
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_unaddressable:
 err_chip:
@@ -353,12 +353,12 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
 
     if (temperature != NULL) memcpy(temperature, crd, sizeof(*temperature));
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
     return res;
 }
@@ -446,12 +446,12 @@ katherine_get_sensor_temperature(katherine_device_t *device, uint8_t chip_index,
 
     if (temperature != NULL) memcpy(temperature, crd, sizeof(*temperature));
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_no_chip:
 err_busy:
@@ -539,13 +539,13 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device, uint8_t chip_ind
         goto err_result;
     }
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_result:
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_chip:
     return res;
@@ -607,12 +607,12 @@ katherine_get_adc_voltage(katherine_device_t *device, uint8_t channel_id, float 
 
     if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
     return res;
 }
@@ -678,12 +678,12 @@ katherine_get_bias(katherine_device_t *device, uint8_t bias_index, float *voltag
 
     if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_bias_id:
 err_enumerated:
@@ -782,12 +782,12 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_index, float
     memcpy(&sense, crd, sizeof(sense));
     if (current != NULL) *current = 1e6f * (gen2_sense_zero_v - sense) / gen2_sense_ohms;
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_bias_id:
 err_generation:
@@ -884,12 +884,12 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
 
     if (voltage != NULL) memcpy(voltage, crd, sizeof(*voltage));
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_monitor:
 err_chip_index:
@@ -991,12 +991,12 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
         if (voltages != NULL) memcpy(&voltages->array[i], crd, sizeof(voltages->array[i]));
     }
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_chip_index:
 err_unsupported:

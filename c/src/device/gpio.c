@@ -250,13 +250,13 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
     res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_GPIO_TERMINATION_EN, terminations);
     if (res) goto err_termination;
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_termination:
 err_mux:
 err_direction:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_check:
 err_enumerated:
@@ -336,11 +336,11 @@ katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_
     res = katherine_cmd_acq_unit_write(&device->control_transport, KATHERINE_ACQ_UNIT_REG_READY_COMPLETE_SETUP, word);
     if (res) goto err_write;
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_write:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_check:
 err_enumerated:
@@ -443,12 +443,12 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
         }
     }
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_ticks:
 err_levels:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_enumerated:
     return res;

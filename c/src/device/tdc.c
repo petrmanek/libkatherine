@@ -157,12 +157,12 @@ katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_INTERNAL_TDC_SETTINGS);
     if (res) goto err_recv;
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_check:
 err_enumerated:
@@ -278,12 +278,12 @@ katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *cou
         }
     }
 
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
 
 err_recv:
 err_send:
-    (void) katherine_transport_mutex_unlock(&device->control_transport);
+    (void) katherine_device_control_unlock(device);
 err_lock:
 err_enumerated:
     return res;
