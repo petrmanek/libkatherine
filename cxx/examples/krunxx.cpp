@@ -12,11 +12,12 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 
 #include <katherinexx/katherinexx.hpp>
 
-static const std::string remote_address{"udp://192.168.1.145"};
+static std::string remote_address{"udp://192.168.1.145"};
 using mode = katherine::acq::f_toa_tot;
 
 // Set the following flag to inject test pulses into a small subset of
@@ -119,7 +120,18 @@ configure(katherine::config& config)
     dacs.named.PLL_Vcntrl        = 128;
 
 
-    katherine::px_config px_config = katherine::load_bmc_file("chipconfig.bmc");
+    // Reported here rather than left to the handler around main's body, as
+    // krun.c reports it inline: a missing calibration file is not a readout
+    // that would not answer, and one message for both would name the wrong
+    // thing.
+    katherine::px_config px_config;
+    try {
+        px_config = katherine::load_bmc_file("chipconfig.bmc");
+    } catch (const katherine::error& e) {
+        std::cout << "Cannot load pixel configuration. Does the file exist?\n"
+                  << "Reason: " << e.what() << '\n';
+        std::exit(1);
+    }
 
     // One chip's settings for every chip: this example has only the one
     // calibration to hand, and a readout with two chips still has to be
@@ -234,18 +246,30 @@ run_acquisition(katherine::device& dev, const katherine::config& c)
 int
 main(int argc, char *argv[])
 {
-    (void) argc;
-    (void) argv;
+    // As krun.c: the first argument names the readout, and the default
+    // above is what the example ships with.
+    if (argc > 1) remote_address = argv[1];
+    std::cout << "Using remote address: " << remote_address << '\n';
 
-    katherine::device device{remote_address};
+    // Every call below can throw, and this is a program a reader runs
+    // before they have a readout answering. Uncaught, the first one ends
+    // in std::terminate and a core file; kinfoxx and kdacxx both catch,
+    // and the exit code matches krun.c's for the same failure.
+    try {
+        katherine::device device{remote_address};
 
-    // After the open, not before: the per-chip settings are sized at
-    // construction and the readout is what says how many chips there are.
-    katherine::config c{device.info().chip_count};
-    configure(c);
+        // After the open, not before: the per-chip settings are sized at
+        // construction and the readout is what says how many chips there are.
+        katherine::config c{device.info().chip_count};
+        configure(c);
 
-    print_chip_id(device);
-    run_acquisition(device, c);
+        print_chip_id(device);
+        run_acquisition(device, c);
+    } catch (const katherine::error& e) {
+        std::cout << "Cannot initialize device. Is the address correct?\n"
+                  << "Reason: " << e.what() << '\n';
+        return 6;
+    }
 
     return 0;
 }

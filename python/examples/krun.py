@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: MIT
 
 from timeit import default_timer as timer
+import sys
 import katherine as k
 
 # Set the following flag to inject test pulses into a small subset of
@@ -88,7 +89,14 @@ def configure(chip_count):
     dacs.Ibias_CP_PLL          = 128
     dacs.PLL_Vcntrl            = 128
 
-    px_config = k.Tpx3PxConfig.from_bmc('chipconfig.bmc')
+    # Reported here rather than as a traceback, as krun.c reports it inline:
+    # a missing calibration file is not a readout that would not answer.
+    try:
+        px_config = k.Tpx3PxConfig.from_bmc('chipconfig.bmc')
+    except (k.Error, OSError) as e:
+        print('Cannot load pixel configuration. Does the file exist?')
+        print('Reason: %s' % e)
+        sys.exit(1)
 
     # Test pulses are disabled unless requested above. (No explicit setup
     # is needed: a new Config keeps them off.)
@@ -169,9 +177,17 @@ def run_acquisition(dev, c):
 
 
 if __name__ == '__main__':
-    remote_address = 'udp://192.168.1.145'
+    # As krun.c and krunxx.cpp: the first argument names the readout, and
+    # the default is what the example ships with.
+    remote_address = sys.argv[1] if len(sys.argv) > 1 else 'udp://192.168.1.145'
+    print('Using remote address: %s' % remote_address)
 
-    device = k.Device(remote_address)
+    try:
+        device = k.Device(remote_address)
+    except k.Error as e:
+        print('Cannot initialize device. Is the address correct?')
+        print('Reason: %s' % e)
+        sys.exit(6)
 
     # After the open, not before: the per-chip settings are sized at
     # construction and the readout is what says how many chips there are.
