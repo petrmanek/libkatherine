@@ -544,7 +544,12 @@ err_chip:
 /**
  * Measure ADC voltage.
  * \param device Katherine device
- * \param channel_id Index of the measured ADC channel
+ * \param channel_id Index of the measured ADC channel. The second
+ *   generation's firmware ignores it: getADCvalue() reads no argument and
+ *   always answers with the low half of its ADC register, so every index
+ *   returns the same voltage. It computes the high half as well and does
+ *   not send it, which is why there is no way to reach a second channel
+ *   from here.
  * \param voltage Retrieved voltage, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.

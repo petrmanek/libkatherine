@@ -58,7 +58,7 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
 typedef struct katherine_comm_status {
     uint8_t comm_lines_mask; ///< Bitmap describing active output links between chip and readout, one bit per link, as the chip's own output-block channel mask reports them.
     uint32_t data_rate;      ///< Aggregate rate carried by those links, in Mb/s.
-    uint8_t chip_count;      ///< How many chips passed automated digital test during readout startup. Compare against katherine_device_derived_info_t::max_chip_count for what the readout can carry.
+    uint8_t chip_count;      ///< How many chips passed automated digital test during readout startup, when the readout is idle. During a measurement the second generation answers 1 or 0 instead -- whether a chip is there at all -- so a count read mid-run is not one. Compare against katherine_device_derived_info_t::max_chip_count for what the readout can carry.
 } katherine_comm_status_t;
 
 KATHERINE_EXPORTED int

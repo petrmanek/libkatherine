@@ -83,8 +83,24 @@
 #define _BITS_comm_status_crd_total_data_rate_type      uint8_t
 
 // Define field: chip_count
+// Byte 2, and what it carries depends on when it is asked. The idle
+// dispatcher's handler writes chip_number, the count; the mid-measurement
+// one writes 1 or 0 -- whether a chip is there at all (ARM_APP/main.c,
+// getChipCommStatus() and getChipCommStatusMeas(), reached from the two
+// dispatchers at :1169 and the idle one).
 #define _BITS_comm_status_crd_chip_count_start          16
 #define _BITS_comm_status_crd_chip_count_mask           MASK(8)
 #define _BITS_comm_status_crd_chip_count_type           uint8_t
+
+// Define field: measuring
+//
+// Byte 3. Zero from the idle handler, one from the mid-measurement one,
+// and those are the only two writers -- so this is the readout saying
+// whether it is streaming, answerable without starting anything. The
+// library does not expose it yet; naming it here is so the next reader of
+// this reply knows the byte is not reserved.
+#define _BITS_comm_status_crd_measuring_start           24
+#define _BITS_comm_status_crd_measuring_mask            MASK(8)
+#define _BITS_comm_status_crd_measuring_type            uint8_t
 
 #endif
