@@ -1039,8 +1039,6 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     res = katherine_tpx3_set_acq_mode(acq->device, config->px_mode, config->fast_vco_enable);
     if (res) goto err;
 
-    acq->state = KATHERINE_ACQUISITION_STATE_RUNNING;
-
     acq->completed_frames           = 0;
     acq->requested_frames           = (int) config->common.frame_count;
     acq->requested_frame_duration   = config->common.acq_time / 1e9;
@@ -1078,6 +1076,13 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     if (res) goto err_cmd;
 
     (void) katherine_transport_mutex_unlock(&acq->device->control_transport);
+
+    // Last, and after the readout has been told to start. Set before the
+    // lock above, as it used to be, a failed lock or a failed start command
+    // returned an acquisition that called itself RUNNING while the readout
+    // was never started: katherine_acquisition_read() would then wait out
+    // fail_timeout for data nobody asked for.
+    acq->state = KATHERINE_ACQUISITION_STATE_RUNNING;
 
     // This creates user obligation to either stop or read the data.
     acq->device->acquisition = acq;
