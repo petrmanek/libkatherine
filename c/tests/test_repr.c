@@ -597,6 +597,126 @@ test_truncation(void)
     KT_CHECK_MEM_EQ(clipped, full, sizeof(clipped) - 1); /* and what got written matches the prefix */
 }
 
+// ------------------------------------------------------------------
+// And the same contract for every renderer, at every size a caller can pass.
+//
+// The one above covers one renderer at one capacity. This covers all of
+// them from a buffer of nothing up to one with room to spare: the return
+// value is the would-be length whatever the capacity, the terminator lands
+// at min(cap - 1, that length), and what precedes it is the prefix of the
+// full rendering. Each value is zeroed rather than filled -- what the text
+// says is the business of the golden cases above, and what is checked here
+// is only where it stops.
+//
+// An adapter per renderer rather than a cast to a common signature: calling
+// a function through an incompatible pointer type is undefined, and the
+// sanitizer legs CI runs would be within their rights to say so. If a
+// renderer is added, tools/debuggers/tags_selftest.py is what enumerates
+// them.
+
+typedef int (*repr_renderer_t)(char *buf, size_t cap, const void *value);
+
+#define RENDER_ADAPTER(SHORT, TYPE) \
+    static int adapt_##SHORT(char *buf, size_t cap, const void *value) \
+    { \
+        static const TYPE zero = {0}; \
+        (void) value; \
+        return katherine_##SHORT(buf, cap, &zero); \
+    }
+
+RENDER_ADAPTER(frame_info_time_snprint, katherine_frame_info_time_t)
+RENDER_ADAPTER(frame_info_snprint, katherine_frame_info_t)
+RENDER_ADAPTER(acquisition_snprint, katherine_acquisition_t)
+RENDER_ADAPTER(trigger_snprint, katherine_trigger_t)
+RENDER_ADAPTER(tpx3_test_pulse_config_snprint, katherine_tpx3_test_pulse_config_t)
+RENDER_ADAPTER(tpx3_dacs_snprint, katherine_tpx3_dacs_t)
+RENDER_ADAPTER(tpx3_dac_voltages_snprint, katherine_tpx3_dac_voltages_t)
+RENDER_ADAPTER(tpx3_chip_config_snprint, katherine_tpx3_chip_config_t)
+RENDER_ADAPTER(config_snprint, katherine_config_t)
+RENDER_ADAPTER(tpx3_config_snprint, katherine_tpx3_config_t)
+RENDER_ADAPTER(tpx3_config_check_snprint, katherine_tpx3_config_check_t)
+RENDER_ADAPTER(device_info_snprint, katherine_device_info_t)
+RENDER_ADAPTER(device_derived_info_snprint, katherine_device_derived_info_t)
+RENDER_ADAPTER(device_snprint, katherine_device_t)
+RENDER_ADAPTER(gpio_channel_monitor_snprint, katherine_gpio_channel_monitor_t)
+RENDER_ADAPTER(gpio_monitor_snprint, katherine_gpio_monitor_t)
+RENDER_ADAPTER(tpx3_px_config_snprint, katherine_tpx3_px_config_t)
+RENDER_ADAPTER(tpx3_coord_snprint, katherine_tpx3_coord_t)
+RENDER_ADAPTER(tpx3_px_f_toa_tot_snprint, katherine_tpx3_px_f_toa_tot_t)
+RENDER_ADAPTER(tpx3_px_toa_tot_snprint, katherine_tpx3_px_toa_tot_t)
+RENDER_ADAPTER(tpx3_px_f_toa_only_snprint, katherine_tpx3_px_f_toa_only_t)
+RENDER_ADAPTER(tpx3_px_toa_only_snprint, katherine_tpx3_px_toa_only_t)
+RENDER_ADAPTER(tpx3_px_f_event_count_itot_snprint, katherine_tpx3_px_f_event_count_itot_t)
+RENDER_ADAPTER(tpx3_px_event_count_itot_snprint, katherine_tpx3_px_event_count_itot_t)
+RENDER_ADAPTER(readout_status_snprint, katherine_readout_status_t)
+RENDER_ADAPTER(comm_status_snprint, katherine_comm_status_t)
+RENDER_ADAPTER(tdc_counts_snprint, katherine_tdc_counts_t)
+RENDER_ADAPTER(transport_snprint, katherine_transport_t)
+
+static const struct {
+    const char *name;
+    repr_renderer_t render;
+} REPR_RENDERERS[] = {
+    {"katherine_frame_info_time_snprint", adapt_frame_info_time_snprint},
+    {"katherine_frame_info_snprint", adapt_frame_info_snprint},
+    {"katherine_acquisition_snprint", adapt_acquisition_snprint},
+    {"katherine_trigger_snprint", adapt_trigger_snprint},
+    {"katherine_tpx3_test_pulse_config_snprint", adapt_tpx3_test_pulse_config_snprint},
+    {"katherine_tpx3_dacs_snprint", adapt_tpx3_dacs_snprint},
+    {"katherine_tpx3_dac_voltages_snprint", adapt_tpx3_dac_voltages_snprint},
+    {"katherine_tpx3_chip_config_snprint", adapt_tpx3_chip_config_snprint},
+    {"katherine_config_snprint", adapt_config_snprint},
+    {"katherine_tpx3_config_snprint", adapt_tpx3_config_snprint},
+    {"katherine_tpx3_config_check_snprint", adapt_tpx3_config_check_snprint},
+    {"katherine_device_info_snprint", adapt_device_info_snprint},
+    {"katherine_device_derived_info_snprint", adapt_device_derived_info_snprint},
+    {"katherine_device_snprint", adapt_device_snprint},
+    {"katherine_gpio_channel_monitor_snprint", adapt_gpio_channel_monitor_snprint},
+    {"katherine_gpio_monitor_snprint", adapt_gpio_monitor_snprint},
+    {"katherine_tpx3_px_config_snprint", adapt_tpx3_px_config_snprint},
+    {"katherine_tpx3_coord_snprint", adapt_tpx3_coord_snprint},
+    {"katherine_tpx3_px_f_toa_tot_snprint", adapt_tpx3_px_f_toa_tot_snprint},
+    {"katherine_tpx3_px_toa_tot_snprint", adapt_tpx3_px_toa_tot_snprint},
+    {"katherine_tpx3_px_f_toa_only_snprint", adapt_tpx3_px_f_toa_only_snprint},
+    {"katherine_tpx3_px_toa_only_snprint", adapt_tpx3_px_toa_only_snprint},
+    {"katherine_tpx3_px_f_event_count_itot_snprint", adapt_tpx3_px_f_event_count_itot_snprint},
+    {"katherine_tpx3_px_event_count_itot_snprint", adapt_tpx3_px_event_count_itot_snprint},
+    {"katherine_readout_status_snprint", adapt_readout_status_snprint},
+    {"katherine_comm_status_snprint", adapt_comm_status_snprint},
+    {"katherine_tdc_counts_snprint", adapt_tdc_counts_snprint},
+    {"katherine_transport_snprint", adapt_transport_snprint},
+};
+
+static void
+test_every_renderer_stops_where_it_is_told(void)
+{
+    char golden[4096];
+
+    for (size_t i = 0; i < sizeof(REPR_RENDERERS) / sizeof(REPR_RENDERERS[0]); ++i) {
+        const repr_renderer_t render = REPR_RENDERERS[i].render;
+
+        const int full = render(golden, sizeof(golden), NULL);
+        KT_REQUIRE(full > 0 && (size_t) full < sizeof(golden));
+
+        for (size_t cap = 0; cap <= (size_t) full + 2; ++cap) {
+            // Exactly cap bytes, so an overrun is one the sanitizer legs see.
+            char *buf = (char *) malloc(cap == 0 ? 1 : cap);
+            KT_REQUIRE(buf != NULL);
+
+            const int n = render(buf, cap, NULL);
+            KT_CHECK_EQ(n, (long long) full);
+
+            if (cap > 0) {
+                const size_t end = (cap - 1 < (size_t) full) ? cap - 1 : (size_t) full;
+                KT_CHECK_EQ((int) buf[end], 0);
+                if (end > 0) KT_CHECK_MEM_EQ(buf, golden, end);
+            }
+
+            free(buf);
+        }
+    }
+}
+
 static void
 test_null_sizing_call(void)
 {
@@ -636,6 +756,7 @@ main(void)
     KT_RUN(test_config);
     KT_RUN(test_config_nests_dacs_verbatim);
     KT_RUN(test_truncation);
+    KT_RUN(test_every_renderer_stops_where_it_is_told);
     KT_RUN(test_null_sizing_call);
 
     return kt_summary();
