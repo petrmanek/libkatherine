@@ -116,6 +116,14 @@ if(KATHERINE_BUILD_EMULATOR)
     target_compile_definitions(test_cmd_transact PRIVATE KATHERINE_TEST_EMULATOR)
     target_compile_definitions(test_acq_unit PRIVATE KATHERINE_TEST_EMULATOR)
     target_compile_definitions(test_tdc PRIVATE KATHERINE_TEST_EMULATOR)
+
+    # The window katherine_acquisition_begin() sets its state in, which only
+    # a link that refuses a send can reach -- so the emulator goes behind a
+    # vtable in this process rather than behind ksim's socket. The data
+    # plane is still a real UDP session bound to a port of its own, which
+    # is why this claims nothing another test wants and needs no serial
+    # slot.
+    katherine_add_test(NAME test_acq_begin_window SOURCES test_acq_begin_window.c LABELS unit)
 endif()
 
 # Remote-address pinning of the UDP layer. Sockets, but only through the
@@ -267,5 +275,5 @@ endif()
 # registered only when the emulator feature is on, and the USB ring test only
 # where libusb was found, so they are named as such rather than looking like
 # omissions.
-katherine_check_tests_registered(CONDITIONAL test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
+katherine_check_tests_registered(CONDITIONAL test_acq_begin_window.c test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
     test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c)
