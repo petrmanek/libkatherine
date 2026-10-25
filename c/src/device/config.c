@@ -696,7 +696,8 @@ err_lock:
  *   codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
  *   receive; see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
+ * \retval KATHERINE_E_INVAL if \a px_mode is not one of the chip's modes, or
+ *   if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_STATE if the device has no control link, which is one
  *   katherine_device_init() was never called on or whose call failed.
@@ -707,6 +708,14 @@ katherine_error_t
 katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
 {
     katherine_error_t res;
+
+    // Op_mode is two bits wide, so a mode outside the enumeration does not
+    // fail: it reaches the sensor as whatever those two bits hold, and 0b11
+    // is a mode the chip does not define.
+    if ((int) px_mode < 0 || (int) px_mode > KATHERINE_TPX3_PX_EVENT_COUNT_ITOT) {
+        res = KATHERINE_E_INVAL;
+        goto err_mode;
+    }
 
     res = katherine_device_control_lock(device);
     if (res) goto err_lock;
@@ -746,6 +755,7 @@ err_update_send:
 err_registers:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_mode:
     return res;
 }
 

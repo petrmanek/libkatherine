@@ -154,9 +154,30 @@ test_datagrams(void)
     katherine_udp_fini(&mock_endpoint);
 }
 
+// A mode outside the enumeration never reaches a readout, so this one needs
+// no mock. Op_mode is two bits wide: the sensor would take the low two of
+// whatever byte 0 carries, and 0b11 is a combination the chip does not
+// define, which is a sensor configured to something nobody asked for rather
+// than a call that fails.
+static void
+test_a_mode_the_chip_does_not_have_is_refused(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+
+    KT_CHECK_EQ(katherine_tpx3_set_acq_mode(&device, (katherine_tpx3_px_mode_t) 3, false), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_tpx3_set_acq_mode(&device, (katherine_tpx3_px_mode_t) 99, false), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_tpx3_set_acq_mode(&device, (katherine_tpx3_px_mode_t) -1, false), KATHERINE_E_INVAL);
+
+    // And the refusal is the mode's, not the missing link's: the three the
+    // chip does have get as far as the control lock and fail there instead.
+    KT_CHECK_EQ(katherine_tpx3_set_acq_mode(&device, KATHERINE_TPX3_PX_TOA_TOT, false), KATHERINE_E_STATE);
+}
+
 int
 main(void)
 {
     KT_RUN(test_datagrams);
+    KT_RUN(test_a_mode_the_chip_does_not_have_is_refused);
     return kt_summary();
 }
