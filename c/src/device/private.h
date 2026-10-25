@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include <katherine/device.h>
+#include <katherine/transport.h>
 
 /**
  * A device's private state.
@@ -49,6 +50,25 @@ static inline const katherine_device_state_t *
 katherine_device_state_const(const katherine_device_t *device)
 {
     return (const katherine_device_state_t *) &device->priv;
+}
+
+/**
+ * Take the control link's lock, refusing a device that has no link.
+ *
+ * katherine_device_init() zeroes the device before the first step that can
+ * fail, so a caller that ignores its error and carries on holds one whose
+ * every transport operation dereferences a null vtable. Twenty-one entry
+ * points reached that dereference, some of them only after
+ * katherine_device_declare() had satisfied the
+ * katherine_device_derived_info_t::supported guard they relied on. Every
+ * control-plane exchange starts here, which is the one place that covers
+ * them and the next one written.
+ */
+static inline katherine_error_t
+katherine_device_control_lock(katherine_device_t *device)
+{
+    if (device->control_transport.ops == NULL) return KATHERINE_E_STATE;
+    return katherine_transport_mutex_lock(&device->control_transport);
 }
 
 /**

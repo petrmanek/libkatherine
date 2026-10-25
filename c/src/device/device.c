@@ -160,6 +160,8 @@ katherine_device_derived_info_recognize(uint8_t hw_type)
  * \retval KATHERINE_E_IO if the send failed at the OS level for a reason none
  *   of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory.
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -183,7 +185,7 @@ katherine_device_select_interface(katherine_device_t *device)
         goto err_kind;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -219,7 +221,7 @@ claim_private_ports(katherine_device_t *device)
     // acquisition asks, so a number has to be named before one exists.
     const uint16_t data = (uint16_t) (control + 1);
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     // The port change is acknowledged, so a response an earlier exchange
@@ -254,7 +256,7 @@ restore_standard_ports(katherine_device_t *device)
 
     state->udp_ports_changed = false;
 
-    if (katherine_transport_mutex_lock(&device->control_transport) != KATHERINE_E_OK) return;
+    if (katherine_device_control_lock(device) != KATHERINE_E_OK) return;
 
     // Flushed for the reason claim_private_ports() gives, and it matters
     // more here: this runs at finalize, after whatever the session was last
@@ -601,6 +603,8 @@ err_info_null:
  *   reply ran out of memory; see katherine_transport_get_last_os_error(). Taking
  *   the control link's lock cannot produce this through the UDP transport:
  *   pthread_mutex_lock(3) does not document ENOMEM.
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */

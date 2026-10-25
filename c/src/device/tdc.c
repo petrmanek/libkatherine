@@ -146,7 +146,7 @@ katherine_set_tdc_config(katherine_device_t *device, const katherine_tdc_config_
         }
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -228,7 +228,7 @@ katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *cou
 
     uint32_t received[KATHERINE_MAX_TDC_CHANNEL_COUNT] = {0};
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);

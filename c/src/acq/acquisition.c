@@ -1086,7 +1086,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     priv->last_toa_offset = KATHERINE_TOA_EPOCH_BIAS(priv);
     acq->frame_active     = false;
 
-    res = katherine_transport_mutex_lock(&acq->device->control_transport);
+    res = katherine_device_control_lock(acq->device);
     if (res) goto err;
 
     katherine_transport_flush_incoming(&acq->device->control_transport);
@@ -1146,6 +1146,9 @@ err:
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the acquisition's device has no control link,
+ *   which is one katherine_device_init() was never called on or whose call
+ *   failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
  *   katherine_transport_get_last_os_error().
@@ -1155,7 +1158,7 @@ katherine_acquisition_stop(katherine_acquisition_t *acq)
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&acq->device->control_transport);
+    res = katherine_device_control_lock(acq->device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&acq->device->control_transport);
@@ -1208,6 +1211,9 @@ err_lock:
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the acquisition's device has no control link,
+ *   which is one katherine_device_init() was never called on or whose call
+ *   failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken,
  *   for a reason none of the other codes cover; see
  *   katherine_transport_get_last_os_error().
@@ -1243,7 +1249,7 @@ katherine_acquisition_abort(katherine_acquisition_t *acq)
     // command that landed left an unreachable readout unabortable.
     katherine_atomic_store_bool(&acq->aborted, true);
 
-    if ((res = katherine_transport_mutex_lock(&acq->device->control_transport)) != KATHERINE_E_OK) goto err_lock;
+    if ((res = katherine_device_control_lock(acq->device)) != KATHERINE_E_OK) goto err_lock;
 
     katherine_transport_flush_incoming(&acq->device->control_transport);
 

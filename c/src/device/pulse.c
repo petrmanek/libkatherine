@@ -195,7 +195,7 @@ katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_
         enable |= UINT32_C(1) << bit_oscillator;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -302,7 +302,7 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
         memset(counts, 0, sizeof(*counts));
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -374,7 +374,7 @@ katherine_reset_pulse_generator_counts(katherine_device_t *device)
         goto err_generation;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);

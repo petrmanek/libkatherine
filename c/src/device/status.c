@@ -45,6 +45,8 @@
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the status request or receiving its
  *   reply ran out of memory; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -53,7 +55,7 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     // Every inquiry below opens the same way: the session is flushed before
@@ -117,6 +119,8 @@ err_lock:
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
  *   out of memory; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -125,7 +129,7 @@ katherine_get_comm_status(katherine_device_t *device, katherine_comm_status_t *s
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -223,6 +227,8 @@ katherine_chip_id_format(char s_chip_id[KATHERINE_CHIP_ID_STR_SIZE], uint32_t ch
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
  *   out of memory; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -246,7 +252,7 @@ katherine_get_chip_id(katherine_device_t *device, uint8_t chip_index, char *s_ch
         goto err_unaddressable;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -323,6 +329,8 @@ err_chip:
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
  *   out of memory; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -331,7 +339,7 @@ katherine_get_readout_temperature(katherine_device_t *device, float *temperature
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -423,7 +431,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, uint8_t chip_index,
         goto err_no_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -490,6 +498,8 @@ err_busy:
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
  *   out of memory; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -503,7 +513,7 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device, uint8_t chip_ind
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -573,6 +583,8 @@ err_chip:
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if sending the request or receiving its reply ran
  *   out of memory; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -581,7 +593,7 @@ katherine_get_adc_voltage(katherine_device_t *device, uint8_t channel_id, float 
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -650,7 +662,7 @@ katherine_get_bias(katherine_device_t *device, uint8_t bias_index, float *voltag
         goto err_bias_id;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -739,7 +751,7 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_index, float
         goto err_bias_id;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -858,7 +870,7 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
         goto err_monitor;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -963,7 +975,7 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
         }
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);

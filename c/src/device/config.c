@@ -266,6 +266,8 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  *   receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -279,7 +281,7 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_ind
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     // This upload is the one exchange whose data travels between the command
@@ -414,6 +416,8 @@ err_chip:
  *   receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -422,7 +426,7 @@ katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -486,6 +490,8 @@ err_lock:
  *   receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -494,7 +500,7 @@ katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -637,6 +643,8 @@ err_range:
  *   exchange.
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
  *   receive; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -645,7 +653,7 @@ katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -690,6 +698,8 @@ err_lock:
  *   receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -698,7 +708,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -802,7 +812,7 @@ katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_va
         goto err_bias_value;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -850,6 +860,8 @@ err_enumerated:
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error(). The frame count itself
  *   is not validated here.
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -858,7 +870,7 @@ katherine_set_frame_count(katherine_device_t *device, uint32_t frame_count)
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -903,6 +915,8 @@ err_lock:
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken for
  *   any other reason; see katherine_transport_get_last_os_error().
  */
@@ -911,7 +925,7 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
 {
     katherine_error_t res;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1040,7 +1054,7 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
     // and the end trigger in the next.
     const uint32_t word = (end << 8) | start;
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1121,6 +1135,8 @@ err_enumerated:
  *   codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
  *   the receive; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  *
@@ -1161,7 +1177,7 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
         cmd[4] |= 1 << 2;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     // Sent and awaited by hand rather than through katherine_cmd_transact(),
@@ -1233,6 +1249,8 @@ err_check:
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error(). Neither the register
  *   index nor the value is validated here.
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  *
@@ -1248,7 +1266,7 @@ katherine_tpx3_set_sensor_register(katherine_device_t *device, uint8_t chip_inde
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1305,6 +1323,8 @@ err_chip:
  *   the receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  *
@@ -1320,7 +1340,7 @@ katherine_tpx3_update_sensor_registers(katherine_device_t *device, uint8_t chip_
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1370,6 +1390,8 @@ err_chip:
  *   the receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -1383,7 +1405,7 @@ katherine_tpx3_output_block_config_update(katherine_device_t *device, uint8_t ch
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1433,6 +1455,8 @@ err_chip:
  *   the receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -1446,7 +1470,7 @@ katherine_tpx3_timer_set(katherine_device_t *device, uint8_t chip_index)
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1509,6 +1533,8 @@ err_chip:
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error(). Out-of-range DAC values
  *   are not reported here, as described above.
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -1522,7 +1548,7 @@ katherine_tpx3_set_dacs(katherine_device_t *device, uint8_t chip_index, const ka
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     // Nineteen exchanges under one lock, flushed once: each of them
@@ -1605,6 +1631,8 @@ err_chip:
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
  *   receive; see sendto(2) and recvfrom(2).
+ * \retval KATHERINE_E_STATE if the device has no control link, which is one
+ *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and
  *   katherine_transport_get_last_os_error().
@@ -1624,7 +1652,7 @@ katherine_tpx3_set_dac(katherine_device_t *device, uint8_t chip_index, katherine
         goto err_dac;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1959,7 +1987,7 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
         goto err_chip;
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);

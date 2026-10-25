@@ -32,6 +32,7 @@ katherine_add_test(NAME test_timestamp SOURCES test_timestamp.c LABELS unit)
 katherine_add_test(NAME test_phase_correction SOURCES test_phase_correction.c LABELS unit)
 
 katherine_add_test(NAME test_device_info SOURCES test_device_info.c LABELS unit)
+katherine_add_test(NAME test_device_unopened SOURCES test_device_unopened.c LABELS unit)
 
 # The scheme an address carries, and the two public calls that read one. Most
 # of it needs no readout, an address being read before any socket is opened;

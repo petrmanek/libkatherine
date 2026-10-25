@@ -14,6 +14,7 @@
 #include <string.h>
 #include <katherine/gpio.h>
 #include <katherine/device.h>
+#include "device/private.h"
 #include "protocol/cmd_interface.h"
 
 // A uint8_t counter walking this bound terminates only while the bound fits
@@ -235,7 +236,7 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
         high |= mux[i] << ((i - 2) * KATHERINE_ACQ_UNIT_GPIO_MUX_BITS);
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -327,7 +328,7 @@ katherine_set_composed_ready_signal(katherine_device_t *device, const katherine_
         }
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -402,7 +403,7 @@ katherine_probe_gpio(katherine_device_t *device, katherine_gpio_monitor_t *state
         memset(state, 0, sizeof(*state));
     }
 
-    res = katherine_transport_mutex_lock(&device->control_transport);
+    res = katherine_device_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
