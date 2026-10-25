@@ -966,6 +966,29 @@ err_device:
     return res;
 }
 
+// The hit a mode yields, in bytes. The decode loop divides the pixel buffer
+// by this to learn how many fit, and writes one whether or not any do --
+// so a buffer under one hit is a heap overflow on the first one, which
+// katherine_acquisition_begin() refuses below. The pairs mirror
+// ACQ_DISPATCH's first two levels; they are the only shapes there are.
+static size_t
+acquisition_pixel_size(katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
+{
+    switch (px_mode) {
+    case KATHERINE_TPX3_PX_TOA_TOT:
+        return fast_vco_enabled ? sizeof(katherine_tpx3_px_f_toa_tot_t) : sizeof(katherine_tpx3_px_toa_tot_t);
+    case KATHERINE_TPX3_PX_ONLY_TOA:
+        return fast_vco_enabled ? sizeof(katherine_tpx3_px_f_toa_only_t) : sizeof(katherine_tpx3_px_toa_only_t);
+    case KATHERINE_TPX3_PX_EVENT_COUNT_ITOT:
+        return fast_vco_enabled ? sizeof(katherine_tpx3_px_f_event_count_itot_t)
+                                : sizeof(katherine_tpx3_px_event_count_itot_t);
+    }
+
+    // A mode with no hit type, which katherine_tpx3_set_acq_mode() refuses
+    // and the decoder has no loop for.
+    return 0;
+}
+
 /**
  * Set detector configuration and begin acquisition.
  *
@@ -998,10 +1021,13 @@ err_device:
  *   acquisition running.
  * \retval KATHERINE_E_INVAL if the combination asked for is refused: a data-
  *   driven readout of more than one frame, fast VCO at a frequency where fine
- *   time stamping is not coherent, or a configuration value out of range, the
- *   test-pulse count, period and phase among them. Also reported if one of the
- *   configuration commands failed with an invalid argument at the OS level;
- *   see katherine_transport_get_last_os_error().
+ *   time stamping is not coherent, a pixel buffer smaller than one hit of the
+ *   mode and oscillator asked for -- which the decode loop would write past
+ *   and which katherine_acquisition_init() cannot judge, not yet knowing the
+ *   mode -- or a configuration value out of range, the test-pulse count,
+ *   period and phase among them. Also reported if one of the configuration
+ *   commands failed with an invalid argument at the OS level; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
  *   configuration commands within the control link's receive timeout. Sending
  *   stops at the first such failure, so the device is left partly configured
@@ -1052,6 +1078,23 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     acq->readout_mode     = config->readout_mode;
     acq->fast_vco_enabled = config->fast_vco_enable;
     acq->decode_data      = decode_data;
+
+    // Checked here and not in katherine_acquisition_init(), which does not
+    // yet know the mode and so does not know how large a hit is. Only a
+    // decoded stream writes hits, so a raw one needs no pixel buffer at
+    // all.
+    //
+    // The pixel_buffer test is what keeps this from answering for an
+    // acquisition whose init failed: that one has no buffer to judge, and
+    // its problem is the init, which the configuration below reports. It
+    // also leaves the configuration guards reachable with a hand-made
+    // acquisition, which is how test_acq_guard.c tests them without a
+    // device.
+    const size_t pixel_size = acquisition_pixel_size(acq->px_mode, acq->fast_vco_enabled);
+    if (decode_data && acq->pixel_buffer != NULL && (pixel_size == 0 || acq->pixel_buffer_size < pixel_size)) {
+        res = KATHERINE_E_INVAL;
+        goto err;
+    }
 
 #if KATHERINE_DEBUG_ACQ > 0
     dump_config(acq, config);

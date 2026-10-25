@@ -174,11 +174,52 @@ test_the_retry_after_a_refused_start_succeeds(void)
     fixture_stop();
 }
 
+// A pixel buffer the decode loop would write past. katherine_acquisition_init()
+// takes the size but not the mode, so it cannot tell how large a hit is; begin()
+// knows both. One hit of this mode is 16 bytes.
+static void
+test_a_pixel_buffer_under_one_hit_is_refused(void)
+{
+    KT_REQUIRE(fixture_start());
+
+    katherine_tpx3_config_t *config = make_config();
+    KT_REQUIRE(config != NULL);
+
+    const size_t hit = sizeof(katherine_tpx3_px_f_toa_tot_t);
+
+    katherine_acquisition_t acq;
+    KT_REQUIRE(katherine_acquisition_init(
+                   &acq, &g_device, NULL, MD_BUFFER_SIZE, hit - 1, REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
+        == KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, config, true), KATHERINE_E_INVAL);
+    katherine_acquisition_fini(&acq);
+
+    // And a raw stream writes no hits, so it needs no room for one.
+    KT_REQUIRE(katherine_acquisition_init(
+                   &acq, &g_device, NULL, MD_BUFFER_SIZE, 0, REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
+        == KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, config, false), KATHERINE_E_OK);
+    (void) katherine_acquisition_abort(&acq);
+    katherine_acquisition_fini(&acq);
+
+    // Exactly one hit is enough, which is the boundary.
+    KT_REQUIRE(katherine_acquisition_init(
+                   &acq, &g_device, NULL, MD_BUFFER_SIZE, hit, REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
+        == KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, config, true), KATHERINE_E_OK);
+    (void) katherine_acquisition_abort(&acq);
+    katherine_acquisition_fini(&acq);
+
+    free(config);
+    fixture_stop();
+}
+
 int
 main(void)
 {
     KT_RUN(test_a_begin_that_reaches_the_start_command_runs);
     KT_RUN(test_a_start_the_link_refuses_leaves_it_not_running);
     KT_RUN(test_the_retry_after_a_refused_start_succeeds);
+    KT_RUN(test_a_pixel_buffer_under_one_hit_is_refused);
     return kt_summary();
 }
