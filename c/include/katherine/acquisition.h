@@ -88,6 +88,14 @@ katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t
  * Which ones can fire is decided by katherine_acquisition_t::decode_data, and
  * the two sets are disjoint -- the first three belong to the decoded path and
  * the last to the raw one.
+ *
+ * \note A handler runs on the thread inside katherine_acquisition_read(),
+ *   not on one of its own. katherine_acquisition_abort() may be called from
+ *   a handler and ends the read. katherine_acquisition_stop() may also be
+ *   called, but it asks the readout to stop rather than the loop, so the
+ *   read ends when the data does. katherine_acquisition_read() must not be
+ *   re-entered: the inner call takes part of the stream and neither result
+ *   means anything afterwards.
  */
 typedef struct katherine_acquisition_handlers {
     // If katherine_acquisition_t::decode_data == true, you may register
