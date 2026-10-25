@@ -81,11 +81,13 @@ registers, its clock model, its hit formats -- moved under
 One rename is not a stem change: `katherine_acquisition_setup()` is
 `katherine_set_acquisition_triggers()`, which is what it always did.
 
-The enumerators moved with their types: `KATHERINE_PHASE_1` is
-`KATHERINE_TPX3_PHASE_1`, `KATHERINE_READOUT_SEQUENTIAL` is
-`KATHERINE_TPX3_READOUT_SEQUENTIAL`, and so on. The shim aliases all of
-them, which re-pollutes the namespace 2.0 keeps clear -- opting into the
-shim is opting into that.
+The enumerators moved with their types, and several of them gained the
+library's prefix, which is what made them worth renaming at all: 1.x spelled
+them `PHASE_1` and `READOUT_SEQUENTIAL`, short enough that a
+data-acquisition program might define them itself, and 2.0 spells them
+`KATHERINE_TPX3_PHASE_1` and `KATHERINE_TPX3_READOUT_SEQUENTIAL`. The shim
+aliases all of them, which re-pollutes the namespace 2.0 keeps clear --
+opting into the shim is opting into that.
 
 ## 3. Per-chip calls name their chip
 
@@ -164,7 +166,7 @@ be ported rather than recompiled.
 `katherine_config_t::no_frames` is `frame_count`, and
 `katherine_set_no_frames()` is `katherine_set_frame_count()`. The field
 holds a count, and 1.x named it for the absence of one.
-`katherine_emulator_t`'s register of the same name moved with it.
+`katherine_emu_t`'s register of the same name moved with it.
 The field and the setter's parameter are `uint32_t`, where 1.x declared
 both `int`. `katherine1.h` aliases both old spellings and
 `katherine_set_no_frames()` keeps the `int` parameter it had, so a 1.x
