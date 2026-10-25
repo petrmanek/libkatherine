@@ -718,6 +718,11 @@ katherine_get_bias_leakage(katherine_device_t *device, uint8_t bias_index, float
         goto err_enumerated;
     }
 
+    // By generation and not by firmware, which is now settled rather than
+    // assumed: neither first-generation firmware handles opcode 0x30 at
+    // all. Both dispatchers bound the opcode and branch through a table,
+    // and 0x30's entry is the default arm in each -- legacy fw 2 and
+    // modern fw 4 alike. See misc/overnight-20261025/WP23-gen1-dispatch.md.
     if (device->derived_info.gen < 2) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
