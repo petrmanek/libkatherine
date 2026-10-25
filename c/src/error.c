@@ -43,7 +43,17 @@ static const char *const KATHERINE_ERROR_STRINGS[KATHERINE_ERROR_COUNT] = {
  * Describe an error code.
  * \param error A katherine_error_t enumerator, which is what every function
  *   of this library returns, or its negation, which is what libkatherine 1.x
- *   returned.
+ *   returned. `int` rather than the enum, and deliberately: every
+ *   enumerator is non-negative, so a compiler is free to give the enum an
+ *   unsigned compatible type -- gcc does -- and a negated 1.x code passed
+ *   as one would make the test below false, index the table at a negative
+ *   subscript and read out of bounds. Measured: with the parameter
+ *   widened, katherine_strerror(-KATHERINE_E_TIMEOUT) returns garbage
+ *   where it returns "operation timed out" today. Widening it has been
+ *   proposed twice, in the C++ error-code review and in WP28, each time to
+ *   stop a wrapper passing an unrelated integer; the C++ wrapper's own
+ *   constructor takes katherine_error_t since WP43, which closes that hole
+ *   from the side that can afford to.
  * \return A statically allocated, NUL-terminated, lowercase description.
  *   Never NULL: a value outside the domain renders as "unknown error".
  */
