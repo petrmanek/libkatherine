@@ -148,12 +148,17 @@ katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config
     // The test-pulse command carries the enable flag as well as the pulse
     // parameters, and it is the only thing that needs to: GeneralConfig's
     // Tp_en bit is not load-bearing. Forcing that bit to zero and repeating
-    // this configuration on hardware fires exactly the 256 pixels of a
-    // painted 16x16 patch, for analog and digital pulses alike, which is
-    // also how the vendor tool and the reference implementation drive it.
-    // Issued last so the register updates above cannot override it, and
-    // skipped when pulses are disabled, keeping the wire traffic identical
-    // to configurations that predate test pulse support.
+    // this configuration fires exactly the 256 pixels of a painted 16x16
+    // patch, for analog and digital pulses alike, which is also how the
+    // vendor tool and the reference implementation drive it -- measured on
+    // a first-generation readout. The second generation's firmware 5
+    // acknowledges 0x26 and runs nothing (its dispatcher has the handler
+    // commented out, ARM_APP/main.c:4799, as it does 0x25 and 0x27), so
+    // there the whole feature is inert however it is configured; see
+    // misc/hw-evidence-20261020. Issued last so the register updates above
+    // cannot override it, and skipped when pulses are disabled, keeping the
+    // wire traffic identical to configurations that predate test pulse
+    // support.
     if (config->test_pulses.enabled) {
         res = katherine_tpx3_set_test_pulses(device, &config->test_pulses);
         if (res) goto err;
@@ -1104,6 +1109,15 @@ err_enumerated:
  *   the receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ *
+ * \note A second-generation readout running firmware 5 acknowledges this
+ *   command and does nothing with it: its dispatcher has the handler
+ *   commented out, as it does for the two neighbouring test-pulse opcodes.
+ *   Measured -- a painted patch of 250 pixels produced no hits under five
+ *   combinations of threshold, amplitude and digital-only, with the
+ *   readout's own frame report giving sent=0 and lost=0. So a success here
+ *   means the command was accepted, not that the chip will pulse. The
+ *   evidence is in misc/hw-evidence-20261020.
  */
 katherine_error_t
 katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_test_pulse_config_t *tp_config)
