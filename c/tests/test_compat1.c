@@ -180,7 +180,16 @@ test_dacs_validate_success(void)
 // ------------------------------------------------------------------
 // The 1.x session calls still compile and still link, and every one of them
 // declines: a session is no longer part of this library's interface, and a
-// caller reaches a readout by address instead.
+// caller reaches a readout by address instead. Ten of the eleven 1.x
+// declared; katherine_udp_snprint() is the one left out, since it rendered a
+// session's endpoints and the shim's katherine_udp_t is incomplete, so there
+// is nothing it could truthfully print. katherine_transport_snprint() is the
+// 2.0 call.
+//
+// Through a pointer, as here. A 1.x source declaring `katherine_udp_t u;` by
+// value does not compile against this header at all -- the type is
+// incomplete by design -- which is the limit of what the shim offers for
+// this family.
 
 static void
 test_udp_calls_decline(void)
@@ -197,6 +206,11 @@ test_udp_calls_decline(void)
     KT_CHECK_EQ(katherine_udp_set_remote(u, HOST, PORT_B), ENOTSUP);
     KT_CHECK_EQ(katherine_udp_mutex_lock(u), ENOTSUP);
     KT_CHECK_EQ(katherine_udp_mutex_unlock(u), ENOTSUP);
+
+    // Void in 1.x, so there is nothing to check but that they compile, link
+    // and return.
+    katherine_udp_fini(u);
+    katherine_udp_pin_remote(u);
 }
 
 // ------------------------------------------------------------------

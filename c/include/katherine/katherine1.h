@@ -682,6 +682,26 @@ katherine1_udp_mutex_unlock(katherine_udp_t *u)
     return katherine1_map_result(KATHERINE_E_UNSUPPORTED);
 }
 
+// The two session calls 1.x declared void. They return nothing to map, so
+// they do nothing: katherine1_udp_init() never opened a session for them to
+// release or pin.
+
+/** \legacy1{katherine_udp_fini} */
+KATHERINE1_DEPRECATED
+static inline void
+katherine1_udp_fini(katherine_udp_t *u)
+{
+    (void) u;
+}
+
+/** \legacy1{katherine_udp_pin_remote} */
+KATHERINE1_DEPRECATED
+static inline void
+katherine1_udp_pin_remote(katherine_udp_t *u)
+{
+    (void) u;
+}
+
 // emulator.h -- see the file header for why this is conditional.
 #ifdef KATHERINE_EMU_CRD_SIZE
 
@@ -776,6 +796,8 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 #define katherine_udp_set_remote(...)             katherine1_udp_set_remote(__VA_ARGS__)
 #define katherine_udp_mutex_lock(...)             katherine1_udp_mutex_lock(__VA_ARGS__)
 #define katherine_udp_mutex_unlock(...)           katherine1_udp_mutex_unlock(__VA_ARGS__)
+#define katherine_udp_fini(...)                   katherine1_udp_fini(__VA_ARGS__)
+#define katherine_udp_pin_remote(...)             katherine1_udp_pin_remote(__VA_ARGS__)
 
 #ifdef KATHERINE_EMU_CRD_SIZE
 #define katherine_emu_init(...)     katherine1_emu_init(__VA_ARGS__)
