@@ -55,11 +55,25 @@ typedef enum katherine_tpx3_readout_mode {
 KATHERINE_EXPORTED const char *
 katherine_str_readout_mode(katherine_tpx3_readout_mode_t mode);
 
-/** The quantities a hit carries, and so the hit type the decoder yields for it. */
+/**
+ * The quantities a hit carries, and so the hit type the decoder yields for it.
+ *
+ * \note Each mode sets its own per-pixel rate ceiling, through the dead time
+ *   one hit costs the pixel: 19 + ToT clock cycles for
+ *   KATHERINE_TPX3_PX_TOA_TOT and KATHERINE_TPX3_PX_ONLY_TOA, 3 + ToT for
+ *   KATHERINE_TPX3_PX_EVENT_COUNT_ITOT, with ToT counted in those same
+ *   cycles. Sustained over the whole matrix the link binds first, at roughly
+ *   1.2 kHz per pixel in the first two modes.
+ * \internal
+ * Timepix3 manual v2.0 sec. 2.1.9, which prints (19 + ToT) * (1 / f_clk) and
+ * calls it f_max -- a period named as a frequency. The rate is its
+ * reciprocal, which is the reading the ~1.2 kHz figure in the same paragraph
+ * agrees with.
+ */
 typedef enum katherine_tpx3_px_mode {
     KATHERINE_TPX3_PX_TOA_TOT          = 0, ///< Time of arrival and time over threshold.
     KATHERINE_TPX3_PX_ONLY_TOA         = 1, ///< Time of arrival alone.
-    KATHERINE_TPX3_PX_EVENT_COUNT_ITOT = 2, ///< How many events the pixel saw, and their summed time over threshold.
+    KATHERINE_TPX3_PX_EVENT_COUNT_ITOT = 2, ///< How many events the pixel saw, and their summed time over threshold. Belongs with KATHERINE_TPX3_READOUT_SEQUENTIAL: in the data-driven pairing the shutter closing can start a readout in every pixel at once, which the chip's manual declines to recommend for the power spike it draws. In either pairing a pixel holding unread data of this mode rejects further hits until it is read or the matrix is reset, so a shutter reopened without a readout in between collects nothing.
 } katherine_tpx3_px_mode_t;
 
 KATHERINE_EXPORTED const char *
