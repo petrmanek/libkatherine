@@ -297,9 +297,9 @@ local f_payload_bytes    = ProtoField.bytes("katherine.payload", "Payload (bytes
 local f_payload_float    = ProtoField.float("katherine.payload_float", "Payload (float)")
 local f_payload_uint     = ProtoField.uint32("katherine.payload_uint", "Payload (unsigned integer)")
 
--- opcode 0x09: acquisition mode setting (byte[0] packed flags)
+-- opcode 0x09: acquisition mode setting (byte[0] mode, byte[1] fast VCO)
 local f_acq_mode         = ProtoField.uint8("katherine.px_mode", "Acquisition mode", base.DEC, ACQ_MODE_NAMES, 0x7F)
-local f_fast_vco         = ProtoField.uint8("katherine.fast_vco_enabled", "Fast VCO enabled", base.DEC, YES_NO, 0x80)
+local f_fast_vco         = ProtoField.uint8("katherine.fast_vco_enabled", "Fast VCO enabled", base.DEC, YES_NO, 0x01)
 
 -- opcode 0x21: acquisition setup (byte[0]/byte[1] packed trigger flags)
 local f_start_trig_en     = ProtoField.uint8("katherine.start_trigger.enabled", "Start trigger enabled", base.DEC, YES_NO, 0x01)
@@ -309,6 +309,19 @@ local f_delayed_start     = ProtoField.uint8("katherine.delayed_start", "Delayed
 local f_end_trig_en       = ProtoField.uint8("katherine.end_trigger.enabled", "End trigger enabled", base.DEC, YES_NO, 0x01)
 local f_end_trig_ch        = ProtoField.uint8("katherine.end_trigger.channel", "End trigger channel", base.DEC, nil, 0x0E)
 local f_end_trig_fall       = ProtoField.uint8("katherine.end_trigger.falling_edge", "End trigger falling edge", base.DEC, YES_NO, 0x10)
+
+-- The second generation reads the same two bytes differently: a 4-bit
+-- channel at bit 1, the edge at 5 and the delay at 6, where the first reads
+-- a 3-bit channel at bit 1, the edge at 4 and the delayed start at 5. The
+-- two agree only for a rising edge on channels 0 to 7 with no delay, so a
+-- capture shows both readings and says which readout each belongs to --
+-- nothing in a single datagram names the generation.
+local f_start_trig_ch2    = ProtoField.uint8("katherine.start_trigger.channel_gen2", "Start trigger channel (Gen2)", base.DEC, nil, 0x1E)
+local f_start_trig_fall2  = ProtoField.uint8("katherine.start_trigger.falling_edge_gen2", "Start trigger falling edge (Gen2)", base.DEC, YES_NO, 0x20)
+local f_delayed_start2    = ProtoField.uint8("katherine.delayed_start_gen2", "Delayed start (Gen2)", base.DEC, YES_NO, 0x40)
+local f_end_trig_ch2      = ProtoField.uint8("katherine.end_trigger.channel_gen2", "End trigger channel (Gen2)", base.DEC, nil, 0x1E)
+local f_end_trig_fall2    = ProtoField.uint8("katherine.end_trigger.falling_edge_gen2", "End trigger falling edge (Gen2)", base.DEC, YES_NO, 0x20)
+local f_end_trig_delay2   = ProtoField.uint8("katherine.end_trigger.delayed_gen2", "Delayed stop (Gen2)", base.DEC, YES_NO, 0x40)
 
 -- opcode 0x26: test pulse setting
 local f_tp_count          = ProtoField.uint16("katherine.test_pulse.count", "Test pulse count", base.DEC)
@@ -378,6 +391,8 @@ katherine_proto.fields = {
     f_acq_mode, f_fast_vco,
     f_start_trig_en, f_start_trig_ch, f_start_trig_fall, f_delayed_start,
     f_end_trig_en, f_end_trig_ch, f_end_trig_fall,
+    f_start_trig_ch2, f_start_trig_fall2, f_delayed_start2,
+    f_end_trig_ch2, f_end_trig_fall2, f_end_trig_delay2,
     f_tp_count, f_tp_period_raw, f_tp_phase, f_tp_digital_only, f_tp_external, f_tp_enabled,
     f_hw_type, f_hw_revision, f_hw_serial, f_fw_version,
     f_comm_lines_mask, f_comm_rate_raw, f_comm_rate_mbps, f_comm_chip_detected,
@@ -472,11 +487,15 @@ local function dissect_control(buffer, pinfo, tree)
         root:add_le(f_payload_uint, buffer(0, 4)):append_text(" (register value)")
 
     elseif opcode == 0x09 then
-        -- Acquisition mode setting: byte[0] packs the mode (bits 0-6) and
-        -- the fast-VCO flag (bit 7). See katherine_tpx3_set_acq_mode() in
-        -- c/src/device/config.c.
+        -- Acquisition mode setting: byte[0] carries the mode, byte[1] the
+        -- fast-VCO flag. The readout merges byte 0 into Op_mode [2:1] and
+        -- byte 1 into Fast_lo_en [6] of its own register image. The flag was
+        -- in byte 0 bit 7 until bf74e77 (2026-08-27), where putting it there
+        -- was found to be the reason the sensor never saw it; this dissector
+        -- still said byte 0 until it was corrected here.
+        -- See katherine_tpx3_set_acq_mode() in c/src/device/config.c.
         root:add(f_acq_mode, buffer(0, 1))
-        root:add(f_fast_vco, buffer(0, 1))
+        root:add(f_fast_vco, buffer(1, 1))
 
     elseif opcode == 0x0B then
         -- Echo chip ID: response decodes to "<letter><row>-W000<wafer>"
@@ -548,12 +567,26 @@ local function dissect_control(buffer, pinfo, tree)
         -- trigger configuration (katherine_set_acquisition_triggers(), c/src/device/config.c).
         root:add(f_sub_address, buffer(4, 1))
         root:add(f_start_trig_en, buffer(0, 1))
-        root:add(f_start_trig_ch, buffer(0, 1))
-        root:add(f_start_trig_fall, buffer(0, 1))
-        root:add(f_delayed_start, buffer(0, 1))
         root:add(f_end_trig_en, buffer(1, 1))
-        root:add(f_end_trig_ch, buffer(1, 1))
-        root:add(f_end_trig_fall, buffer(1, 1))
+
+        -- Both readings, because one datagram cannot say which readout sent
+        -- it. They agree only for a rising edge on channels 0 to 7 with no
+        -- delay; elsewhere a falling edge in the first layout sets the top
+        -- bit of the second layout's channel.
+        local gen1 = root:add(katherine_proto, buffer(0, 2), "Trigger word, first-generation layout")
+        gen1:add(f_start_trig_ch, buffer(0, 1))
+        gen1:add(f_start_trig_fall, buffer(0, 1))
+        gen1:add(f_delayed_start, buffer(0, 1))
+        gen1:add(f_end_trig_ch, buffer(1, 1))
+        gen1:add(f_end_trig_fall, buffer(1, 1))
+
+        local gen2 = root:add(katherine_proto, buffer(0, 2), "Trigger word, second-generation layout")
+        gen2:add(f_start_trig_ch2, buffer(0, 1))
+        gen2:add(f_start_trig_fall2, buffer(0, 1))
+        gen2:add(f_delayed_start2, buffer(0, 1))
+        gen2:add(f_end_trig_ch2, buffer(1, 1))
+        gen2:add(f_end_trig_fall2, buffer(1, 1))
+        gen2:add(f_end_trig_delay2, buffer(1, 1))
 
     elseif opcode == 0x26 then
         -- Test pulse setting (katherine_tpx3_set_test_pulses(), c/src/device/config.c):
