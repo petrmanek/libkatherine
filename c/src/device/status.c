@@ -787,8 +787,11 @@ err_enumerated:
  * \param voltage Retrieved voltage, in Volts, or NULL to discard it
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared, so how many chips it can address is unknown.
+ * \retval KATHERINE_E_STATE if an acquisition is currently started on this
+ *   device, or if the device has been neither enumerated nor declared, so how
+ *   many chips it can address is unknown. Both are preconditions rather than
+ *   communication failures: they are checked before the link's lock is taken
+ *   and before anything is sent.
  * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
  *   katherine_device_info_t::chip_count, which is what a readout reports and
  *   not what it could hold.
@@ -819,6 +822,14 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
     static const uint8_t MONITOR_INDEX[KATHERINE_TPX3_DAC_MONITOR_COUNT] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 28, 29, 30, 31};
 
     katherine_error_t res;
+
+    // The same hazard katherine_get_sensor_temperature() guards, and for the
+    // same reason: the chip's slow-control lanes are carrying the
+    // measurement.
+    if (device->acquisition != NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_busy;
+    }
 
     if (!device->derived_info.supported) {
         res = KATHERINE_E_STATE;
@@ -860,6 +871,7 @@ err_lock:
 err_monitor:
 err_chip_index:
 err_unsupported:
+err_busy:
     return res;
 }
 
@@ -885,8 +897,11 @@ err_unsupported:
  *   katherine_tpx3_dac_monitor_t
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
- *   declared, so how many chips it can address is unknown.
+ * \retval KATHERINE_E_STATE if an acquisition is currently started on this
+ *   device, or if the device has been neither enumerated nor declared, so how
+ *   many chips it can address is unknown. Both are preconditions rather than
+ *   communication failures: they are checked before the link's lock is taken
+ *   and before anything is sent.
  * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
  *   katherine_device_info_t::chip_count, which is what a readout reports and
  *   not what it could hold.
@@ -912,6 +927,14 @@ katherine_error_t
 katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_voltages_t *voltages)
 {
     katherine_error_t res;
+
+    // The same hazard katherine_get_sensor_temperature() guards, and for the
+    // same reason: the chip's slow-control lanes are carrying the
+    // measurement.
+    if (device->acquisition != NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_busy;
+    }
 
     if (!device->derived_info.supported) {
         res = KATHERINE_E_STATE;
@@ -954,5 +977,6 @@ err_send:
 err_lock:
 err_chip_index:
 err_unsupported:
+err_busy:
     return res;
 }

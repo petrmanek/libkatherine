@@ -70,6 +70,37 @@ test_sensor_temperature_refused_while_running(void)
     KT_CHECK_EXACT(temperature, 0.0f);
 }
 
+// The DAC scan is the other chip-addressed inquiry the readout cannot serve
+// while the lanes are carrying a measurement, and it had no guard at all. The
+// singular and the plural are separate entry points and are checked
+// separately, because one of them having the guard says nothing about the
+// other.
+static void
+test_dac_monitor_refused_while_running(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+
+    // Declared as a supported two-chip readout, so that chip 0 is a chip this
+    // device has and the refusal under test is the only one in the way.
+    device.derived_info.supported = true;
+    device.info.chip_count        = 2;
+
+    katherine_acquisition_t acq;
+    memset(&acq, 0, sizeof(acq));
+    device.acquisition = &acq;
+
+    float voltage = 0.0f;
+    KT_CHECK_EQ(katherine_tpx3_get_dac_monitor_voltage(&device, 0, KATHERINE_TPX3_DAC_MONITOR_BANDGAP_OUTPUT, &voltage),
+        KATHERINE_E_STATE);
+    KT_CHECK_EXACT(voltage, 0.0f);
+
+    katherine_tpx3_dac_voltages_t voltages;
+    memset(&voltages, 0, sizeof(voltages));
+    KT_CHECK_EQ(katherine_tpx3_get_dac_monitor_voltages(&device, 0, &voltages), KATHERINE_E_STATE);
+    KT_CHECK_EXACT(voltages.array[0], 0.0f);
+}
+
 static void
 test_guard_is_the_first_thing_the_call_does(void)
 {
@@ -382,6 +413,7 @@ int
 main(void)
 {
     KT_RUN(test_sensor_temperature_refused_while_running);
+    KT_RUN(test_dac_monitor_refused_while_running);
     KT_RUN(test_guard_is_the_first_thing_the_call_does);
     KT_RUN(test_failed_begin_leaves_the_device_idle);
     KT_RUN(test_fast_vco_refused_where_incoherent);
