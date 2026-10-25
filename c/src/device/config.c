@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <math.h>
 #include <stdlib.h>
 #include <katherine/config.h>
 #include <katherine/device.h>
@@ -539,8 +540,11 @@ err_lock:
  *   session kept delivering responses belonging to other commands.
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for a send or a
  *   receive; see katherine_transport_get_last_os_error().
- * \retval KATHERINE_E_INVAL if the control link rejected an argument of the
- *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_INVAL if \p ns is negative, infinite or a NaN, or
+ *   larger than the first generation's encoding can carry -- refused before
+ *   the generation is consulted and before anything is sent -- or if the
+ *   control link rejected an argument of the exchange; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
@@ -551,6 +555,16 @@ katherine_error_t
 katherine_set_acq_time(katherine_device_t *device, double ns)
 {
     katherine_error_t res;
+
+    // The Gen1 encoding is (int64_t) (ns / 10), and converting a double that
+    // does not fit int64 -- a NaN among them -- is undefined rather than
+    // merely wrong. Gen2 would take the NaN as far as the readout. Neither
+    // is a value a shutter can have, so both are refused here, once, rather
+    // than in each generation's encoder.
+    if (!isfinite(ns) || ns < 0.0 || ns / 10.0 > 9.2e18) {
+        res = KATHERINE_E_INVAL;
+        goto err_range;
+    }
 
     // Generation-dependent, so it needs to know the generation. A device that
     // has been neither enumerated nor declared has a zeroed derived record,
@@ -577,6 +591,7 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
 
 err_set_acq_time:
 err_unsupported:
+err_range:
     return res;
 }
 

@@ -29,6 +29,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 
 #include <katherine/katherine.h>
@@ -99,6 +100,29 @@ test_dac_monitor_refused_while_running(void)
     memset(&voltages, 0, sizeof(voltages));
     KT_CHECK_EQ(katherine_tpx3_get_dac_monitor_voltages(&device, 0, &voltages), KATHERINE_E_STATE);
     KT_CHECK_EXACT(voltages.array[0], 0.0f);
+}
+
+// A shutter time that is not a number reached (int64_t) (ns / 10.) on the
+// first generation, where converting a double that does not fit is undefined
+// rather than merely wrong, and reached the readout as a NaN on the second.
+// Refused before the generation is consulted, so a zeroed device is enough to
+// reach the check.
+static void
+test_an_impossible_shutter_time_is_refused(void)
+{
+    katherine_device_t device;
+    memset(&device, 0, sizeof(device));
+    device.derived_info.supported = true;
+    device.derived_info.gen       = 2;
+
+    const double bad[] = {NAN, INFINITY, -INFINITY, -1.0, -1e9, 1e30};
+    for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); ++i) {
+        KT_CHECK_EQ(katherine_set_acq_time(&device, bad[i]), KATHERINE_E_INVAL);
+    }
+
+    // A value that passes is deliberately not exercised: it would go on to
+    // lock a transport this device does not have. Only the refusal is
+    // reachable without a readout, as with the guard above.
 }
 
 static void
@@ -414,6 +438,7 @@ main(void)
 {
     KT_RUN(test_sensor_temperature_refused_while_running);
     KT_RUN(test_dac_monitor_refused_while_running);
+    KT_RUN(test_an_impossible_shutter_time_is_refused);
     KT_RUN(test_guard_is_the_first_thing_the_call_does);
     KT_RUN(test_failed_begin_leaves_the_device_idle);
     KT_RUN(test_fast_vco_refused_where_incoherent);
