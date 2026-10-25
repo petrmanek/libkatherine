@@ -28,6 +28,32 @@ either as a CMake variable or in the environment:
   LIBUSB_ROOT=C:/libusb-1.0.30 cmake -DKATHERINE_TRANSPORT_USB=ON
 #]=======================================================================]
 
+# libusb_init_context() is what this library opens a session with, and it
+# arrived in libusb 1.0.27 (LIBUSB_API_VERSION 0x0100010A). Without this
+# check an older libusb configures cleanly and fails later as an implicit
+# declaration or an undefined reference, neither of which names the cause.
+function(katherine_require_libusb_version)
+    get_target_property(_inc katherine::libusb INTERFACE_INCLUDE_DIRECTORIES)
+    if(_inc)
+        set(CMAKE_REQUIRED_INCLUDES "${_inc}")
+    endif()
+    include(CheckCSourceCompiles)
+    check_c_source_compiles("
+#include <libusb.h>
+#if !defined(LIBUSB_API_VERSION) || LIBUSB_API_VERSION < 0x0100010A
+#error libusb too old
+#endif
+int main(void) { return 0; }
+" KATHERINE_LIBUSB_IS_NEW_ENOUGH)
+    if(NOT KATHERINE_LIBUSB_IS_NEW_ENOUGH)
+        message(FATAL_ERROR
+            "libusb-1.0 is older than 1.0.27, which is where libusb_init_context() "
+            "arrived; KATHERINE_TRANSPORT_USB needs it. Upgrade libusb, point "
+            "LIBUSB_ROOT at a newer one, or configure with "
+            "-DKATHERINE_TRANSPORT_USB=OFF.")
+    endif()
+endfunction()
+
 function(katherine_find_libusb out_var)
     if(TARGET katherine::libusb)
         set(${out_var} TRUE PARENT_SCOPE)
@@ -39,6 +65,7 @@ function(katherine_find_libusb out_var)
         pkg_check_modules(KATHERINE_LIBUSB QUIET IMPORTED_TARGET libusb-1.0)
         if(TARGET PkgConfig::KATHERINE_LIBUSB)
             add_library(katherine::libusb ALIAS PkgConfig::KATHERINE_LIBUSB)
+            katherine_require_libusb_version()
             set(${out_var} TRUE PARENT_SCOPE)
             return()
         endif()
@@ -92,5 +119,6 @@ function(katherine_find_libusb out_var)
             INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}")
     endif()
 
+    katherine_require_libusb_version()
     set(${out_var} TRUE PARENT_SCOPE)
 endfunction()
