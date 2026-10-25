@@ -398,6 +398,70 @@ that zeroing the array first showed how far the sequence got -- is gone,
 a part of an answer not being distinguishable from the caller's own
 values.
 
+### A call on something that was never opened answers instead of crashing
+
+`katherine_device_init()` zeroes the device before the first step that can
+fail, so a caller who ignores its error and carries on holds one with no
+link. Twenty-one public calls used to dereference it; ten more joined them
+once `katherine_device_declare()` had been used on such a device, because
+the guard they relied on establishes enumeration rather than an open link.
+All of them now answer `KATHERINE_E_STATE`, which is what the other
+twenty-eight already answered in the same situation.
+
+The same for an acquisition that `katherine_acquisition_init()` never
+filled, or that `katherine_acquisition_fini()` has released:
+`katherine_acquisition_begin()`, `_abort()`, `_stop()` and `_read()`
+answer `KATHERINE_E_STATE` rather than following a null device. An
+acquisition is spent after `fini()`, not reset; reuse means `init()`
+again.
+
+`katherine_transport_get_last_os_error()` answers 0 on a transport with no
+link. It is where a failure sends the caller, and a failure early enough
+leaves nothing open, so it was the one call that could not be made after
+the failure it reports on. The other transport operations still require a
+link the caller opened.
+
+### Arguments that cannot be carried are refused
+
+`katherine_set_acq_time()` and `katherine_set_bias()` refuse a value that
+is not a number, and the shutter time also refuses a negative one and one
+too large for the readout's tick count; the conversion of a NaN to the
+wire format was undefined behaviour. `katherine_tpx3_set_acq_mode()`
+refuses a pixel mode outside the enumeration, which used to reach the
+sensor as the low two bits of whatever was passed -- a combination the
+chip does not define. DAC values and sensor register indices are still
+transmitted unchecked, as 1.x transmitted them, with
+`katherine_tpx3_dacs_validate()` the opt-in check.
+
+`katherine_tpx3_get_dac_monitor_voltage()` and `_voltages()` are refused
+while an acquisition is running, as `katherine_get_sensor_temperature()`
+already was: the readout answers the scan on the data lanes a measurement
+is using.
+
+### An acquisition counts the bytes it took off the link
+
+`katherine_acquisition_t` gains `received_measurement_data`, the number of
+bytes read from the data link, counted whether or not the stream is
+decoded. `dropped_measurement_data` and `truncated_measurement_data` say
+what was lost; this says what arrived, which is what a caller needs to
+tell a quiet readout from a quiet link. Mirrored in the C++ and Python
+acquisitions.
+
+### The USB transport states its libusb floor
+
+Configuring with `KATHERINE_TRANSPORT_USB` on a libusb older than 1.0.27
+now fails at configure time with the reason, instead of configuring
+cleanly and failing at the link with an unhelpful error: the code uses
+`libusb_init_context()`, which that release introduced.
+
+### Smaller, in the bindings
+
+A closed Python `Device` or `Acquisition` renders as
+`<katherine.Device [closed]>` rather than raising, which is what a closed
+file does; every other member still raises `ValueError`. The Wireshark
+dissector reads the trigger word at the offsets the library has been
+sending since the clock rework, and shows both generations' layouts.
+
 ## 1.1.0 — 2026-08-25
 
 The last release of the 1.x line before the 2.0 redesign. Highlights:
