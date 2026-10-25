@@ -679,7 +679,7 @@ katherine_emu_init(katherine_emu_t *emu, const katherine_emu_profile_t *profile)
     // provenance of the historical preset katherine_general_config_word()
     // (cmd_interface.h) reproduces by pinning those same three bits on
     // every write. A client that always writes GeneralConfig before first
-    // use, as katherine_configure() does, never observes the difference.
+    // use, as katherine_tpx3_configure() does, never observes the difference.
 
     if (profile != NULL) {
         emu->profile = *profile;

@@ -1028,12 +1028,12 @@ err_device:
  *   device has been neither enumerated nor declared, or is one this version
  *   cannot drive. Refused here rather than at
  *   the first katherine_acquisition_read(), so a caller learns before the
- *   detector is made sensitive; katherine_configure() would refuse it anyway,
- *   on the acquisition time.
+ *   detector is made sensitive; katherine_tpx3_configure() would refuse it
+ *   anyway, on the acquisition time.
  * \retval KATHERINE_E_BAD_CHIP if the readout reports no chips at all, chip 0
- *   included. katherine_configure() addresses chip 0 at every per-chip step,
- *   so a device enumerated as carrying nothing fails there; see
- *   katherine_device_info_t::chip_count.
+ *   included. katherine_tpx3_configure() addresses every chip the
+ *   configuration carries, so a device enumerated as carrying nothing fails
+ *   at the first of them; see katherine_device_info_t::chip_count.
  */
 katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_config_t *config, bool decode_data)

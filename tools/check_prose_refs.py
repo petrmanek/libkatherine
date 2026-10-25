@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Every katherine_*() and katherine_*_t::member a comment names must exist.
+"""Every katherine_*() and katherine_*_t::member a comment names must exist,
+and must be the 2.0 spelling of it.
 
 Doc blocks in this tree point the reader at other functions constantly --
 "see katherine_transport_get_last_os_error()", "asked for by
@@ -9,6 +10,13 @@ as a \\ref, the compiler never reads a comment, and the name still looks
 plausible. Four such references had accumulated by 2.0, one of them eight
 times in a single header, and two doc blocks still named fields of the 1.x
 katherine_config_t.
+
+The second half is the rename that does *not* dangle. katherine1.h defines
+every 1.x call spelling as a macro, so a 2.0 doc block that says
+"katherine_configure()" names something this tree really has -- the shim's
+alias -- and reads as correct to the check above. Seven such references had
+accumulated by 2.0. A name the shim defines and nothing else declares is
+the 1.x spelling, and only katherine1.h may use it.
 
 Run it with no arguments:
 
@@ -30,6 +38,10 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TREES = ("c/include", "c/src", "cxx/include", "python")
 SUFFIXES = (".c", ".h", ".hpp", ".pxd", ".pyx")
+SHIM = os.path.join(ROOT, "c", "include", "katherine", "katherine1.h")
+
+# An alias the 1.x shim defines, function-like or object-like.
+SHIM_DEFINE = re.compile(r"^\s*#\s*define\s+(katherine_[A-Za-z0-9_]+)")
 
 IDENT = re.compile(r"\bkatherine_[A-Za-z0-9_]+\b")
 # A Doxygen member reference. Doxygen renders an unresolvable one as plain
@@ -78,6 +90,36 @@ def declared():
     return names
 
 
+def shim_aliases():
+    """Call spellings katherine1.h defines and no other source declares.
+
+    A name the shim aliases *and* the library declares -- katherine_set_bias
+    is both -- is the 2.0 name as well, and naming it is right. Only the
+    ones that exist nowhere else are the 1.x spellings.
+    """
+    defined = set()
+    try:
+        with open(SHIM, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = SHIM_DEFINE.match(line)
+                if m:
+                    defined.add(m.group(1))
+    except OSError:
+        return set()
+
+    elsewhere = set()
+    for path in sources():
+        if os.path.abspath(path) == SHIM:
+            continue
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if line.lstrip().startswith(NOT_CODE):
+                    continue
+                elsewhere.update(IDENT.findall(line))
+
+    return defined - elsewhere
+
+
 def aggregates():
     """Each aggregate's body, under its tag and under its typedef name."""
     bodies, alias = {}, {}
@@ -110,6 +152,7 @@ def aggregates():
 def main():
     known = declared()
     bodies = aggregates()
+    legacy = shim_aliases()
     if not known:
         print("FAIL no katherine_* identifiers found at all; is %s a checkout?" % ROOT)
         return 1
@@ -126,6 +169,8 @@ def main():
                     seen += 1
                     if name not in known:
                         dangling.append((rel, number, "%s(), which this tree does not define" % name))
+                    elif name in legacy and os.path.abspath(path) != SHIM:
+                        dangling.append((rel, number, "%s(), which only katherine1.h defines -- the 1.x spelling" % name))
                 for type_name, member in MEMBER.findall(line):
                     seen += 1
                     if type_name not in bodies:

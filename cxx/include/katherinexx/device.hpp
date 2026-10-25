@@ -497,7 +497,7 @@ public:
     }
 
     // The following methods each drive one step of detector/readout
-    // configuration; configure() runs the whole sequence katherine_configure()
+    // configuration; configure() runs the whole sequence katherine_tpx3_configure()
     // does in the C API. Kept here (rather than on katherine::config, which
     // only models the parameter struct) to match where the Python wrapper
     // puts the equivalent calls: on the device.

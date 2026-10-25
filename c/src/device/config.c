@@ -622,7 +622,7 @@ err_range:
  *
  * libkatherine has never sent this command, so every acquisition to date --
  * on both generations -- has run on whatever the readout powers up with.
- * katherine_configure() still does not send it, deliberately: what a good
+ * katherine_tpx3_configure() still does not send it, deliberately: what a good
  * value is depends on the data rate, and the one sweep taken so far was
  * measured against a self-triggering matrix and is not evidence of anything.
  * Until that is redone at a real rate this stays a setting a caller may
@@ -743,7 +743,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
 
     // The merge above only touches the readout's image; the sensor needs the
     // image flushed to it. Skipping the flush leaves the chip in whatever
-    // state katherine_configure() last pushed -- Op_mode 0 with the fast
+    // state katherine_tpx3_configure() last pushed -- Op_mode 0 with the fast
     // oscillator on -- so every acquisition silently yielded ToA+ToT data
     // regardless of the mode asked for.
     res = katherine_cmd_hw_sensor_config_registers_update(&device->control_transport);
@@ -1953,7 +1953,7 @@ katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
  * the configuration after this call invalidates both, and a call that fails
  * leaves them untouched.
  *
- * \see katherine_configure(), katherine_tpx3_set_all_pixel_config(),
+ * \see katherine_tpx3_configure(), katherine_tpx3_set_all_pixel_config(),
  *   katherine_tpx3_set_dacs()
  *
  * \param device Katherine device
