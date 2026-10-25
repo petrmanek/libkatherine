@@ -574,6 +574,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                buffer) but never miss a real truncation. */ \
             if (received == acq->md_buffer_size) ++acq->truncated_measurement_data; \
 \
+            /* Counted before the branch, not inside it: data_received is an \
+               else-if, so without this a caller could never see decoded hits \
+               and byte volume in the same run. */ \
+            acq->received_measurement_data += received; \
+\
             if (acq->decode_data) { \
                 const char *it = (const char *) lent; \
                 /* Whole data only: the trailing fragment of a datagram cut \
@@ -1044,6 +1049,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     acq->requested_frame_duration   = config->common.acq_time / 1e9;
     acq->dropped_measurement_data   = 0;
     acq->truncated_measurement_data = 0;
+    acq->received_measurement_data  = 0;
 
     acq->pixel_buffer_valid     = 0;
     acq->pixel_buffer_max_valid = 0;

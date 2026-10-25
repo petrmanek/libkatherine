@@ -217,6 +217,16 @@ typedef struct katherine_acquisition {
      */
     uint64_t truncated_measurement_data;
 
+    /**
+     * Bytes of measurement data taken off the link since
+     * katherine_acquisition_begin(), counted whether or not they were
+     * decoded. The one quantity a decoding run and a raw run can be
+     * compared on, which is what a loss measurement in data-driven mode
+     * needs: there is no sent-count to compare against there, so the only
+     * yardstick is the same acquisition's own byte volume.
+     */
+    uint64_t received_measurement_data;
+
     uint64_t acq_start_time; ///< Internal: when the acquisition began, in nanoseconds on a monotonic clock whose zero is arbitrary. What katherine_acquisition_t::fail_timeout is counted from, and a difference of two such readings is the only thing it is good for.
     int report_timeout;      ///< Milliseconds of silence from the readout after which a partly filled pixel buffer is delivered; zero disables. Tested only when a receive has timed out, so the readout's silence is noticed in steps of the data link's own receive timeout and never sooner than one; katherine_transport_set_timeout() is what shortens that step.
     int fail_timeout;        ///< Milliseconds allowed past the requested measurement's own duration before the acquisition is declared timed out; zero disables.

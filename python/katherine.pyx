@@ -2295,6 +2295,11 @@ cdef class Acquisition:
        return self._acq().truncated_measurement_data
 
     @property
+    def received_measurement_data(self):
+       """Bytes of measurement data taken off the link, decoded or not."""
+       return self._acq().received_measurement_data
+
+    @property
     def dropped_input(self):
        """Measurement data the OS dropped for want of room in its receive queue.
 

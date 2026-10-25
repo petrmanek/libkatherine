@@ -328,6 +328,7 @@ test_acquisition(void)
     v.completed_frames           = 5;
     v.dropped_measurement_data   = 2;
     v.truncated_measurement_data = 1;
+    v.received_measurement_data  = 98304;
     v.md_buffer_size             = 4096;
     v.pixel_buffer_size          = 8192;
 
@@ -336,7 +337,7 @@ test_acquisition(void)
     CHECK_GOLDEN(n, buf,
         "acquisition{state: succeeded, readout_mode: data_driven, px_mode: only_toa, aborted: true, "
         "requested_frames: 5, completed_frames: 5, dropped_measurement_data: 2, truncated_measurement_data: 1, "
-        "md_buffer_size: 4096, pixel_buffer_size: 8192}");
+        "received_measurement_data: 98304, md_buffer_size: 4096, pixel_buffer_size: 8192}");
 }
 
 static void

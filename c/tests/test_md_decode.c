@@ -144,6 +144,7 @@ typedef struct decode_probe {
     int completed_frames;
     size_t dropped;
     uint64_t truncated;
+    uint64_t received;
 } decode_probe_t;
 
 static void
@@ -271,6 +272,7 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     probe->completed_frames = acq.completed_frames;
     probe->dropped          = acq.dropped_measurement_data;
     probe->truncated        = acq.truncated_measurement_data;
+    probe->received         = acq.received_measurement_data;
 
     katherine_acquisition_fini(&acq);
     katherine_transport_fini(&dev.control_transport);
@@ -536,6 +538,11 @@ test_exact_fit_datagram_counts_as_maybe_truncated(void)
     KT_CHECK_EQ(probe.truncated, 1u);
     KT_CHECK_EQ(probe.frames_ended, 1u);
 
+    // Every byte that arrived is counted whether or not it was decoded, which
+    // is the only yardstick a data-driven loss measurement has: there is no
+    // sent-count on that path to compare against.
+    KT_CHECK_EQ(probe.received, (uint64_t) (MD_BUFFER_MDS * KATHERINE_MD_SIZE));
+
     // One datum short of the capacity: the same stream, nothing suspected.
     store_md(stream, MD_BUFFER_MDS - 2, make_frame_finished(MD_BUFFER_MDS - 3));
     lens[0] = (MD_BUFFER_MDS - 1) * KATHERINE_MD_SIZE;
@@ -543,6 +550,7 @@ test_exact_fit_datagram_counts_as_maybe_truncated(void)
 
     KT_CHECK_EQ(probe.truncated, 0u);
     KT_CHECK_EQ(probe.frames_ended, 1u);
+    KT_CHECK_EQ(probe.received, (uint64_t) ((MD_BUFFER_MDS - 1) * KATHERINE_MD_SIZE));
 }
 
 // ------------------------------------------------------------------

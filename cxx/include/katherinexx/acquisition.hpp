@@ -252,6 +252,8 @@ public:
     std::size_t dropped_measurement_data() const { return acq_.dropped_measurement_data; }
     /// Measurement data that arrived cut short of a whole word.
     std::uint64_t truncated_measurement_data() const { return acq_.truncated_measurement_data; }
+    /// Bytes taken off the link, decoded or not; the yardstick a loss measurement in data-driven mode has.
+    std::uint64_t received_measurement_data() const { return acq_.received_measurement_data; }
 
     /**
      * Measurement data the OS dropped for want of room in its receive queue.

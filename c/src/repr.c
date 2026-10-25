@@ -567,11 +567,12 @@ katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition
     size_t off = 0;
     REPR_APPENDF(buf, cap, off,
         "acquisition{state: %s, readout_mode: %s, px_mode: %s, aborted: %s, requested_frames: %d, completed_frames: %d, "
-        "dropped_measurement_data: %zu, truncated_measurement_data: %llu, md_buffer_size: %zu, pixel_buffer_size: %zu}",
+        "dropped_measurement_data: %zu, truncated_measurement_data: %llu, received_measurement_data: %llu, md_buffer_size: %zu, pixel_buffer_size: %zu}",
         katherine_str_acquisition_state(v->state), katherine_str_readout_mode(v->readout_mode),
         katherine_str_px_mode(v->px_mode), katherine_str_bool(v->aborted),
         v->requested_frames, v->completed_frames, v->dropped_measurement_data,
-        (unsigned long long) v->truncated_measurement_data, v->md_buffer_size, v->pixel_buffer_size);
+        (unsigned long long) v->truncated_measurement_data, (unsigned long long) v->received_measurement_data, v->md_buffer_size,
+        v->pixel_buffer_size);
     return (int) off;
 }
 
