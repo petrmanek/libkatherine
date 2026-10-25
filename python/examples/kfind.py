@@ -6,6 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import sys
 from functools import reduce
 from katherine import Device
 
@@ -27,9 +28,36 @@ def check_address(a0, a1, a2, a3):
     return True
 
 
+def refuse(message):
+    print('%s: error parsing address range, %s' % (sys.argv[0], message), file=sys.stderr)
+    sys.exit(1)
+
+
+def parse_range(component):
+    # One dotted component, either `n` or `n-m`, as the C and C++ examples read it.
+    lo, dash, hi = component.partition('-')
+    try:
+        return (int(lo), int(hi) if dash else int(lo))
+    except ValueError:
+        refuse('invalid range specified')
+
+
+def parse_args(argv, mins, maxs):
+    if len(argv) < 2:
+        return
+
+    components = argv[1].split('.')
+    if len(components) != 4:
+        refuse('expected 3 dots (got %d)' % (len(components) - 1))
+
+    for i, component in enumerate(components):
+        mins[i], maxs[i] = parse_range(component)
+
+
 def search_range():
     mins = [192, 168, 1, 100]
     maxs = [192, 168, 1, 200]
+    parse_args(sys.argv, mins, maxs)
 
     n_hosts = reduce(lambda x, y: x*y, [maxs[i] - mins[i] + 1 for i in range(4)])
     print('Testing %d hosts.\t Start: %s,\t End: %s' % (n_hosts, format_ip(mins), format_ip(maxs)))
@@ -46,7 +74,8 @@ def search_range():
                     n_found += 1 if found else 0
 
     print('Done. Tested %d hosts (%d found).' % (n_attempted, n_found))
+    return 0 if n_found > 0 else 1
 
 
 if __name__ == '__main__':
-    search_range()
+    sys.exit(search_range())
