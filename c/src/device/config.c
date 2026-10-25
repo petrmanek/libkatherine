@@ -1872,7 +1872,7 @@ katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
  *
  * \param device Katherine device
  * \param chip_index Index of the chip to ask about
- * \param check Where the two flags are written, or NULL to discard them
+ * \param check Destination for the two flags, or NULL to discard them
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_UNSUPPORTED if the readout is of the first generation,

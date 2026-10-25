@@ -30,7 +30,7 @@
 #include "protocol/cmd_interface.h"
 
 /**
- * What a session is opened at when its caller names no size of its own.
+ * The size a session is opened at when its caller names none of its own.
  * Small on purpose: a control session never reads measurement data, and a
  * data session is told the size it wants at construction.
  */
@@ -60,7 +60,7 @@ typedef struct katherine_transport_udp {
  * Send a command on the session.
  * \param ctx Session to send on.
  * \param data Bytes to send.
- * \param count How many.
+ * \param count Entries it holds.
  *
  * \retval KATHERINE_E_OK once every byte is on the wire.
  * \retval KATHERINE_E_TIMEOUT if sendto(2) would have blocked; a datagram

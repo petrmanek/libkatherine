@@ -98,7 +98,7 @@ katherine_udp_snprint(char *buf, size_t cap, const katherine_udp_t *v);
 
 /** A UDP session to open: which ports it binds and talks to, and how it behaves once open. */
 typedef struct katherine_udp_config {
-    const char *local_address;  ///< Address to bind to, or NULL for every address the host has.
+    const char *local_address;  ///< Address to bind to, or NULL for every address of the host.
     uint16_t local_port;        ///< Port to bind to; zero asks the OS for a free one.
     const char *remote_address; ///< Readout this session addresses.
     uint16_t remote_port;       ///< Port on the readout.

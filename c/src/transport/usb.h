@@ -117,8 +117,8 @@ typedef struct katherine_usb_config {
 
     struct libusb_device_handle *handle; ///< Handle belonging to \p ctx; see it.
 
-    uint8_t ep_out;                ///< Endpoint written to, or zero for a transport that sends nothing.
-    uint8_t ep_in;                 ///< Endpoint read from, or zero for a transport that receives nothing.
+    uint8_t ep_out;                ///< Endpoint written to, or zero on a transport with no send path.
+    uint8_t ep_in;                 ///< Endpoint read from, or zero on a transport with no receive path.
     katherine_usb_stream_t stream; ///< Read strategy, where a ring was asked for.
     uint32_t queue_len;            ///< Reads kept outstanding by KATHERINE_USB_STREAM_ASYNC.
     uint32_t buffer_size;          ///< Bytes one read can carry, or zero for the ring's own default.

@@ -37,7 +37,7 @@ static const uint32_t DISCOVER_TIMEOUT = 100; // ms
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
- * One row: the hardware type a readout reports, and what it means.
+ * One row: the hardware type a readout reports, and the conclusions drawn from it.
  *
  * The key sits beside the derived information rather than inside it, because
  * the hardware type is something the readout said -- it belongs to
@@ -46,11 +46,11 @@ static const uint32_t DISCOVER_TIMEOUT = 100; // ms
  */
 typedef struct {
     uint8_t hw_type;                         ///< Key: the reported hardware type
-    katherine_device_derived_info_t derived; ///< What that type means
+    katherine_device_derived_info_t derived; ///< The conclusions this table draws from that type.
 } katherine_device_row_t;
 
 /**
- * Hardware types a readout can report, and what each one is.
+ * Hardware types a readout can report, with the row each one resolves to.
  *
  * The recognition map is ported from the reference implementation, which is
  * the only upstream source for it. Note what that source does NOT contain: it
@@ -538,7 +538,7 @@ katherine_device_fini(katherine_device_t *device)
  * derive it differently.
  *
  * \param device Device to describe
- * \param info What the readout is; the caller owns being right, chip_count
+ * \param info The readout's identity, taken as given; the caller owns being right, chip_count
  *   included: it is taken as given, and a device declared with none has no
  *   chip a per-chip call will accept.
  *

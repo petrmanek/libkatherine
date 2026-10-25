@@ -63,19 +63,19 @@ store_float(uint8_t *dst, float value)
 static uint32_t
 encode_chip_id(const char *s)
 {
-    unsigned int x = 0, y = 0, w = 0;
+    uint32_t x = 0, y = 0, w = 0;
     const char *it = s;
 
     if (*it >= 'A' && *it <= 'Z') {
-        x = (unsigned int) (*it++ - 'A');
+        x = (uint32_t) (*it++ - 'A');
     } else if (*it >= 'a' && *it <= 'z') {
-        x = (unsigned int) (*it++ - 'a');
+        x = (uint32_t) (*it++ - 'a');
     } else {
         return 0;
     }
 
     while (*it >= '0' && *it <= '9') {
-        y = 10 * y + (unsigned int) (*it++ - '0');
+        y = 10 * y + (uint32_t) (*it++ - '0');
     }
 
     // Skip the wafer prefix, whatever separator spelling it uses.
@@ -83,7 +83,7 @@ encode_chip_id(const char *s)
     if (*it != '\0') ++it;
 
     while (*it >= '0' && *it <= '9') {
-        w = 10 * w + (unsigned int) (*it++ - '0');
+        w = 10 * w + (uint32_t) (*it++ - '0');
     }
 
     return (uint32_t) (((w & 0xFFF) << 8) | ((y & 0xF) << 4) | ((x + 1) & 0xF));

@@ -208,8 +208,7 @@ katherine_tpx3_timestamp_to_seconds(uint64_t timestamp, uint64_t *sec, double *n
  * \param ftoa Fine ticks the hit preceded its coarse tick by, or NULL.
  */
 void
-katherine_tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t phase_offset,
-    uint64_t timestamp, uint64_t *toa, uint8_t *ftoa)
+katherine_tpx3_timestamp_to_toa_ftoa(uint8_t coarse_tick_to_fine_shift, uint8_t phase_offset, uint64_t timestamp, uint64_t *toa, uint8_t *ftoa)
 {
     const uint8_t bias_shift = katherine_toa_epoch_bias_shift(coarse_tick_to_fine_shift);
     const uint64_t fine_mask = ((uint64_t) 1 << coarse_tick_to_fine_shift) - 1u;

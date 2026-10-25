@@ -958,7 +958,7 @@ err_setsockopt:
  * a reading here is closer to what was asked for than the POSIX counterpart's.
  *
  * \param u UDP session
- * \param bytes Where to store the size, in bytes
+ * \param bytes Destination for the size, in bytes
  *
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_INVAL if bytes is NULL, or the option or its size was

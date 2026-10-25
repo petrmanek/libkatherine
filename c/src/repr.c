@@ -380,7 +380,7 @@ katherine_tpx3_dac_voltages_snprint(char *buf, size_t cap, const katherine_tpx3_
 }
 
 /**
- * Render what one GPIO channel reads. The tick counts are rendered only for
+ * Render the monitor reading of one GPIO channel. The tick counts are rendered only for
  * a channel whose period was measured, there being nothing to say about the
  * others.
  * \copydetails katherine_tpx3_coord_snprint
@@ -421,7 +421,7 @@ katherine_tdc_counts_snprint(char *buf, size_t cap, const katherine_tdc_counts_t
 }
 
 /**
- * Render what every GPIO channel reads.
+ * Render the monitor reading of every GPIO channel.
  * \copydetails katherine_tpx3_coord_snprint
  */
 int

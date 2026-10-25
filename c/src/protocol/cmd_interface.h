@@ -51,8 +51,8 @@ extern "C" {
 #define KATHERINE_CMD_OPCODE_BYTE        6
 
 /**
- * Byte of a command, and of a response, carrying the sub-index: which
- * register an acquisition-unit or trigger-generator access means. The
+ * Byte of a command, and of a response, carrying the sub-index: the
+ * register an acquisition-unit or trigger-generator access names. The
  * readout echoes it back, so a response can be matched to the register it
  * answers for and not merely to the command.
  */
@@ -1080,8 +1080,8 @@ K_DEFINE_CMD_ARG1(cmd_send64_i64, set_dac_pll_vcntrl,                       int6
  */
 typedef enum katherine_acq_unit_reg {
     KATHERINE_ACQ_UNIT_REG_TRIGGER_SETUP        = 0x05, ///< Trigger source and edge, in the low half-word.
-    KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY  = 0x06, ///< Ticks between the trigger and the shutter opening.
-    KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY = 0x07, ///< Ticks between the trigger and the shutter closing.
+    KATHERINE_ACQ_UNIT_REG_SHUTTER_START_DELAY  = 0x06, ///< Ticks between the trigger and the shutter's rise.
+    KATHERINE_ACQ_UNIT_REG_SHUTTER_FINISH_DELAY = 0x07, ///< Ticks between the trigger and the shutter's fall.
     KATHERINE_ACQ_UNIT_REG_GPIO_DIRECTION_SETUP = 0x09, ///< Channel directions, with the multiplexer fields of the first two channels. Reads back the channel levels and which tick counters are valid.
     KATHERINE_ACQ_UNIT_REG_MULTIPLEXER_SETUP    = 0x0A, ///< Multiplexer fields of the remaining channels.
     KATHERINE_ACQ_UNIT_REG_GPI_HIGH_TIME_0      = 0x0B, ///< Ticks channel 0 last spent high. Every timed channel takes two registers from here, the high time before the low.
@@ -1089,7 +1089,7 @@ typedef enum katherine_acq_unit_reg {
     KATHERINE_ACQ_UNIT_REG_GPIO_TERMINATION_EN  = 0x16, ///< Terminations, one bit per channel.
 } katherine_acq_unit_reg_t;
 
-/** Channels the acquisition unit times, which is fewer than a readout has. */
+/** Channels the acquisition unit times, fewer than a readout's total. */
 #define KATHERINE_ACQ_UNIT_GPIO_TIMED_CHANNELS 4
 
 /** Width of one channel's field in the output multiplexer. */

@@ -42,7 +42,7 @@
 #include "protocol/cmd_interface.h"
 
 /**
- * How many event-handling passes closing waits through before saying the
+ * Event-handling passes closing waits through before saying the
  * cancellation again and settling in to wait it out. At 20 ms a pass this is
  * one second, which is what usb-skeleton.c gives its anchored URBs before it
  * escalates to usb_kill_anchored_urbs().
@@ -62,7 +62,7 @@ typedef struct katherine_transport_usb katherine_transport_usb_t;
 /** One read's place in the ring. */
 typedef struct katherine_ring_slot {
     struct libusb_transfer *xfer;      ///< The read itself, or NULL on a synchronous transport.
-    uint8_t *buf;                      ///< Where that read lands, a whole word longer than the capacity; see the allocation.
+    uint8_t *buf;                      ///< Buffer that read lands in, a whole word longer than the capacity; see the allocation.
     int len;                           ///< Bytes the last completion brought back.
     katherine_ring_slot_state_t state; ///< Who owns the buffer right now.
     int taken;                         ///< Bytes of len already lent out; see next_run().
@@ -74,7 +74,7 @@ typedef struct katherine_ring_slot {
 struct katherine_transport_usb {
     libusb_context *ctx;           ///< This transport's own libusb session.
     libusb_device_handle *handle;  ///< The readout, once opened.
-    katherine_usb_config_t config; ///< What it was opened with, queue_len resolved to what was allocated.
+    katherine_usb_config_t config; ///< The configuration it was opened with, queue_len resolved to what was allocated.
 
     // The completion callback can run on any thread pumping this context, so
     // everything it touches is under this lock and it only records what came back.
@@ -88,12 +88,12 @@ struct katherine_transport_usb {
 
     katherine_ring_slot_t *slots; ///< The ring, config.queue_len of them.
     uint32_t *ready;              ///< Indices of filled slots, oldest first.
-    uint32_t ready_head;          ///< Where the next slot to lend out sits in ready.
-    uint32_t ready_count;         ///< How many of ready hold a slot.
+    uint32_t ready_head;          ///< Index in ready of the next slot to lend out.
+    uint32_t ready_count;         ///< Entries of ready holding a slot.
     uint32_t inflight;            ///< Reads the bus has not answered yet.
 
-    int last_os_error;            ///< What katherine_transport_get_last_os_error() reports: a libusb code, or an errno from a mutex.
-    bool draining;                ///< Set while closing, so a completion reposts nothing.
+    int last_os_error;            ///< The code katherine_transport_get_last_os_error() reports: a libusb code, or an errno from a mutex.
+    bool draining;                ///< True if the link is closing, when a completion reposts no slot.
     bool owns_device;             ///< True if this transport opened the readout itself, and so tears down whichever of the context, handle and claim it got as far as. False where it adopted another transport's.
     uint64_t framing_errors;      ///< Data frames whose padding was not the four zero bytes it must be; read through katherine_transport_usb_get_framing_errors().
     uint64_t discarded_transfers; ///< Reads whose completion was neither success, timeout nor cancellation, and whose bytes were therefore dropped; read through katherine_transport_usb_get_discarded_transfers().
@@ -332,7 +332,7 @@ err_submit:
  * Send a command on the OUT endpoint.
  * \param ctx Link to send on.
  * \param data Bytes to send.
- * \param count How many.
+ * \param count Entries it holds.
  *
  * \retval KATHERINE_E_OK once every byte is on the bus.
  * \retval KATHERINE_E_TIMEOUT if the transfer did not complete within the
@@ -1009,7 +1009,7 @@ static const katherine_transport_ops_t usb_ops_stream_async = {
 
 /**
  * Read one decimal field of an address, which never exceeds a byte.
- * \param text Where to read from.
+ * \param text Source to read from.
  * \param out Storage for the value.
  * \return Where reading stopped, or NULL for anything that is not such a field.
  */
@@ -1106,7 +1106,7 @@ err_bus:
  * \param cap Its capacity.
  * \param bus Bus the readout is on.
  * \param ports Chain down to it.
- * \param port_count How many entries it has.
+ * \param port_count Entries it holds.
  * \return Bytes the address needs, as snprintf() counts them.
  */
 static int
@@ -1127,7 +1127,7 @@ usb_location_format(char *buf, size_t cap, uint8_t bus, const uint8_t *ports, ui
  * libusb_open_device_with_vid_pid(), which this replaces, takes the first match
  * and offers no way to say which.
  * \param device Device to test.
- * \param config What was asked for.
+ * \param config The configuration asked for.
  * \return True if it matches.
  */
 static bool
@@ -1160,7 +1160,7 @@ usb_device_matches(libusb_device *device, const katherine_usb_config_t *config)
  * Caller owns closing the handle. The list is released first, as
  * libusb_get_device_list() requires; safe because opening took its own reference.
  * \param u Link to open into.
- * \param config What to look for.
+ * \param config The configuration to look for.
  * \return KATHERINE_E_OK on success.
  */
 static katherine_error_t
@@ -1178,7 +1178,7 @@ usb_open_matching(katherine_transport_usb_t *u, const katherine_usb_config_t *co
     // Counted before anything is opened: an address naming no socket means "the one
     // readout on this host", and two make that a question with no answer.
     libusb_device *chosen = NULL;
-    unsigned matched      = 0;
+    uint32_t matched      = 0;
 
     for (ssize_t i = 0; i < count; ++i) {
         if (!usb_device_matches(list[i], config)) continue;
