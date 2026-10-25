@@ -129,7 +129,7 @@ typedef enum katherine_acquisition_state {
     KATHERINE_ACQUISITION_STATE_NOT_STARTED = 0, ///< The detector is not sensitive, call katherine_acquisition_begin to start measurement.
     KATHERINE_ACQUISITION_STATE_RUNNING     = 1, ///< The detector is sensitive and collecting data, call katherine_acquisition_read() to retrieve its output or katherine_acquisition_{stop,abort}() to interrupt it. Note that for decode_data == false, only katherine_acquisition_abort() is viable.
     KATHERINE_ACQUISITION_STATE_SUCCEEDED   = 2, ///< The detector is no longer sensitive, the last measurement data arrived and the measurement concluded in an orderly manner.
-    KATHERINE_ACQUISITION_STATE_TIMED_OUT   = 3, ///< Communications timeout. Either the detector is still measuring and the data flow was disrupted, or the device was powered off unexpectedly. This is also a common failure mode if decode_data == false, and the user fails to call katherine_acquisition_abort() at the end of the measurement.
+    KATHERINE_ACQUISITION_STATE_TIMED_OUT   = 3, ///< Every end of a read that is not an orderly one, the name notwithstanding: a communications timeout, where the detector may still be measuring and the data flow was disrupted or the device was powered off; and equally a link that closed or failed under the read. Which it was is in katherine_acquisition_read()'s return code, not here. A common end if decode_data == false and katherine_acquisition_abort() is not called when the measurement is over.
 } katherine_acquisition_state_t;
 
 /**
