@@ -416,6 +416,25 @@ test_g_sense_refuses_an_undeclared_readout(void)
     katherine_transport_fini(&device.control_transport);
 }
 
+// h) A bias that is not a number never reaches the supply. The magnitude is
+// deliberately unbounded -- what a sensor can take belongs to the assembly --
+// but a NaN or an infinity is four bytes the firmware has no reading for, and
+// it is refused before the link is touched.
+static void
+test_h_a_bias_that_is_not_a_number_is_refused(void)
+{
+    katherine_device_t device;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+
+    KT_CHECK_EQ(katherine_set_bias(&device, BIAS_ID_GEN2, NAN), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_set_bias(&device, BIAS_ID_GEN2, INFINITY), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_set_bias(&device, BIAS_ID_GEN2, -INFINITY), KATHERINE_E_INVAL);
+    expect_nothing_sent();
+
+    katherine_transport_fini(&device.control_transport);
+}
+
 int
 main(void)
 {
@@ -432,6 +451,7 @@ main(void)
     KT_RUN(test_e_the_supply_index_goes_in_both_bytes);
     KT_RUN(test_f_sense_refuses_the_first_generation_without_asking);
     KT_RUN(test_g_sense_refuses_an_undeclared_readout);
+    KT_RUN(test_h_a_bias_that_is_not_a_number_is_refused);
 
     mocks_fini();
     return kt_summary();

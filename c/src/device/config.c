@@ -768,9 +768,12 @@ err_lock:
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the send or
  *   the receive; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if \p bias_index is not one this readout provides,
- *   or if the control link rejected an argument of the exchange; see
- *   katherine_transport_get_last_os_error(). The bias value itself is not
- *   validated here.
+ *   if \p bias_value is infinite or a NaN, or if the control link rejected an
+ *   argument of the exchange; see katherine_transport_get_last_os_error().
+ *   The magnitude is **not** bounded here: what a sensor can take is a
+ *   property of the assembly, not of this library, and no safe default
+ *   exists that is also useful. Only values that are not numbers at all are
+ *   refused.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
  */
@@ -787,6 +790,15 @@ katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_va
     if (bias_index >= device->derived_info.bias_supply_count) {
         res = KATHERINE_E_INVAL;
         goto err_bias_id;
+    }
+
+    // Not a magnitude limit -- that belongs to the assembly, and a wrong one
+    // here would be worse than none. This refuses only what is not a voltage:
+    // a NaN or an infinity reaches the supply as four bytes the firmware has
+    // no reading for.
+    if (!isfinite(bias_value)) {
+        res = KATHERINE_E_INVAL;
+        goto err_bias_value;
     }
 
     res = katherine_transport_mutex_lock(&device->control_transport);
@@ -807,6 +819,7 @@ err_recv:
 err_send:
     (void) katherine_transport_mutex_unlock(&device->control_transport);
 err_lock:
+err_bias_value:
 err_bias_id:
 err_enumerated:
     return res;
