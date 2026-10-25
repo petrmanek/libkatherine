@@ -33,6 +33,28 @@
  * take carries the buffer's capacity in, so NULL earns
  * ::KATHERINE_E_INVAL rather than a discarded result.
  *
+ * \par Threads
+ * The data and control planes are independent links and may be driven from
+ * different threads. A read loop holds the data link for its whole
+ * duration; a control exchange takes the control link, and the transports
+ * serialise their own callers, so two threads issuing commands to one
+ * device interleave exchanges rather than corrupting one.
+ *
+ * \par
+ * Slow control during a measurement is therefore legal, with one class of
+ * exception that is about the hardware rather than about threads: an
+ * inquiry needing the chip's slow-control lanes cannot be served while
+ * those lanes carry hits, and the calls that need them --
+ * ::katherine_get_sensor_temperature(),
+ * ::katherine_tpx3_get_dac_monitor_voltage() and its plural -- refuse with
+ * ::KATHERINE_E_STATE while an acquisition is open on the device.
+ * Readout-level inquiries have no such limit.
+ *
+ * \par
+ * ::katherine_acquisition_abort() is the one call meant to be made from a
+ * thread other than the one inside ::katherine_acquisition_read(); that is
+ * what ends a read loop that would otherwise wait out its timeout.
+ *
  * \par
  * One pair looks like an exception and is not.
  * ::KATHERINE_TDC_SOURCE_GPIO_0 is 0 while
