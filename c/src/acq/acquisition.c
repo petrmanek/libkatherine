@@ -117,6 +117,21 @@ handle_acquisition_interrupted(katherine_acquisition_t *acq)
     }
 }
 
+// The four timestamp words are a tail, and on the second generation the
+// readout sends one tail per chip: ARM_APP/main.c loops
+// `for (i = 0; i < chip_number; i++) sendFrameTail(i);` at both of its call
+// sites, and sendFrameTail() ORs (chip_index & 0xF) << 32 into the 0x8 word.
+//
+// This library keeps neither. md_time_lsb is MASK(32), so the chip index is
+// discarded, and the four handlers assign unconditionally, so on a two-chip
+// readout katherine_frame_info_t::start_time and ::end_time end up holding
+// whichever chip's tail arrived last. A caller referencing a chip-0 hit to
+// the frame start is then referencing the wrong chip's shutter edge.
+//
+// Left as it is deliberately: which chip a single pair of fields should
+// describe is an interface question, and the emulator emits one tail
+// whatever chip_count says, so nothing in the suite can see the difference
+// yet. Whether the two chips' timers agree at all is unmeasured.
 static inline void
 handle_frame_start_timestamp_lsb(katherine_acquisition_t *acq, const uint64_t *data)
 {
