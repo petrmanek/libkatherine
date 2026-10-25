@@ -97,6 +97,10 @@ katherine_add_test(NAME test_acq_unopened SOURCES test_acq_unopened.c LABELS uni
 # test_tp does and for the same reason -- the flush, the send and the receive
 # of a transaction happen inside one library call.
 katherine_add_test(NAME test_cmd_transact SOURCES test_cmd_transact.c LABELS unit)
+# Two threads on one device's control plane, against a stub that widens the
+# window between a send and its answer. No sockets and no fixed ports, so it
+# needs no serial slot.
+katherine_add_test(NAME test_control_serial SOURCES test_control_serial.c LABELS unit)
 katherine_add_test(NAME test_acq_unit SOURCES test_acq_unit.c LABELS unit
     PROPERTIES SKIP_RETURN_CODE 77)
 katherine_add_test(NAME test_tdc SOURCES test_tdc.c LABELS unit
