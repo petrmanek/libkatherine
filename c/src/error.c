@@ -22,7 +22,7 @@
 static const char *const KATHERINE_ERROR_STRINGS[KATHERINE_ERROR_COUNT] = {
     [KATHERINE_E_OK]          = "success",
     [KATHERINE_E_TIMEOUT]     = "operation timed out",
-    [KATHERINE_E_IO]          = "transport i/o error",
+    [KATHERINE_E_IO]          = "i/o error",
     [KATHERINE_E_CLOSED]      = "session closed",
     [KATHERINE_E_ADDRESS]     = "address resolution or bind failed",
     [KATHERINE_E_BAD_CRD]     = "malformed command response",

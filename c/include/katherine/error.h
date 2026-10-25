@@ -46,7 +46,7 @@ typedef enum katherine_error {
 
     // transport
     KATHERINE_E_TIMEOUT, ///< The operation did not complete within its deadline.
-    KATHERINE_E_IO,      ///< A send, receive or socket setup call failed at the OS level; see katherine_transport_get_last_os_error().
+    KATHERINE_E_IO,      ///< A send, receive or socket setup call failed at the OS level, or a file could not be opened or read. On a link, see katherine_transport_get_last_os_error(); on a file there is none to ask for.
     KATHERINE_E_CLOSED,  ///< The session is no longer usable.
     KATHERINE_E_ADDRESS, ///< An address could not be resolved or bound.
 
