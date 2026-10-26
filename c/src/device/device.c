@@ -500,6 +500,32 @@ katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)
 }
 
 /**
+ * Bias every supply down without asking for a polarity change.
+ *
+ * E13 asks for the supplies to be parked on close. It cannot be done with
+ * 0.0f: the Gen2 firmware chooses a supply's polarity from the sign of the
+ * request, testing `if (bias_voltage > 0)` on the float as sent, so zero
+ * falls in the negative arm and parking would request a polarity flip.
+ * Track Lab sends 1 V for this reason.
+ *
+ * KATHERINE_BIAS_PARK_VOLTS is smaller and still positive. The firmware
+ * divides by ADC_COMP (0.935) before the test, which preserves the sign,
+ * and quantises at BIAS_Q (0.1953 V) after it -- so the request takes the
+ * positive arm and lands below one step: the supply reads zero and its
+ * polarity never moves.
+ *
+ * Errors are swallowed. A readout that cannot be parked is not a reason to
+ * abandon a close that has other work to finish.
+ */
+static void
+park_bias_supplies(katherine_device_t *device)
+{
+    for (uint8_t i = 0; i < device->derived_info.bias_supply_count; ++i) {
+        (void) katherine_set_bias(device, i, KATHERINE_BIAS_PARK_VOLTS);
+    }
+}
+
+/**
  * Finalize Katherine device.
  * \param device Device to finalize.
  *
@@ -522,6 +548,8 @@ katherine_device_fini(katherine_device_t *device)
     // defined in both builds.
     assert(device->acquisition == NULL);
     if (device->acquisition != NULL) return;
+
+    if (device->control_transport.ops != NULL) park_bias_supplies(device);
 
     // Put the readout back on the standard pair, or the next client finds it
     // apparently dead.

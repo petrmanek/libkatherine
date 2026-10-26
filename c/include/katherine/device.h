@@ -160,6 +160,17 @@ katherine_device_derived_info_recognize(uint8_t hw_type);
 #define KATHERINE_DEVICE_PRIV_SIZE 64
 
 /**
+ * Volts katherine_device_fini() parks each bias supply at.
+ *
+ * Positive on purpose and not zero: a Gen2 readout picks a supply's
+ * polarity from the sign of the request, and zero counts as negative, so
+ * parking at 0.0f would ask for a polarity flip on every close. This value
+ * is below the supply's own quantisation step, so it reads as zero volts
+ * while leaving the polarity where it was.
+ */
+#define KATHERINE_BIAS_PARK_VOLTS  0.001f
+
+/**
  * Opaque storage for a device's private state.
  *
  * A caller has no business reading this. The second member is there for its
