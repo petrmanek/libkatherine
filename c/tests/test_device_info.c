@@ -288,7 +288,7 @@ test_asic_names(void)
 static void
 test_unpopulated_prints_as_such(void)
 {
-    char buf[128];
+    char buf[256];
 
     const katherine_device_derived_info_t none = katherine_device_derived_info_recognize(0xFF);
     int n                                      = katherine_device_derived_info_snprint(buf, sizeof(buf), &none);
@@ -300,6 +300,14 @@ test_unpopulated_prints_as_such(void)
     KT_CHECK(n > 0);
     KT_CHECK(strstr(buf, "Katherine for Timepix3") != NULL);
     KT_CHECK(strstr(buf, "Timepix3") != NULL);
+    KT_CHECK(strstr(buf, "bias_volts: -300..300") != NULL);
+
+    // A range this version has not established says so, rather than printing
+    // the NaN pair that holds it.
+    const katherine_device_derived_info_t monique = katherine_device_derived_info_recognize(0x25);
+    n                                             = katherine_device_derived_info_snprint(buf, sizeof(buf), &monique);
+    KT_CHECK(n > 0);
+    KT_CHECK(strstr(buf, "bias_volts: unknown") != NULL);
 }
 
 int

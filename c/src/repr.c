@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -125,9 +126,21 @@ katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_dev
 
     REPR_APPENDF(buf, cap, off,
         "device_derived_info{name: %s, chip_type: %s, gen: %u, max_chip_count: %u, "
-        "bias_supply_count: %u, accessible_gpio_count: %u, all_gpio_count: %u, tdc_channel_count: %u, pulse_channel_count: %u, supported: %s}",
+        "bias_supply_count: %u, ",
         v->name, katherine_str_chip_type(v->chip_type), (unsigned) v->gen,
-        (unsigned) v->max_chip_count, (unsigned) v->bias_supply_count,
+        (unsigned) v->max_chip_count, (unsigned) v->bias_supply_count);
+
+    // A range this version has not established is NaN in both halves, which
+    // "%g" would render as a pair of nans and a reader would take for a
+    // supply that emits nothing.
+    if (isnan(v->bias_min_volts) || isnan(v->bias_max_volts)) {
+        REPR_APPENDF(buf, cap, off, "bias_volts: unknown, ");
+    } else {
+        REPR_APPENDF(buf, cap, off, "bias_volts: %g..%g, ", (double) v->bias_min_volts, (double) v->bias_max_volts);
+    }
+
+    REPR_APPENDF(buf, cap, off,
+        "accessible_gpio_count: %u, all_gpio_count: %u, tdc_channel_count: %u, pulse_channel_count: %u, supported: %s}",
         (unsigned) v->accessible_gpio_count, (unsigned) v->all_gpio_count, (unsigned) v->tdc_channel_count, (unsigned) v->pulse_channel_count,
         katherine_str_bool(v->supported));
     return (int) off;
