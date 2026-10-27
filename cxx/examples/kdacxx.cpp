@@ -240,23 +240,22 @@ cmd_list(const kdac_args& args)
     if (args.json) std::printf("[");
 
     for (int i = 0; i < KATHERINE_TPX3_DAC_COUNT; ++i) {
-        const auto dac            = static_cast<katherine_tpx3_dac_t>(i);
-        const std::uint16_t max   = katherine_tpx3_dac_max(dac);
-        katherine_dac_unit_t unit = KATHERINE_DAC_UNIT_VOLT;
-        const double max_si       = katherine_tpx3_dac_to_si(dac, max, &unit);
+        const auto dac          = static_cast<katherine_tpx3_dac_t>(i);
+        const std::uint16_t max = katherine::tpx3::dac_max(dac);
+        const auto max_si       = katherine::tpx3::dac_to_si(dac, max);
 
         if (args.json) {
             std::printf(
                 "%s\n  {\"index\":%d,\"name\":\"%s\",\"max\":%u,\"max_si\":%.6g,\"unit\":\"%s\"}",
-                i == 0 ? "" : ",", i, katherine_tpx3_dac_name(dac), max, max_si,
-                unit_symbol(unit));
+                i == 0 ? "" : ",", i, katherine_tpx3_dac_name(dac), max, max_si.value,
+                unit_symbol(max_si.unit));
         } else if (args.si) {
             std::printf("%2d  %-20s  max %4u  %.6g %s\n", i, katherine_tpx3_dac_name(dac), max,
-                max_si, unit_symbol(unit));
+                max_si.value, unit_symbol(max_si.unit));
         } else {
             std::printf(
                 "%2d  %-20s  max %4u  %s\n", i, katherine_tpx3_dac_name(dac), max,
-                unit_symbol(unit));
+                unit_symbol(max_si.unit));
         }
     }
 
@@ -363,10 +362,9 @@ cmd_set(katherine::device& device, const kdac_args& args)
     if (args.json) return 0;
 
     if (args.si) {
-        katherine_dac_unit_t unit = KATHERINE_DAC_UNIT_VOLT;
-        const double si           = katherine_tpx3_dac_to_si(dac, value, &unit);
-        std::printf("%s = %u (%.6g %s) on chip %u\n", katherine_tpx3_dac_name(dac), value, si,
-            unit_symbol(unit), static_cast<unsigned>(args.chip_index));
+        const auto si = katherine::tpx3::dac_to_si(dac, value);
+        std::printf("%s = %u (%.6g %s) on chip %u\n", katherine_tpx3_dac_name(dac), value, si.value,
+            unit_symbol(si.unit), static_cast<unsigned>(args.chip_index));
     } else {
         std::printf("%s = %u on chip %u\n", katherine_tpx3_dac_name(dac), value,
             static_cast<unsigned>(args.chip_index));
@@ -411,15 +409,14 @@ cmd_scan(katherine::device& device, const kdac_args& args)
         device.set_dac(args.chip_index, dac, static_cast<std::uint16_t>(code));
         const float voltage = device.dac_monitor_voltage(args.chip_index, monitor);
 
-        katherine_dac_unit_t unit = KATHERINE_DAC_UNIT_VOLT;
-        const double si           = katherine_tpx3_dac_to_si(dac, static_cast<std::uint16_t>(code), &unit);
+        const auto si = katherine::tpx3::dac_to_si(dac, static_cast<std::uint16_t>(code));
 
         if (args.json) {
             std::printf("%s\n  {\"code\":%u,\"setpoint_si\":%.6g,\"unit\":\"%s\",\"volt\":%.6g}",
-                code == first ? "" : ",", code, si, unit_symbol(unit),
+                code == first ? "" : ",", code, si.value, unit_symbol(si.unit),
                 static_cast<double>(voltage));
         } else if (args.si) {
-            std::printf("%4u  %12.6g %s  %.4f V\n", code, si, unit_symbol(unit),
+            std::printf("%4u  %12.6g %s  %.4f V\n", code, si.value, unit_symbol(si.unit),
                 static_cast<double>(voltage));
         } else {
             std::printf("%4u  %.4f V\n", code, static_cast<double>(voltage));

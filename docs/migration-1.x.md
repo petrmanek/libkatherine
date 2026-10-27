@@ -414,6 +414,19 @@ carries: `device`, `base_acquisition` and `acquisition<>`, `acq_state`,
 `frame_info`, `trigger`, `polarity`, the GPIO, timing-unit and
 pulse-generator types, and the error types.
 
+One C++ signature changes with the namespace, and it is the last of the
+three shapes `katherine_tpx3_dac_to_si()` had. C's optional out-parameter
+became a reference the caller had to declare first; it is now a returned
+pair, as `tpx3::timestamp_seconds` and `tpx3::toa_ftoa` already were:
+
+```cpp
+katherine_dac_unit_t unit = KATHERINE_DAC_UNIT_VOLT;      // 1.x
+double si = katherine::dac_to_si(dac, value, unit);
+
+const auto si = katherine::tpx3::dac_to_si(dac, value);   // 2.0
+//    si.value, si.unit
+```
+
 There is no C++ shim and will not be one -- an alias would have to be a
 `using`, and a `using` in `katherine::` is exactly the namespace pollution
 the move exists to end. Every call site fails to compile and the compiler

@@ -138,17 +138,28 @@ dac_max(katherine_tpx3_dac_t dac)
     return katherine_tpx3_dac_max(dac);
 }
 
+/** katherine_tpx3_dac_to_si() paired with the unit it is in. */
+struct dac_si {
+    double value;              ///< The reading, in the unit below.
+    katherine_dac_unit_t unit; ///< Which unit that is.
+};
+
 /**
  * A DAC's digital value in SI units.
  *
  * Which unit that is depends on the DAC -- some bias a current and some a
  * voltage -- so it comes back alongside the number rather than being
- * assumed.
+ * assumed. Returned together rather than through an out-parameter, as
+ * tpx3::timestamp_seconds and tpx3::toa_ftoa are: C's optional out-parameter
+ * has no C++ spelling that is not a reference the caller must declare first.
  */
-inline double
-dac_to_si(katherine_tpx3_dac_t dac, std::uint16_t value, katherine_dac_unit_t& unit)
+inline dac_si
+dac_to_si(katherine_tpx3_dac_t dac, std::uint16_t value)
 {
-    return katherine_tpx3_dac_to_si(dac, value, &unit);
+    katherine_dac_unit_t unit = KATHERINE_DAC_UNIT_VOLT;
+    const double si           = katherine_tpx3_dac_to_si(dac, value, &unit);
+
+    return {si, unit};
 }
 
 /**

@@ -335,10 +335,9 @@ test_clock_helpers(void)
     KT_CHECK_EQ(katherine::tpx3::dac_max(KATHERINE_TPX3_DAC_VTHRESHOLD_FINE), 511u);
     KT_CHECK_EQ(katherine::tpx3::dac_max(KATHERINE_TPX3_DAC_VTHRESHOLD_COARSE), 15u);
 
-    katherine_dac_unit_t unit = KATHERINE_DAC_UNIT_VOLT;
-    const double si           = katherine::tpx3::dac_to_si(KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON, 128, unit);
-    KT_CHECK(si > 0.0);
-    KT_CHECK_EQ(unit, KATHERINE_DAC_UNIT_AMP);
+    const auto si = katherine::tpx3::dac_to_si(KATHERINE_TPX3_DAC_IBIAS_PREAMP_ON, 128);
+    KT_CHECK(si.value > 0.0);
+    KT_CHECK_EQ(si.unit, KATHERINE_DAC_UNIT_AMP);
 
     katherine::tpx3::dacs d{};
     bool threw = false;
