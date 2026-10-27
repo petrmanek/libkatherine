@@ -46,6 +46,8 @@ cdef extern from 'katherine/device.h':
         uint8_t gen
         uint8_t max_chip_count
         uint8_t bias_supply_count
+        float bias_min_volts
+        float bias_max_volts
         uint8_t accessible_gpio_count
         uint8_t all_gpio_count
         uint8_t tdc_channel_count

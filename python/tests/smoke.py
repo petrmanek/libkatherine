@@ -753,6 +753,12 @@ def check_device_declaration(tap, katherine):
     tap.check('tdc_channel_count is reachable', isinstance(dev.derived_info.tdc_channel_count, int))
     tap.check('pulse_channel_count is reachable', isinstance(dev.derived_info.pulse_channel_count, int))
 
+    # What the supplies can emit, which is the readout's capability and not
+    # the attached assembly's safe range.
+    tap.check_eq('the second generation emits +-1000 V',
+                 (dev.derived_info.bias_min_volts, dev.derived_info.bias_max_volts),
+                 (-1000.0, 1000.0))
+
     # The one control call that succeeds without a peer: the readout never
     # acknowledges it, so nothing waits for a reply.
     dev.select_interface()

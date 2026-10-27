@@ -666,6 +666,21 @@ cdef class DeviceDerivedInfo:
          return self._c_info.bias_supply_count
 
     @property
+    def bias_min_volts(self):
+         """Most negative bias this readout's supplies can emit, or NaN where
+         the range has not been established. A supply capability, never a
+         statement about what the attached assembly tolerates: the sensor's
+         own limit is a property of the assembly, which the library cannot
+         see."""
+         return self._c_info.bias_min_volts
+
+    @property
+    def bias_max_volts(self):
+         """Most positive bias this readout's supplies can emit, or NaN where
+         the range has not been established. See bias_min_volts."""
+         return self._c_info.bias_max_volts
+
+    @property
     def accessible_gpio_count(self):
          return self._c_info.accessible_gpio_count
 
