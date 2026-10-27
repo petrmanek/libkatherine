@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <math.h>
 #include <string.h>
 #include <katherine/device.h>
 #include <katherine/error.h>
@@ -85,17 +86,17 @@ typedef struct {
 
 static const katherine_device_row_t KATHERINE_DEVICE_INFO[] = {
     // clang-format off
-  // hw_type    name                      chip_type            gen  chips  bias  gpio: acc/all  tdc  pulse  supported
-    {0x01,    {"Katherine for Timepix3", KATHERINE_CHIP_TPX3, 1,   1,     1,    4,    4,       3,   0,     true}},
-    {0x02,    {"Katherine for Timepix2", KATHERINE_CHIP_TPX2, 1,   1,     0,    0,    0,       0,   0,     false}},
-    {0x03,    {"Katherine for Timepix3", KATHERINE_CHIP_TPX3, 2,   8,     2,    4,    8,       5,   4,     true}},
-    {0x0A,    {"Katherine for Timepix4", KATHERINE_CHIP_TPX4, 1,   1,     0,    0,    0,       0,   0,     false}},
-    {0x20,    {"HardPix for Timepix3",   KATHERINE_CHIP_TPX3, 1,   2,     2,    0,    0,       0,   0,     true}},
-    {0x21,    {"HardPix for Timepix2",   KATHERINE_CHIP_TPX2, 1,   2,     0,    0,    0,       0,   0,     false}},
-    {0x24,    {"Timepix2-Lite",          KATHERINE_CHIP_TPX2, 1,   1,     0,    0,    0,       0,   0,     false}},
-    {0x25,    {"Monique",                KATHERINE_CHIP_TPX3, 1,   1,     1,    0,    0,       0,   0,     true}},
-    {0x26,    {"RFPix",                  KATHERINE_CHIP_TPX2, 1,   1,     0,    0,    0,       0,   0,     false}},
-    {0x27,    {"HardPix2 for Timepix2",  KATHERINE_CHIP_TPX2, 2,   2,     0,    0,    0,       0,   0,     false}},
+  // hw_type name                      chip_type            gen chips bias bias min  bias max acc all tdc pulse supported
+    {0x01, {"Katherine for Timepix3", KATHERINE_CHIP_TPX3, 1, 1, 1, -300.0f,  300.0f,  4, 4, 3, 0, true}},
+    {0x02, {"Katherine for Timepix2", KATHERINE_CHIP_TPX2, 1, 1, 0, -300.0f,  300.0f,  0, 0, 0, 0, false}},
+    {0x03, {"Katherine for Timepix3", KATHERINE_CHIP_TPX3, 2, 8, 2, -1000.0f, 1000.0f, 4, 8, 5, 4, true}},
+    {0x0A, {"Katherine for Timepix4", KATHERINE_CHIP_TPX4, 1, 1, 0, -300.0f,  300.0f,  0, 0, 0, 0, false}},
+    {0x20, {"HardPix for Timepix3",   KATHERINE_CHIP_TPX3, 1, 2, 2, NAN,      NAN,     0, 0, 0, 0, true}},
+    {0x21, {"HardPix for Timepix2",   KATHERINE_CHIP_TPX2, 1, 2, 0, NAN,      NAN,     0, 0, 0, 0, false}},
+    {0x24, {"Timepix2-Lite",          KATHERINE_CHIP_TPX2, 1, 1, 0, NAN,      NAN,     0, 0, 0, 0, false}},
+    {0x25, {"Monique",                KATHERINE_CHIP_TPX3, 1, 1, 1, NAN,      NAN,     0, 0, 0, 0, true}},
+    {0x26, {"RFPix",                  KATHERINE_CHIP_TPX2, 1, 1, 0, NAN,      NAN,     0, 0, 0, 0, false}},
+    {0x27, {"HardPix2 for Timepix2",  KATHERINE_CHIP_TPX2, 2, 2, 0, NAN,      NAN,     0, 0, 0, 0, false}},
     // clang-format on
 };
 

@@ -127,11 +127,26 @@ typedef struct katherine_device_derived_info {
     uint8_t gen;                     ///< Katherine readout generation (indexed from 1), or 0 where it is not applicable.
     uint8_t max_chip_count;          ///< The number of chips this readout hardware can possibly drive. Not necessarily how many are presently attached, see katherine_device_info_t::chip_count for that.
     uint8_t bias_supply_count;       ///< Bias supplies this readout provides, addressed from 0.
-    uint8_t accessible_gpio_count;   ///< GPIO channels brought out where a user can reach them.
-    uint8_t all_gpio_count;          ///< GPIO channels the readout has, reachable or not. At least accessible_gpio_count.
-    uint8_t tdc_channel_count;       ///< The number of channels watched by the readout's timing unit, each with a counter of its own.
-    uint8_t pulse_channel_count;     ///< The number of channels driven by the readout's pulse generator.
-    bool supported;                  ///< Whether this library can drive this readout today. Also the enumeration guard: a device that has been neither enumerated nor declared has this false, because the structure is zeroed, and the generation-dependent calls refuse to run on it.
+
+    /**
+     * Voltage range the readout's supplies can produce, in volts, or NaN
+     * where nobody has established it for this row.
+     *
+     * **This is what the supply can emit, not what an assembly may safely
+     * take.** The sensor's limit belongs to the assembly and is usually far
+     * narrower: a readout able to produce +-1000 V is routinely wired to a
+     * sensor that must never see more than 300 V, or any negative bias at
+     * all. Nothing in this library knows which assembly is attached, so
+     * these bounds refuse only the physically impossible and must not be
+     * read as permission for everything inside them.
+     */
+    float bias_min_volts;
+    float bias_max_volts;          ///< \copydoc katherine_device_derived_info_t::bias_min_volts
+    uint8_t accessible_gpio_count; ///< GPIO channels brought out where a user can reach them.
+    uint8_t all_gpio_count;        ///< GPIO channels the readout has, reachable or not. At least accessible_gpio_count.
+    uint8_t tdc_channel_count;     ///< The number of channels watched by the readout's timing unit, each with a counter of its own.
+    uint8_t pulse_channel_count;   ///< The number of channels driven by the readout's pulse generator.
+    bool supported;                ///< Whether this library can drive this readout today. Also the enumeration guard: a device that has been neither enumerated nor declared has this false, because the structure is zeroed, and the generation-dependent calls refuse to run on it.
 } katherine_device_derived_info_t;
 
 KATHERINE_EXPORTED int

@@ -842,11 +842,20 @@ katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_va
         goto err_bias_id;
     }
 
-    // Not a magnitude limit -- that belongs to the assembly, and a wrong one
-    // here would be worse than none. This refuses only what is not a voltage:
-    // a NaN or an infinity reaches the supply as four bytes the firmware has
+    // A NaN or an infinity reaches the supply as four bytes the firmware has
     // no reading for.
     if (!isfinite(bias_value)) {
+        res = KATHERINE_E_INVAL;
+        goto err_bias_value;
+    }
+
+    // What the supply can emit, where the row says. Still not a magnitude
+    // limit for the sensor -- that belongs to the assembly, nothing here
+    // knows which one is attached, and a wrong one would be worse than none.
+    // Rows whose range nobody has established carry NaN and are not checked.
+    const float lo = device->derived_info.bias_min_volts;
+    const float hi = device->derived_info.bias_max_volts;
+    if (isfinite(lo) && isfinite(hi) && (bias_value < lo || bias_value > hi)) {
         res = KATHERINE_E_INVAL;
         goto err_bias_value;
     }

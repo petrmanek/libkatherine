@@ -29,6 +29,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <math.h>
+
 #include <katherine/katherine.h>
 
 #include "kemu_transport.h"
@@ -140,6 +142,37 @@ test_a_row_with_the_hardware_is_not_refused(void)
     fixture_stop();
 }
 
+// ------------------------------------------------------------------
+// The bias range is a supply capability, not an assembly's safe limit, and
+// the enforcement follows that: a row whose range is known refuses what the
+// supply cannot emit, and a row whose range is NaN refuses nothing.
+
+static void
+test_a_known_supply_range_is_enforced(void)
+{
+    KT_REQUIRE(fixture_start(HW_GEN2)); // -1000 .. 1000 V
+
+    KT_CHECK_EQ(g_device.derived_info.bias_max_volts, 1000.0f);
+    KT_CHECK_EQ(katherine_set_bias(&g_device, 0, 1200.0f), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_set_bias(&g_device, 0, -1200.0f), KATHERINE_E_INVAL);
+    KT_CHECK(katherine_set_bias(&g_device, 0, 300.0f) != KATHERINE_E_INVAL);
+
+    fixture_stop();
+}
+
+static void
+test_an_unestablished_range_refuses_nothing(void)
+{
+    KT_REQUIRE(fixture_start(HW_HARDPIX)); // NaN, NaN
+
+    KT_CHECK(isnan(g_device.derived_info.bias_min_volts));
+    // Still refuses what is not a voltage at all, which is the older check.
+    KT_CHECK_EQ(katherine_set_bias(&g_device, 0, NAN), KATHERINE_E_INVAL);
+    KT_CHECK(katherine_set_bias(&g_device, 0, 5000.0f) != KATHERINE_E_INVAL);
+
+    fixture_stop();
+}
+
 int
 main(void)
 {
@@ -148,5 +181,7 @@ main(void)
     KT_RUN(test_a_row_with_no_timing_channels_refuses_counts);
     KT_RUN(test_a_row_with_no_pulse_channels_refuses_the_generator);
     KT_RUN(test_a_row_with_the_hardware_is_not_refused);
+    KT_RUN(test_a_known_supply_range_is_enforced);
+    KT_RUN(test_an_unestablished_range_refuses_nothing);
     return kt_summary();
 }
