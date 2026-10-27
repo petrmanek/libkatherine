@@ -334,6 +334,21 @@ jobs:
             c_standard: 23
             cxx_standard: 23
             extensions: ON
+          # The two above are the extremes. These two are the middle, which
+          # nothing covered: a local sweep of all twenty configurations the
+          # README promises passed, but CI checked two of them.
+          - name: C17/C++14
+            cc: gcc
+            cxx: g++
+            c_standard: 17
+            cxx_standard: 14
+            extensions: ON
+          - name: C23/C++20 strict
+            cc: clang
+            cxx: clang++
+            c_standard: 23
+            cxx_standard: 20
+            extensions: OFF
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
@@ -360,11 +375,123 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      # The unit label is enough here: the full suite (end-to-end tests
-      # against the daemon) already runs in every leg of the build job, and
-      # a language dialect cannot change what those cover.
+      # The whole suite, not the unit label. The end-to-end tests are
+      # compiled in these legs either way, so restricting the run saved
+      # their runtime and nothing else -- while the README's claim is about
+      # the full suite, and that is the claim this job exists to check.
       - name: Test
-        run: ctest --test-dir build --output-on-failure -L unit --timeout 300
+        run: ctest --test-dir build --output-on-failure --timeout 300
+
+  # Nothing ran `cmake --install` until now, so the exported package -- how a
+  # consumer actually integrates -- was never exercised. It is also where a
+  # real defect was found on 2026-10-25: a USB-only build silently dropped
+  # the emulator it had been asked for, which only an install made visible.
+  install:
+    name: install and consume
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: both transports
+            udp: ON
+            usb: ON
+          - name: UDP only
+            udp: ON
+            usb: OFF
+          - name: USB only
+            udp: OFF
+            usb: ON
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libusb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+
+      - name: Configure
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/prefix
+          -DKATHERINE_TRANSPORT_UDP=${{ matrix.udp }}
+          -DKATHERINE_TRANSPORT_USB=${{ matrix.usb }}
+          -DKATHERINE_BUILD_EMULATOR=ON
+          -DKATHERINE_BUILD_CXX=ON
+          -DKATHERINE_BUILD_PYTHON=OFF
+          -DKATHERINE_BUILD_TESTS=OFF
+          -DKATHERINE_BUILD_EXAMPLES=OFF
+          -DKATHERINE_BUILD_BENCHMARKS=OFF
+
+      - name: Build and install
+        run: |
+          cmake --build build --parallel
+          cmake --install build
+
+      # What a consumer is entitled to: the feature macros naming exactly the
+      # transports that were built, the emulator header where its feature
+      # macro says it is, and a program that compiles on pkg-config's flags.
+      - name: Check what the prefix contains
+        shell: bash
+        run: |
+          set -eu
+          features=$(find "${{ github.workspace }}/prefix" -name features.h)
+          echo "--- $features"; cat "$features"
+          have() { grep -q "^#define $1\b" "$features"; }
+          if [ "${{ matrix.udp }}" = ON ]; then have KATHERINE_FEATURE_UDP; else ! have KATHERINE_FEATURE_UDP; fi
+          if [ "${{ matrix.usb }}" = ON ]; then have KATHERINE_FEATURE_USB; else ! have KATHERINE_FEATURE_USB; fi
+          have KATHERINE_FEATURE_EMULATOR
+          test -f "$(dirname "$features")/emulator.h"
+
+      - name: Build a consumer against the install
+        shell: bash
+        run: |
+          set -eu
+          export PKG_CONFIG_PATH="${{ github.workspace }}/prefix/lib/pkgconfig:${{ github.workspace }}/prefix/lib64/pkgconfig"
+          printf '#include <katherine/katherine.h>\n#include <stdio.h>\nint main(void){puts(katherine_strerror(KATHERINE_E_OK));return 0;}\n' > consumer.c
+          cc consumer.c -o consumer $(pkg-config --cflags --libs katherine)
+          LD_LIBRARY_PATH="${{ github.workspace }}/prefix/lib:${{ github.workspace }}/prefix/lib64" ./consumer
+
+  # Every build switch off on its own, plus the pairs that have bitten. The
+  # pair KATHERINE_BUILD_EMULATOR=OFF with TESTS=ON broke on 2026-10-24 with
+  # 72 errors across three test files and nothing in CI built it.
+  build-options:
+    name: build-option shapes
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libusb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+
+      - name: Configure and build each shape
+        shell: bash
+        run: |
+          set -eu
+          shapes=(
+            ""
+            "-DKATHERINE_BUILD_CXX=OFF"
+            "-DKATHERINE_BUILD_EXAMPLES=OFF"
+            "-DKATHERINE_BUILD_TESTS=OFF"
+            "-DKATHERINE_BUILD_BENCHMARKS=OFF"
+            "-DKATHERINE_BUILD_EMULATOR=OFF"
+            "-DKATHERINE_BUILD_EMULATOR=OFF -DKATHERINE_BUILD_TESTS=ON"
+            "-DKATHERINE_BUILD_CXX=OFF -DKATHERINE_BUILD_EXAMPLES=OFF"
+            "-DKATHERINE_BUILD_EMULATOR=OFF -DKATHERINE_BUILD_CXX=OFF"
+          )
+          for i in "${!shapes[@]}"; do
+            echo "::group::shape $i: ${shapes[$i]:-default}"
+            rm -rf "b$i"
+            # shellcheck disable=SC2086
+            cmake -S . -B "b$i" -DCMAKE_BUILD_TYPE=Release ${shapes[$i]}
+            cmake --build "b$i" --parallel
+            echo "::endgroup::"
+          done
 
   # Address and thread sanitizers, one job each. Both in Debug, since a
   # sanitizer's value is the report and Release's inlining costs the report

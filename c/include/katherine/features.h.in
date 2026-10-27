@@ -35,4 +35,7 @@
 /// Defined where the USB transport was built, so that a `usb://` address opens; see katherine_device_init().
 #cmakedefine KATHERINE_FEATURE_USB
 
+/// Defined where the protocol emulator was built, so that katherine/emulator.h is installed beside this header.
+#cmakedefine KATHERINE_FEATURE_EMULATOR
+
 /** \} */

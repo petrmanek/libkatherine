@@ -138,9 +138,11 @@ if(KATHERINE_BUILD_EMULATOR)
     katherine_add_test(NAME test_config_reserved SOURCES test_config_reserved.c LABELS unit)
 
     katherine_add_test(NAME test_capability_zero SOURCES test_capability_zero.c LABELS unit)
-
-    katherine_add_test(NAME test_port_busy SOURCES test_port_busy.c LABELS unit)
 endif()
+
+# Sockets, not an emulator: this one holds a port with a plain socket and
+# opens a transport on it, so it belongs outside the block above.
+katherine_add_test(NAME test_port_busy SOURCES test_port_busy.c LABELS unit)
 
 # Remote-address pinning of the UDP layer. Sockets, but only through the
 # public katherine_udp_* API and on uncommon high ports of its own, so it

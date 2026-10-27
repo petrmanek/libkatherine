@@ -101,6 +101,7 @@ configure_file(include/katherine/version.h.in "${KATHERINE_VERSION_HEADER}" @ONL
 # one line per transport, in the order the transports are listed everywhere.
 set(KATHERINE_FEATURE_UDP ${KATHERINE_TRANSPORT_UDP})
 set(KATHERINE_FEATURE_USB ${KATHERINE_TRANSPORT_USB})
+set(KATHERINE_FEATURE_EMULATOR ${KATHERINE_BUILD_EMULATOR})
 
 set(KATHERINE_FEATURES_HEADER "${KATHERINE_GENERATED_INCLUDE_DIR}/katherine/features.h")
 configure_file(include/katherine/features.h.in "${KATHERINE_FEATURES_HEADER}")
