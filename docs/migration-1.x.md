@@ -409,7 +409,7 @@ Six names move, and the six acquisition tags with them:
 |---|---|
 | `katherine::config` | `katherine::tpx3::config` |
 | `katherine::px_config` | `katherine::tpx3::px_config` |
-| `katherine::bmc`, `katherine::bpc` | `katherine::tpx3::bmc`, `::bpc` |
+| `katherine::bmc`, `katherine::bpc` | `katherine::tpx3::bmc`, `katherine::tpx3::bpc` |
 | `katherine::test_pulse_config` | `katherine::tpx3::test_pulse_config` |
 | `katherine::phase_correction` | `katherine::tpx3::phase_correction` |
 | `katherine::acq::toa_tot` and its five siblings | `katherine::tpx3::acq::toa_tot` |
