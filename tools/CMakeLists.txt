@@ -56,5 +56,14 @@ if(KATHERINE_BUILD_TESTS)
         set_tests_properties(test_style PROPERTIES
             LABELS "unit;tools"
             TIMEOUT 60)
+
+        # A test case registered under a different #ifdef from the one it
+        # compiles under. The case then silently does not run wherever the
+        # guard drops it, and the suite stays green.
+        add_test(NAME test_guards
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_test_guards.py")
+        set_tests_properties(test_guards PROPERTIES
+            LABELS "unit;tools"
+            TIMEOUT 60)
     endif()
 endif()
