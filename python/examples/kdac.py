@@ -14,6 +14,8 @@ SPDX-License-Identifier: MIT
 
 import sys
 
+from kargs import wants_help
+
 import katherine
 
 # The counts come from the library, as they do in the other two
@@ -59,8 +61,9 @@ def unit_symbol(unit):
     return str(unit)
 
 
-def usage(argv0):
-    sys.stderr.write(
+def usage(out, argv0):
+    """To stdout for --help and to stderr for a usage error."""
+    out.write(
         "usage: {0} [options] <command> [arguments]\n"
         "\n"
         "commands:\n"
@@ -363,9 +366,13 @@ def cmd_scan(device, args):
 
 
 def main(argv):
+    if wants_help(argv):
+        usage(sys.stdout, argv[0])
+        return 0
+
     args = parse_args(argv)
     if args is None:
-        usage(argv[0])
+        usage(sys.stderr, argv[0])
         return 2
 
     if args.command == 'list':

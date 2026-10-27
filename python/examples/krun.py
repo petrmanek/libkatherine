@@ -8,6 +8,8 @@
 
 from timeit import default_timer as timer
 import sys
+
+from kargs import wants_help
 import katherine as k
 
 # Set the following flag to inject test pulses into a small subset of
@@ -176,7 +178,21 @@ def run_acquisition(dev, c):
     print(' - throughput: %f hits/s' % (acq.observer.n_hits / duration))
 
 
+def usage(out, argv0):
+    """To stdout for --help; this example has no usage error to report,
+    every argument being an address."""
+    print('Usage: %s [<address>]' % argv0, file=out)
+    print('  e.g. %s udp://192.168.1.42' % argv0, file=out)
+    print('  Runs one acquisition against the readout and reports its throughput.', file=out)
+    print('  Needs chipconfig.bmc in the working directory.', file=out)
+    print('  With no argument, uses udp://192.168.1.145.', file=out)
+
+
 if __name__ == '__main__':
+    if wants_help(sys.argv):
+        usage(sys.stdout, sys.argv[0])
+        sys.exit(0)
+
     # As krun.c and krunxx.cpp: the first argument names the readout, and
     # the default is what the example ships with.
     remote_address = sys.argv[1] if len(sys.argv) > 1 else 'udp://192.168.1.145'

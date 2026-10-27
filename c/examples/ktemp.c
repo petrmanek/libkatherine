@@ -21,6 +21,8 @@
 // reverse order does not compile under the Windows SDK.
 #include <katherine/katherine.h>
 
+#include "kargs.h"
+
 #ifdef _WIN32
 #include <windows.h> // Sleep
 #else
@@ -132,13 +134,25 @@ fail(const char *address)
     exit(1);
 }
 
+// To stdout for --help and to stderr for a usage error.
+static void
+usage(FILE *out)
+{
+    fprintf(out, "Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>\n");
+    fprintf(out, "  e.g. ktemp --chip udp://192.168.1.42\n");
+}
+
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(stdout);
+        return 0;
+    }
+
     ktemp_args_t args;
     if (!parse_args(argc, argv, &args)) {
-        fprintf(stderr, "Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>\n");
-        fprintf(stderr, "  e.g. ktemp --chip udp://192.168.1.42\n");
+        usage(stderr);
         return 1;
     }
 

@@ -19,6 +19,8 @@
 
 #include <katherinexx/katherinexx.hpp>
 
+#include "kargs.hpp"
+
 namespace {
 
 constexpr int set_all_argc = KATHERINE_TPX3_DAC_COUNT;
@@ -109,10 +111,12 @@ parse_value(const std::string& text, std::uint16_t& out)
     return true;
 }
 
+// To stdout for --help and to stderr for a usage error, which is what lets
+// `kdacxx --help | less` work and a mistake still show up in a pipeline.
 void
-usage(const char *argv0)
+usage(std::FILE *out, const char *argv0)
 {
-    std::fprintf(stderr,
+    std::fprintf(out,
         "usage: %s [options] <command> [arguments]\n"
         "\n"
         "commands:\n"
@@ -433,10 +437,15 @@ cmd_scan(katherine::device& device, const kdac_args& args)
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(stdout, argv[0]);
+        return 0;
+    }
+
     kdac_args args;
 
     if (!parse_args(argc, argv, args)) {
-        usage(argv[0]);
+        usage(stderr, argv[0]);
         return 2;
     }
 

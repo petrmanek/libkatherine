@@ -17,6 +17,8 @@
 
 #include <katherinexx/katherinexx.hpp>
 
+#include "kargs.hpp"
+
 static std::string remote_address{"udp://192.168.1.145"};
 using mode = katherine::tpx3::acq::f_toa_tot;
 
@@ -243,9 +245,26 @@ run_acquisition(katherine::device& dev, const katherine::tpx3::config& c)
               << " - throughput: " << (n_hits / duration) << " hits/s" << std::endl;
 }
 
+// To stdout for --help; this example has no usage error to report, every
+// argument being an address.
+static void
+usage(std::ostream& out, const char *argv0)
+{
+    out << "Usage: " << argv0 << " [<address>]" << std::endl;
+    out << "  e.g. " << argv0 << " udp://192.168.1.42" << std::endl;
+    out << "  Runs one acquisition against the readout and reports its throughput." << std::endl;
+    out << "  Needs chipconfig.bmc in the working directory." << std::endl;
+    out << "  With no argument, uses " << remote_address << "." << std::endl;
+}
+
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(std::cout, argv[0]);
+        return 0;
+    }
+
     // As krun.c: the first argument names the readout, and the default
     // above is what the example ships with.
     if (argc > 1) remote_address = argv[1];

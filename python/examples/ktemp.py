@@ -7,6 +7,8 @@
 # SPDX-License-Identifier: MIT
 
 import sys
+
+from kargs import wants_help
 import time
 from katherine import Device, Error
 
@@ -73,10 +75,20 @@ def poll_temperatures(device, show_readout, show_chip):
     return True, None
 
 
+def usage(out):
+    """To stdout for --help and to stderr for a usage error."""
+    print('Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>', file=out)
+    print('  e.g. ktemp --chip udp://192.168.1.42', file=out)
+
+
 def main():
+    if wants_help(sys.argv):
+        usage(sys.stdout)
+        return
+
     args = parse_args(sys.argv)
     if args is None:
-        print('Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>', file=sys.stderr)
+        usage(sys.stderr)
         sys.exit(1)
 
     show_readout, show_chip, period, address = args

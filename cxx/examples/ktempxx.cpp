@@ -18,6 +18,8 @@
 
 #include <katherinexx/katherinexx.hpp>
 
+#include "kargs.hpp"
+
 struct ktemp_args {
     bool show_readout;
     bool show_chip;
@@ -102,13 +104,25 @@ poll_temperatures(katherine::device& device, const ktemp_args& args, std::string
     return true;
 }
 
+// To stdout for --help and to stderr for a usage error.
+static void
+usage(std::ostream& out)
+{
+    out << "Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>" << std::endl;
+    out << "  e.g. ktemp --chip udp://192.168.1.42" << std::endl;
+}
+
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(std::cout);
+        return 0;
+    }
+
     ktemp_args args;
     if (!parse_args(argc, argv, args)) {
-        std::cerr << "Usage: ktemp [--readout] [--chip] [--period <seconds>] <address>" << std::endl;
-        std::cerr << "  e.g. ktemp --chip udp://192.168.1.42" << std::endl;
+        usage(std::cerr);
         return 1;
     }
 

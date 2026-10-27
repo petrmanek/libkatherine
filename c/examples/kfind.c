@@ -16,6 +16,8 @@
 #include <stdlib.h>  // atoi, exit
 #include <katherine/katherine.h>
 
+#include "kargs.h"
+
 static bool have_address = true;
 static char address[KATHERINE_DEVICE_ADDRESS_STR_SIZE];
 static int cur[] = {0, 0, 0, 0};
@@ -66,12 +68,23 @@ test_ip_address(void)
     katherine_device_fini(&device);
 }
 
+// To stdout for --help and to stderr for a usage error.
+static void
+usage(FILE *out, const char *argv0)
+{
+    fprintf(out, "Usage: %s [<address range>]\n", argv0);
+    fprintf(out, "  e.g. %s 192.168.1.100-200\n", argv0);
+    fprintf(out, "  Each of the four octets may be a number or a lo-hi range.\n");
+    fprintf(out, "  With no argument, scans 192.168.1.100-200.\n");
+}
+
 // abort() does not flush stdio, so a printf() before it is lost whenever
 // stdout is a pipe or a file -- which is every script that runs this.
 static void
 abort_parsing(char *argv[], const char *message)
 {
     fprintf(stderr, "%s: error parsing address range, %s\n", argv[0], message);
+    usage(stderr, argv[0]);
     exit(EXIT_FAILURE);
 }
 
@@ -157,6 +170,11 @@ next_address(void)
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(stdout, argv[0]);
+        return 0;
+    }
+
     parse_args(argc, argv, min, max);
 
     int n_hosts = 1;

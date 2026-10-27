@@ -7,6 +7,8 @@
 # SPDX-License-Identifier: MIT
 
 import sys
+
+from kargs import wants_help
 from functools import reduce
 from katherine import Device
 
@@ -28,8 +30,17 @@ def check_address(a0, a1, a2, a3):
     return True
 
 
+def usage(out):
+    """To stdout for --help and to stderr for a usage error."""
+    print('Usage: %s [<address range>]' % sys.argv[0], file=out)
+    print('  e.g. %s 192.168.1.100-200' % sys.argv[0], file=out)
+    print('  Each of the four octets may be a number or a lo-hi range.', file=out)
+    print('  With no argument, scans 192.168.1.100-200.', file=out)
+
+
 def refuse(message):
     print('%s: error parsing address range, %s' % (sys.argv[0], message), file=sys.stderr)
+    usage(sys.stderr)
     sys.exit(1)
 
 
@@ -55,6 +66,10 @@ def parse_args(argv, mins, maxs):
 
 
 def search_range():
+    if wants_help(sys.argv):
+        usage(sys.stdout)
+        return 0
+
     mins = [192, 168, 1, 100]
     maxs = [192, 168, 1, 200]
     parse_args(sys.argv, mins, maxs)

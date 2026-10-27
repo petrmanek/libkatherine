@@ -17,6 +17,8 @@
 
 #include <katherine/katherine.h>
 
+#include "kargs.h"
+
 static const char *remote_address = "udp://192.168.1.145";
 typedef katherine_tpx3_px_f_toa_tot_t px_t;
 
@@ -357,9 +359,26 @@ run_acquisition(katherine_device_t *dev, const katherine_tpx3_config_t *c)
     katherine_acquisition_fini(&acq);
 }
 
+// To stdout for --help; this example has no usage error to report, every
+// argument being an address.
+static void
+usage(FILE *out, const char *argv0)
+{
+    fprintf(out, "Usage: %s [<address>]\n", argv0);
+    fprintf(out, "  e.g. %s udp://192.168.1.42\n", argv0);
+    fprintf(out, "  Runs one acquisition against the readout and reports its throughput.\n");
+    fprintf(out, "  Needs chipconfig.bmc in the working directory.\n");
+    fprintf(out, "  With no argument, uses %s.\n", remote_address);
+}
+
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(stdout, argv[0]);
+        return 0;
+    }
+
     if (argc > 1) {
         remote_address = argv[1];
     }

@@ -14,6 +14,8 @@
 #include <iostream>
 #include <katherinexx/katherinexx.hpp>
 
+#include "kargs.hpp"
+
 #include "address_source.hpp"
 
 int n_found     = 0;
@@ -48,10 +50,21 @@ test_ip_address(const std::string& address)
     }
 }
 
+// To stdout for --help and to stderr for a usage error.
+static void
+usage(std::ostream& out, const char *argv0)
+{
+    out << "Usage: " << argv0 << " [<address range>]" << std::endl;
+    out << "  e.g. " << argv0 << " 192.168.1.100-200" << std::endl;
+    out << "  Each of the four octets may be a number or a lo-hi range." << std::endl;
+    out << "  With no argument, scans 192.168.1.100-200." << std::endl;
+}
+
 void
 abort_parsing(char *argv[], const std::string& message)
 {
     std::cerr << argv[0] << ": error parsing address range, " << message << std::endl;
+    usage(std::cerr, argv[0]);
     std::exit(EXIT_FAILURE);
 }
 
@@ -120,6 +133,11 @@ parse_args(int argc, char *argv[], int min[4], int max[4])
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(std::cout, argv[0]);
+        return 0;
+    }
+
     int min[] = {192, 168, 1, 100};
     int max[] = {192, 168, 1, 200};
     parse_args(argc, argv, min, max);

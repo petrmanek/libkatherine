@@ -18,6 +18,8 @@
 
 #include <katherine/katherine.h>
 
+#include "kargs.h"
+
 #define KDAC_SET_ALL_ARGC KATHERINE_TPX3_DAC_COUNT
 
 typedef enum kdac_command {
@@ -101,10 +103,12 @@ unit_symbol(katherine_dac_unit_t unit)
 
 // ------------------------------------------------------------------
 
+// To stdout for --help and to stderr for a usage error, which is what lets
+// `kdac --help | less` work and a mistake still show up in a pipeline.
 static void
-usage(const char *argv0)
+usage(FILE *out, const char *argv0)
 {
-    fprintf(stderr,
+    fprintf(out,
         "usage: %s [options] <command> [arguments]\n"
         "\n"
         "commands:\n"
@@ -479,10 +483,15 @@ cmd_scan(katherine_device_t *device, const kdac_args_t *args)
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(stdout, argv[0]);
+        return 0;
+    }
+
     kdac_args_t args;
 
     if (!parse_args(argc, argv, &args)) {
-        usage(argv[0]);
+        usage(stderr, argv[0]);
         return 2;
     }
 

@@ -15,6 +15,8 @@
 
 #include <katherine/katherine.h>
 
+#include "kargs.h"
+
 typedef struct kinfo_args {
     const char *address;
 } kinfo_args_t;
@@ -104,13 +106,26 @@ print_info(katherine_device_t *device)
     return true;
 }
 
+// To stdout for --help and to stderr for a usage error, which is what lets
+// `kinfo --help | less` work and a mistake still show up in a pipeline.
+static void
+usage(FILE *out)
+{
+    fprintf(out, "Usage: kinfo <address>\n");
+    fprintf(out, "  e.g. kinfo udp://192.168.1.42\n");
+}
+
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(stdout);
+        return 0;
+    }
+
     kinfo_args_t args;
     if (!parse_args(argc, argv, &args)) {
-        fprintf(stderr, "Usage: kinfo <address>\n");
-        fprintf(stderr, "  e.g. kinfo udp://192.168.1.42\n");
+        usage(stderr);
         return 1;
     }
 

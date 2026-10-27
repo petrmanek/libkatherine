@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-add_executable(kfindxx kfindxx.cpp address_source.cpp address_source.hpp)
+add_executable(kfindxx kfindxx.cpp address_source.cpp address_source.hpp kargs.hpp)
 target_link_libraries(kfindxx PRIVATE katherinexx)
 # MSVC only enables C++ exception unwind semantics with /EHsc; without it,
 # every throw/catch this example and the standard library it uses (e.g.
@@ -15,7 +15,7 @@ target_compile_options(kfindxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(kfindxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 katherine_target_warnings(kfindxx)
 
-add_executable(krunxx krunxx.cpp)
+add_executable(krunxx krunxx.cpp kargs.hpp)
 target_link_libraries(krunxx PRIVATE katherinexx)
 # The one example written against C++14 (chrono literals). The compile
 # feature raises just this target when the build-wide standard is older,
@@ -27,7 +27,7 @@ target_compile_options(krunxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(krunxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 katherine_target_warnings(krunxx)
 
-add_executable(ktempxx ktempxx.cpp)
+add_executable(ktempxx ktempxx.cpp kargs.hpp)
 target_link_libraries(ktempxx PRIVATE katherinexx)
 # See the kfindxx target above: same /EHsc and single-threaded
 # katherine::error requirements.
@@ -35,7 +35,7 @@ target_compile_options(ktempxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(ktempxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 katherine_target_warnings(ktempxx)
 
-add_executable(kinfoxx kinfoxx.cpp)
+add_executable(kinfoxx kinfoxx.cpp kargs.hpp)
 target_link_libraries(kinfoxx PRIVATE katherinexx)
 # See the kfindxx target above: same /EHsc and single-threaded
 # katherine::error requirements.
@@ -43,7 +43,7 @@ target_compile_options(kinfoxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
 target_compile_definitions(kinfoxx PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 katherine_target_warnings(kinfoxx)
 
-add_executable(kdacxx kdacxx.cpp)
+add_executable(kdacxx kdacxx.cpp kargs.hpp)
 target_link_libraries(kdacxx PRIVATE katherinexx)
 # See the kfindxx target above: same /EHsc and single-threaded
 # katherine::error requirements.

@@ -16,6 +16,8 @@
 
 #include <katherinexx/katherinexx.hpp>
 
+#include "kargs.hpp"
+
 static bool
 parse_args(int argc, char *argv[], std::string& address)
 {
@@ -99,13 +101,26 @@ print_info(katherine::device& device)
     return true;
 }
 
+// To stdout for --help and to stderr for a usage error, which is what lets
+// `kinfoxx --help | less` work and a mistake still show up in a pipeline.
+static void
+usage(std::ostream& out)
+{
+    out << "Usage: kinfo <address>" << std::endl;
+    out << "  e.g. kinfo udp://192.168.1.42" << std::endl;
+}
+
 int
 main(int argc, char *argv[])
 {
+    if (kargs_wants_help(argc, argv)) {
+        usage(std::cout);
+        return 0;
+    }
+
     std::string address;
     if (!parse_args(argc, argv, address)) {
-        std::cerr << "Usage: kinfo <address>" << std::endl;
-        std::cerr << "  e.g. kinfo udp://192.168.1.42" << std::endl;
+        usage(std::cerr);
         return 1;
     }
 

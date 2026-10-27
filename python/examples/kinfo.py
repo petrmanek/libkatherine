@@ -7,6 +7,8 @@
 # SPDX-License-Identifier: MIT
 
 import sys
+
+from kargs import wants_help
 from katherine import Device, Error
 
 
@@ -78,10 +80,22 @@ def print_info(device):
     return True
 
 
+def usage(out):
+    """To stdout for --help and to stderr for a usage error, which is what
+    lets `kinfo.py --help | less` work and a mistake still show up in a
+    pipeline."""
+    print('Usage: kinfo <address>', file=out)
+    print('  e.g. kinfo udp://192.168.1.42', file=out)
+
+
 def main():
+    if wants_help(sys.argv):
+        usage(sys.stdout)
+        return
+
     address = parse_args(sys.argv)
     if address is None:
-        print('Usage: kinfo <address>', file=sys.stderr)
+        usage(sys.stderr)
         sys.exit(1)
 
     try:
