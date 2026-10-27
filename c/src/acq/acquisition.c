@@ -1199,7 +1199,8 @@ err:
  *
  * Sends the same command as katherine_acquisition_abort(), so the two are one
  * command as far as the readout is concerned; what differs is local, and is
- * described there.
+ * described there -- including that a first-generation readout ignores the
+ * command, which leaves this call with no local half to fall back on.
  *
  * \see katherine_acquisition_abort
  *
@@ -1320,10 +1321,19 @@ err_device:
  * of the same configuration uses in full, and the flag turns the ensuing
  * timeout into KATHERINE_ACQUISITION_STATE_SUCCEEDED.
  *
- * Whether the readout acts on the command at all is firmware-dependent and
- * unverified outside that one Gen2 build, so a caller cannot read
- * KATHERINE_E_OK as meaning the measurement has ended -- only that the
- * command left the host.
+ * Whether the readout acts on the command at all is firmware-dependent, so a
+ * caller cannot read KATHERINE_E_OK as meaning the measurement has ended --
+ * only that the command left the host.
+ *
+ * \note **On a first-generation readout the command does nothing.** Read out
+ *   of both firmware binaries in misc/fw, by two routes that do not depend on
+ *   each other: opcode 0x06's entry in the dispatcher's branch table is the
+ *   default arm, the same halfword as opcodes nobody implemented; and the
+ *   named handler, `acqStop`, is a bare `bx lr` that nothing in the image
+ *   references. Either way the readout keeps measuring until its own
+ *   acquisition time or frame count runs out. The local half still works --
+ *   the flag goes up, the read loop ends on it -- so a Gen1 abort returns the
+ *   host to the caller and leaves the readout running.
  */
 katherine_error_t
 katherine_acquisition_abort(katherine_acquisition_t *acq)
