@@ -93,9 +93,17 @@ _Static_assert((int) KATHERINE_POLARITY_HOLES == 0,
 
 // A budget, not a measurement. WP34 gives both structs a fixed opaque
 // reserve, and these bounds are what says the reserve was sized rather than
-// guessed: on this host today they are 680 and 208 bytes.
+// guessed: on this host today they are 688 and 216 bytes.
 _Static_assert(sizeof(katherine_acquisition_t) <= 1024, "the acquisition has outgrown its budget");
 _Static_assert(sizeof(katherine_device_t) <= 512, "the device has outgrown its budget");
+
+// A column added to the capability table goes on the end, because Track Lab
+// sizes its readout view from this structure and anything inserted ahead of
+// a member moves it. Checked rather than asked for: the bias range is the
+// most recent addition, so every older member must precede it.
+_Static_assert(offsetof(katherine_device_derived_info_t, supported)
+        < offsetof(katherine_device_derived_info_t, bias_min_volts),
+    "a new capability column belongs at the end of katherine_device_derived_info_t");
 
 // The reserves are exactly what they say. A union whose largest member is
 // the byte array should be that array's size, and if padding ever made it

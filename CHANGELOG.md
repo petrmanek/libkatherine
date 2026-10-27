@@ -337,9 +337,16 @@ than a layout callers embed.
 One side effect is worth stating on its own.
 `sizeof(katherine_device_t)` used to be 152 bytes with UDP compiled in
 and 144 without, because two members sat behind `#ifdef` in a public
-structure. It is now 208 either way, so a consumer built against one
-feature set and linked against another no longer disagrees about where
-the fields are.
+structure. It is now 216 either way -- measured in all three transport
+shapes -- so a consumer built against one feature set and linked against
+another no longer disagrees about where the fields are.
+
+A capability column goes on the **end** of
+`katherine_device_derived_info_t`, which is why the supply range sits after
+`supported` rather than beside `bias_supply_count` where it reads better:
+Track Lab sizes its readout view from this structure, so anything inserted
+ahead of a member moves it. `test_layout.c` asserts the ordering rather
+than asking for it.
 
 ### The transport is no longer a layout a consumer can hold
 
