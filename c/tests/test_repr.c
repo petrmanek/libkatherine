@@ -112,9 +112,9 @@ test_px_event_count_itot(void)
 
 // Both bool states, across the two triggers used again in test_config().
 static katherine_trigger_t g_start_trigger = {
-    .enabled = true, .channel = 3, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = false, .delay_seconds = 0.0};
+    .use_trigger = true, .channel = 3, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = false, .delay_seconds = 0.0};
 static katherine_trigger_t g_stop_trigger = {
-    .enabled = false, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_FALLING, .delayed = false, .delay_seconds = 0.0};
+    .use_trigger = false, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_FALLING, .delayed = false, .delay_seconds = 0.0};
 
 static void
 test_trigger(void)
@@ -122,10 +122,10 @@ test_trigger(void)
     char buf[128];
 
     int n1 = katherine_trigger_snprint(buf, sizeof(buf), &g_start_trigger);
-    CHECK_GOLDEN(n1, buf, "trigger{enabled: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}");
+    CHECK_GOLDEN(n1, buf, "trigger{use_trigger: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}");
 
     int n2 = katherine_trigger_snprint(buf, sizeof(buf), &g_stop_trigger);
-    CHECK_GOLDEN(n2, buf, "trigger{enabled: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}");
+    CHECK_GOLDEN(n2, buf, "trigger{use_trigger: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}");
 }
 
 // The approved example from the design: exact format, str_bool in place of
@@ -496,8 +496,8 @@ test_str_enums(void)
 static const char *CONFIG_GOLDEN = "tpx3_config{common: config{chip_type: Timepix3, chip_count: 1, "
                                    "acq_time: 400000, frame_count: 1, bias0: 230, bias1: 12.5, "
                                    "bias2: 0, bias3: 0, "
-                                   "start_trigger: trigger{enabled: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}, "
-                                   "stop_trigger: trigger{enabled: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}}, "
+                                   "start_trigger: trigger{use_trigger: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}, "
+                                   "stop_trigger: trigger{use_trigger: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}}, "
                                    "readout_mode: data_driven, px_mode: toa_tot, fast_vco_enable: true, "
                                    "clock_phase: phase_1, correct_clock_phase: false, clock_frequency: freq_40, "
                                    "test_pulses: test_pulse_config{enabled: true, digital_only: false, "

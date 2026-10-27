@@ -159,16 +159,16 @@ test_config_round_trip(void)
     KT_CHECK(c.acq_time() == std::chrono::milliseconds{250});
 
     katherine::trigger start{};
-    start.enabled = true;
-    start.channel = KATHERINE_TRIGGER_SOURCE_GPIO_2;
+    start.use_trigger = true;
+    start.channel     = KATHERINE_TRIGGER_SOURCE_GPIO_2;
     c.set_start_trigger(start);
-    KT_CHECK(c.start_trigger().enabled);
+    KT_CHECK(c.start_trigger().use_trigger);
     KT_CHECK_EQ(c.start_trigger().channel, KATHERINE_TRIGGER_SOURCE_GPIO_2);
 
     katherine::trigger stop{};
-    stop.enabled = false;
+    stop.use_trigger = false;
     c.set_stop_trigger(stop);
-    KT_CHECK(!c.stop_trigger().enabled);
+    KT_CHECK(!c.stop_trigger().use_trigger);
 
     katherine::test_pulse_config tp{};
     tp.enabled = true;

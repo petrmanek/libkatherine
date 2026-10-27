@@ -398,7 +398,7 @@ test_acquisition_setup_puts_the_delayed_start_on_the_wire(void)
 
     katherine_trigger_t start = {0};
     katherine_trigger_t stop  = {0};
-    start.enabled             = true;
+    start.use_trigger         = true;
     start.channel             = (katherine_trigger_source_t) 2;
 
     const katherine_trigger_t before = start;
@@ -426,7 +426,7 @@ test_acquisition_setup_without_a_delay_clears_the_bit(void)
 
     katherine_trigger_t start = {0};
     katherine_trigger_t stop  = {0};
-    start.enabled             = true;
+    start.use_trigger         = true;
     start.channel             = (katherine_trigger_source_t) 2;
 
     KT_CHECK_EQ(katherine_acquisition_setup(&device, &start, false, &stop), 0);

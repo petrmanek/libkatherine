@@ -96,12 +96,12 @@ configure(katherine_tpx3_config_t *config, uint8_t chip_count)
     // drives that supply to zero rather than leaving it where it was.
     config->common.bias[0] = 230; // V
 
-    config->common.start_trigger.enabled = false;
-    config->common.start_trigger.channel = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
-    config->common.start_trigger.edge    = KATHERINE_TRIGGER_EDGE_RISING;
-    config->common.stop_trigger.enabled  = false;
-    config->common.stop_trigger.channel  = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
-    config->common.stop_trigger.edge     = KATHERINE_TRIGGER_EDGE_RISING;
+    config->common.start_trigger.use_trigger = false;
+    config->common.start_trigger.channel     = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
+    config->common.start_trigger.edge        = KATHERINE_TRIGGER_EDGE_RISING;
+    config->common.stop_trigger.use_trigger  = false;
+    config->common.stop_trigger.channel      = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
+    config->common.stop_trigger.edge         = KATHERINE_TRIGGER_EDGE_RISING;
 
     config->readout_mode    = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
     config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;

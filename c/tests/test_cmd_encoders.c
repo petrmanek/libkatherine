@@ -588,8 +588,8 @@ test_acquisition_setup_word(void)
     // here: a trigger that arms one writes that register first, and this peer
     // never acknowledges, so the word under test would never be reached. The
     // delay flags are covered where the mock answers, in test_acq_unit.
-    katherine_trigger_t start = {.enabled = true, .channel = 7, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
-    katherine_trigger_t end   = {.enabled = false, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING};
+    katherine_trigger_t start = {.use_trigger = true, .channel = 7, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
+    katherine_trigger_t end   = {.use_trigger = false, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING};
     KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
     check_setup_word(&dev, &capture, &start, &end, 0x1F, 0x00);
 
@@ -601,8 +601,8 @@ test_acquisition_setup_word(void)
 
     // Out-of-range channels truncate instead of corrupting the flags above
     // the field: on the first generation 9 -> 1 and 10 -> 2.
-    start = (katherine_trigger_t) {.enabled = false, .channel = 9, .edge = KATHERINE_TRIGGER_EDGE_RISING};
-    end   = (katherine_trigger_t) {.enabled = true, .channel = 10, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
+    start = (katherine_trigger_t) {.use_trigger = false, .channel = 9, .edge = KATHERINE_TRIGGER_EDGE_RISING};
+    end   = (katherine_trigger_t) {.use_trigger = true, .channel = 10, .edge = KATHERINE_TRIGGER_EDGE_FALLING};
     KT_REQUIRE(katherine_device_declare(&dev, &gen1) == 0);
     check_setup_word(&dev, &capture, &start, &end, 0x02, 0x15);
 

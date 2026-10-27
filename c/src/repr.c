@@ -322,8 +322,8 @@ int
 katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "trigger{enabled: %s, channel: %d, edge: %s, delayed: %s, delay_seconds: %g}",
-        katherine_str_bool(v->enabled), (int) v->channel, katherine_str_trigger_edge(v->edge),
+    REPR_APPENDF(buf, cap, off, "trigger{use_trigger: %s, channel: %d, edge: %s, delayed: %s, delay_seconds: %g}",
+        katherine_str_bool(v->use_trigger), (int) v->channel, katherine_str_trigger_edge(v->edge),
         katherine_str_bool(v->delayed), v->delay_seconds);
     return (int) off;
 }

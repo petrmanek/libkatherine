@@ -38,7 +38,7 @@ using trigger = katherine_trigger_t;
 /// A disarmed trigger, for an acquisition bounded by time alone.
 constexpr trigger no_trigger{
     // TODO: uncomment in C++2a
-    /* .enabled = */ false,
+    /* .use_trigger = */ false,
     /* .channel = */ KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL,
     /* .edge = */ KATHERINE_TRIGGER_EDGE_RISING,
     /* .delayed = */ false,

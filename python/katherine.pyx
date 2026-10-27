@@ -1158,9 +1158,9 @@ cdef class Tpx3ConfigCheck:
 cdef class Trigger:
     cdef cconfig.katherine_trigger_t _c_trigger
 
-    def __init__(self, enabled=False, channel=0, edge=None, delayed=False, delay_seconds=0.0, cdata=None):
+    def __init__(self, use_trigger=False, channel=0, edge=None, delayed=False, delay_seconds=0.0, cdata=None):
          if cdata is None:
-             self._c_trigger.enabled = enabled
+             self._c_trigger.use_trigger = use_trigger
              self._c_trigger.channel = TriggerSource(channel).value
              self._c_trigger.edge = TriggerEdge.RISING.value if edge is None else TriggerEdge(edge).value
              self._c_trigger.delayed = delayed
@@ -1172,12 +1172,12 @@ cdef class Trigger:
          return _snprint_repr(<snprint_fn_t> cconfig.katherine_trigger_snprint, &self._c_trigger)
 
     @property
-    def enabled(self):
-       return self._c_trigger.enabled
+    def use_trigger(self):
+       return self._c_trigger.use_trigger
 
-    @enabled.setter
-    def enabled(self, val):
-       self._c_trigger.enabled = val
+    @use_trigger.setter
+    def use_trigger(self, val):
+       self._c_trigger.use_trigger = val
 
     @property
     def channel(self):

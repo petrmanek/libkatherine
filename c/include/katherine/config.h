@@ -122,7 +122,7 @@ typedef enum katherine_trigger_source {
 
 /** One trigger condition, used for both starting and stopping an acquisition. */
 typedef struct katherine_trigger {
-    bool enabled;                       ///< Whether this trigger is armed at all.
+    bool use_trigger;                   ///< True to take this shutter edge from the trigger input, false to take it from the timer. The firmware names the field Timer/Trigger.
     katherine_trigger_source_t channel; ///< The signal this trigger listens to.
     katherine_trigger_edge_t edge;      ///< Rising or falling edge of the input.
     bool delayed;                       ///< True to hold the shutter for delay_seconds after the trigger.

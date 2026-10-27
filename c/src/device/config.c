@@ -1079,12 +1079,12 @@ katherine_set_acquisition_triggers(katherine_device_t *device, const katherine_t
         goto err_stop_delay;
     }
 
-    uint32_t start = (uint32_t) start_trigger->enabled;
+    uint32_t start = (uint32_t) start_trigger->use_trigger;
     start |= (uint32_t) (start_trigger->channel & channel_mask) << 1;
     start |= (uint32_t) (start_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
     start |= (uint32_t) start_trigger->delayed << delayed_shift;
 
-    uint32_t end = (uint32_t) stop_trigger->enabled;
+    uint32_t end = (uint32_t) stop_trigger->use_trigger;
     end |= (uint32_t) (stop_trigger->channel & channel_mask) << 1;
     end |= (uint32_t) (stop_trigger->edge == KATHERINE_TRIGGER_EDGE_FALLING) << edge_shift;
     end |= (uint32_t) stop_trigger->delayed << delayed_shift;

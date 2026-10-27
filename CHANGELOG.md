@@ -58,6 +58,18 @@ edge`, and the timing unit's channel configuration takes the same type.
 Zero still means a rising edge, so a zeroed structure behaves exactly as it
 did and only the spelling has to change.
 
+`katherine_trigger_t::enabled` becomes `use_trigger` in the same structure.
+The field never meant "is this trigger switched on": it selects whether that
+shutter edge comes from the trigger input or from the timer, which is what the
+firmware calls Timer/Trigger. Zero still means the timer, so a zeroed structure
+is unchanged in behaviour and only the spelling moves.
+
+It is not aliased in the shim, and for a different reason than `polarity_holes`:
+`enabled` is a common enough word that an object-like macro would rewrite
+unrelated identifiers in the caller's own code. `katherine/katherine1.h` states
+that rule, and this is the case it was written for. A 1.x source naming the
+field fails to compile, which is the intended outcome.
+
 The same structure gains `delayed` and `delay_seconds`, which is where a
 trigger's delay now lives. `katherine_config_t::delayed_start` and
 `katherine_set_shutter_delays()` go away with it, and

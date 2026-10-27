@@ -59,8 +59,8 @@ def configure(chip_count):
     # rather than left where it was.
     c.bias              = [230]  # V
 
-    c.start_trigger     = k.Trigger(enabled=False)
-    c.stop_trigger      = k.Trigger(enabled=False)
+    c.start_trigger     = k.Trigger(use_trigger=False)
+    c.stop_trigger      = k.Trigger(use_trigger=False)
 
     c.readout_mode      = k.Tpx3ReadoutMode.DATA_DRIVEN
     c.px_mode           = k.Tpx3PxMode.TOA_TOT

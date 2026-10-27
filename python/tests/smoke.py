@@ -265,8 +265,8 @@ def build_config(katherine):
     c.frame_count = 1
     c.bias = [230]
 
-    c.start_trigger = katherine.Trigger(enabled=False)
-    c.stop_trigger = katherine.Trigger(enabled=False)
+    c.start_trigger = katherine.Trigger(use_trigger=False)
+    c.stop_trigger = katherine.Trigger(use_trigger=False)
 
     c.readout_mode = katherine.Tpx3ReadoutMode.DATA_DRIVEN
     c.px_mode = katherine.Tpx3PxMode.TOA_TOT
@@ -356,9 +356,9 @@ def check_reprs(tap, katherine, device):
     tap.check_eq('Tpx3TestPulseConfig repr matches the C golden byte-for-byte', repr(tp),
         'test_pulse_config{enabled: true, digital_only: false, external: false, count: 100, period: 65, phase: 0}')
 
-    trig = katherine.Trigger(enabled=True, channel=3, edge=katherine.TriggerEdge.RISING)
+    trig = katherine.Trigger(use_trigger=True, channel=3, edge=katherine.TriggerEdge.RISING)
     tap.check_eq('Trigger repr matches the C golden byte-for-byte', repr(trig),
-        'trigger{enabled: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}')
+        'trigger{use_trigger: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}')
 
     px = katherine.Tpx3PxConfig()
     tap.check_eq('Tpx3PxConfig repr matches the C golden byte-for-byte (all-zero matrix)', repr(px),

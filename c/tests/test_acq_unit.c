@@ -528,8 +528,8 @@ test_h_a_delay_travels_with_its_trigger(void)
     katherine_device_t device;
     kthread_t thread;
 
-    katherine_trigger_t start = {.enabled = true, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = true, .delay_seconds = 1e-6};
-    katherine_trigger_t stop  = {.enabled = true, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = true, .delay_seconds = 2.5e-3};
+    katherine_trigger_t start = {.use_trigger = true, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = true, .delay_seconds = 1e-6};
+    katherine_trigger_t stop  = {.use_trigger = true, .channel = 0, .edge = KATHERINE_TRIGGER_EDGE_RISING, .delayed = true, .delay_seconds = 2.5e-3};
 
     KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
     mock_start(&thread, 3);

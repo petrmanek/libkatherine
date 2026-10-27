@@ -35,7 +35,7 @@ cdef extern from 'katherine/config.h':
         KATHERINE_TRIGGER_SOURCE_GPIO_7
 
     ctypedef struct katherine_trigger_t:
-        bool enabled
+        bool use_trigger
         katherine_trigger_source_t channel
         katherine_trigger_edge_t edge
         bool delayed

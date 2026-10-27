@@ -226,12 +226,12 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
     }
     printf("\n");
 
-    printf("Start Trigger:          %s\n",      config->common.start_trigger.enabled ? "true" : "false");
+    printf("Start Trigger:          %s\n",      config->common.start_trigger.use_trigger ? "true" : "false");
     printf("Start Trigger Channel:  %d\n",      config->common.start_trigger.channel);
     printf("Start Trigger Signal:   %s edge\n", katherine_str_trigger_edge(config->common.start_trigger.edge));
     printf("Start Trigger Delay:    %s\n",      config->common.start_trigger.delayed ? "true" : "false");
     printf("Start Trigger Delay s:  %g\n",      config->common.start_trigger.delay_seconds);
-    printf("Stop Trigger:           %s\n",      config->common.stop_trigger.enabled ? "true" : "false");
+    printf("Stop Trigger:           %s\n",      config->common.stop_trigger.use_trigger ? "true" : "false");
     printf("Stop Trigger Channel:   %d\n",      config->common.stop_trigger.channel);
     printf("Stop Trigger Signal:    %s edge\n", katherine_str_trigger_edge(config->common.stop_trigger.edge));
     printf("Stop Trigger Delay:     %s\n",      config->common.stop_trigger.delayed ? "true" : "false");
