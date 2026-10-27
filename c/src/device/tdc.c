@@ -226,6 +226,13 @@ katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *cou
         goto err_enumerated;
     }
 
+    // A row that reports no timing channels has none: the command used to
+    // go out and its answers were never read, which poisons the next one.
+    if (device->derived_info.tdc_channel_count == 0) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_enumerated;
+    }
+
     uint32_t received[KATHERINE_MAX_TDC_CHANNEL_COUNT] = {0};
 
     res = katherine_device_control_lock(device);

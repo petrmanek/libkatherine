@@ -137,6 +137,8 @@ if(KATHERINE_BUILD_EMULATOR)
     # the one that needs no socket.
     katherine_add_test(NAME test_config_reserved SOURCES test_config_reserved.c LABELS unit)
 
+    katherine_add_test(NAME test_capability_zero SOURCES test_capability_zero.c LABELS unit)
+
     katherine_add_test(NAME test_port_busy SOURCES test_port_busy.c LABELS unit)
 endif()
 
@@ -289,5 +291,5 @@ endif()
 # registered only when the emulator feature is on, and the USB ring test only
 # where libusb was found, so they are named as such rather than looking like
 # omissions.
-katherine_check_tests_registered(CONDITIONAL test_acq_begin_window.c test_acq_frames.c test_config_reserved.c test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
+katherine_check_tests_registered(CONDITIONAL test_acq_begin_window.c test_acq_frames.c test_config_reserved.c test_capability_zero.c test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
     test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c)

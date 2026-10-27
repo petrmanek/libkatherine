@@ -189,6 +189,8 @@ gpio_terminable(const katherine_device_t *device, uint8_t channel)
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout reports no GPIO channels at
+ *   all; see katherine_device_derived_info_t::all_gpio_count.
  */
 katherine_error_t
 katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_config_t *config)
@@ -197,6 +199,13 @@ katherine_set_gpio_config(katherine_device_t *device, const katherine_gpio_confi
 
     if (!device->derived_info.supported) {
         res = KATHERINE_E_STATE;
+        goto err_enumerated;
+    }
+
+    // A row that reports no GPIO has none: writing the three registers
+    // anyway reported success on hardware that cannot have obeyed.
+    if (device->derived_info.all_gpio_count == 0) {
+        res = KATHERINE_E_UNSUPPORTED;
         goto err_enumerated;
     }
 

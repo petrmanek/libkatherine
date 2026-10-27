@@ -118,7 +118,10 @@ katherine_set_pulse_generator(katherine_device_t *device, const katherine_pulse_
         res = KATHERINE_E_STATE;
         goto err_enumerated;
     }
-    if (katherine_device_gen(device) < 2) {
+    // The generator's own count, not the generation. Equivalent on every row
+    // of the table today -- both refuse 0x01, 0x20 and 0x25 and allow 0x03 --
+    // and it stays right if a later row pairs one with the other.
+    if (device->derived_info.pulse_channel_count == 0) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
@@ -293,7 +296,10 @@ katherine_get_pulse_generator_counts(katherine_device_t *device, katherine_pulse
         res = KATHERINE_E_STATE;
         goto err_enumerated;
     }
-    if (katherine_device_gen(device) < 2) {
+    // The generator's own count, not the generation. Equivalent on every row
+    // of the table today -- both refuse 0x01, 0x20 and 0x25 and allow 0x03 --
+    // and it stays right if a later row pairs one with the other.
+    if (device->derived_info.pulse_channel_count == 0) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
@@ -369,7 +375,10 @@ katherine_reset_pulse_generator_counts(katherine_device_t *device)
         res = KATHERINE_E_STATE;
         goto err_enumerated;
     }
-    if (katherine_device_gen(device) < 2) {
+    // The generator's own count, not the generation. Equivalent on every row
+    // of the table today -- both refuse 0x01, 0x20 and 0x25 and allow 0x03 --
+    // and it stays right if a later row pairs one with the other.
+    if (device->derived_info.pulse_channel_count == 0) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_generation;
     }
