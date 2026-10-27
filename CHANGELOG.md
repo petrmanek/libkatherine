@@ -208,9 +208,12 @@ how the other thirteen renderers in this library are spelled; `tdc.h` and
 took a `char`, three lines below the enumeration that names the registers;
 the 1.x shim keeps the `char` it exists to preserve.
 
-**Both wrappers reach the rest of the surface.** C++ goes from 99 of the 143
-exported functions to 122, and Python from 104 to 120. What arrives: the pure
-helpers a caller previously had to reimplement
+**Both wrappers reach the rest of the surface.** Of the 145 exported
+functions, C++ reaches 126 and Python 118, against 99 and 104 in 1.x. The
+nineteen neither reaches are the emulator's eleven and the transport data
+plane's eight, which the device and the acquisition exist to drive; nothing
+else is left out. What arrives: the pure helpers a caller previously had to
+reimplement
 (`katherine_tpx3_actual_phases()`,
 `katherine_tpx3_freq_is_fast_vco_supported()` and
 `katherine_tpx3_dacs_validate()`), `verify_config()` and `set_token_count()`,
@@ -219,8 +222,6 @@ the device flags, `declare()`, `select_interface()` and the device's own
 reach -- `last_os_error()`, `set_timeout()` and `dropped_input()`, which is
 what the hundreds of *"see katherine_transport_get_last_os_error()"* lines
 had been pointing at -- and five types that used to stream as their numbers.
-What stays unbound in both is the emulator and the transport data plane,
-which the device and the acquisition exist to drive.
 
 **Finalising an object whose initializer failed no longer crashes.** Both
 `katherine_device_init()` and `katherine_acquisition_init()` could return
