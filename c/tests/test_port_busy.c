@@ -32,6 +32,13 @@
 
 #include "transport/udp.h"
 
+// transport/udp.h brings in <winsock2.h>, which does not declare inet_pton():
+// that one lives in <ws2tcpip.h>, and without it MSVC takes it for an
+// implicit int-returning function (C4013) and links it anyway.
+#ifdef KATHERINE_WIN
+#include <ws2tcpip.h>
+#endif
+
 #include "kports.h"
 #include "ktest.h"
 
@@ -49,6 +56,28 @@ typedef int holder_t;
 #define holder_close close
 #endif
 
+// Winsock is reference-counted and kports_available() balances its own
+// startup with a WSACleanup(), which takes the count back to zero. This
+// file makes sockets of its own after that call, so it has to hold a
+// reference for as long as it does -- without this every socket() here
+// returns WSANOTINITIALISED and the holder below never binds.
+static void
+sockets_start(void)
+{
+#ifdef KATHERINE_WIN
+    WSADATA wsa;
+    (void) WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
+}
+
+static void
+sockets_stop(void)
+{
+#ifdef KATHERINE_WIN
+    (void) WSACleanup();
+#endif
+}
+
 // A socket holding PORT_BUSY, with SO_REUSEADDR under the caller's control:
 // that flag is the whole difference between the two cases below.
 static holder_t
@@ -62,11 +91,18 @@ hold_port(bool reuseaddr)
         (void) setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *) &on, sizeof(on));
     }
 
+    // HOST rather than INADDR_ANY, which is the address the library will ask
+    // for. On Windows the distinction decides the test: a wildcard holder and
+    // a specific-address bind do not collide there, so a holder on INADDR_ANY
+    // would leave the library's bind succeeding and prove nothing.
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(PORT_BUSY);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_family = AF_INET;
+    addr.sin_port   = htons(PORT_BUSY);
+    if (inet_pton(AF_INET, HOST, &addr.sin_addr) != 1) {
+        holder_close(sock);
+        return HOLDER_NONE;
+    }
 
     if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
         holder_close(sock);
@@ -123,10 +159,18 @@ test_a_foreign_holder_is_reported_busy(void)
 }
 
 // The limit of the distinction, pinned so nobody reads more into the code
-// than it carries: a holder that also set SO_REUSEADDR is not a collision,
-// and two libkatherine sessions are exactly that case.
+// than it carries -- and it is not the same limit on both platforms.
+//
+// On POSIX the library sets SO_REUSEADDR, so a holder that set it too is not
+// a collision: both bind, and two libkatherine sessions are exactly that
+// case. On Windows the library deliberately does not set it, so the address
+// and port are its own: the holder's option makes no difference and a second
+// session is refused. Measured on the build VM, both ways round.
+//
+// Which is to say KATHERINE_E_BUSY reaches further on Windows than on POSIX,
+// and this is the case that says so.
 static void
-test_a_reuseaddr_holder_is_not_a_collision(void)
+test_a_reuseaddr_holder_is_what_the_platform_says(void)
 {
     if (!kports_available(PORT_BUSY, 1)) {
         printf("# SKIP port %d is taken\n", PORT_BUSY);
@@ -137,8 +181,12 @@ test_a_reuseaddr_holder_is_not_a_collision(void)
     KT_REQUIRE(held != HOLDER_NONE);
 
     katherine_transport_t transport;
+#ifdef KATHERINE_WIN
+    KT_CHECK_EQ(open_control(&transport), KATHERINE_E_BUSY);
+#else
     KT_CHECK_EQ(open_control(&transport), KATHERINE_E_OK);
     katherine_transport_fini(&transport);
+#endif
 
     holder_close(held);
 }
@@ -152,9 +200,14 @@ test_the_code_renders(void)
 int
 main(void)
 {
+    sockets_start();
+
     KT_RUN(test_a_free_port_opens);
     KT_RUN(test_a_foreign_holder_is_reported_busy);
-    KT_RUN(test_a_reuseaddr_holder_is_not_a_collision);
+    KT_RUN(test_a_reuseaddr_holder_is_what_the_platform_says);
     KT_RUN(test_the_code_renders);
-    return kt_summary();
+
+    const int rc = kt_summary();
+    sockets_stop();
+    return rc;
 }

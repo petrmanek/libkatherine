@@ -252,9 +252,11 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
  *   another socket already holds it, or it is excluded from use; see
  *   inet_pton() and bind(). Only the bind failure records an OS error for
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
- * \retval KATHERINE_E_BUSY if the local port is already held by another
- *   process -- another libkatherine on this host is the usual cause; see
- *   katherine_udp_last_os_error(), which reports the WSAGetLastError() code.
+ * \retval KATHERINE_E_BUSY if the local address and port are already held by
+ *   another socket, which on Windows includes a second libkatherine session:
+ *   this transport does not set SO_REUSEADDR here, so the port is exclusive
+ *   where on POSIX two sessions share it. See katherine_udp_last_os_error(),
+ *   which reports the WSAGetLastError() code.
  * \retval KATHERINE_E_IO if the socket could not be created, or -- when
  *   timeout_ms is nonzero -- its receive timeout could not be set, for a
  *   reason none of the other codes cover; see socket(), setsockopt() and
@@ -302,9 +304,11 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  *   not local to this host, or the port is excluded from use; see
  *   inet_pton() and bind(). Only the bind failure records an OS error for
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
- * \retval KATHERINE_E_BUSY if the local port is already held by another
- *   process -- another libkatherine on this host is the usual cause; see
- *   katherine_udp_last_os_error(), which reports the WSAGetLastError() code.
+ * \retval KATHERINE_E_BUSY if the local address and port are already held by
+ *   another socket, which on Windows includes a second libkatherine session:
+ *   this transport does not set SO_REUSEADDR here, so the port is exclusive
+ *   where on POSIX two sessions share it. See katherine_udp_last_os_error(),
+ *   which reports the WSAGetLastError() code.
  * \retval KATHERINE_E_IO if the socket could not be created, or -- when
  *   timeout_ms is nonzero -- its receive timeout could not be set, for a
  *   reason none of the other codes cover; see socket(), setsockopt() and
@@ -371,23 +375,30 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t
         goto err_local_address;
     }
 
-    // No SO_REUSEADDR here, deliberately, where udp_nix.c sets it. Windows
-    // datagram sockets already permit a second bind() to a port one is bound
-    // to -- measured on MSVC 19.51, with and without the option and for both
-    // the same local address and a different one, all four combinations
-    // succeeding -- so the option buys nothing the platform does not give
-    // away, and on Windows it additionally weakens the exclusivity rules
-    // rather than only relaxing rebinding. POSIX refuses that second bind
-    // without it, which is the whole reason the other transport asks.
+    // No SO_REUSEADDR here, deliberately, where udp_nix.c sets it: on Windows
+    // the option weakens the exclusivity rules rather than only relaxing
+    // rebinding, and nothing here needs it.
     //
-    // The asymmetry is therefore in the platforms, not in this library. Worth
-    // knowing that the Windows default is the permissive one: two processes
-    // can hold port 1555 here and split the readout's datagrams between them
-    // with no error anywhere, which is a hazard for the port allocation #28
-    // adds rather than for this bind.
+    // What that leaves is a local address and port this process holds alone,
+    // measured on the build VM against a second socket bound to the same
+    // address: refused with WSAEADDRINUSE whether or not the holder set
+    // SO_REUSEADDR. Two libkatherine sessions on one Windows host therefore
+    // cannot share a port -- the second is refused -- where on POSIX both set
+    // SO_REUSEADDR and both bind, splitting the readout's datagrams between
+    // them with no error anywhere. The asymmetry is in the platforms, and it
+    // is the POSIX side that is permissive, which is the opposite of what
+    // this comment said until it was measured a second time.
+    //
+    // The earlier measurement that said otherwise compared a wildcard bind
+    // against a specific one. Those two genuinely do coexist on Windows, in
+    // either order, which is also why this suite's port holder binds the
+    // address rather than INADDR_ANY.
     if (bind(u->sock, (const struct sockaddr *) &u->address_local, sizeof(u->address_local)) == SOCKET_ERROR) {
         u->last_os_error = WSAGetLastError();
-        // As udp_nix.c: a held port is not a malformed address.
+        // As udp_nix.c: a held port is not a malformed address. WSAEACCES is
+        // not mapped here although Winsock also reports a held port under it:
+        // that code arrives only for a socket that set SO_REUSEADDR against a
+        // holder that did not, and this transport never sets it.
         res = (u->last_os_error == WSAEADDRINUSE) ? KATHERINE_E_BUSY : KATHERINE_E_ADDRESS;
         goto err_bind;
     }
