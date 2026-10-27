@@ -157,9 +157,15 @@ by address and opens it with `katherine_device_init()`; the session lives
 behind a transport the device owns, and the same code drives a USB readout
 with no change at the call site.
 
-The 1.x functions still have declarations, so a source mentioning them
-compiles, and they decline at runtime. Code that declared a session has to
-be ported rather than recompiled.
+Ten of the eleven 1.x session functions still have declarations, so a
+source mentioning them compiles, and they decline at runtime. Code that
+*declared* a session -- `katherine_udp_t u;` by value -- does not compile
+at all, the type being incomplete by design, which is the limit of what
+the shim offers for this family.
+
+`katherine_udp_snprint()` is the eleventh and is not declared. It rendered
+a session's endpoints, and an incomplete type has none it could truthfully
+print. `katherine_transport_snprint()` is the 2.0 call.
 
 ### The frame count was respelled
 
