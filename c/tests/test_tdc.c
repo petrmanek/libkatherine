@@ -370,7 +370,9 @@ test_d_five_counts_complete_the_sequence(void)
         counts.channel[i] = 0xDEADBEEFu;
     }
 
-    KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE, PORT_MOCK) == 0);
+    // Gen2, because what is under test is the channel count and only the
+    // second generation can report counts at all.
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN2, PORT_DEVICE, PORT_MOCK) == 0);
     device.derived_info.tdc_channel_count = 2;
     mock_start(&thread, 2);
 
@@ -461,6 +463,26 @@ test_j_nothing_but_short_answers_is_unsupported(void)
     for (unsigned i = 0; i < KATHERINE_MAX_TDC_CHANNEL_COUNT; ++i) {
         KT_CHECK_EQ(counts.channel[i], 0xFFFFFFFFu);
     }
+
+    katherine_transport_fini(&device.control_transport);
+}
+
+// k) A first-generation readout cannot report the counts at all: neither of
+// its firmwares implements the read, so the command would go out and every
+// answer would time out. Refused before anything is sent, which the quiet
+// mock proves -- it answers nothing, so a call that reached the wire would
+// come back KATHERINE_E_TIMEOUT instead.
+static void
+test_k_the_first_generation_cannot_report_counts(void)
+{
+    katherine_device_t device;
+    katherine_tdc_counts_t counts;
+
+    KT_REQUIRE(device_init(&device, HW_TYPE_GEN1, PORT_DEVICE_QUIET, PORT_MOCK_QUIET) == 0);
+
+    // The channels are there and configuring them is not refused.
+    KT_CHECK(device.derived_info.tdc_channel_count > 0);
+    KT_CHECK_EQ(katherine_get_tdc_counts(&device, &counts), KATHERINE_E_UNSUPPORTED);
 
     katherine_transport_fini(&device.control_transport);
 }
@@ -563,6 +585,7 @@ main(void)
     KT_RUN(test_h_a_null_array_discards_the_counts);
     KT_RUN(test_i_a_split_sequence_is_still_read);
     KT_RUN(test_j_nothing_but_short_answers_is_unsupported);
+    KT_RUN(test_k_the_first_generation_cannot_report_counts);
 
     mocks_fini();
     return kt_summary();

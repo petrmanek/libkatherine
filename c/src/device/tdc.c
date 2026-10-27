@@ -201,11 +201,14 @@ err_enumerated:
  *   of reach on the firmware measured so far: the short answers firmware 5
  *   interleaves over USB are dropped instead, and a run of nothing else is
  *   KATHERINE_E_UNSUPPORTED.
- * \retval KATHERINE_E_UNSUPPORTED if the readout answered this command in a
- *   way this library cannot read: short answers arriving one after another
- *   until the discard budget ran out. Firmware 5 splits these answers over
- *   USB and a few short reads are therefore tolerated, but a readout that
- *   sends nothing else is reported rather than guessed at.
+ * \retval KATHERINE_E_UNSUPPORTED if this readout cannot report the counts --
+ *   a row with no timing channels, or a first-generation readout, whose
+ *   firmware does not implement this operation code although it does
+ *   implement the configuration one -- or if the readout answered in a way
+ *   this library cannot read: short answers arriving one after another until
+ *   the discard budget ran out. Firmware 5 splits these answers over USB and
+ *   a few short reads are therefore tolerated, but a readout that sends
+ *   nothing else is reported rather than guessed at.
  * \retval KATHERINE_E_STRAY if another command's responses kept arriving
  *   until the discard budget ran out.
  * \retval KATHERINE_E_INVAL if the control link rejected an argument of a
@@ -229,6 +232,16 @@ katherine_get_tdc_counts(katherine_device_t *device, katherine_tdc_counts_t *cou
     // A row that reports no timing channels has none: the command used to
     // go out and its answers were never read, which poisons the next one.
     if (device->derived_info.tdc_channel_count == 0) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_enumerated;
+    }
+
+    // Neither first-generation build handles this operation code -- its entry
+    // in both dispatchers' branch tables is the default arm -- so the command
+    // goes out and every answer this function then waits for times out. The
+    // channels themselves exist there and katherine_set_tdc_config() reaches
+    // them; it is reading their counters that the firmware never implemented.
+    if (katherine_device_gen(device) < 2) {
         res = KATHERINE_E_UNSUPPORTED;
         goto err_enumerated;
     }
