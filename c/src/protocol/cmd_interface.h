@@ -100,6 +100,8 @@ extern "C" {
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send(katherine_transport_t *transport, const void *buffer, size_t count)
@@ -135,6 +137,8 @@ err:
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send6(katherine_transport_t *transport, uint8_t val6)
@@ -169,6 +173,8 @@ katherine_cmd_send6(katherine_transport_t *transport, uint8_t val6)
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send6_chip(katherine_transport_t *transport, uint8_t val6, uint8_t chip)
@@ -203,6 +209,8 @@ katherine_cmd_send6_chip(katherine_transport_t *transport, uint8_t val6, uint8_t
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send60(katherine_transport_t *transport, uint8_t val6, uint8_t val0)
@@ -235,6 +243,8 @@ katherine_cmd_send60(katherine_transport_t *transport, uint8_t val6, uint8_t val
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send601(katherine_transport_t *transport, uint8_t val6, uint8_t val0, uint8_t val1)
@@ -269,6 +279,8 @@ katherine_cmd_send601(katherine_transport_t *transport, uint8_t val6, uint8_t va
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send64_i64(katherine_transport_t *transport, uint8_t val6, uint8_t val4, int64_t value)
@@ -307,6 +319,8 @@ katherine_cmd_send64_i64(katherine_transport_t *transport, uint8_t val6, uint8_t
  *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send64_i64_chip(katherine_transport_t *transport, uint8_t val6, uint8_t val4, int64_t value, uint8_t chip)
@@ -343,6 +357,8 @@ katherine_cmd_send64_i64_chip(katherine_transport_t *transport, uint8_t val6, ui
  *   reset out from under the session; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send60_chip(katherine_transport_t *transport, uint8_t val6, uint8_t val0, uint8_t chip)
@@ -378,6 +394,8 @@ katherine_cmd_send60_chip(katherine_transport_t *transport, uint8_t val6, uint8_
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send6_i64(katherine_transport_t *transport, uint8_t val6, int64_t value)
@@ -408,6 +426,8 @@ katherine_cmd_send6_i64(katherine_transport_t *transport, uint8_t val6, int64_t 
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send6_f32(katherine_transport_t *transport, uint8_t val6, float value)
@@ -441,6 +461,8 @@ katherine_cmd_send6_f32(katherine_transport_t *transport, uint8_t val6, float va
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_send64_f32(katherine_transport_t *transport, uint8_t val6, uint8_t val4, float value)
@@ -803,6 +825,8 @@ katherine_cmd_is_acknowledged(uint8_t opcode)
  *   none of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the receive ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_wait_ack_crd(katherine_transport_t *transport, uint8_t opcode, char *crd)
@@ -865,6 +889,8 @@ katherine_cmd_wait_ack_crd(katherine_transport_t *transport, uint8_t opcode, cha
  *   none of the other codes cover; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the kernel could not allocate for the receive;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  *
  * \see katherine_cmd_wait_ack_crd(), which this forwards to and which
  *   describes what separates a malformed response from a stray one.
@@ -916,6 +942,8 @@ katherine_cmd_wait_ack(katherine_transport_t *transport, uint8_t opcode)
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_transact(katherine_transport_t *transport, const void *buffer, size_t count, char *crd)
@@ -969,6 +997,8 @@ katherine_cmd_transact(katherine_transport_t *transport, const void *buffer, siz
  * \retval KATHERINE_E_CLOSED if the link went away mid-exchange, which a
  *   removable one can do and a socket cannot: a USB readout unplugged or
  *   reset out from under the session; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_change_udp_ports(katherine_transport_t *transport, uint16_t control, uint16_t data)
@@ -1126,6 +1156,8 @@ typedef enum katherine_acq_unit_reg {
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_acq_unit_write(katherine_transport_t *transport, katherine_acq_unit_reg_t reg, uint32_t value)
@@ -1167,6 +1199,8 @@ katherine_cmd_acq_unit_write(katherine_transport_t *transport, katherine_acq_uni
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_acq_unit_read(katherine_transport_t *transport, katherine_acq_unit_reg_t reg, uint32_t *value)
@@ -1244,6 +1278,8 @@ typedef enum katherine_pulse_reg {
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_pulse_generator_write(katherine_transport_t *transport, katherine_pulse_reg_t reg, uint32_t value)
@@ -1284,6 +1320,8 @@ katherine_cmd_pulse_generator_write(katherine_transport_t *transport, katherine_
  * \retval KATHERINE_E_INVAL if the control link rejected an argument; see
  *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the send or the receive ran out of memory.
+ * \retval KATHERINE_E_STATE if the transport beneath carries no link; see
+ *   katherine_transport_send_cmd().
  */
 static inline katherine_error_t
 katherine_cmd_pulse_generator_read(katherine_transport_t *transport, katherine_pulse_reg_t reg, uint32_t *value)

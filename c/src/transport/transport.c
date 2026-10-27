@@ -53,10 +53,14 @@
  *   transfer; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  */
 katherine_error_t
 katherine_transport_send_cmd(katherine_transport_t *transport, const void *data, size_t count)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->send_cmd(transport->ctx, data, count);
 }
 
@@ -82,10 +86,14 @@ katherine_transport_send_cmd(katherine_transport_t *transport, const void *data,
  *   transfer; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the link had no memory to carry it; see
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  */
 katherine_error_t
 katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t *len)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->recv_crd(transport->ctx, crd, len);
 }
 
@@ -94,10 +102,14 @@ katherine_transport_recv_crd(katherine_transport_t *transport, void *crd, size_t
  * \param transport Transport to discard on.
  *
  * \retval KATHERINE_E_OK on success.
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  */
 katherine_error_t
 katherine_transport_flush_incoming(katherine_transport_t *transport)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     uint32_t discarded = 0;
 
     // Tallied here rather than by the backend, which is handed a context and
@@ -144,6 +156,8 @@ katherine_transport_flush_incoming(katherine_transport_t *transport)
 katherine_error_t
 katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **buf, size_t *len)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->acquire_data_buf(transport->ctx, buf, len);
 }
 
@@ -157,6 +171,8 @@ katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **bu
  * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
  *   released, which a transport serializing its own access can report;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  * \note Giving a buffer back does not put it back to work. A transport that
  *   keeps reads outstanding posts the next one when something asks for the
  *   next buffer, not here, so a submission's failures belong to
@@ -165,6 +181,8 @@ katherine_transport_acquire_data_buf(katherine_transport_t *transport, void **bu
 katherine_error_t
 katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->release_data_buf(transport->ctx, buf);
 }
 
@@ -185,10 +203,14 @@ katherine_transport_release_data_buf(katherine_transport_t *transport, void *buf
  * \retval KATHERINE_E_SYSTEM if the link's lock could not be taken or
  *   released, which a transport serializing its own access can report;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  */
 katherine_error_t
 katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeout_ms)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->set_timeout(transport->ctx, timeout_ms);
 }
 
@@ -206,10 +228,14 @@ katherine_transport_set_timeout(katherine_transport_t *transport, uint32_t timeo
  * \retval KATHERINE_E_OK on success.
  * \retval KATHERINE_E_UNSUPPORTED on a link that keeps no such queue, or one
  *   whose platform cannot attribute a loss to one session.
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  */
 katherine_error_t
 katherine_transport_get_dropped_input(const katherine_transport_t *transport, uint64_t *count)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->get_dropped_input(transport->ctx, count);
 }
 
@@ -226,6 +252,8 @@ katherine_transport_get_dropped_input(const katherine_transport_t *transport, ui
  *   finalized; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the lock could not be taken for a reason
  *   none of the other codes cover; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  * \note Unreachable here: KATHERINE_E_NOMEM and KATHERINE_E_TIMEOUT.
  *   pthread_mutex_lock(3) documents EBUSY, EDEADLK, EINVAL and EPERM and no
  *   more, so neither can arrive through either transport, however the
@@ -234,6 +262,8 @@ katherine_transport_get_dropped_input(const katherine_transport_t *transport, ui
 katherine_error_t
 katherine_transport_mutex_lock(katherine_transport_t *transport)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->mutex_lock(transport->ctx);
 }
 
@@ -247,6 +277,8 @@ katherine_transport_mutex_lock(katherine_transport_t *transport)
  *   finalized; see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_SYSTEM if the lock could not be released for a reason
  *   none of the other codes cover; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_STATE if the transport carries no link: one that was
+ *   never opened, or that katherine_transport_fini() has closed.
  * \note Unreachable here: KATHERINE_E_NOMEM and
  *   KATHERINE_E_TIMEOUT. pthread_mutex_unlock(3) documents EBUSY, EDEADLK,
  *   EINVAL and EPERM and no more, so neither can arrive through either
@@ -256,6 +288,8 @@ katherine_transport_mutex_lock(katherine_transport_t *transport)
 katherine_error_t
 katherine_transport_mutex_unlock(katherine_transport_t *transport)
 {
+    if (transport->ops == NULL) return KATHERINE_E_STATE;
+
     return transport->ops->mutex_unlock(transport->ctx);
 }
 

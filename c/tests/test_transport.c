@@ -527,6 +527,47 @@ test_the_inflight_count_tolerates_nothing(void)
 
 // ------------------------------------------------------------------
 
+
+// ------------------------------------------------------------------
+// The property the never-opened-device sweep ended on, now enforceable:
+//
+//   no public function in libkatherine faults on a zeroed object of its
+//   own type.
+//
+// Patches 0023 to 0025 took that from 25 violations to 9, all of them
+// here. transport.c states the opposite policy out loud -- "the transport
+// is the caller's to have opened" -- so these nine were left until the
+// policy was changed deliberately rather than by a patch. It has been.
+
+static void
+test_no_entry_point_faults_on_a_transport_with_no_link(void)
+{
+    katherine_transport_t t;
+    memset(&t, 0, sizeof(t));
+
+    uint8_t byte = 0;
+    void *buf    = NULL;
+    size_t len   = sizeof(byte);
+    uint64_t n   = 0;
+
+    KT_CHECK_EQ(katherine_transport_send_cmd(&t, &byte, 1), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_recv_crd(&t, &byte, &len), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_flush_incoming(&t), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_acquire_data_buf(&t, &buf, &len), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_release_data_buf(&t, buf), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_set_timeout(&t, 100), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_get_dropped_input(&t, &n), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_mutex_lock(&t), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_transport_mutex_unlock(&t), KATHERINE_E_STATE);
+
+    // The four that do not return an error code, and answer rather than fault.
+    KT_CHECK_EQ(katherine_transport_get_last_os_error(&t), 0);
+    katherine_transport_set_strict_ack(&t, true);
+    KT_CHECK(t.strict_ack);
+    katherine_transport_fini(&t);
+    KT_CHECK(t.ops == NULL);
+}
+
 int
 main(void)
 {
@@ -552,6 +593,7 @@ main(void)
     KT_RUN(test_a_misconfigured_open_is_refused);
     KT_RUN(test_both_shapes_are_named);
     KT_RUN(test_the_inflight_count_tolerates_nothing);
+    KT_RUN(test_no_entry_point_faults_on_a_transport_with_no_link);
 #endif
 
     return kt_summary();
