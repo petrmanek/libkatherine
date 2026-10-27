@@ -378,7 +378,7 @@ main(int argc, char *argv[])
     // The per-chip settings are a flexible array, so the configuration can
     // only be sized once the readout has said how many chips it carries.
     // calloc, not malloc: zero is a safe value for every field here.
-    katherine_tpx3_config_t *c = calloc(1, sizeof(*c) + device.info.chip_count * sizeof(c->chips[0]));
+    katherine_tpx3_config_t *c = calloc(1, KATHERINE_TPX3_CONFIG_SIZE(device.info.chip_count));
     if (c == NULL) {
         printf("Cannot allocate a configuration for %u chips.\n", (unsigned) device.info.chip_count);
         exit(6);

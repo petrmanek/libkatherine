@@ -183,7 +183,7 @@ class config {
 
     static std::size_t bytes(std::uint8_t chip_count)
     {
-        return sizeof(katherine_tpx3_config_t) + chip_count * sizeof(katherine_tpx3_chip_config_t);
+        return KATHERINE_TPX3_CONFIG_SIZE(chip_count);
     }
 
 public:

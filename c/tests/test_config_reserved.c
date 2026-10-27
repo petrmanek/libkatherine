@@ -31,7 +31,7 @@
 #include "ktest.h"
 
 #define CHIP_COUNT  1
-#define CONFIG_SIZE (sizeof(katherine_tpx3_config_t) + CHIP_COUNT * sizeof(katherine_tpx3_chip_config_t))
+#define CONFIG_SIZE (KATHERINE_TPX3_CONFIG_SIZE(CHIP_COUNT))
 
 static katherine_device_t g_device;
 static kemu_transport_t g_link;

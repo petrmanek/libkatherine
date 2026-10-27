@@ -451,6 +451,19 @@ typedef struct katherine_tpx3_config {
 #pragma GCC diagnostic pop
 #endif
 
+/**
+ * Bytes a katherine_tpx3_config_t needs for \p chip_count chips.
+ *
+ * The count appears twice in a correct allocation -- here and in
+ * katherine_config_t::chip_count -- and the two must agree. Taking it once
+ * removes the chance of writing it differently the second time. It does not
+ * remove the chance of declaring a different count afterwards; only an
+ * initialiser could, and that is deliberately not part of this contract.
+ */
+#define KATHERINE_TPX3_CONFIG_SIZE(chip_count) \
+    (sizeof(katherine_tpx3_config_t) + (size_t) (chip_count) * sizeof(katherine_tpx3_chip_config_t))
+
+
 KATHERINE_EXPORTED int
 katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v);
 

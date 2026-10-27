@@ -36,6 +36,10 @@ test_the_chips_are_reachable_inside_the_allocation(void)
     const size_t n     = 3;
     const size_t bytes = sizeof(katherine_tpx3_config_t) + n * sizeof(katherine_tpx3_chip_config_t);
 
+    // The macro is the arithmetic above, named. If they ever disagree the
+    // macro is wrong, and every caller that trusted it allocated short.
+    KT_CHECK_EQ(KATHERINE_TPX3_CONFIG_SIZE(n), bytes);
+
     katherine_tpx3_config_t *c = (katherine_tpx3_config_t *) calloc(1, bytes);
     KT_REQUIRE(c != NULL);
     c->common.chip_count     = (uint8_t) n;

@@ -514,7 +514,7 @@ static const char *CONFIG_GOLDEN = "tpx3_config{common: config{chip_type: Timepi
 
 // A structure with a flexible array member cannot be a member of another, so
 // one chip's worth of configuration is allocated rather than declared.
-#define CONFIG_SIZE_1 (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
+#define CONFIG_SIZE_1 (KATHERINE_TPX3_CONFIG_SIZE(1))
 
 static katherine_tpx3_config_t *
 alloc_config_1(void)

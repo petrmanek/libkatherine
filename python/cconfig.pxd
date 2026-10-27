@@ -41,6 +41,8 @@ cdef extern from 'katherine/config.h':
         bool delayed
         double delay_seconds
 
+    size_t KATHERINE_TPX3_CONFIG_SIZE(uint8_t chip_count)
+
     int katherine_trigger_snprint(char *buf, size_t cap, const katherine_trigger_t *v)
 
     ctypedef struct katherine_tpx3_test_pulse_config_t:

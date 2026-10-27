@@ -1669,7 +1669,7 @@ cdef class Config:
          # not known until the chip count is. calloc, not malloc: zero is a
          # safe value for every field, Polarity.HOLES included.
          self._c_config = <cconfig.katherine_tpx3_config_t *> calloc(
-             1, sizeof(cconfig.katherine_tpx3_config_t) + chip_count * sizeof(cconfig.katherine_tpx3_chip_config_t))
+             1, cconfig.KATHERINE_TPX3_CONFIG_SIZE(chip_count))
          if self._c_config is NULL:
              raise MemoryError('cannot allocate a configuration for %d chips' % chip_count)
          self.chip_count = chip_count
