@@ -254,9 +254,10 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
  * \retval KATHERINE_E_BUSY if the local address and port are already held by
  *   another socket, which on Windows includes a second libkatherine session:
- *   this transport does not set SO_REUSEADDR here, so the port is exclusive
- *   where on POSIX two sessions share it. See katherine_udp_last_os_error(),
- *   which reports the WSAGetLastError() code.
+ *   this transport does not set SO_REUSEADDR here, so the port is exclusive.
+ *   Linux shares it; the BSDs do not either, wanting SO_REUSEPORT for that.
+ *   See katherine_udp_last_os_error(), which reports the WSAGetLastError()
+ *   code.
  * \retval KATHERINE_E_IO if the socket could not be created, or -- when
  *   timeout_ms is nonzero -- its receive timeout could not be set, for a
  *   reason none of the other codes cover; see socket(), setsockopt() and
@@ -306,9 +307,10 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
  * \retval KATHERINE_E_BUSY if the local address and port are already held by
  *   another socket, which on Windows includes a second libkatherine session:
- *   this transport does not set SO_REUSEADDR here, so the port is exclusive
- *   where on POSIX two sessions share it. See katherine_udp_last_os_error(),
- *   which reports the WSAGetLastError() code.
+ *   this transport does not set SO_REUSEADDR here, so the port is exclusive.
+ *   Linux shares it; the BSDs do not either, wanting SO_REUSEPORT for that.
+ *   See katherine_udp_last_os_error(), which reports the WSAGetLastError()
+ *   code.
  * \retval KATHERINE_E_IO if the socket could not be created, or -- when
  *   timeout_ms is nonzero -- its receive timeout could not be set, for a
  *   reason none of the other codes cover; see socket(), setsockopt() and
@@ -383,11 +385,14 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t
     // measured on the build VM against a second socket bound to the same
     // address: refused with WSAEADDRINUSE whether or not the holder set
     // SO_REUSEADDR. Two libkatherine sessions on one Windows host therefore
-    // cannot share a port -- the second is refused -- where on POSIX both set
-    // SO_REUSEADDR and both bind, splitting the readout's datagrams between
-    // them with no error anywhere. The asymmetry is in the platforms, and it
-    // is the POSIX side that is permissive, which is the opposite of what
-    // this comment said until it was measured a second time.
+    // cannot share a port.
+    //
+    // Linux can: both set SO_REUSEADDR and both bind, splitting the
+    // readout's datagrams between them with no error anywhere. That is a
+    // Linux property and not a POSIX one -- macOS refuses the second bind
+    // too, SO_REUSEADDR not covering an exact unicast duplicate on the BSDs,
+    // which want SO_REUSEPORT. Measured on CI, 2026-10-27, after this
+    // comment had said POSIX and meant Linux.
     //
     // The earlier measurement that said otherwise compared a wildcard bind
     // against a specific one. Those two genuinely do coexist on Windows, in

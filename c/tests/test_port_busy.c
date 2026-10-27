@@ -78,6 +78,14 @@ sockets_stop(void)
 #endif
 }
 
+// What this transport asks for when it binds: udp_nix.c sets SO_REUSEADDR
+// and udp_win.c deliberately does not.
+#ifdef KATHERINE_WIN
+#define LIBRARY_SETS_REUSEADDR false
+#else
+#define LIBRARY_SETS_REUSEADDR true
+#endif
+
 // A socket holding PORT_BUSY, with SO_REUSEADDR under the caller's control:
 // that flag is the whole difference between the two cases below.
 static holder_t
@@ -158,17 +166,39 @@ test_a_foreign_holder_is_reported_busy(void)
     holder_close(held);
 }
 
+// Whether a second socket can hold this address and port beside the first,
+// binding the way this transport binds -- which is the whole of what the
+// case below is about.
+//
+// Measured rather than tabulated. Three platforms give three answers and a
+// table would need a fourth row for the next one: Linux shares the port
+// under SO_REUSEADDR, the BSDs want SO_REUSEPORT for that and refuse it
+// under SO_REUSEADDR alone, and Windows refuses it because this transport
+// does not ask there at all.
+static bool
+platform_shares_a_port(void)
+{
+    const holder_t first = hold_port(true);
+    if (first == HOLDER_NONE) return false;
+
+    const holder_t second = hold_port(LIBRARY_SETS_REUSEADDR);
+    const bool shared     = (second != HOLDER_NONE);
+
+    if (shared) holder_close(second);
+    holder_close(first);
+
+    return shared;
+}
+
 // The limit of the distinction, pinned so nobody reads more into the code
-// than it carries -- and it is not the same limit on both platforms.
+// than it carries -- and the limit is not the same on every platform.
 //
-// On POSIX the library sets SO_REUSEADDR, so a holder that set it too is not
-// a collision: both bind, and two libkatherine sessions are exactly that
-// case. On Windows the library deliberately does not set it, so the address
-// and port are its own: the holder's option makes no difference and a second
-// session is refused. Measured on the build VM, both ways round.
-//
-// Which is to say KATHERINE_E_BUSY reaches further on Windows than on POSIX,
-// and this is the case that says so.
+// Where two sockets can share an address and port, a holder that asked for
+// sharing is not a collision and two libkatherine sessions are exactly that
+// case; where they cannot, the address is the first session's own and the
+// second is refused. KATHERINE_E_BUSY therefore reaches further on some
+// platforms than on others, and this is the case that says so -- against
+// what the platform does rather than against a list of platform names.
 static void
 test_a_reuseaddr_holder_is_what_the_platform_says(void)
 {
@@ -177,16 +207,18 @@ test_a_reuseaddr_holder_is_what_the_platform_says(void)
         return;
     }
 
+    const bool shared = platform_shares_a_port();
+
     const holder_t held = hold_port(true);
     KT_REQUIRE(held != HOLDER_NONE);
 
     katherine_transport_t transport;
-#ifdef KATHERINE_WIN
-    KT_CHECK_EQ(open_control(&transport), KATHERINE_E_BUSY);
-#else
-    KT_CHECK_EQ(open_control(&transport), KATHERINE_E_OK);
-    katherine_transport_fini(&transport);
-#endif
+    if (shared) {
+        KT_CHECK_EQ(open_control(&transport), KATHERINE_E_OK);
+        katherine_transport_fini(&transport);
+    } else {
+        KT_CHECK_EQ(open_control(&transport), KATHERINE_E_BUSY);
+    }
 
     holder_close(held);
 }
