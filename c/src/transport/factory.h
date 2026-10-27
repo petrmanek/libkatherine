@@ -68,6 +68,9 @@ extern "C" {
  * \retval KATHERINE_E_INVAL if an argument is missing.
  * \retval KATHERINE_E_ADDRESS if the address names no link this build
  *   carries, or the backend could not read the remainder as one of its own.
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_UNSUPPORTED if the address names a link this build
  *   cannot open.
  * \retval KATHERINE_E_NOMEM if the transport or its buffer could not be
@@ -164,6 +167,9 @@ err_args:
  *   open on the link the address names.
  * \retval KATHERINE_E_ADDRESS if the address names no link this build
  *   carries, or the backend could not read the remainder as one of its own.
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_UNSUPPORTED if the address names a link this build
  *   cannot open.
  * \retval KATHERINE_E_NOMEM if the transport, its ring or its buffers could

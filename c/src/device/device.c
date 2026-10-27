@@ -302,6 +302,9 @@ restore_standard_ports(katherine_device_t *device)
  *   know, or is a scheme and nothing else, or its UDP part is not a valid
  *   IPv4 address, or the control or data socket's fixed local port could not
  *   be bound; see inet_pton(3) and bind(2).
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_UNSUPPORTED if the address names a link this version
  *   cannot open a device on. Only UDP can carry one so far.
  * \retval KATHERINE_E_BAD_CRD if the readout answered the port change or the

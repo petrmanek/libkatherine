@@ -385,6 +385,9 @@ static const katherine_transport_ops_t udp_ops = {
  *   or if the configuration names no remote address.
  * \retval KATHERINE_E_ADDRESS if either address could not be resolved, or the
  *   local one could not be bound; see inet_pton(3) and bind(2).
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_NOMEM if the transport or its buffer could not be
  *   allocated.
  * \retval KATHERINE_E_IO if opening the socket, sizing its receive queue or
@@ -580,6 +583,9 @@ collect_one(katherine_udp_t *udp, const katherine_cmd_t *request, bool legacy, k
  *   this library does not know, is a scheme and nothing else, could not be
  *   parsed, or either local port could not be bound; see inet_pton(3) and
  *   bind(2).
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_TIMEOUT if the request could not be sent because the
  *   send would have blocked; see sendto(2). Not returned for want of an
  *   answer -- a discovery that hears nothing succeeds with none found.

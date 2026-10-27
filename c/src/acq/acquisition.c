@@ -329,6 +329,9 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  *
  * \retval KATHERINE_E_ADDRESS if the device's address names no link this
  *   build can open, or names one malformed; see katherine_device_init().
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_INVAL if the device's address carries a scheme this
  *   build was compiled without, the data link rejected an argument of its own
  *   open, or \p md_buffer_size is a size this link cannot serve at all. A

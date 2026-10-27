@@ -252,6 +252,9 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, bo
  *   another socket already holds it, or it is excluded from use; see
  *   inet_pton() and bind(). Only the bind failure records an OS error for
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_udp_last_os_error(), which reports the WSAGetLastError() code.
  * \retval KATHERINE_E_IO if the socket could not be created, or -- when
  *   timeout_ms is nonzero -- its receive timeout could not be set, for a
  *   reason none of the other codes cover; see socket(), setsockopt() and
@@ -299,6 +302,9 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  *   not local to this host, or the port is excluded from use; see
  *   inet_pton() and bind(). Only the bind failure records an OS error for
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_udp_last_os_error(), which reports the WSAGetLastError() code.
  * \retval KATHERINE_E_IO if the socket could not be created, or -- when
  *   timeout_ms is nonzero -- its receive timeout could not be set, for a
  *   reason none of the other codes cover; see socket(), setsockopt() and
@@ -381,7 +387,8 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t
     // adds rather than for this bind.
     if (bind(u->sock, (const struct sockaddr *) &u->address_local, sizeof(u->address_local)) == SOCKET_ERROR) {
         u->last_os_error = WSAGetLastError();
-        res              = KATHERINE_E_ADDRESS;
+        // As udp_nix.c: a held port is not a malformed address.
+        res = (u->last_os_error == WSAEADDRINUSE) ? KATHERINE_E_BUSY : KATHERINE_E_ADDRESS;
         goto err_bind;
     }
 

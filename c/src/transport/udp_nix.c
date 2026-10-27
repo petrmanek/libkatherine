@@ -277,6 +277,9 @@ recv_datagram(katherine_udp_t *u, void *data, size_t count, size_t *received, in
  *   another socket already holds it, or it is a privileged port; see
  *   inet_pton(3) and bind(2). Only the bind failure records an OS error for
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the socket could not be created, or its address
  *   reuse or receive timeout option could not be set, for a reason none of
  *   the other codes cover -- the process being out of file descriptors, for
@@ -322,6 +325,9 @@ katherine_udp_init(katherine_udp_t *u, uint16_t local_port, const char *remote_a
  *   not local to this host, or the port is privileged; see inet_pton(3) and
  *   bind(2). Only the bind failure records an OS error for
  *   katherine_udp_last_os_error(); a rejected address string leaves it zero.
+ * \retval KATHERINE_E_BUSY if the local port is already held by another
+ *   process -- another libkatherine on this host is the usual cause; see
+ *   katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_IO if the socket could not be created, or its address
  *   reuse or receive timeout option could not be set, for a reason none of
  *   the other codes cover -- the process being out of file descriptors, for
@@ -390,7 +396,9 @@ katherine_udp_init_bound(katherine_udp_t *u, const char *local_address, uint16_t
 
     if (bind(u->sock, (struct sockaddr *) &u->address_local, sizeof(u->address_local)) == -1) {
         u->last_os_error = errno;
-        res              = KATHERINE_E_ADDRESS;
+        // A held port and a typed-wrong address are both bind failures and
+        // need telling apart: the first is another libkatherine on this host.
+        res = (errno == EADDRINUSE) ? KATHERINE_E_BUSY : KATHERINE_E_ADDRESS;
         goto err_bind;
     }
 

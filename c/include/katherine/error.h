@@ -49,6 +49,7 @@ typedef enum katherine_error {
     KATHERINE_E_IO,      ///< A send, receive or socket setup call failed at the OS level, or a file could not be opened or read. On a link, see katherine_transport_get_last_os_error(); on a file there is none to ask for.
     KATHERINE_E_CLOSED,  ///< The session is no longer usable.
     KATHERINE_E_ADDRESS, ///< An address could not be resolved or bound.
+    KATHERINE_E_BUSY,    ///< The local port is held by another process; see katherine_transport_get_last_os_error().
 
     // protocol
     KATHERINE_E_BAD_CRD, ///< A command response datagram had an unexpected shape.

@@ -136,6 +136,8 @@ if(KATHERINE_BUILD_EMULATOR)
     # Refusing a dirty reserved block needs a device that answers, and this is
     # the one that needs no socket.
     katherine_add_test(NAME test_config_reserved SOURCES test_config_reserved.c LABELS unit)
+
+    katherine_add_test(NAME test_port_busy SOURCES test_port_busy.c LABELS unit)
 endif()
 
 # Remote-address pinning of the UDP layer. Sockets, but only through the
