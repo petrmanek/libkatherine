@@ -483,6 +483,8 @@ jobs:
             "-DKATHERINE_BUILD_EMULATOR=OFF -DKATHERINE_BUILD_TESTS=ON"
             "-DKATHERINE_BUILD_CXX=OFF -DKATHERINE_BUILD_EXAMPLES=OFF"
             "-DKATHERINE_BUILD_EMULATOR=OFF -DKATHERINE_BUILD_CXX=OFF"
+            "-DKATHERINE_TRANSPORT_UDP=OFF -DKATHERINE_TRANSPORT_USB=ON"
+            "-DKATHERINE_TRANSPORT_USB=OFF"
           )
           for i in "${!shapes[@]}"; do
             echo "::group::shape $i: ${shapes[$i]:-default}"
@@ -490,6 +492,13 @@ jobs:
             # shellcheck disable=SC2086
             cmake -S . -B "b$i" -DCMAKE_BUILD_TYPE=Release ${shapes[$i]}
             cmake --build "b$i" --parallel
+            # The suite a shape leaves behind is run, not just linked: a
+            # shape that drops a feature drops the tests that need it, and
+            # what remains has to still pass. Shapes run one after another,
+            # so the tests that claim fixed ports do not meet each other.
+            if [ -f "b$i/CTestTestfile.cmake" ]; then
+              ctest --test-dir "b$i" --output-on-failure
+            fi
             echo "::endgroup::"
           done
 

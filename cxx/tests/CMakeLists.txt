@@ -18,7 +18,7 @@ katherine_add_test(NAME test_cxx_smoke
     LABELS unit
     LIBRARIES katherinexx
     PROPERTIES RUN_SERIAL TRUE
-)
+ NEEDS TRANSPORT_UDP)
 
 # katherine::device and katherine::acquisition. katherine_device_init() binds
 # the fixed ports 1555/1556, which is a global resource and the same one the
@@ -30,14 +30,16 @@ katherine_add_test(NAME test_cxx_device
     SOURCES test_cxx_device.cpp
     LABELS e2e
     LIBRARIES katherinexx
-    PROPERTIES RUN_SERIAL TRUE TIMEOUT 120
-)
+    NEEDS TRANSPORT_UDP
+    PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
 
 # ktest.h lives with the C tests and is the project's whole test harness; it
 # is valid C++ as written, so the C++ suite reports in the same TAP dialect
 # rather than growing a second one.
 foreach(target test_cxx_smoke test_cxx_device)
-    target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/c/tests")
+    if(TARGET ${target}) # test_cxx_device is skipped without the UDP transport
+        target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/c/tests")
+    endif()
 endforeach()
 
 # Both C++ test sources are registered unconditionally.

@@ -54,15 +54,17 @@ katherine_declare_feature(TRANSPORT_USB       "enable USB transport (requires li
 katherine_feature_summary()
 
 # What is built around the library, rather than the library itself, still
-# assumes the UDP transport: the examples and the test suite address readouts
-# by host. Each is skipped rather than failed, so that turning the transport
-# off needs no other flag. The Python binding is not among them: it drops the
-# one wrapper that needs the transport and is built either way.
+# assumes the UDP transport: the examples address readouts by host. Each is
+# skipped rather than failed, so that turning the transport off needs no
+# other flag. The Python binding is not among them: it drops the one wrapper
+# that needs the transport and is built either way.
 #
-# This is why a build without UDP currently has no tests. Gating the suite
-# per test, so the USB ones still run, is worth doing and is not done here.
+# The test suite is no longer among them either. Each test that drives a UDP
+# link says so with katherine_add_test(... NEEDS TRANSPORT_UDP) and is
+# skipped on its own, which leaves the ones that need no link running: a
+# USB-only build used to have no tests at all.
 if(NOT KATHERINE_TRANSPORT_UDP)
-    foreach(part EXAMPLES TESTS BENCHMARKS)
+    foreach(part EXAMPLES BENCHMARKS)
         if(KATHERINE_BUILD_${part})
             message(STATUS "katherine: skipping ${part}, which needs the UDP transport")
             set(KATHERINE_BUILD_${part} OFF)

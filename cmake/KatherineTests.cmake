@@ -13,6 +13,7 @@ katherine_add_test(NAME <name>
                     SOURCES <source>...
                     [ARGS <arg>...]
                     [LABELS <label>...]
+                    [NEEDS <FEATURE>]
                     [PROPERTIES <property> <value>...])
 
   Builds an executable called <name> from <source>... and registers it
@@ -31,6 +32,13 @@ katherine_add_test(NAME <name>
   test may need -- RUN_SERIAL for one that claims a global resource such
   as a fixed port, TIMEOUT, SKIP_RETURN_CODE for one that can decide at
   run time that its environment cannot host it.
+
+  NEEDS <FEATURE> builds and registers the test only where the option
+  KATHERINE_<FEATURE> is on; elsewhere the test is absent, not failing.
+  A test that drives a transport says NEEDS TRANSPORT_UDP, which is what
+  lets a build of another transport still run the tests that need none.
+  The target does not exist in that case, so anything the caller does to
+  it afterwards belongs inside an if(TARGET).
 
   katherine_check_tests_registered([CONDITIONAL <source>...])
 
@@ -52,7 +60,7 @@ find_library(KATHERINE_LIBM m)
 mark_as_advanced(KATHERINE_LIBM)
 
 function(katherine_add_test)
-    cmake_parse_arguments(PARSE_ARGV 0 ARG "STANDALONE" "NAME" "SOURCES;ARGS;LABELS;LIBRARIES;PROPERTIES")
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "STANDALONE" "NAME;NEEDS" "SOURCES;ARGS;LABELS;LIBRARIES;PROPERTIES")
     if(NOT ARG_NAME)
         message(FATAL_ERROR "katherine_add_test: NAME is required")
     endif()
@@ -63,11 +71,22 @@ function(katherine_add_test)
         message(FATAL_ERROR "katherine_add_test(${ARG_NAME}): unknown arguments: ${ARG_UNPARSED_ARGUMENTS}")
     endif()
 
-    # Recorded for katherine_check_tests_registered() below.
+    # Recorded for katherine_check_tests_registered() below, and recorded
+    # before the NEEDS check so that a test skipped for want of a feature
+    # still counts as registered rather than as forgotten.
     foreach(source IN LISTS ARG_SOURCES)
         get_filename_component(source "${source}" ABSOLUTE)
         set_property(GLOBAL APPEND PROPERTY KATHERINE_REGISTERED_TEST_SOURCES "${source}")
     endforeach()
+
+    # NEEDS <FEATURE> builds this test only where KATHERINE_<FEATURE> is on.
+    # A test that drives a transport says so here rather than being wrapped
+    # in an if(): the requirement belongs beside the test, and a wrapped
+    # block quietly collects tests that no longer need it.
+    if(ARG_NEEDS AND NOT KATHERINE_${ARG_NEEDS})
+        return()
+    endif()
+
 
     add_executable(${ARG_NAME} ${ARG_SOURCES})
     # STANDALONE builds the library sources it names into itself instead of

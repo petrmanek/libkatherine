@@ -39,12 +39,12 @@ katherine_add_test(NAME test_device_unopened SOURCES test_device_unopened.c LABE
 # the one case that opens a device binds the readout's own control port, 1555,
 # which is the global resource test_discover and the emulator tests claim too.
 katherine_add_test(NAME test_address SOURCES test_address.c LABELS unit
-    PROPERTIES RUN_SERIAL TRUE)
+    NEEDS TRANSPORT_UDP PROPERTIES RUN_SERIAL TRUE)
 
 # Both transports' socket-error tables. Pure translation, no socket: the test
 # reaches the mappers through the private header they share, so the platform
 # whose table is not live still has its rows compared against the live one.
-katherine_add_test(NAME test_udp_error_map SOURCES test_udp_error_map.c LABELS unit)
+katherine_add_test(NAME test_udp_error_map SOURCES test_udp_error_map.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # Length checking of the pixel-configuration loaders. Writes a scratch file
 # next to the test binary and removes it, so it claims no global resource and
@@ -55,7 +55,7 @@ katherine_add_test(NAME test_px_config_load SOURCES test_px_config_load.c LABELS
 # through the public katherine_udp_* API and on uncommon high ports of its
 # own (see the file for the exact pair), so it builds everywhere and claims
 # no global resource.
-katherine_add_test(NAME test_cmd_encoders SOURCES test_cmd_encoders.c LABELS unit)
+katherine_add_test(NAME test_cmd_encoders SOURCES test_cmd_encoders.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # Golden-string tests for the debug stringification facility (repr.c):
 # katherine_*_snprint() and katherine_str_*() for every covered public
@@ -63,27 +63,27 @@ katherine_add_test(NAME test_cmd_encoders SOURCES test_cmd_encoders.c LABELS uni
 # uncommon high loopback ports of their own (never the device's fixed
 # 1555/1556), so it builds and runs everywhere and claims no global
 # resource, exactly like test_cmd_encoders above.
-katherine_add_test(NAME test_repr SOURCES test_repr.c LABELS unit)
+katherine_add_test(NAME test_repr SOURCES test_repr.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # Regression tests driving the real read loop over crafted measurement-data
 # streams queued in through the public katherine_udp_* API, each on its own
 # fixed pair of uncommon high ports (see the individual files). No hardware,
 # no daemon, no global resource.
-katherine_add_test(NAME test_issue16 SOURCES test_issue16.c LABELS unit)
-katherine_add_test(NAME test_gen2_decode SOURCES test_gen2_decode.c LABELS unit)
-katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit)
+katherine_add_test(NAME test_issue16 SOURCES test_issue16.c LABELS unit NEEDS TRANSPORT_UDP)
+katherine_add_test(NAME test_gen2_decode SOURCES test_gen2_decode.c LABELS unit NEEDS TRANSPORT_UDP)
+katherine_add_test(NAME test_md_decode SOURCES test_md_decode.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # Test-pulse validation. Its byte-exact datagram check drives a mock readout
 # through the public katherine_udp_* API, on its own thread (kthread.h) since
 # katherine_tpx3_set_test_pulses() sends and waits for the acknowledgement inside
 # one opaque, blocking library call -- see test_tp.c for why that rules out
 # the inline, lockstep ping-pong bench_udp.c uses instead.
-katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit)
+katherine_add_test(NAME test_tp SOURCES test_tp.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # The acquisition-mode command and the sensor-register flush that carries it to
 # the sensor, as byte-exact vectors taken from vendor-tool captures. Same
 # threaded mock readout as test_tp, serving the two datagrams one call sends.
-katherine_add_test(NAME test_acq_mode SOURCES test_acq_mode.c LABELS unit)
+katherine_add_test(NAME test_acq_mode SOURCES test_acq_mode.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # The inquiries a running acquisition refuses. Needs no readout: the guard sits
 # ahead of the session lock, so an uninitialized device exercises it -- which
@@ -96,30 +96,34 @@ katherine_add_test(NAME test_acq_unopened SOURCES test_acq_unopened.c LABELS uni
 # uncommon high ports. One case needs the mock on a background thread, as
 # test_tp does and for the same reason -- the flush, the send and the receive
 # of a transaction happen inside one library call.
-katherine_add_test(NAME test_cmd_transact SOURCES test_cmd_transact.c LABELS unit)
+katherine_add_test(NAME test_cmd_transact SOURCES test_cmd_transact.c LABELS unit NEEDS TRANSPORT_UDP)
 # Two threads on one device's control plane, against a stub that widens the
 # window between a send and its answer. No sockets and no fixed ports, so it
 # needs no serial slot.
 katherine_add_test(NAME test_control_serial SOURCES test_control_serial.c LABELS unit)
 katherine_add_test(NAME test_acq_unit SOURCES test_acq_unit.c LABELS unit
-    PROPERTIES SKIP_RETURN_CODE 77)
+    NEEDS TRANSPORT_UDP PROPERTIES SKIP_RETURN_CODE 77)
 katherine_add_test(NAME test_tdc SOURCES test_tdc.c LABELS unit
-    PROPERTIES SKIP_RETURN_CODE 77)
+    NEEDS TRANSPORT_UDP PROPERTIES SKIP_RETURN_CODE 77)
 
 # The discovery test's mock readouts bind the readout's own control port,
 # 1555, which is a global resource and the same one the emulator tests claim
 # -- so it must not run beside them.
 katherine_add_test(NAME test_discover SOURCES test_discover.c LABELS unit
-    PROPERTIES RUN_SERIAL TRUE)
+    NEEDS TRANSPORT_UDP PROPERTIES RUN_SERIAL TRUE)
 # One further case drives the protocol emulator in memory, to check that the
 # emulated readout answers the two commands the firmware answers under a
 # substituted identifier the same way it does. It needs the emulator in the
 # build, so it is compiled in only when the feature is on -- the rest of the
 # file needs nothing but sockets and is registered unconditionally.
 if(KATHERINE_BUILD_EMULATOR)
-    target_compile_definitions(test_cmd_transact PRIVATE KATHERINE_TEST_EMULATOR)
-    target_compile_definitions(test_acq_unit PRIVATE KATHERINE_TEST_EMULATOR)
-    target_compile_definitions(test_tdc PRIVATE KATHERINE_TEST_EMULATOR)
+    # if(TARGET): all three also need the UDP transport, so a build without
+    # it has no target here to define anything on.
+    foreach(target test_cmd_transact test_acq_unit test_tdc)
+        if(TARGET ${target})
+            target_compile_definitions(${target} PRIVATE KATHERINE_TEST_EMULATOR)
+        endif()
+    endforeach()
 
     # The window katherine_acquisition_begin() sets its state in, which only
     # a link that refuses a send can reach -- so the emulator goes behind a
@@ -127,11 +131,11 @@ if(KATHERINE_BUILD_EMULATOR)
     # plane is still a real UDP session bound to a port of its own, which
     # is why this claims nothing another test wants and needs no serial
     # slot.
-    katherine_add_test(NAME test_acq_begin_window SOURCES test_acq_begin_window.c LABELS unit)
+    katherine_add_test(NAME test_acq_begin_window SOURCES test_acq_begin_window.c LABELS unit NEEDS TRANSPORT_UDP)
 
     # Frame boundaries, over a data plane this process serves. Same
     # fixture, same lack of ports.
-    katherine_add_test(NAME test_acq_frames SOURCES test_acq_frames.c LABELS unit)
+    katherine_add_test(NAME test_acq_frames SOURCES test_acq_frames.c LABELS unit NEEDS TRANSPORT_UDP)
 
     # Refusing a dirty reserved block needs a device that answers, and this is
     # the one that needs no socket.
@@ -142,13 +146,13 @@ endif()
 
 # Sockets, not an emulator: this one holds a port with a plain socket and
 # opens a transport on it, so it belongs outside the block above.
-katherine_add_test(NAME test_port_busy SOURCES test_port_busy.c LABELS unit)
+katherine_add_test(NAME test_port_busy SOURCES test_port_busy.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # Remote-address pinning of the UDP layer. Sockets, but only through the
 # public katherine_udp_* API and on uncommon high ports of its own, so it
 # builds everywhere and claims nothing another test could want: no daemon, no
 # threads, and none of the fixed ports that would make it RUN_SERIAL.
-katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit)
+katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # The receive queue a session asks the OS for: that the shipped default clears
 # one whole measurement datagram, that opening a session asks for more than the
@@ -156,15 +160,15 @@ katherine_add_test(NAME test_udp_pinning SOURCES test_udp_pinning.c LABELS unit)
 # mechanism and never a byte count, since the size is host policy. Sockets, but
 # only through the public katherine_udp_* API and on uncommon high ports of its
 # own, like test_udp_pinning.c above.
-katherine_add_test(NAME test_udp_rcvbuf SOURCES test_udp_rcvbuf.c LABELS unit)
+katherine_add_test(NAME test_udp_rcvbuf SOURCES test_udp_rcvbuf.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # The transport operations, over a loopback session and -- where the USB
 # backend is built -- over the arguments it rejects before it looks for a bus.
-katherine_add_test(NAME test_transport SOURCES test_transport.c LABELS unit)
+katherine_add_test(NAME test_transport SOURCES test_transport.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # Every finalizer, called twice. One case binds a pair of ports so that a
 # second close would have a real descriptor to hit; the rest need nothing.
-katherine_add_test(NAME test_fini_idempotent SOURCES test_fini_idempotent.c LABELS unit)
+katherine_add_test(NAME test_fini_idempotent SOURCES test_fini_idempotent.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # The USB backend's ring, against a stand-in libusb rather than a bus. Its
 # include directory shadows the real <libusb.h> for this target only, and the
@@ -198,13 +202,13 @@ if(KATHERINE_TRANSPORT_USB)
     target_include_directories(test_usb_address BEFORE PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/fake_libusb")
 endif()
-katherine_add_test(NAME test_set_dac SOURCES test_set_dac.c LABELS unit)
+katherine_add_test(NAME test_set_dac SOURCES test_set_dac.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # Where a per-chip command puts its chip index. Three opcodes, three
 # different bytes, and an acknowledgement that cannot tell them apart: the
 # cases read the datagram the mock received rather than the return code.
-katherine_add_test(NAME test_chip_routing SOURCES test_chip_routing.c LABELS unit)
-katherine_add_test(NAME test_status_null SOURCES test_status_null.c LABELS unit)
+katherine_add_test(NAME test_chip_routing SOURCES test_chip_routing.c LABELS unit NEEDS TRANSPORT_UDP)
+katherine_add_test(NAME test_status_null SOURCES test_status_null.c LABELS unit NEEDS TRANSPORT_UDP)
 
 # The 1.x compatibility shim (katherine/katherine1.h): compiles against 1.x
 # call sites unchanged and drives one real failure through each target of
@@ -219,11 +223,13 @@ katherine_add_test(NAME test_status_null SOURCES test_status_null.c LABELS unit)
 # otherwise turn into a build failure. Suppressed for this target alone
 # rather than papered over in the shim itself, which must keep warning every
 # other consumer.
-katherine_add_test(NAME test_compat1 SOURCES test_compat1.c LABELS unit)
-target_compile_options(test_compat1 PRIVATE
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>>:-Wno-deprecated-declarations>
-    $<$<C_COMPILER_ID:MSVC>:/wd4996>
-)
+katherine_add_test(NAME test_compat1 SOURCES test_compat1.c LABELS unit NEEDS TRANSPORT_UDP)
+if(TARGET test_compat1)
+    target_compile_options(test_compat1 PRIVATE
+        $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>>:-Wno-deprecated-declarations>
+        $<$<C_COMPILER_ID:MSVC>:/wd4996>
+    )
+endif()
 
 # End-to-end acquisition against the ksim daemon, which hosts the protocol
 # emulator on real UDP sockets -- hence the guard on the emulator feature,
@@ -241,7 +247,7 @@ if(KATHERINE_BUILD_KSIM)
     katherine_add_test(NAME test_e2e_acq SOURCES test_e2e_acq.c
         ARGS "$<TARGET_FILE:ksim>"
         LABELS e2e
-        PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
+        NEEDS TRANSPORT_UDP PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
     # tools/ is added after c/, so the ksim target does not exist yet: both
     # the generator expression above and this dependency are resolved at
     # generate time, by when it does. Without the dependency, building the
@@ -256,7 +262,7 @@ if(KATHERINE_BUILD_KSIM)
     # memory and against a mock readout on ports of its own: no daemon, so no
     # serial slot.
     katherine_add_test(NAME test_bias SOURCES test_bias.c LABELS emu
-        PROPERTIES SKIP_RETURN_CODE 77)
+        NEEDS TRANSPORT_UDP PROPERTIES SKIP_RETURN_CODE 77)
 
     # What a chip reports about itself: its DAC monitors and the
     # configuration check. Ports of its own, so no serial slot either.
@@ -274,7 +280,7 @@ if(KATHERINE_BUILD_KSIM)
     katherine_add_test(NAME test_px_recovery SOURCES test_px_recovery.c
         ARGS "$<TARGET_FILE:ksim>"
         LABELS e2e
-        PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
+        NEEDS TRANSPORT_UDP PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
     add_dependencies(test_px_recovery ksim)
     # See test_e2e_acq above: same single-threaded strerror() usage.
     target_compile_definitions(test_px_recovery PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
@@ -284,7 +290,7 @@ if(KATHERINE_BUILD_KSIM)
     katherine_add_test(NAME test_acq_begin_unanswered SOURCES test_acq_begin_unanswered.c
         ARGS "$<TARGET_FILE:ksim>"
         LABELS e2e
-        PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
+        NEEDS TRANSPORT_UDP PROPERTIES RUN_SERIAL TRUE TIMEOUT 120 SKIP_RETURN_CODE 77)
     add_dependencies(test_acq_begin_unanswered ksim)
     target_compile_definitions(test_acq_begin_unanswered PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 endif()
