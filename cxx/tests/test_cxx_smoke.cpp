@@ -288,6 +288,24 @@ test_ownership(void)
     KT_CHECK(std::is_move_constructible<katherine::config>::value);
 }
 
+/* The hardware-type table, read without a readout. Pure, so a discovery
+ * result is enough to ask what a type implies. */
+static void
+test_derived_info_recognize(void)
+{
+    const auto gen2 = katherine::derived_info_recognize(0x03);
+    KT_CHECK(gen2.supported);
+    KT_CHECK_EQ(gen2.gen, 2);
+    KT_CHECK_EQ(gen2.chip_type, KATHERINE_CHIP_TPX3);
+    KT_CHECK(gen2.max_chip_count >= 1);
+
+    // An unknown type is zeroed rather than refused, and `supported` is how
+    // the caller is told.
+    const auto unknown = katherine::derived_info_recognize(0xFE);
+    KT_CHECK(!unknown.supported);
+    KT_CHECK(unknown.name == nullptr);
+}
+
 /* The three pure helpers of config.h, which no C++ caller could reach until
  * they were bound. What they answer is pinned by the C suite
  * (test_clock_phases.c, test_dacs_validate.c); what is asserted here is that
@@ -647,6 +665,7 @@ main(void)
     KT_RUN(test_config_round_trip);
     KT_RUN(test_px_config);
     KT_RUN(test_ownership);
+    KT_RUN(test_derived_info_recognize);
     KT_RUN(test_clock_helpers);
     KT_RUN(test_timestamps);
     KT_RUN(test_errors);

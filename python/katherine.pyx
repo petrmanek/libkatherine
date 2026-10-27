@@ -1609,6 +1609,18 @@ class Tpx3Freq(_Enum):
 
 
 
+def device_derived_info_recognize(uint8_t hw_type):
+    """What a reported hardware type means: chip type, chip and bias-supply
+    counts, channel counts, and whether this library can drive it.
+
+    Pure, so a hardware type from a discovery result can be asked about
+    without opening anything. An unknown type comes back zeroed, which is
+    supported False."""
+    info = DeviceDerivedInfo()
+    info._c_info = cdevice.katherine_device_derived_info_recognize(hw_type)
+    return info
+
+
 def tpx3_actual_phases(freq, phase):
     """Phases the clock divider actually grants, which is not what the
     enumerator asks for: Timepix3 manual Table 17 clamps the count at the

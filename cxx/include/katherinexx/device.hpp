@@ -39,6 +39,22 @@ namespace katherine {
  */
 using discovered = katherine_discovered_t;
 
+/**
+ * \copybrief katherine_device_derived_info_recognize
+ *
+ * Pure, and so usable on a hardware type from a discovery result without
+ * opening anything.
+ *
+ * \param hw_type Hardware type as katherine_readout_status_t reports it.
+ * \return What that readout is, or a zeroed structure -- `supported` false --
+ *   if this version does not know the type.
+ */
+inline katherine_device_derived_info_t
+derived_info_recognize(std::uint8_t hw_type)
+{
+    return katherine_device_derived_info_recognize(hw_type);
+}
+
 #ifdef KATHERINE_FEATURE_UDP
 /**
  * Ask every readout reachable at an address to identify itself.

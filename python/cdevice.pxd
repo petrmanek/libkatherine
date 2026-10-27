@@ -62,6 +62,7 @@ cdef extern from 'katherine/device.h':
 
     int katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info_t *v)
     int katherine_device_derived_info_snprint(char *buf, size_t cap, const katherine_device_derived_info_t *v)
+    katherine_device_derived_info_t katherine_device_derived_info_recognize(uint8_t hw_type)
 
     int katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v)
 

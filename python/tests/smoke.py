@@ -753,6 +753,14 @@ def check_device_declaration(tap, katherine):
     tap.check('tdc_channel_count is reachable', isinstance(dev.derived_info.tdc_channel_count, int))
     tap.check('pulse_channel_count is reachable', isinstance(dev.derived_info.pulse_channel_count, int))
 
+    # The same table, read without a device: what a discovery result alone
+    # is enough to ask.
+    recognized = katherine.device_derived_info_recognize(0x03)
+    tap.check_eq('the table reads the same with no device', recognized.gen,
+                 dev.derived_info.gen)
+    tap.check('an unknown hardware type is unsupported, not an error',
+              not katherine.device_derived_info_recognize(0xFE).supported)
+
     # What the supplies can emit, which is the readout's capability and not
     # the attached assembly's safe range.
     tap.check_eq('the second generation emits +-1000 V',
