@@ -62,14 +62,14 @@ stream_snprint(std::ostream& os, const T *v, Fn snprint)
 }
 }
 
-// katherine::trigger, katherine::tpx3::dacs, katherine::test_pulse_config,
+// katherine::trigger, katherine::tpx3::dacs, katherine::tpx3::test_pulse_config,
 // katherine::frame_info and katherine::tpx3::coord are `using` aliases of
 // these same C struct types (see config.hpp, acquisition.hpp, px_config.hpp),
 // not distinct types, so argument-dependent lookup for a value of one of
 // those alias types resolves to the global-namespace overloads below --
 // a katherine::-qualified overload would never be found, because ADL does
 // not see through an alias to a namespace that was never part of the
-// actual type. katherine::px_config likewise needs no overload of its
+// actual type. katherine::tpx3::px_config likewise needs no overload of its
 // own: it publicly inherits katherine_tpx3_px_config_t, and ADL for a derived
 // class's argument also searches the associated namespaces of its base
 // classes, so the katherine_tpx3_px_config_t overload below is found for it
@@ -378,6 +378,20 @@ operator<<(std::ostream& os, readout_mode v)
     return os << katherine_str_readout_mode((katherine_tpx3_readout_mode_t) v);
 }
 
+/** Renders a katherine::tpx3::phase_correction (via katherine_str_phase_correction()). */
+inline std::ostream&
+operator<<(std::ostream& os, phase_correction v)
+{
+    return os << katherine_str_phase_correction((katherine_tpx3_phase_correction_t) v);
+}
+
+/** Renders a katherine::tpx3::config over its c_config() accessor. */
+inline std::ostream&
+operator<<(std::ostream& os, const config& v)
+{
+    return katherine::detail::stream_snprint(os, v.c_config(), katherine_tpx3_config_snprint);
+}
+
 } // namespace tpx3
 
 /** Renders a katherine::polarity (via katherine_str_polarity()). */
@@ -394,13 +408,6 @@ operator<<(std::ostream& os, acq_state v)
     return os << katherine_str_acquisition_state((katherine_acquisition_state_t) v);
 }
 
-/** Renders a katherine::phase_correction (via katherine_str_phase_correction()). */
-inline std::ostream&
-operator<<(std::ostream& os, phase_correction v)
-{
-    return os << katherine_str_phase_correction((katherine_tpx3_phase_correction_t) v);
-}
-
 }
 
 namespace katherine {
@@ -408,7 +415,7 @@ namespace katherine {
 // Real wrapper classes: each owns its C struct by value (not by
 // inheritance) and exposes a const accessor, so a value of one of these
 // types is never implicitly convertible to the corresponding C struct --
-// unlike katherine::px_config above, these need their own overload, found
+// unlike katherine::tpx3::px_config above, these need their own overload, found
 // by ADL in this namespace.
 
 /** Renders a katherine::device over its c_dev() accessor. */
@@ -425,20 +432,13 @@ operator<<(std::ostream& os, const katherine_tpx3_chip_config_t& v)
     return katherine::detail::stream_snprint(os, &v, katherine_tpx3_chip_config_snprint);
 }
 
-/** Renders a katherine::config over its c_config() accessor. */
-inline std::ostream&
-operator<<(std::ostream& os, const katherine::config& v)
-{
-    return detail::stream_snprint(os, v.c_config(), katherine_tpx3_config_snprint);
-}
-
 /**
  * Renders a katherine::base_acquisition over its c_acq() accessor.
  *
  * Declared on the base rather than on the acquisition<AcqMode> template, so
  * one overload serves every mode: ADL for a derived class also searches the
  * associated namespaces of its bases, the same rule that lets
- * katherine::px_config reach the katherine_tpx3_px_config_t overload above.
+ * katherine::tpx3::px_config reach the katherine_tpx3_px_config_t overload above.
  */
 inline std::ostream&
 operator<<(std::ostream& os, const katherine::base_acquisition& v)

@@ -222,12 +222,12 @@ names.
 the device call that sends it has always been called
 (`katherine_tpx3_set_test_pulses()`). The struct type keeps its name, in
 C as `katherine_tpx3_test_pulse_config_t` and in C++ as
-`katherine::test_pulse_config`; only the member moved.
+`katherine::tpx3::test_pulse_config`; only the member moved.
 
 `katherine1.h` does not alias this one either. The field alias is a macro
 over the whole translation unit, and because the header is includable
-from C++, an alias would rewrite the `katherine::test_pulse_config` type
-wherever both headers are in scope.
+from C++, an alias would rewrite the `katherine::tpx3::test_pulse_config`
+type wherever both headers are in scope.
 
 ### The configuration was split in three, and 1.x source keeps the old one
 
@@ -389,11 +389,41 @@ reads back as an enumerator and anything else is a `ValueError` where
 `uint32_t[KATHERINE_MAX_TDC_CHANNEL_COUNT]`; the counts are at
 `.channel[]`.
 
+### C++ gathers the Timepix3 names under `katherine::tpx3`
+
+`katherinexx` has always tracked the C names rather than offering its own,
+so a caller following the C sections above is already following most of the
+C++ one. The exception is the namespace. The C surface spells "this is
+Timepix3's" with a `tpx3_` prefix; C++ spells it with a namespace, and 2.0
+is where that namespace is finished.
+
+Six names move, and the six acquisition tags with them:
+
+| 1.x | 2.0 |
+|---|---|
+| `katherine::config` | `katherine::tpx3::config` |
+| `katherine::px_config` | `katherine::tpx3::px_config` |
+| `katherine::bmc`, `katherine::bpc` | `katherine::tpx3::bmc`, `::bpc` |
+| `katherine::test_pulse_config` | `katherine::tpx3::test_pulse_config` |
+| `katherine::phase_correction` | `katherine::tpx3::phase_correction` |
+| `katherine::acq::toa_tot` and its five siblings | `katherine::tpx3::acq::toa_tot` |
+| `katherine::load_bmc_file()` and the three other loaders | `katherine::tpx3::load_bmc_file()` |
+
+What stays in `katherine::` is what a readout does whatever chip it
+carries: `device`, `base_acquisition` and `acquisition<>`, `acq_state`,
+`frame_info`, `trigger`, `polarity`, the GPIO, timing-unit and
+pulse-generator types, and the error types.
+
+There is no C++ shim and will not be one -- an alias would have to be a
+`using`, and a `using` in `katherine::` is exactly the namespace pollution
+the move exists to end. Every call site fails to compile and the compiler
+names it, which for a mechanical rename is the cheapest migration there is.
+A `namespace tpx3 = katherine::tpx3;` in your own code shortens what is
+left.
+
 ### Python renamed fourteen classes, and thirteen of them still answer
 
-`katherinexx` and the Python module follow the C renames. C++ is the easy
-half: it has always tracked the C names rather than offering its own, so a
-caller following the C sections above is already following the C++ one.
+The Python module follows the C renames.
 
 **Python has a shim of its own**, matching what `katherine/katherine1.h`
 does for C and carrying the same promise -- deprecated in 2.0, removed in

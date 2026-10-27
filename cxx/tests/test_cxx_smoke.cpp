@@ -79,7 +79,7 @@ test_enum_rendering(void)
     KT_CHECK(streamed(katherine::polarity::holes).size() > 0);
     KT_CHECK(streamed(katherine::polarity::electrons).size() > 0);
     KT_CHECK(streamed(katherine::acq_state::running).size() > 0);
-    KT_CHECK(streamed(katherine::phase_correction::hardware).size() > 0);
+    KT_CHECK(streamed(katherine::tpx3::phase_correction::hardware).size() > 0);
 
     KT_CHECK(streamed(katherine::tpx3::phase::p1).size() > 0);
     KT_CHECK(streamed(katherine::tpx3::freq::f40).size() > 0);
@@ -108,7 +108,7 @@ test_enum_rendering(void)
 }
 
 // ------------------------------------------------------------------
-// 3. katherine::config, every accessor round-tripped.
+// 3. katherine::tpx3::config, every accessor round-tripped.
 //
 // The one place in this file where values are asserted, because the
 // assertion is about the wrapper rather than about the library: a setter and
@@ -118,7 +118,7 @@ test_enum_rendering(void)
 static void
 test_config_round_trip(void)
 {
-    katherine::config c;
+    katherine::tpx3::config c;
 
     c.set_bias(1, 12.5f);
     KT_CHECK_CLOSE(c.bias(1), 12.5f);
@@ -170,7 +170,7 @@ test_config_round_trip(void)
     c.set_stop_trigger(stop);
     KT_CHECK(!c.stop_trigger().use_trigger);
 
-    katherine::test_pulse_config tp{};
+    katherine::tpx3::test_pulse_config tp{};
     tp.enabled = true;
     tp.count   = 5;
     c.set_test_pulses(tp);
@@ -189,12 +189,12 @@ test_config_round_trip(void)
 }
 
 // ------------------------------------------------------------------
-// 4. katherine::px_config, and the four loaders.
+// 4. katherine::tpx3::px_config, and the four loaders.
 
 static void
 test_px_config(void)
 {
-    katherine::px_config px{};
+    katherine::tpx3::px_config px{};
     const katherine::tpx3::coord c = {12, 34};
 
     px.set_mask_bit(c, true);
@@ -217,12 +217,12 @@ test_px_config(void)
     // The data loaders, over correctly sized buffers of zeros. What is
     // asserted is that they return a configuration rather than throwing, the
     // contents being the C suite's business.
-    katherine::bmc bmc{};
-    katherine::bpc bpc{};
+    katherine::tpx3::bmc bmc{};
+    katherine::tpx3::bpc bpc{};
 
     bool bmc_ok = true;
     try {
-        katherine::px_config from_bmc = katherine::load_bmc_data(bmc);
+        katherine::tpx3::px_config from_bmc = katherine::tpx3::load_bmc_data(bmc);
         KT_CHECK(streamed(from_bmc).size() > 0);
     } catch (const katherine::error&) {
         bmc_ok = false;
@@ -231,7 +231,7 @@ test_px_config(void)
 
     bool bpc_ok = true;
     try {
-        katherine::px_config from_bpc = katherine::load_bpc_data(bpc);
+        katherine::tpx3::px_config from_bpc = katherine::tpx3::load_bpc_data(bpc);
         KT_CHECK(streamed(from_bpc).size() > 0);
     } catch (const katherine::error&) {
         bpc_ok = false;
@@ -243,7 +243,7 @@ test_px_config(void)
     // can provoke without a device.
     bool bmc_file_threw = false;
     try {
-        (void) katherine::load_bmc_file("/nonexistent/katherine-smoke.bmc");
+        (void) katherine::tpx3::load_bmc_file("/nonexistent/katherine-smoke.bmc");
     } catch (const katherine::error&) {
         bmc_file_threw = true;
     }
@@ -251,7 +251,7 @@ test_px_config(void)
 
     bool bpc_file_threw = false;
     try {
-        (void) katherine::load_bpc_file("/nonexistent/katherine-smoke.bpc");
+        (void) katherine::tpx3::load_bpc_file("/nonexistent/katherine-smoke.bpc");
     } catch (const katherine::error&) {
         bpc_file_threw = true;
     }
@@ -276,16 +276,16 @@ test_ownership(void)
     KT_CHECK(!std::is_move_constructible<katherine::device>::value);
     KT_CHECK(!std::is_move_assignable<katherine::device>::value);
 
-    using acq_t = katherine::acquisition<katherine::acq::toa_tot>;
+    using acq_t = katherine::acquisition<katherine::tpx3::acq::toa_tot>;
     KT_CHECK(!std::is_copy_constructible<acq_t>::value);
     KT_CHECK(!std::is_copy_assignable<acq_t>::value);
     KT_CHECK(!std::is_move_constructible<acq_t>::value);
     KT_CHECK(!std::is_move_assignable<acq_t>::value);
 
     // The configuration owns nothing and stays an ordinary value.
-    KT_CHECK(std::is_copy_constructible<katherine::config>::value);
-    KT_CHECK(std::is_copy_assignable<katherine::config>::value);
-    KT_CHECK(std::is_move_constructible<katherine::config>::value);
+    KT_CHECK(std::is_copy_constructible<katherine::tpx3::config>::value);
+    KT_CHECK(std::is_copy_assignable<katherine::tpx3::config>::value);
+    KT_CHECK(std::is_move_constructible<katherine::tpx3::config>::value);
 }
 
 /* The hardware-type table, read without a readout. Pure, so a discovery
@@ -499,7 +499,7 @@ test_struct_rendering(void)
     KT_CHECK(streamed(katherine_tpx3_px_f_event_count_itot_t{}).size() > 0);
 
     KT_CHECK(streamed(katherine::trigger{}).size() > 0);
-    KT_CHECK(streamed(katherine::test_pulse_config{}).size() > 0);
+    KT_CHECK(streamed(katherine::tpx3::test_pulse_config{}).size() > 0);
     KT_CHECK(streamed(katherine::tpx3::dacs{}).size() > 0);
     KT_CHECK(streamed(katherine::frame_info{}).size() > 0);
     KT_CHECK(streamed(katherine_frame_info_time_t{}).size() > 0);
@@ -508,11 +508,11 @@ test_struct_rendering(void)
 
     // The wrapper classes, rendered over their accessors rather than as the
     // C struct they own.
-    katherine::config c;
+    katherine::tpx3::config c;
     KT_CHECK(streamed(c).size() > 0);
 
     // A px_config renders as a digest, so it is short however large it is.
-    katherine::px_config px{};
+    katherine::tpx3::px_config px{};
     KT_CHECK(streamed(px).size() > 0);
 }
 

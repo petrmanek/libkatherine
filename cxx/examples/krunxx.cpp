@@ -18,14 +18,14 @@
 #include <katherinexx/katherinexx.hpp>
 
 static std::string remote_address{"udp://192.168.1.145"};
-using mode = katherine::acq::f_toa_tot;
+using mode = katherine::tpx3::acq::f_toa_tot;
 
 // Set the following flag to inject test pulses into a small subset of
 // pixels during the acquisition.
 static constexpr bool test_pulse = false;
 
 void
-paint_test_pixels(katherine::px_config& px_config)
+paint_test_pixels(katherine::tpx3::px_config& px_config)
 {
     // Enable test pulses for pixels forming the letter 'P' (chosen because
     // it is asymmetric in both axes, making image orientation verifiable).
@@ -75,7 +75,7 @@ paint_test_pixels(katherine::px_config& px_config)
 }
 
 void
-configure(katherine::config& config)
+configure(katherine::tpx3::config& config)
 {
     using namespace std::literals::chrono_literals;
 
@@ -124,9 +124,9 @@ configure(katherine::config& config)
     // krun.c reports it inline: a missing calibration file is not a readout
     // that would not answer, and one message for both would name the wrong
     // thing.
-    katherine::px_config px_config;
+    katherine::tpx3::px_config px_config;
     try {
-        px_config = katherine::load_bmc_file("chipconfig.bmc");
+        px_config = katherine::tpx3::load_bmc_file("chipconfig.bmc");
     } catch (const katherine::error& e) {
         std::cout << "Cannot load pixel configuration. Does the file exist?\n"
                   << "Reason: " << e.what() << '\n';
@@ -153,7 +153,7 @@ configure(katherine::config& config)
             config.dacs(i).named.VTP_fine   = 352;
         }
 
-        katherine::test_pulse_config tp{};
+        katherine::tpx3::test_pulse_config tp{};
         tp.enabled      = true;
         tp.digital_only = false;
         tp.external     = false;
@@ -214,7 +214,7 @@ print_chip_id(katherine::device& device)
 }
 
 void
-run_acquisition(katherine::device& dev, const katherine::config& c)
+run_acquisition(katherine::device& dev, const katherine::tpx3::config& c)
 {
     using namespace std::chrono;
     using namespace std::literals::chrono_literals;
@@ -260,7 +260,7 @@ main(int argc, char *argv[])
 
         // After the open, not before: the per-chip settings are sized at
         // construction and the readout is what says how many chips there are.
-        katherine::config c{device.info().chip_count};
+        katherine::tpx3::config c{device.info().chip_count};
         configure(c);
 
         print_chip_id(device);

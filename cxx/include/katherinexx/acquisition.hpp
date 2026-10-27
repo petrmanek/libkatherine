@@ -40,8 +40,10 @@ enum class acq_state {
     timed_out   = KATHERINE_ACQUISITION_STATE_TIMED_OUT
 };
 
+namespace tpx3 {
+
 /**
- * What a katherine::config::correct_clock_phase() request resolved to;
+ * What a katherine::tpx3::config::correct_clock_phase() request resolved to;
  * see katherine::base_acquisition::phase_correction().
  */
 enum class phase_correction {
@@ -49,6 +51,8 @@ enum class phase_correction {
     software = KATHERINE_TPX3_PHASE_CORRECTION_SOFTWARE,
     hardware = KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE
 };
+
+} // namespace tpx3
 
 // px_mode itself now lives in config.hpp (see the comment there); this
 // header still uses it unqualified below via the katherinexx/config.hpp
@@ -198,7 +202,7 @@ public:
      *   type as another rather than fail.
      */
     void
-    begin(const katherine::config& config)
+    begin(const katherine::tpx3::config& config)
     {
         if (config.px_mode() != mode_ || config.fast_vco_enable() != fast_vco_enabled_) {
             katherine::detail::check(KATHERINE_E_INVAL);
@@ -293,13 +297,14 @@ public:
     }
 
     /// The fine-tick offset this pixel's double column needs, which the decoder has already applied.
-    std::uint8_t timestamp_phase_offset(katherine::tpx3::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
+    std::uint8_t timestamp_phase_offset(tpx3::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
 
-    /// What katherine::config::correct_clock_phase() actually resolved to for this acquisition.
-    katherine::phase_correction phase_correction() const { return (katherine::phase_correction) acq_.phase_correction; }
+    /// What katherine::tpx3::config::correct_clock_phase() actually resolved to for this acquisition.
+    tpx3::phase_correction phase_correction() const { return (tpx3::phase_correction) acq_.phase_correction; }
 };
 
 
+namespace tpx3 {
 namespace acq {
 
 /**
@@ -312,7 +317,7 @@ struct f_toa_tot {
     /// A hit with a fine time of arrival and a time over threshold.
     using pixel_type = katherine_tpx3_px_f_toa_tot_t;
     /// What the pixel measures.
-    static constexpr tpx3::px_mode mode = tpx3::px_mode::toa_tot;
+    static constexpr px_mode mode = px_mode::toa_tot;
     /// Whether the fine oscillator runs, which only the 40 MHz clock supports.
     static constexpr bool fast_vco_enabled = true;
 };
@@ -322,7 +327,7 @@ struct toa_tot {
     /// A hit with a coarse time of arrival and a time over threshold.
     using pixel_type = katherine_tpx3_px_toa_tot_t;
     /// What the pixel measures.
-    static constexpr tpx3::px_mode mode = tpx3::px_mode::toa_tot;
+    static constexpr px_mode mode = px_mode::toa_tot;
     /// Whether the fine oscillator runs, which only the 40 MHz clock supports.
     static constexpr bool fast_vco_enabled = false;
 };
@@ -332,7 +337,7 @@ struct f_toa_only {
     /// A hit with a fine time of arrival and nothing else.
     using pixel_type = katherine_tpx3_px_f_toa_only_t;
     /// What the pixel measures.
-    static constexpr tpx3::px_mode mode = tpx3::px_mode::only_toa;
+    static constexpr px_mode mode = px_mode::only_toa;
     /// Whether the fine oscillator runs, which only the 40 MHz clock supports.
     static constexpr bool fast_vco_enabled = true;
 };
@@ -342,7 +347,7 @@ struct toa_only {
     /// A hit with a coarse time of arrival and a hit count.
     using pixel_type = katherine_tpx3_px_toa_only_t;
     /// What the pixel measures.
-    static constexpr tpx3::px_mode mode = tpx3::px_mode::only_toa;
+    static constexpr px_mode mode = px_mode::only_toa;
     /// Whether the fine oscillator runs, which only the 40 MHz clock supports.
     static constexpr bool fast_vco_enabled = false;
 };
@@ -352,7 +357,7 @@ struct f_event_count_itot {
     /// A pixel's event count and its integrated time over threshold.
     using pixel_type = katherine_tpx3_px_f_event_count_itot_t;
     /// What the pixel measures.
-    static constexpr tpx3::px_mode mode = tpx3::px_mode::event_count_itot;
+    static constexpr px_mode mode = px_mode::event_count_itot;
     /// Whether the fine oscillator runs, which only the 40 MHz clock supports.
     static constexpr bool fast_vco_enabled = true;
 };
@@ -362,21 +367,22 @@ struct event_count_itot {
     /// A pixel's event count and its integrated time over threshold.
     using pixel_type = katherine_tpx3_px_event_count_itot_t;
     /// What the pixel measures.
-    static constexpr tpx3::px_mode mode = tpx3::px_mode::event_count_itot;
+    static constexpr px_mode mode = px_mode::event_count_itot;
     /// Whether the fine oscillator runs, which only the 40 MHz clock supports.
     static constexpr bool fast_vco_enabled = false;
 };
 
 /** \} */
 
-}
+} // namespace acq
+} // namespace tpx3
 
 
 /**
  * One acquisition in one measurement mode.
  *
  * The mode is a template argument rather than a runtime one -- one of the
- * six tags in katherine::acq -- so the pixel type the handler receives is
+ * six tags in katherine::tpx3::acq -- so the pixel type the handler receives is
  * fixed at compile time and a handler written for the wrong one does not
  * compile.
  */

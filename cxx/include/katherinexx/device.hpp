@@ -390,7 +390,7 @@ public:
 
     /// Arms or disarms the chip's internal test-pulse generator.
     void
-    set_test_pulses(const katherine::test_pulse_config& tp)
+    set_test_pulses(const katherine::tpx3::test_pulse_config& tp)
     {
         katherine::detail::check(katherine_tpx3_set_test_pulses(&dev_, &tp));
     }
@@ -514,13 +514,13 @@ public:
 
     // The following methods each drive one step of detector/readout
     // configuration; configure() runs the whole sequence katherine_tpx3_configure()
-    // does in the C API. Kept here (rather than on katherine::config, which
+    // does in the C API. Kept here (rather than on katherine::tpx3::config, which
     // only models the parameter struct) to match where the Python wrapper
     // puts the equivalent calls: on the device.
 
     /// Sends a whole configuration, step by step, to every chip it declares.
     void
-    configure(const katherine::config& config)
+    configure(const katherine::tpx3::config& config)
     {
         katherine::detail::check(katherine_tpx3_configure(&dev_, config.c_config()));
     }
@@ -528,7 +528,7 @@ public:
 
     /// Uploads a whole pixel matrix to one chip of the readout.
     void
-    set_all_pixel_config(std::uint8_t chip_index, const katherine::px_config& px_config)
+    set_all_pixel_config(std::uint8_t chip_index, const katherine::tpx3::px_config& px_config)
     {
         katherine::detail::check(katherine_tpx3_set_all_pixel_config(&dev_, chip_index, &px_config));
     }

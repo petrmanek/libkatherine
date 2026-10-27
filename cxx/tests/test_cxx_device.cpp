@@ -207,7 +207,7 @@ test_device_and_acquisition(void)
     // An acquisition constructs -- it allocates its buffers and takes its
     // timeouts, touching no socket -- and reports the state of one that has
     // not begun.
-    katherine::acquisition<katherine::acq::f_toa_tot> acq{
+    katherine::acquisition<katherine::tpx3::acq::f_toa_tot> acq{
         dev, katherine::md_size * 128, sizeof(katherine_tpx3_px_f_toa_tot_t) * 128, std::chrono::milliseconds{10},
         std::chrono::milliseconds{50}, true};
 
@@ -233,11 +233,11 @@ test_device_and_acquisition(void)
     // begin() configures the device, so it fails the same way its calls do --
     // but only once past the guard below, hence the two settings matching the
     // template argument.
-    katherine::config c;
+    katherine::tpx3::config c;
     c.set_frame_count(1);
     c.set_acq_time(std::chrono::milliseconds{1});
-    c.set_px_mode(katherine::acq::f_toa_tot::mode);
-    c.set_fast_vco_enable(katherine::acq::f_toa_tot::fast_vco_enabled);
+    c.set_px_mode(katherine::tpx3::acq::f_toa_tot::mode);
+    c.set_fast_vco_enable(katherine::tpx3::acq::f_toa_tot::fast_vco_enabled);
 
     threw = false;
     try {
@@ -251,11 +251,11 @@ test_device_and_acquisition(void)
     // template argument while the stream's comes from the configuration, so a
     // configuration asking for another mode is refused rather than decoded
     // into the wrong struct.
-    katherine::config wrong;
+    katherine::tpx3::config wrong;
     wrong.set_frame_count(1);
     wrong.set_acq_time(std::chrono::milliseconds{1});
     wrong.set_px_mode(katherine::tpx3::px_mode::event_count_itot);
-    wrong.set_fast_vco_enable(katherine::acq::f_toa_tot::fast_vco_enabled);
+    wrong.set_fast_vco_enable(katherine::tpx3::acq::f_toa_tot::fast_vco_enabled);
 
     threw = false;
     try {

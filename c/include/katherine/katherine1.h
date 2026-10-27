@@ -851,8 +851,9 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 //
 // katherine_config_t's test_pulse_config field is absent for the same reason
 // once removed: this header is includable from C++, and katherinexx spells a
-// type katherine::test_pulse_config that did not move. An alias would rewrite
-// every use of that type in any translation unit holding both headers.
+// type katherine::tpx3::test_pulse_config that did not move. An alias would
+// rewrite every use of that type in any translation unit holding both
+// headers.
 //
 // The chip-type names are absent for a different reason: katherine_asic_t and
 // KATHERINE_ASIC_* are 2.0's own, added with the device-recognition table, so

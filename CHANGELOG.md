@@ -28,6 +28,18 @@ carries and addresses. The stringifiers named after the renamed types
 follow. No value moved; every 1.x spelling is aliased in
 `katherine/katherine1.h`.
 
+**The C++ wrapper finishes its `katherine::tpx3` namespace.** What a
+Timepix3 readout measures with is already there -- the DACs, the monitors,
+the clock enumerations, the coordinate, the ToA helpers. The six names that
+were not have joined them: `config`, `px_config`, `bmc`, `bpc`,
+`test_pulse_config` and `phase_correction`, along with the six acquisition
+tags of `katherine::acq`, which become `katherine::tpx3::acq`. What stays in
+`katherine::` is what a readout does whatever chip it carries -- the device,
+the acquisition, the GPIO, the timing unit, the pulse generator, the error.
+C++ has no shim header, so this is a source break for a C++ consumer: five
+type spellings and one namespace qualifier, and the compiler names every
+one.
+
 One field is renamed without an alias because the two spellings disagree
 about what a value means. `katherine_config_t`'s
 `bool polarity_holes` becomes `katherine_polarity_t polarity`, with
@@ -182,8 +194,8 @@ is now a `RuntimeError` as well as a `TimeoutError`, so a caller whose
 the moves with them. Copying a device shallow-copied sockets the original
 still owned and finalised them twice; moving an acquisition left the
 readout's data arriving at the address the object used to occupy, its
-constructor having handed `this` to the C callbacks. `katherine::config` is
-deliberately left copyable: it owns nothing but a `katherine_config_t`, and
+constructor having handed `this` to the C callbacks. `katherine::tpx3::config` is
+deliberately left copyable: it owns nothing but a `katherine_tpx3_config_t`, and
 holding two configurations that differ in one setting is the ordinary use.
 
 **Two renames, both pre-2.0 and both of spelling only.**

@@ -46,9 +46,6 @@ constexpr trigger no_trigger{
 };
 
 
-/// The chip's internal test-pulse generator: whether it fires, and with what shape.
-using test_pulse_config = katherine_tpx3_test_pulse_config_t;
-
 /**
  * Charge carriers the sensor collects, and therefore the bias polarity the
  * assembly is operated at. Mirrors katherine_polarity_t, holes being zero for
@@ -67,6 +64,9 @@ enum class polarity : int {
  * properly.
  */
 namespace tpx3 {
+
+/// The chip's internal test-pulse generator: whether it fires, and with what shape.
+using test_pulse_config = katherine_tpx3_test_pulse_config_t;
 
 /**
  * Timepix3's DACs. Namespaced because which DACs exist, how wide each
@@ -163,8 +163,6 @@ validate(const dacs& v)
     katherine::detail::check(katherine_tpx3_dacs_validate(&v));
 }
 
-} // namespace tpx3
-
 /**
  * Everything katherine::device::configure() sends before an acquisition.
  *
@@ -230,21 +228,21 @@ public:
     /// The C structure this wraps, for the calls katherinexx does not bind.
     const katherine_tpx3_config_t *c_config() const { return conf_.get(); }
 
-    // Note: katherine::px_config is a standard-layout type whose only
+    // Note: katherine::tpx3::px_config is a standard-layout type whose only
     // subobject is the katherine_tpx3_px_config_t stored in conf_, hence the
     // downcasts below (see the static_assert in px_config.hpp).
     /// The pixel matrix one chip is given, addressed from 0.
-    const katherine::px_config& pixels(std::uint8_t chip_index) const
+    const katherine::tpx3::px_config& pixels(std::uint8_t chip_index) const
     {
-        return static_cast<const katherine::px_config&>(conf_->chips[chip_index].pixels);
+        return static_cast<const katherine::tpx3::px_config&>(conf_->chips[chip_index].pixels);
     }
     /// \copybrief pixels()
-    katherine::px_config& pixels(std::uint8_t chip_index)
+    katherine::tpx3::px_config& pixels(std::uint8_t chip_index)
     {
-        return static_cast<katherine::px_config&>(conf_->chips[chip_index].pixels);
+        return static_cast<katherine::tpx3::px_config&>(conf_->chips[chip_index].pixels);
     }
     /// Sets the pixel matrix one chip is given.
-    void set_pixels(std::uint8_t chip_index, const katherine::px_config& pixels) { conf_->chips[chip_index].pixels = pixels; }
+    void set_pixels(std::uint8_t chip_index, const katherine::tpx3::px_config& pixels) { conf_->chips[chip_index].pixels = pixels; }
 
 
     // The trailing return type (rather than a C++14 deduced one) is what
@@ -319,31 +317,31 @@ public:
     void set_correct_clock_phase(bool val) { conf_->correct_clock_phase = val; }
 
     /// Pixel-clock phase count asked for; katherine::tpx3::actual_phases() says what is granted.
-    katherine::tpx3::phase clock_phase() const { return (katherine::tpx3::phase) conf_->clock_phase; }
+    phase clock_phase() const { return (phase) conf_->clock_phase; }
     /** \copydoc clock_phase() */
-    void set_clock_phase(katherine::tpx3::phase val) { conf_->clock_phase = (katherine_tpx3_phase_t) val; }
+    void set_clock_phase(phase val) { conf_->clock_phase = (katherine_tpx3_phase_t) val; }
 
     /// Pixel-clock frequency, which decides both the phase count and the fine oscillator.
-    katherine::tpx3::freq clock_frequency() const { return (katherine::tpx3::freq) conf_->clock_frequency; }
+    freq clock_frequency() const { return (freq) conf_->clock_frequency; }
     /** \copydoc clock_frequency() */
-    void set_clock_frequency(katherine::tpx3::freq val) { conf_->clock_frequency = (katherine_tpx3_freq_t) val; }
+    void set_clock_frequency(freq val) { conf_->clock_frequency = (katherine_tpx3_freq_t) val; }
 
     /// One chip's eighteen DACs, addressed from 0.
-    const katherine::tpx3::dacs& dacs(std::uint8_t chip_index) const { return conf_->chips[chip_index].dacs; }
+    const tpx3::dacs& dacs(std::uint8_t chip_index) const { return conf_->chips[chip_index].dacs; }
     /// \copybrief dacs()
-    katherine::tpx3::dacs& dacs(std::uint8_t chip_index) { return conf_->chips[chip_index].dacs; }
+    tpx3::dacs& dacs(std::uint8_t chip_index) { return conf_->chips[chip_index].dacs; }
     /// Sets one chip's eighteen DACs.
-    void set_dacs(std::uint8_t chip_index, const katherine::tpx3::dacs& dacs) { conf_->chips[chip_index].dacs = dacs; }
+    void set_dacs(std::uint8_t chip_index, const tpx3::dacs& dacs) { conf_->chips[chip_index].dacs = dacs; }
 
     /// Whether the readout streams hits as they arrive or a frame at a time.
-    katherine::tpx3::readout_mode readout_mode() const { return (katherine::tpx3::readout_mode) conf_->readout_mode; }
+    tpx3::readout_mode readout_mode() const { return (tpx3::readout_mode) conf_->readout_mode; }
     /** \copydoc readout_mode() */
-    void set_readout_mode(katherine::tpx3::readout_mode val) { conf_->readout_mode = (katherine_tpx3_readout_mode_t) val; }
+    void set_readout_mode(tpx3::readout_mode val) { conf_->readout_mode = (katherine_tpx3_readout_mode_t) val; }
 
     /// What a pixel reports, and so which hit type the decoder produces.
-    katherine::tpx3::px_mode px_mode() const { return (katherine::tpx3::px_mode) conf_->px_mode; }
+    tpx3::px_mode px_mode() const { return (tpx3::px_mode) conf_->px_mode; }
     /** \copydoc px_mode() */
-    void set_px_mode(katherine::tpx3::px_mode val) { conf_->px_mode = (katherine_tpx3_px_mode_t) val; }
+    void set_px_mode(tpx3::px_mode val) { conf_->px_mode = (katherine_tpx3_px_mode_t) val; }
 
     /// True to run the fine oscillator fast, which only some clock frequencies accept.
     bool fast_vco_enable() const { return conf_->fast_vco_enable; }
@@ -351,14 +349,16 @@ public:
     void set_fast_vco_enable(bool val) { conf_->fast_vco_enable = val; }
 
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    const katherine::test_pulse_config& test_pulses() const { return conf_->test_pulses; }
+    const test_pulse_config& test_pulses() const { return conf_->test_pulses; }
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    katherine::test_pulse_config& test_pulses() { return conf_->test_pulses; }
+    test_pulse_config& test_pulses() { return conf_->test_pulses; }
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    void set_test_pulses(const katherine::test_pulse_config& tp) { conf_->test_pulses = tp; }
+    void set_test_pulses(const test_pulse_config& tp) { conf_->test_pulses = tp; }
     /// The test-pulse generator, which configure() sends last and only when enabled.
-    void set_test_pulses(katherine::test_pulse_config&& tp) { conf_->test_pulses = tp; }
+    void set_test_pulses(test_pulse_config&& tp) { conf_->test_pulses = tp; }
 };
+
+} // namespace tpx3
 
 /** \} */
 
