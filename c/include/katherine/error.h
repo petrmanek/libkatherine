@@ -62,9 +62,10 @@ typedef enum katherine_error {
     KATHERINE_E_HW_UNKNOWN,  ///< The hardware reported a condition this library does not recognize.
 
     // generic
-    KATHERINE_E_INVAL,  ///< An argument was invalid.
-    KATHERINE_E_NOMEM,  ///< Memory allocation failed.
-    KATHERINE_E_SYSTEM, ///< Some other OS-level failure; see katherine_transport_get_last_os_error() where applicable.
+    KATHERINE_E_INVAL,        ///< An argument was invalid.
+    KATHERINE_E_BAD_RESERVED, ///< A reserved field was not zero. See katherine_tpx3_configure().
+    KATHERINE_E_NOMEM,        ///< Memory allocation failed.
+    KATHERINE_E_SYSTEM,       ///< Some other OS-level failure; see katherine_transport_get_last_os_error() where applicable.
 } katherine_error_t;
 
 KATHERINE_EXPORTED const char *

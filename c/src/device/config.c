@@ -19,6 +19,16 @@
 #include "protocol/cmd_interface.h"
 #include "msleep.h"
 
+/** True where every word of a reserved block is zero. */
+static bool
+reserved_is_clear(const uint32_t *reserved, size_t count)
+{
+    for (size_t i = 0; i < count; ++i) {
+        if (reserved[i] != 0) return false;
+    }
+    return true;
+}
+
 /**
  * Set detector configuration.
  *
@@ -71,6 +81,11 @@
  *   readout generation. See katherine_set_acq_time().
  * \retval KATHERINE_E_BAD_CHIP if the device reports no chips at all, chip 0
  *   included; see katherine_device_info_t::chip_count.
+ * \retval KATHERINE_E_BAD_RESERVED if a reserved word of either structure is
+ *   not zero. Zero the configuration before filling it -- calloc(), or a
+ *   memset() -- rather than clearing the fields this version names, because a
+ *   later version may give a reserved word meaning and will read what is
+ *   there.
  */
 katherine_error_t
 katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config_t *config)
@@ -89,6 +104,15 @@ katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config
     // Timepix3's, and chip_type is what says so.
     if (config->common.chip_type != KATHERINE_CHIP_TPX3 || device->derived_info.chip_type != KATHERINE_CHIP_TPX3) {
         res = KATHERINE_E_INVAL;
+        goto err;
+    }
+
+    // A later version can only give the reserved words meaning if this one
+    // refuses a caller who left them dirty: a configuration from malloc
+    // arrives holding heap leftovers a future field would read as a setting.
+    if (!reserved_is_clear(config->common.reserved, sizeof(config->common.reserved) / sizeof(config->common.reserved[0]))
+        || !reserved_is_clear(config->reserved, sizeof(config->reserved) / sizeof(config->reserved[0]))) {
+        res = KATHERINE_E_BAD_RESERVED;
         goto err;
     }
 
