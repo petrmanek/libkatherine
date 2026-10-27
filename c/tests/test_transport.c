@@ -593,8 +593,11 @@ main(void)
     KT_RUN(test_a_misconfigured_open_is_refused);
     KT_RUN(test_both_shapes_are_named);
     KT_RUN(test_the_inflight_count_tolerates_nothing);
-    KT_RUN(test_no_entry_point_faults_on_a_transport_with_no_link);
 #endif
+
+    // Outside the USB block: the guards it checks are the transport's own
+    // and are there whatever transports the build has.
+    KT_RUN(test_no_entry_point_faults_on_a_transport_with_no_link);
 
     return kt_summary();
 }
