@@ -250,11 +250,14 @@ testing without hardware.
 A build needs at least one transport: disabling both stops the
 configuration with `no transport selected`. Each transport that is enabled
 defines its own macro in the generated `katherine/features.h`
-(`KATHERINE_FEATURE_UDP`, `KATHERINE_FEATURE_USB`), so a consumer can tell
-which address schemes the installed library opens. Disabling
-`KATHERINE_TRANSPORT_UDP` also disables the examples, the test suite and the
-benchmarks, which address readouts by host; the configuration says so for
-each of them rather than failing. The emulator is not among them -- what the
+(`KATHERINE_FEATURE_UDP`, `KATHERINE_FEATURE_USB`), alongside
+`KATHERINE_FEATURE_EMULATOR`, so a consumer can tell which address schemes
+the installed library opens and whether the emulator is in it. Disabling
+`KATHERINE_TRANSPORT_UDP` also disables the examples and the benchmarks,
+which address readouts by host; the configuration says so for each of them
+rather than failing. The test suite is gated per test instead -- each case
+that drives a UDP link says so and is skipped on its own -- so a build of
+another transport still runs the cases that need no link. The emulator is not among them -- what the
 library compiles in has no socket of its own and is built either way -- but
 the `ksim` daemon that hosts it on real sockets needs the UDP transport and
 is not built without it.

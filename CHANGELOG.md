@@ -470,6 +470,62 @@ while an acquisition is running, as `katherine_get_sensor_temperature()`
 already was: the readout answers the scan on the data lanes a measurement
 is using.
 
+### Two error codes, and a reserved word that must be zero
+
+`KATHERINE_E_BAD_RESERVED` and `KATHERINE_E_BUSY` join the error domain.
+
+The first is what makes a `reserved[6]` word mean something. Both
+configuration structures carry one, after `struct kvm_cpuid2`, and that
+precedent has two halves: the words exist, *and* a non-zero word is
+refused. Only the first half had been adopted, which would have left a
+later version unable to give the words meaning -- a caller who had put
+anything there would have been silently reinterpreted.
+`katherine_tpx3_configure()` refuses both reserved blocks when they are
+not zero, and the documented idiom is still `calloc` plus the fields you
+mean.
+
+The second distinguishes a port another process is holding from an address
+this library cannot parse, both of which used to be
+`KATHERINE_E_ADDRESS`. What counts as "held" is not the same on both
+platforms, and the header says so: POSIX sets `SO_REUSEADDR` and two
+libkatherine sessions therefore share a port, while Windows does not and
+refuses the second session outright.
+
+### A capability count of zero means none of that hardware
+
+Four rows of the capability table report no GPIO, no timing channels and no
+pulse channels, and two of them are readouts this library drives. Zero now
+means "none" rather than "unknown": `katherine_set_gpio_config()` refuses
+instead of writing three registers to hardware that cannot have obeyed, and
+`katherine_get_tdc_counts()` refuses instead of sending a command whose
+answers it then does not read -- which poisons the next command. The pulse
+generator gates on its own count rather than on the readout generation,
+which is the same answer on every row of today's table and still right if a
+later row pairs one with the other.
+
+The table also records **what each readout's bias supplies can emit**, as
+`bias_min_volts` and `bias_max_volts`, and `katherine_set_bias()` refuses
+what is outside it. A row where nobody has established the range carries
+NaN and refuses nothing. **This is a supply capability and not an assembly's
+safe range** -- a readout able to produce ±1000 V is routinely wired to a
+sensor that must never see more than 300 V, and nothing in this library
+knows which assembly is attached.
+
+### Smaller additions a consumer can test for
+
+`KATHERINE_TPX3_CONFIG_SIZE(chip_count)` gives the byte size of a
+configuration for that many chips, which a caller allocating one had to
+work out from the flexible array by hand.
+
+`KATHERINE_FEATURE_EMULATOR` joins the per-transport feature macros in
+`katherine/features.h`, so asking whether the emulator is in a build no
+longer means testing for its header.
+
+In C++, `katherine::tpx3::dac_to_si()` returns a `dac_si{value, unit}`
+rather than taking a reference the caller must declare and initialise
+first, which is the shape `tpx3::timestamp_seconds` and `tpx3::toa_ftoa`
+already had.
+
 ### An acquisition counts the bytes it took off the link
 
 `katherine_acquisition_t` gains `received_measurement_data`, the number of
