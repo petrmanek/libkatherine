@@ -593,10 +593,10 @@ cdef class DeviceInfo:
 
     def __init__(self, hw_type=0, hw_revision=0, serial_number=0,
                  fw_version=0, chip_count=0, legacy=False):
-         self._c_info.hw_type       = hw_type
-         self._c_info.hw_revision   = hw_revision
-         self._c_info.serial_number = serial_number
-         self._c_info.fw_version    = fw_version
+         self._c_info.status.hw_type       = hw_type
+         self._c_info.status.hw_revision   = hw_revision
+         self._c_info.status.serial_number = serial_number
+         self._c_info.status.fw_version    = fw_version
          self._c_info.chip_count    = chip_count
          self._c_info.legacy        = legacy
 
@@ -607,19 +607,19 @@ cdef class DeviceInfo:
     def hw_type(self):
          """Reported hardware type. 0 means nothing has been enumerated or
          declared yet."""
-         return self._c_info.hw_type
+         return self._c_info.status.hw_type
 
     @property
     def hw_revision(self):
-         return self._c_info.hw_revision
+         return self._c_info.status.hw_revision
 
     @property
     def serial_number(self):
-         return self._c_info.serial_number
+         return self._c_info.status.serial_number
 
     @property
     def fw_version(self):
-         return self._c_info.fw_version
+         return self._c_info.status.fw_version
 
     @property
     def chip_count(self):
@@ -1123,8 +1123,8 @@ cdef class ReadoutStatus:
        return self._c_status.hw_revision
 
     @property
-    def hw_serial_number(self):
-       return self._c_status.hw_serial_number
+    def serial_number(self):
+       return self._c_status.serial_number
 
     @property
     def fw_version(self):

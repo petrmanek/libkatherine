@@ -189,13 +189,13 @@ test_generation_dependent_calls_refuse_an_undeclared_device(void)
 
     // Declaring a readout this version cannot drive is refused on the same
     // test, without a second flag to keep in step.
-    const katherine_device_info_t tpx2 = {.hw_type = 0x02};
+    const katherine_device_info_t tpx2 = {.status = {.hw_type = 0x02}};
     KT_CHECK_EQ(katherine_device_declare(&dev, &tpx2), KATHERINE_E_OK);
     KT_CHECK(!dev.derived_info.supported);
     KT_CHECK_EQ(katherine_set_frame_duration(&dev, 0.1), KATHERINE_E_STATE);
 
     // A hardware type from no table row behaves the same way.
-    const katherine_device_info_t unknown = {.hw_type = 0xFF};
+    const katherine_device_info_t unknown = {.status = {.hw_type = 0xFF}};
     KT_CHECK_EQ(katherine_device_declare(&dev, &unknown), KATHERINE_E_OK);
     KT_CHECK(!dev.derived_info.supported);
     KT_CHECK_EQ(katherine_set_frame_duration(&dev, 0.1), KATHERINE_E_STATE);
@@ -213,20 +213,17 @@ test_declaring_fills_both_records(void)
     memset(&dev, 0, sizeof(dev));
 
     const katherine_device_info_t gen2 = {
-        .hw_type       = 0x03,
-        .hw_revision   = 3,
-        .serial_number = 13,
-        .fw_version    = 5,
-        .chip_count    = 1,
-        .legacy        = false,
+        .status     = {.hw_type = 0x03, .hw_revision = 3, .serial_number = 13, .fw_version = 5},
+        .chip_count = 1,
+        .legacy     = false,
     };
     KT_CHECK_EQ(katherine_device_declare(&dev, &gen2), KATHERINE_E_OK);
 
     // Kept verbatim: nothing here is the library's opinion.
-    KT_CHECK_EQ(dev.info.hw_type, 0x03u);
-    KT_CHECK_EQ(dev.info.hw_revision, 3u);
-    KT_CHECK_EQ(dev.info.serial_number, 13u);
-    KT_CHECK_EQ(dev.info.fw_version, 5u);
+    KT_CHECK_EQ(dev.info.status.hw_type, 0x03u);
+    KT_CHECK_EQ(dev.info.status.hw_revision, 3u);
+    KT_CHECK_EQ(dev.info.status.serial_number, 13u);
+    KT_CHECK_EQ(dev.info.status.fw_version, 5u);
     KT_CHECK_EQ(dev.info.chip_count, 1u);
     KT_CHECK(!dev.info.legacy);
 
@@ -253,20 +250,20 @@ test_a_declared_chip_count_is_taken_as_given(void)
     memset(&dev, 0, sizeof(dev));
 
     // Said nothing about chips, so there are none to address.
-    const katherine_device_info_t gen2 = {.hw_type = 0x03};
+    const katherine_device_info_t gen2 = {.status = {.hw_type = 0x03}};
     KT_CHECK_EQ(katherine_device_declare(&dev, &gen2), KATHERINE_E_OK);
     KT_CHECK_EQ(dev.info.chip_count, 0u);
     KT_CHECK_EQ(katherine_tpx3_verify_config(&dev, 0, NULL), KATHERINE_E_BAD_CHIP);
 
     // Said two, so the third is the first refused.
-    const katherine_device_info_t two = {.hw_type = 0x03, .chip_count = 2};
+    const katherine_device_info_t two = {.status = {.hw_type = 0x03}, .chip_count = 2};
     KT_CHECK_EQ(katherine_device_declare(&dev, &two), KATHERINE_E_OK);
     KT_CHECK_EQ(dev.info.chip_count, 2u);
     KT_CHECK_EQ(katherine_tpx3_verify_config(&dev, 2, NULL), KATHERINE_E_BAD_CHIP);
 
     // More than the hardware carries is refused, and the description already
     // held survives the refusal.
-    const katherine_device_info_t too_many = {.hw_type = 0x03, .chip_count = 9};
+    const katherine_device_info_t too_many = {.status = {.hw_type = 0x03}, .chip_count = 9};
     KT_CHECK_EQ(katherine_device_declare(&dev, &too_many), KATHERINE_E_INVAL);
     KT_CHECK_EQ(dev.info.chip_count, 2u);
 }

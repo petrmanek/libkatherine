@@ -19,11 +19,14 @@ cdef extern from 'katherine/device.h':
     int katherine_device_discover_udp(const char *address, uint16_t reply_port, uint32_t timeout_ms, katherine_discovered_t *out, size_t *count)
     int katherine_device_discover_usb(katherine_discovered_t *out, size_t *count)
 
-    ctypedef struct katherine_device_info_t:
+    ctypedef struct katherine_readout_status_t:
         uint8_t hw_type
         uint8_t hw_revision
         uint16_t serial_number
         uint16_t fw_version
+
+    ctypedef struct katherine_device_info_t:
+        katherine_readout_status_t status
         uint8_t chip_count
         bool legacy
 

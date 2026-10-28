@@ -77,7 +77,7 @@ print_info(katherine::device& device)
     std::printf("Readout status\n");
     std::printf("  %-16s: %d\n", "HW type", readout_status.hw_type);
     std::printf("  %-16s: %d\n", "HW revision", readout_status.hw_revision);
-    std::printf("  %-16s: %d\n", "Serial number", readout_status.hw_serial_number);
+    std::printf("  %-16s: %d\n", "Serial number", readout_status.serial_number);
     std::printf("  %-16s: %d\n", "FW version", readout_status.fw_version);
     std::printf("\n");
     std::printf("Comm status\n");

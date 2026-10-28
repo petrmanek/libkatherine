@@ -40,13 +40,9 @@ extern "C" {
 typedef struct katherine_device katherine_device_t;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-/** What a readout answers when asked to identify itself. */
-typedef struct katherine_readout_status {
-    int hw_type;          ///< Device model, determines form-factor, ports and capabilities.
-    int hw_revision;      ///< Revision number within the device model line.
-    int hw_serial_number; ///< Unique serial number of the unit.
-    int fw_version;       ///< Version of the firmware it is running.
-} katherine_readout_status_t;
+// katherine_readout_status_t is declared in katherine/device.h, beside the
+// other structures that describe a readout; katherine/config.h reaches it
+// from here.
 
 KATHERINE_EXPORTED int
 katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_status_t *v);

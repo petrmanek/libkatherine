@@ -579,8 +579,8 @@ test_acquisition_setup_word(void)
 
     // Declared rather than enumerated, because the layout follows the
     // generation and this case checks both of them.
-    const katherine_device_info_t gen1 = {.hw_type = 0x01};
-    const katherine_device_info_t gen2 = {.hw_type = 0x03};
+    const katherine_device_info_t gen1 = {.status = {.hw_type = 0x01}};
+    const katherine_device_info_t gen2 = {.status = {.hw_type = 0x03}};
 
     // Every field at its maximum in-range value: on the first generation
     // channel 7 fills bits 1..3 exactly, so a mask regression (channel

@@ -7,16 +7,16 @@
 # SPDX-License-Identifier: MIT
 
 from libcpp cimport bool
-from libc.stdint cimport uint8_t, uint32_t
+from libc.stdint cimport uint8_t, uint16_t, uint32_t
 from cdevice cimport katherine_device_t
 from cconfig cimport katherine_tpx3_dac_voltages_t
 
 cdef extern from 'katherine/status.h':
     ctypedef struct katherine_readout_status_t:
-        int hw_type
-        int hw_revision
-        int hw_serial_number
-        int fw_version
+        uint8_t hw_type
+        uint8_t hw_revision
+        uint16_t serial_number
+        uint16_t fw_version
 
     int katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_status_t *v)
 

@@ -78,10 +78,10 @@ katherine_get_readout_status(katherine_device_t *device, katherine_readout_statu
     uint64_t status_crd;
     memcpy(&status_crd, crd, sizeof(status_crd));
     if (status != NULL) {
-        status->hw_type          = EXTRACT(status_crd, readout_status_crd, hw_type);
-        status->hw_revision      = EXTRACT(status_crd, readout_status_crd, hw_revision);
-        status->hw_serial_number = EXTRACT(status_crd, readout_status_crd, hw_serial_number);
-        status->fw_version       = EXTRACT(status_crd, readout_status_crd, fw_version);
+        status->hw_type       = EXTRACT(status_crd, readout_status_crd, hw_type);
+        status->hw_revision   = EXTRACT(status_crd, readout_status_crd, hw_revision);
+        status->serial_number = EXTRACT(status_crd, readout_status_crd, hw_serial_number);
+        status->fw_version    = EXTRACT(status_crd, readout_status_crd, fw_version);
     }
 
     (void) katherine_device_control_unlock(device);

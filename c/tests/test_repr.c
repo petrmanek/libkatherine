@@ -347,7 +347,7 @@ test_readout_status(void)
     katherine_readout_status_t v = {1, 2, 12345, 7};
     char buf[128];
     int n = katherine_readout_status_snprint(buf, sizeof(buf), &v);
-    CHECK_GOLDEN(n, buf, "readout_status{hw_type: 1, hw_revision: 2, hw_serial_number: 12345, fw_version: 7}");
+    CHECK_GOLDEN(n, buf, "readout_status{hw_type: 0x01, hw_revision: 2, serial_number: 12345, fw_version: 7}");
 }
 
 static void

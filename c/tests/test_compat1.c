@@ -389,11 +389,8 @@ static void
 stub_device(katherine_device_t *device)
 {
     const katherine_device_info_t info = {
-        .hw_type       = 0x03,
-        .hw_revision   = 3,
-        .serial_number = 1,
-        .fw_version    = 5,
-        .chip_count    = 1,
+        .status     = {.hw_type = 0x03, .hw_revision = 3, .serial_number = 1, .fw_version = 5},
+        .chip_count = 1,
     };
 
     memset(device, 0, sizeof(*device));

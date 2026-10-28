@@ -110,11 +110,8 @@ static void
 test_a_declared_device_with_no_link_refuses_everything(void)
 {
     const katherine_device_info_t info = {
-        .hw_type       = 2,
-        .hw_revision   = 3,
-        .serial_number = 1,
-        .fw_version    = 5,
-        .chip_count    = 1,
+        .status     = {.hw_type = 2, .hw_revision = 3, .serial_number = 1, .fw_version = 5},
+        .chip_count = 1,
     };
 
     memset(&device, 0, sizeof(device));

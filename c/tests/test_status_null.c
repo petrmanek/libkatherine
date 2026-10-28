@@ -77,7 +77,7 @@ device_init(katherine_device_t *device)
     memset(device, 0, sizeof(*device));
 
     const katherine_device_info_t info = {
-        .hw_type    = HW_TYPE_GEN2,
+        .status     = {.hw_type = HW_TYPE_GEN2},
         .chip_count = 1,
     };
     if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;

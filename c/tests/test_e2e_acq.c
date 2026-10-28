@@ -290,7 +290,7 @@ test_slow_control(void)
     KT_CHECK_EQ(katherine_get_readout_status(&g_device, &readout), 0);
     KT_CHECK_EQ(readout.hw_type, EXPECTED_HW_TYPE);
     KT_CHECK_EQ(readout.hw_revision, EXPECTED_HW_REVISION);
-    KT_CHECK_EQ(readout.hw_serial_number, EXPECTED_SERIAL);
+    KT_CHECK_EQ(readout.serial_number, EXPECTED_SERIAL);
     KT_CHECK_EQ(readout.fw_version, EXPECTED_FW_VERSION);
 
     katherine_comm_status_t comm;
@@ -843,7 +843,7 @@ test_enumeration_failure_fails_the_open(void)
     KT_REQUIRE(katherine_device_init(&device, DEAD_ADDRESS, quiet) == 0);
 
     // And it is the unenumerated device the flag documents.
-    KT_CHECK_EQ(device.info.hw_type, 0);
+    KT_CHECK_EQ(device.info.status.hw_type, 0);
     KT_CHECK(!device.derived_info.supported);
 
     katherine_device_fini(&device);

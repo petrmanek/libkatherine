@@ -14,6 +14,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <katherine/global.h>
 #include <katherine/error.h>
 #include <katherine/transport.h>
@@ -91,23 +92,34 @@ KATHERINE_EXPORTED const char *
 katherine_str_chip_type(katherine_chip_type_t v);
 
 
+/** What a readout answers when asked to identify itself. */
+typedef struct katherine_readout_status {
+    uint8_t hw_type;        ///< Device model, determines form-factor, ports and capabilities.
+    uint8_t hw_revision;    ///< Revision number within the device model line.
+    uint16_t serial_number; ///< Unique serial number of the unit.
+    uint16_t fw_version;    ///< Version of the firmware it is running.
+} katherine_readout_status_t;
+
 /**
  * What a readout says it is: facts it reported, or that a caller declared on
  * its behalf. Nothing here is inferred.
  *
  * Filled by katherine_device_enumerate(), which asks the readout, or by
  * katherine_device_declare(), which takes the caller's word for it. Both
- * routes then derive katherine_device_derived_info_t from hw_type, so this
- * structure is the single source of everything the library concludes about a
- * device.
+ * routes then derive katherine_device_derived_info_t from status.hw_type, so
+ * this structure is the single source of everything the library concludes
+ * about a device.
  */
 typedef struct katherine_device_info {
-    uint8_t hw_type;        ///< Reported hardware type. 0 means nothing has been enumerated or declared yet.
-    uint8_t hw_revision;    ///< Reported hardware revision.
-    uint16_t serial_number; ///< Reported hardware serial number.
-    uint16_t fw_version;    ///< Reported firmware version.
-    uint8_t chip_count;     ///< The number of chips answering when this was taken. Compare against katherine_device_derived_info_t::max_chip_count for what the hardware could possibly carry.
-    bool legacy;            ///< Whether the firmware ignores the UDP echo-port extension, and so does not honour a port change either.
+    /**
+     * What the readout answered when it was asked to identify itself. The
+     * same structure katherine_get_readout_status() fills, rather than a
+     * second copy of its four fields: this is where that answer is kept.
+     * A zeroed hw_type means nothing has been enumerated or declared yet.
+     */
+    katherine_readout_status_t status;
+    uint8_t chip_count; ///< The number of chips answering when this was taken. Compare against katherine_device_derived_info_t::max_chip_count for what the hardware could possibly carry.
+    bool legacy;        ///< Whether the firmware ignores the UDP echo-port extension, and so does not honour a port change either.
 } katherine_device_info_t;
 
 KATHERINE_EXPORTED int

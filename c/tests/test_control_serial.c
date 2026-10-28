@@ -145,11 +145,8 @@ static void
 test_an_exchange_is_not_interleaved_with_another(void)
 {
     const katherine_device_info_t info = {
-        .hw_type       = 0x03,
-        .hw_revision   = 3,
-        .serial_number = 1,
-        .fw_version    = 5,
-        .chip_count    = 1,
+        .status     = {.hw_type = 0x03, .hw_revision = 3, .serial_number = 1, .fw_version = 5},
+        .chip_count = 1,
     };
 
     KT_REQUIRE(katherine_mutex_init(&g_link_mutex) == KATHERINE_E_OK);

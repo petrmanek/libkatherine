@@ -93,7 +93,7 @@ device_init(katherine_device_t *device, uint16_t local_port, uint16_t remote_por
     memset(device, 0, sizeof(*device));
 
     const katherine_device_info_t info = {
-        .hw_type    = 3,
+        .status     = {.hw_type = 3},
         .chip_count = 8,
     };
     if (katherine_device_declare(device, &info) != KATHERINE_E_OK) return KATHERINE_E_INVAL;

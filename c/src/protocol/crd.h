@@ -51,7 +51,7 @@
 // bit, not a variant marker: the same unit can report 0x03 or 0x83.
 //
 // Nothing keys on the revision, so this breaks nothing today; what it
-// costs is that katherine_device_info_t::hw_revision is reported 128 too
+// costs is that katherine_readout_status_t::hw_revision is reported 128 too
 // high whenever that bit is set, and the fact the bit carries is thrown
 // away.
 #define _BITS_readout_status_crd_hw_revision_start      8

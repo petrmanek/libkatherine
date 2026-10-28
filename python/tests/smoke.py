@@ -1128,7 +1128,7 @@ def run_checks(tap, katherine, device):
     readout = device.get_readout_status()
     tap.check_eq('readout status: hw_type', readout.hw_type, EXPECTED_HW_TYPE)
     tap.check_eq('readout status: hw_revision', readout.hw_revision, EXPECTED_HW_REVISION)
-    tap.check_eq('readout status: hw_serial_number', readout.hw_serial_number, EXPECTED_SERIAL)
+    tap.check_eq('readout status: serial_number', readout.serial_number, EXPECTED_SERIAL)
     tap.check_eq('readout status: fw_version', readout.fw_version, EXPECTED_FW_VERSION)
 
     comm = device.get_comm_status()

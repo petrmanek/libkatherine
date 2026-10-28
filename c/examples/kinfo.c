@@ -80,7 +80,7 @@ print_info(katherine_device_t *device)
     printf("Readout status\n");
     printf("  %-16s: %d\n", "HW type", readout_status.hw_type);
     printf("  %-16s: %d\n", "HW revision", readout_status.hw_revision);
-    printf("  %-16s: %d\n", "Serial number", readout_status.hw_serial_number);
+    printf("  %-16s: %u\n", "Serial number", readout_status.serial_number);
     printf("  %-16s: %d\n", "FW version", readout_status.fw_version);
     printf("\n");
     printf("Comm status\n");

@@ -149,7 +149,7 @@ test_device_and_acquisition(void)
     KT_CHECK(streamed(dev.info()).size() > 0);
 
     katherine_device_info_t declared = {};
-    declared.hw_type                 = 0x03;
+    declared.status.hw_type          = 0x03;
     declared.chip_count              = 4;
     dev.declare(declared);
 

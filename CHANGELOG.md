@@ -618,6 +618,40 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The readout's identity is one structure, held once
+
+`katherine_readout_status_t` and `katherine_device_info_t` carried the same
+four facts in different types -- `int hw_type` against `uint8_t hw_type`,
+and a serial that was `hw_serial_number` in one and `serial_number` in the
+other -- with `katherine_device_enumerate()` casting between them field by
+field.
+
+`katherine_readout_status_t` takes the fixed-width types, loses the `hw_`
+from its serial, and `katherine_device_info_t` **embeds it** as `status`
+rather than repeating it. Enumeration now keeps what the readout answered
+whole:
+
+```c
+const katherine_device_info_t info = {
+    .status     = status,
+    .chip_count = comm.chip_count,
+};
+```
+
+So `device.info.hw_type` is `device.info.status.hw_type`, and a declared
+device is `{.status = {.hw_type = 0x03}, .chip_count = 1}`.
+
+The type moves from `katherine/status.h` to `katherine/device.h`, beside
+the other structures that describe a readout -- `device.h` cannot include
+`status.h`, which reaches `device.h` again through `config.h`. It is still
+reachable from `status.h`, which is where the calls that fill it live.
+
+**Python is unchanged.** `DeviceInfo` keeps `hw_type`, `hw_revision`,
+`serial_number` and `fw_version` as flat properties and reads them through
+the nested structure; only `ReadoutStatus.hw_serial_number` becomes
+`serial_number`, following the C field. The 1.x shim has nothing to do
+here: `katherine_device_info_t` is 2.0's own.
+
 ### The handler table has room for a handler 2.1 adds
 
 `katherine_acquisition_handlers_t` had four function pointers and nothing

@@ -58,7 +58,7 @@ def print_info(device):
     print('Readout status')
     print('  %-16s: %d' % ('HW type', readout_status.hw_type))
     print('  %-16s: %d' % ('HW revision', readout_status.hw_revision))
-    print('  %-16s: %d' % ('Serial number', readout_status.hw_serial_number))
+    print('  %-16s: %d' % ('Serial number', readout_status.serial_number))
     print('  %-16s: %d' % ('FW version', readout_status.fw_version))
     print('')
     print('Comm status')

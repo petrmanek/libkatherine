@@ -98,16 +98,15 @@ katherine_device_info_snprint(char *buf, size_t cap, const katherine_device_info
 
     // An unpopulated structure prints as such rather than as a row of zeroes,
     // which would read as a readout that answered with nothing.
-    if (v->hw_type == 0) {
+    if (v->status.hw_type == 0) {
         REPR_APPENDF(buf, cap, off, "device_info{neither enumerated nor declared}");
         return (int) off;
     }
 
-    REPR_APPENDF(buf, cap, off,
-        "device_info{hw_type: 0x%02x, hw_revision: %u, serial_number: %u, fw_version: %u, "
-        "chip_count: %u, legacy: %s}",
-        (unsigned) v->hw_type, (unsigned) v->hw_revision, (unsigned) v->serial_number,
-        (unsigned) v->fw_version, (unsigned) v->chip_count, katherine_str_bool(v->legacy));
+    REPR_APPENDF(buf, cap, off, "device_info{status: ");
+    REPR_NEST(buf, cap, off, katherine_readout_status_snprint, &v->status);
+    REPR_APPENDF(buf, cap, off, ", chip_count: %u, legacy: %s}", (unsigned) v->chip_count,
+        katherine_str_bool(v->legacy));
     return (int) off;
 }
 
@@ -609,8 +608,8 @@ int
 katherine_readout_status_snprint(char *buf, size_t cap, const katherine_readout_status_t *v)
 {
     size_t off = 0;
-    REPR_APPENDF(buf, cap, off, "readout_status{hw_type: %d, hw_revision: %d, hw_serial_number: %d, fw_version: %d}", v->hw_type,
-        v->hw_revision, v->hw_serial_number, v->fw_version);
+    REPR_APPENDF(buf, cap, off, "readout_status{hw_type: 0x%02x, hw_revision: %u, serial_number: %u, fw_version: %u}",
+        (unsigned) v->hw_type, (unsigned) v->hw_revision, (unsigned) v->serial_number, (unsigned) v->fw_version);
     return (int) off;
 }
 

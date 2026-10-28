@@ -592,7 +592,7 @@ katherine_device_declare(katherine_device_t *device, const katherine_device_info
         goto err_info_null;
     }
 
-    const katherine_device_derived_info_t derived = katherine_device_derived_info_recognize(info->hw_type);
+    const katherine_device_derived_info_t derived = katherine_device_derived_info_recognize(info->status.hw_type);
 
     if (derived.max_chip_count != 0 && info->chip_count > derived.max_chip_count) {
         res = KATHERINE_E_INVAL;
@@ -660,11 +660,10 @@ katherine_device_enumerate(katherine_device_t *device)
 
     // Collect all information
     const katherine_device_info_t info = {
-        .hw_type       = (uint8_t) status.hw_type,
-        .hw_revision   = (uint8_t) status.hw_revision,
-        .serial_number = (uint16_t) status.hw_serial_number,
-        .fw_version    = (uint16_t) status.fw_version,
-        .chip_count    = comm.chip_count,
+        // Kept whole rather than copied field by field: this is the same
+        // structure katherine_get_readout_status() answers with.
+        .status     = status,
+        .chip_count = comm.chip_count,
         // legacy is not in anything the readout answers; katherine_device_init()
         // learns it from discovery and writes it after this call.
     };

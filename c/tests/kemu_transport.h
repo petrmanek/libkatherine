@@ -175,11 +175,11 @@ kemu_device(katherine_device_t *device, kemu_transport_t *t, const katherine_emu
     device->control_transport.kind = KATHERINE_TRANSPORT_UDP;
 
     const katherine_device_info_t info = {
-        .hw_type       = profile->hw_type,
-        .hw_revision   = profile->hw_revision,
-        .serial_number = profile->serial,
-        .fw_version    = profile->fw_version,
-        .chip_count    = profile->chip_count == 0 ? 1 : profile->chip_count,
+        .status     = {.hw_type = profile->hw_type,
+            .hw_revision    = profile->hw_revision,
+            .serial_number  = profile->serial,
+            .fw_version     = profile->fw_version},
+        .chip_count = profile->chip_count == 0 ? 1 : profile->chip_count,
     };
 
     return katherine_device_declare(device, &info);
