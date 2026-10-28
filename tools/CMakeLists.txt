@@ -57,6 +57,16 @@ if(KATHERINE_BUILD_TESTS)
             LABELS "unit;tools"
             TIMEOUT 60)
 
+        # A public symbol that one ASIC owns and that carries no prefix
+        # saying so. 2.0 is the last release that may rename one, and the
+        # judgement behind WP19 is a reading no pattern reproduces, so the
+        # check is against a recorded baseline rather than against a rule.
+        add_test(NAME test_asic_prefix
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_asic_prefix.py")
+        set_tests_properties(test_asic_prefix PROPERTIES
+            LABELS "unit;tools"
+            TIMEOUT 60)
+
         # A test case registered under a different #ifdef from the one it
         # compiles under. The case then silently does not run wherever the
         # guard drops it, and the suite stays green.
