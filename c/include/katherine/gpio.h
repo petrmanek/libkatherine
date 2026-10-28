@@ -71,9 +71,9 @@ typedef enum katherine_gpio_mapping {
     KATHERINE_GPIO_LOW, ///< Constant logic low.
 
     KATHERINE_GPIO_PULSE_INTERNAL,  ///< Internal channel of the trigger generator.
-    KATHERINE_GPIO_PULSE_CHANNEL_0, ///< Output channel 0 of the trigger generator. Not to be confused with GPIO channel 0, this is a programmable digital function generator that can be driven by other input signals.
-    KATHERINE_GPIO_PULSE_CHANNEL_1, ///< Output channel 1 of the trigger generator. Not to be confused with GPIO channel 1, this is a programmable digital function generator that can be driven by other input signals.
-    KATHERINE_GPIO_PULSE_CHANNEL_2, ///< Output channel 2 of the trigger generator. Not to be confused with GPIO channel 2, this is a programmable digital function generator that can be driven by other input signals.
+    KATHERINE_GPIO_PULSE_OUT_1, ///< The gated output of katherine_pulse_config_t::channel[1]. Not to be confused with GPIO channel 0, this is a programmable digital function generator that can be driven by other input signals.
+    KATHERINE_GPIO_PULSE_OUT_2, ///< The gated output of katherine_pulse_config_t::channel[2]. Not to be confused with GPIO channel 1, this is a programmable digital function generator that can be driven by other input signals.
+    KATHERINE_GPIO_PULSE_OUT_3, ///< The gated output of katherine_pulse_config_t::channel[3]. Not to be confused with GPIO channel 2, this is a programmable digital function generator that can be driven by other input signals.
 
     KATHERINE_GPIO_LEVEL_0, ///< Logic level of channel 0, repeated onto this channel.
     KATHERINE_GPIO_LEVEL_1, ///< Logic level of channel 1, repeated onto this channel.

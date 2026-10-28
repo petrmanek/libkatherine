@@ -232,9 +232,9 @@ class GpioMapping(_Enum):
     INPUT              = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_INPUT
     LOW                = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LOW
     PULSE_INTERNAL     = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_INTERNAL
-    PULSE_CHANNEL_0    = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_CHANNEL_0
-    PULSE_CHANNEL_1    = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_CHANNEL_1
-    PULSE_CHANNEL_2    = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_CHANNEL_2
+    PULSE_OUT_1        = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_OUT_1
+    PULSE_OUT_2        = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_OUT_2
+    PULSE_OUT_3        = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_PULSE_OUT_3
     LEVEL_0            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_0
     LEVEL_1            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_1
     LEVEL_2            = cgpio.katherine_gpio_mapping_t.KATHERINE_GPIO_LEVEL_2

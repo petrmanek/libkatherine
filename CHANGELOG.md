@@ -599,6 +599,25 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### A pulse channel is numbered as the array that configures it
+
+`KATHERINE_GPIO_PULSE_CHANNEL_0` was the output of
+`katherine_pulse_config_t::channel[1]`, because `channel[0]` is the
+generator's internal channel and has no output gate of its own. Two
+zero-based numberings of one generator, one apart, and the library's own
+prose already used the other one -- `pulse.c` says "channels 1 to 3".
+
+The three enumerators become `KATHERINE_GPIO_PULSE_OUT_1`, `_2` and `_3`,
+where the digit is the `channel[]` index. The values are the firmware's mux
+codes and do not move, so this is a source break and not an ABI one.
+
+**Renamed rather than renumbered, deliberately.** Shifting
+`PULSE_CHANNEL_{0,1,2}` to `{1,2,3}` would have left two live names
+meaning something one apart from what they meant, and nothing would have
+failed to compile. No old spelling survives this, so every stale call site
+is a compiler error. `KATHERINE_GPIO_PULSE_INTERNAL` already named
+`channel[0]` and is unchanged.
+
 ### The emulator sends a frame tail per chip
 
 A frame's start and end timestamps are four measurement-data words, and a
