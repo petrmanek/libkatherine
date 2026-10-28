@@ -525,7 +525,11 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
 {
-    return katherine1_map_result(katherine_acquisition_init(acq, device, ctx, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout));
+    // 1.x took an int and disabled either timeout on any non-positive
+    // value; 2.0 takes an unsigned whose sentinel is zero, so the two
+    // negative cases fold onto it rather than wrapping.
+    return katherine1_map_result(katherine_acquisition_init(acq, device, ctx, md_buffer_size, pixel_buffer_size,
+        report_timeout > 0 ? (uint32_t) report_timeout : 0u, fail_timeout > 0 ? (uint32_t) fail_timeout : 0u));
 }
 
 /** \legacy1{katherine_acquisition_begin} */

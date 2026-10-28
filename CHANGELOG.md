@@ -618,6 +618,28 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### An acquisition's two timeouts carry their unit and refuse a negative
+
+`katherine_acquisition_init()`'s last two parameters were `int
+report_timeout` and `int fail_timeout`. Both are milliseconds, neither said
+so, and a non-positive value disabled each -- so three of the four
+quadrants of an `int` meant "off" and nothing in the signature hinted at
+it.
+
+They are `uint32_t report_timeout_ms` and `uint32_t fail_timeout_ms`, and
+the fields of `katherine_acquisition_t` follow. Zero still disables, which
+is what the implementation already tested for; what goes away is the
+ability to write a negative and wonder. Python's two properties are
+renamed to match.
+
+C++ never saw this: it takes `std::chrono` durations and converts, so its
+callers expressed the unit in the type all along.
+
+Through the 1.x shim nothing changes, and that took a line rather than a
+cast. 1.x disabled either timeout on **any** non-positive value, so the
+shim folds negatives onto zero instead of letting them wrap to something
+enormous.
+
 ### Starting the readout names the chain it starts
 
 `katherine_tpx3_set_seq_readout_start(device, int arg)` is

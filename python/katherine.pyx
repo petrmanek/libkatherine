@@ -2193,7 +2193,7 @@ cdef class Acquisition:
     # a pointer into it.
     cdef Device _device
 
-    def __cinit__(self, Device dev, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout):
+    def __cinit__(self, Device dev, size_t md_buffer_size, size_t pixel_buffer_size, uint32_t report_timeout_ms, uint32_t fail_timeout_ms):
       # Ask the device for its pointer first. _dev() refuses a closed one, and
       # __dealloc__ runs even when __cinit__ raises, so anything that can
       # raise has to happen before there is an allocation to finalize.
@@ -2203,7 +2203,7 @@ cdef class Acquisition:
       if self._c_acq is NULL:
           raise MemoryError()
 
-      res = cacquisition.katherine_acquisition_init(self._c_acq, d, <void*> self, md_buffer_size, pixel_buffer_size, report_timeout, fail_timeout)
+      res = cacquisition.katherine_acquisition_init(self._c_acq, d, <void*> self, md_buffer_size, pixel_buffer_size, report_timeout_ms, fail_timeout_ms)
       if res != 0:
           PyMem_Free(self._c_acq)
           self._c_acq = NULL
@@ -2357,7 +2357,7 @@ cdef class Acquisition:
     def set_timeout(self, uint32_t timeout_ms):
        """Set how long a data read waits before it reports a timeout.
 
-       What report_timeout is measured in steps of, so a report timeout
+       What report_timeout_ms is measured in steps of, so a report timeout
        shorter than this one is never observed sooner than this one."""
        check_return_code(ctransport.katherine_transport_set_timeout(
            &self._acq().data_transport, timeout_ms))
@@ -2391,12 +2391,12 @@ cdef class Acquisition:
        return self._acq().requested_frame_duration
 
     @property
-    def report_timeout(self):
-       return self._acq().report_timeout
+    def report_timeout_ms(self):
+       return self._acq().report_timeout_ms
 
     @property
-    def fail_timeout(self):
-       return self._acq().fail_timeout
+    def fail_timeout_ms(self):
+       return self._acq().fail_timeout_ms
 
     @property
     def phase_correction(self):

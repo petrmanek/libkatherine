@@ -249,9 +249,9 @@ typedef struct katherine_acquisition {
      */
     uint64_t received_measurement_data;
 
-    uint64_t acq_start_time; ///< Internal: when the acquisition began, in nanoseconds on a monotonic clock whose zero is arbitrary. What katherine_acquisition_t::fail_timeout is counted from, and a difference of two such readings is the only thing it is good for.
-    int report_timeout;      ///< Milliseconds of silence from the readout after which a partly filled pixel buffer is delivered; zero disables. Tested only when a receive has timed out, so the readout's silence is noticed in steps of the data link's own receive timeout and never sooner than one; katherine_transport_set_timeout() is what shortens that step.
-    int fail_timeout;        ///< Milliseconds allowed past the requested measurement's own duration before the acquisition is declared timed out; zero disables.
+    uint64_t acq_start_time;    ///< Internal: when the acquisition began, in nanoseconds on a monotonic clock whose zero is arbitrary. What katherine_acquisition_t::fail_timeout is counted from, and a difference of two such readings is the only thing it is good for.
+    uint32_t report_timeout_ms; ///< Milliseconds of silence from the readout after which a partly filled pixel buffer is delivered; zero disables. Tested only when a receive has timed out, so the readout's silence is noticed in steps of the data link's own receive timeout and never sooner than one; katherine_transport_set_timeout() is what shortens that step.
+    uint32_t fail_timeout_ms;   ///< Milliseconds allowed past the requested measurement's own duration before the acquisition is declared timed out; zero disables.
 
     katherine_acquisition_handlers_t handlers; ///< The callbacks; set them after katherine_acquisition_init() and before beginning.
     katherine_frame_info_t current_frame_info; ///< Internal: the frame being filled, handed to frame_ended when it closes.
@@ -281,7 +281,7 @@ KATHERINE_EXPORTED uint8_t
 katherine_tpx3_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout);
+katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, uint32_t report_timeout_ms, uint32_t fail_timeout_ms);
 
 KATHERINE_EXPORTED void
 katherine_acquisition_fini(katherine_acquisition_t *acq);

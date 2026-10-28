@@ -77,8 +77,8 @@ cdef extern from 'katherine/acquisition.h':
         uint64_t received_measurement_data
 
         uint64_t acq_start_time
-        int report_timeout
-        int fail_timeout
+        uint32_t report_timeout_ms
+        uint32_t fail_timeout_ms
 
         katherine_acquisition_handlers_t handlers
         katherine_frame_info_t current_frame_info

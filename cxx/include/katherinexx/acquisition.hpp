@@ -142,7 +142,7 @@ public:
     {
         using namespace std::chrono;
 
-        katherine::detail::check(katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void *>(this), md_buffer_size, pixel_buffer_size, static_cast<int>(duration_cast<milliseconds>(report_timeout).count()), static_cast<int>(duration_cast<milliseconds>(fail_timeout).count())));
+        katherine::detail::check(katherine_acquisition_init(&acq_, dev.c_dev(), reinterpret_cast<void *>(this), md_buffer_size, pixel_buffer_size, static_cast<std::uint32_t>(duration_cast<milliseconds>(report_timeout).count()), static_cast<std::uint32_t>(duration_cast<milliseconds>(fail_timeout).count())));
 
         // TODO: uncomment in C++2a
         acq_.handlers = {
@@ -289,7 +289,7 @@ public:
     /**
      * The limit a data read waits within before it reports a timeout.
      *
-     * What katherine_acquisition_t::report_timeout is measured in steps of,
+     * What katherine_acquisition_t::report_timeout_ms is measured in steps of,
      * so a report timeout shorter than this one is never observed sooner
      * than this one.
      */

@@ -309,11 +309,11 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  *   readout sends, which depends on the model; 65536 covers every model
  *   measured so far. Zero asks the link for its own size.
  * \param pixel_buffer_size Size of the pixel buffer in bytes
- * \param report_timeout Silence after which a partly filled pixel buffer is
+ * \param report_timeout_ms Silence after which a partly filled pixel buffer is
  *   delivered (ms). Set zero to disable. Noticed in steps of the data link's
  *   receive timeout, which bounds it from below -- see
- *   katherine_acquisition_t::report_timeout.
- * \param fail_timeout Timeout for any device communication (ms). Set zero to disable.
+ *   katherine_acquisition_t::report_timeout_ms.
+ * \param fail_timeout_ms Timeout for any device communication (ms). Set zero to disable.
  *
  * \retval KATHERINE_E_OK on success, with
  *   katherine_acquisition_t::md_buffer_size holding the size the link
@@ -355,7 +355,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  *   not complete in time.
  */
 katherine_error_t
-katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, int report_timeout, int fail_timeout)
+katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, uint32_t report_timeout_ms, uint32_t fail_timeout_ms)
 {
     // Before the first thing that can fail, and before anything is read back.
     // Three things turn on it: the phase state has to be defined before
@@ -404,8 +404,8 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
         goto err_pixel_buffer;
     }
 
-    acq->report_timeout = report_timeout;
-    acq->fail_timeout   = fail_timeout;
+    acq->report_timeout_ms = report_timeout_ms;
+    acq->fail_timeout_ms   = fail_timeout_ms;
 
     return KATHERINE_E_OK;
 
@@ -548,7 +548,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 \
         uint64_t last_data_received = katherine_clock_monotonic_ns(); \
         double duration; \
-        double kill_off_time = acq->fail_timeout <= 0 ? -1 : acq->requested_frames * acq->requested_frame_duration + (double) acq->fail_timeout / 1000.0; \
+        double kill_off_time = acq->fail_timeout_ms == 0 ? -1 : acq->requested_frames * acq->requested_frame_duration + (double) acq->fail_timeout_ms / 1000.0; \
         katherine_error_t res; \
         katherine_error_t link_failure = KATHERINE_E_OK; \
 \
@@ -575,7 +575,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 } \
 \
                 duration = (double) (katherine_clock_monotonic_ns() - last_data_received) / 1000000.0; \
-                if (acq->report_timeout > 0 && duration > acq->report_timeout && acq->pixel_buffer_valid > 0) { \
+                if (acq->report_timeout_ms != 0 && duration > acq->report_timeout_ms && acq->pixel_buffer_valid > 0) { \
                     flush_buffer(acq); \
                 } \
 \

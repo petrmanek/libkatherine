@@ -361,7 +361,7 @@ test_a_failed_link_ends_the_read_instead_of_being_retried(void)
     /* Bounded, so the behaviour this replaces ends the test rather than
        hanging it. In the field this was commonly 0, where the old loop
        had no exit at all. */
-    acq.fail_timeout        = 100;
+    acq.fail_timeout_ms     = 100;
     acq.data_transport.ops  = &stub_gone_data_ops;
     acq.data_transport.kind = KATHERINE_TRANSPORT_USB;
 
