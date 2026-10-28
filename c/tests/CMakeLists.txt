@@ -300,9 +300,9 @@ if(KATHERINE_BUILD_KSIM)
     target_compile_definitions(test_acq_begin_unanswered PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 endif()
 
-# Every test source above must have been registered. The end-to-end tests are
-# registered only when the emulator feature is on, and the USB ring test only
-# where libusb was found, so they are named as such rather than looking like
-# omissions.
+# Every test source above must have been registered. The ones that drive the
+# emulator are registered only where that feature is on, and the USB ring test
+# only where libusb was found, so they are named as such rather than looking
+# like omissions.
 katherine_check_tests_registered(CONDITIONAL test_acq_begin_window.c test_acq_frames.c test_config_reserved.c test_capability_zero.c test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
-    test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c)
+    test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c test_emu_frame_tail.c)
