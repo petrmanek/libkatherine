@@ -308,7 +308,7 @@ run_acquisition(katherine_device_t *dev, const katherine_tpx3_config_t *c)
     // The handlers are given the acquisition itself: they need the divider it
     // resolved in order to interpret the timestamps it produces.
     res = katherine_acquisition_init(
-        &acq, dev, &acq, KATHERINE_MD_SIZE * 34952533, sizeof(px_t) * 65536, 500, 10000);
+        &acq, dev, &acq, KATHERINE_TPX3_MD_SIZE * 34952533, sizeof(px_t) * 65536, 500, 10000);
     if (res != 0) {
         printf("Cannot initialize acquisition. Is the configuration valid?\n");
         printf("Reason: %s\n", katherine_strerror(res));

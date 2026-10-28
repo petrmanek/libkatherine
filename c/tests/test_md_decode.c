@@ -123,8 +123,8 @@ make_pixel(uint8_t x, uint8_t y, uint16_t toa)
 static void
 store_md(unsigned char *stream, size_t index, uint64_t md)
 {
-    unsigned char *dst = stream + index * KATHERINE_MD_SIZE;
-    for (size_t i = 0; i < KATHERINE_MD_SIZE; ++i) {
+    unsigned char *dst = stream + index * KATHERINE_TPX3_MD_SIZE;
+    for (size_t i = 0; i < KATHERINE_TPX3_MD_SIZE; ++i) {
         dst[i] = (unsigned char) (md >> (8 * i));
     }
 }
@@ -229,7 +229,7 @@ run_stream(const unsigned char *stream, const size_t *datagram_len, size_t datag
     memset(&acq, 0, sizeof(acq));
     katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(&acq);
 
-    res = katherine_acquisition_init(&acq, &dev, probe, MD_BUFFER_MDS * KATHERINE_MD_SIZE,
+    res = katherine_acquisition_init(&acq, &dev, probe, MD_BUFFER_MDS * KATHERINE_TPX3_MD_SIZE,
         PIXEL_BUFFER_HITS * sizeof(px_t), 0 /* report_timeout disabled */, FAIL_TIMEOUT_MS);
     KT_CHECK(res == 0);
     if (res != 0) {
@@ -427,7 +427,7 @@ test_toa_offset_reset(void)
     // its hit; the second delivers none, so its hit arrives while the only
     // offset ever received belongs to the frame before it. The coarse time
     // of arrival restarts with the frame, hence so must the offset.
-    unsigned char stream[7 * KATHERINE_MD_SIZE];
+    unsigned char stream[7 * KATHERINE_TPX3_MD_SIZE];
     size_t n = 0;
     store_md(stream, n++, make_new_frame());
     store_md(stream, n++, make_time_offset(FRAME1_OFFSET));
@@ -437,7 +437,7 @@ test_toa_offset_reset(void)
     store_md(stream, n++, make_pixel(3, 4, FRAME2_TOA));
     store_md(stream, n++, make_frame_finished(1));
 
-    size_t datagram_len = n * KATHERINE_MD_SIZE;
+    size_t datagram_len = n * KATHERINE_TPX3_MD_SIZE;
     decode_probe_t probe;
     KT_CHECK_EQ(run_stream(stream, &datagram_len, 1, 2, &probe), 0);
 
@@ -476,7 +476,7 @@ test_partial_datum_ignored(void)
     // there -- bits 44 to 47 -- comes from byte 23, which is the last byte
     // of the fourth datum of the first datagram, hence that datum's own
     // header: a pixel.
-    unsigned char stream[8 * KATHERINE_MD_SIZE + TAIL_BYTES];
+    unsigned char stream[8 * KATHERINE_TPX3_MD_SIZE + TAIL_BYTES];
     memset(stream, 0, sizeof(stream));
 
     // First datagram: a whole frame of three hits.
@@ -492,7 +492,7 @@ test_partial_datum_ignored(void)
     store_md(stream, 6, make_pixel(4, 4, HIT_TOA(3)));
     store_md(stream, 7, make_frame_finished(1));
 
-    size_t datagram_len[2] = {5 * KATHERINE_MD_SIZE, 3 * KATHERINE_MD_SIZE + TAIL_BYTES};
+    size_t datagram_len[2] = {5 * KATHERINE_TPX3_MD_SIZE, 3 * KATHERINE_TPX3_MD_SIZE + TAIL_BYTES};
     decode_probe_t probe;
     KT_CHECK_EQ(run_stream(stream, datagram_len, 2, 2, &probe), 0);
 
@@ -521,7 +521,7 @@ test_partial_datum_ignored(void)
 static void
 test_exact_fit_datagram_counts_as_maybe_truncated(void)
 {
-    unsigned char stream[MD_BUFFER_MDS * KATHERINE_MD_SIZE];
+    unsigned char stream[MD_BUFFER_MDS * KATHERINE_TPX3_MD_SIZE];
     memset(stream, 0, sizeof(stream));
 
     // A whole frame, then filler pixels out to the buffer's exact capacity.
@@ -532,7 +532,7 @@ test_exact_fit_datagram_counts_as_maybe_truncated(void)
     store_md(stream, MD_BUFFER_MDS - 1, make_frame_finished(MD_BUFFER_MDS - 2));
 
     decode_probe_t probe;
-    size_t lens[1] = {MD_BUFFER_MDS * KATHERINE_MD_SIZE};
+    size_t lens[1] = {MD_BUFFER_MDS * KATHERINE_TPX3_MD_SIZE};
     (void) run_stream(stream, lens, 1, 1, &probe);
 
     KT_CHECK_EQ(probe.truncated, 1u);
@@ -541,16 +541,16 @@ test_exact_fit_datagram_counts_as_maybe_truncated(void)
     // Every byte that arrived is counted whether or not it was decoded, which
     // is the only yardstick a data-driven loss measurement has: there is no
     // sent-count on that path to compare against.
-    KT_CHECK_EQ(probe.received, (uint64_t) (MD_BUFFER_MDS * KATHERINE_MD_SIZE));
+    KT_CHECK_EQ(probe.received, (uint64_t) (MD_BUFFER_MDS * KATHERINE_TPX3_MD_SIZE));
 
     // One datum short of the capacity: the same stream, nothing suspected.
     store_md(stream, MD_BUFFER_MDS - 2, make_frame_finished(MD_BUFFER_MDS - 3));
-    lens[0] = (MD_BUFFER_MDS - 1) * KATHERINE_MD_SIZE;
+    lens[0] = (MD_BUFFER_MDS - 1) * KATHERINE_TPX3_MD_SIZE;
     (void) run_stream(stream, lens, 1, 1, &probe);
 
     KT_CHECK_EQ(probe.truncated, 0u);
     KT_CHECK_EQ(probe.frames_ended, 1u);
-    KT_CHECK_EQ(probe.received, (uint64_t) ((MD_BUFFER_MDS - 1) * KATHERINE_MD_SIZE));
+    KT_CHECK_EQ(probe.received, (uint64_t) ((MD_BUFFER_MDS - 1) * KATHERINE_TPX3_MD_SIZE));
 }
 
 // ------------------------------------------------------------------

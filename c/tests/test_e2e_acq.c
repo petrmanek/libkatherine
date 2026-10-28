@@ -485,7 +485,7 @@ on_data_received(void *ctx, const char *data, size_t count)
 
     ++probe->data_callbacks;
     probe->data_bytes += count;
-    KT_CHECK_EQ(count % KATHERINE_MD_SIZE, 0);
+    KT_CHECK_EQ(count % KATHERINE_TPX3_MD_SIZE, 0);
 
     // The first datagram of a frame necessarily opens with the new-frame
     // datum, so the shutter is open by the time this runs: aborting here

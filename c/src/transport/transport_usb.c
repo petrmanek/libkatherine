@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <katherine/acquisition.h> // KATHERINE_MD_SIZE: this stream is measurement data
+#include <katherine/acquisition.h> // KATHERINE_TPX3_MD_SIZE: this stream is measurement data
 #include <katherine/device.h>      // the discovery below fills the device's own result type
 
 // MSVC leaves struct timeval to the caller, so on Windows it comes from
@@ -174,20 +174,20 @@ next_run(katherine_transport_usb_t *u, const uint8_t *buf, size_t len, size_t fr
             }
 
             i += pad;
-        } else if (i + KATHERINE_MD_SIZE <= len && is_filler(buf + i)) {
-            i += KATHERINE_MD_SIZE;
+        } else if (i + KATHERINE_TPX3_MD_SIZE <= len && is_filler(buf + i)) {
+            i += KATHERINE_TPX3_MD_SIZE;
         } else {
             break;
         }
     }
 
-    if (i + KATHERINE_MD_SIZE > len) {
+    if (i + KATHERINE_TPX3_MD_SIZE > len) {
         return false;
     }
 
     size_t end = i;
-    while (end + KATHERINE_MD_SIZE <= len && (end % KATHERINE_USB_DATA_FRAME_SIZE) < USB_FRAME_WORDS && !is_filler(buf + end)) {
-        end += KATHERINE_MD_SIZE;
+    while (end + KATHERINE_TPX3_MD_SIZE <= len && (end % KATHERINE_USB_DATA_FRAME_SIZE) < USB_FRAME_WORDS && !is_filler(buf + end)) {
+        end += KATHERINE_TPX3_MD_SIZE;
     }
 
     *off = i;

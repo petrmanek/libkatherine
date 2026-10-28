@@ -167,6 +167,18 @@ the shim offers for this family.
 a session's endpoints, and an incomplete type has none it could truthfully
 print. `katherine_transport_snprint()` is the 2.0 call.
 
+### The measurement word carries an ASIC prefix
+
+`KATHERINE_MD_SIZE` is `KATHERINE_TPX3_MD_SIZE`, six bytes, and
+`katherine1.h` aliases the old spelling. A Timepix4 readout sends eight-byte
+measurement data, so the constant had to name the family it belongs to
+before the tag froze it.
+
+In C++ `katherine::md_size` moved to `katherine::tpx3::md_size` with the
+rest of the Timepix3 surface; in Python `MD_SIZE()` is `TPX3_MD_SIZE()`,
+which has no alias, Python's shim covering class names rather than module
+functions.
+
 ### The frame count was respelled
 
 `katherine_config_t::no_frames` is `frame_count`, and

@@ -2441,8 +2441,10 @@ cdef void _forward_pixels_received_event_count_itot(void *user_ctx, const void *
     cdef const cpx.katherine_tpx3_px_event_count_itot_t *dpx = <const cpx.katherine_tpx3_px_event_count_itot_t *> px
     (<Acquisition> user_ctx).observer.pixels_received([Tpx3PxEventCountItot(cdata=dpx[i]) for i in range(count)])
 
-def MD_SIZE():
-   return cacquisition.KATHERINE_MD_SIZE
+def TPX3_MD_SIZE():
+   """Bytes in one measurement-data word from a Timepix3 readout. A
+   Timepix4 readout sends eight."""
+   return cacquisition.KATHERINE_TPX3_MD_SIZE
 
 
 # --- 1.x names ---------------------------------------------------------

@@ -757,6 +757,8 @@ katherine1_emu_data_out(katherine_emu_t *emu, void *buf, size_t cap, size_t *len
 #define katherine_config_t                        katherine1_config_t
 #define katherine_set_all_pixel_config(...)       katherine1_set_all_pixel_config(__VA_ARGS__)
 #define katherine_set_acq_time(...)               katherine1_set_acq_time(__VA_ARGS__)
+#define KATHERINE_MD_SIZE                         KATHERINE_TPX3_MD_SIZE
+
 #define katherine_set_acq_mode(...)               katherine1_set_acq_mode(__VA_ARGS__)
 #define katherine_set_no_frames(...)              katherine1_set_no_frames(__VA_ARGS__)
 #define katherine_set_bias(...)                   katherine1_set_bias(__VA_ARGS__)

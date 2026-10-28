@@ -157,7 +157,7 @@ def print_chip_id(device):
 
 
 def run_acquisition(dev, c):
-    acq = k.Acquisition(dev, k.MD_SIZE() * 34952533, k.Tpx3PxFastToaTot.RAW_SIZE() * 4096, 500, 10000)
+    acq = k.Acquisition(dev, k.TPX3_MD_SIZE() * 34952533, k.Tpx3PxFastToaTot.RAW_SIZE() * 4096, 500, 10000)
     acq.observer = MyObserver()
 
     print('Acquisition started')

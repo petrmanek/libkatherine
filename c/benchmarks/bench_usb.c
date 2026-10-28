@@ -172,7 +172,7 @@ stream(const katherine_usb_config_t *config, uint64_t per_hit_ns, double seconds
         o.buffers += 1;
 
         // Stands in for decoding what was just lent.
-        burn(per_hit_ns * (len / KATHERINE_MD_SIZE));
+        burn(per_hit_ns * (len / KATHERINE_TPX3_MD_SIZE));
 
         (void) katherine_transport_release_data_buf(&t, buf);
     }
@@ -181,7 +181,7 @@ stream(const katherine_usb_config_t *config, uint64_t per_hit_ns, double seconds
     katherine_transport_fini(&t);
 
     o.mb_per_s   = (double) o.bytes / elapsed / 1e6;
-    o.hits_per_s = (double) o.bytes / KATHERINE_MD_SIZE / elapsed;
+    o.hits_per_s = (double) o.bytes / KATHERINE_TPX3_MD_SIZE / elapsed;
 
     return o;
 }

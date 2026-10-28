@@ -470,6 +470,21 @@ while an acquisition is running, as `katherine_get_sensor_temperature()`
 already was: the readout answers the scan on the data lanes a measurement
 is using.
 
+### The measurement word says which ASIC it is
+
+`KATHERINE_MD_SIZE` is `KATHERINE_TPX3_MD_SIZE`. It is six bytes for a
+Timepix3 readout and eight for a Timepix4 one, so an unprefixed constant
+cannot carry both -- and this is the last window in which it can be
+renamed, a public macro being stuck once the tag ships. WP19's rule asks
+for exactly this of every symbol that will branch on the ASIC; this one was
+missed by the sweep and found while reading the Timepix4 manual against
+Track Lab's readout.
+
+The wrappers follow: C++'s `katherine::md_size` is
+`katherine::tpx3::md_size` and Python's `MD_SIZE()` is `TPX3_MD_SIZE()`.
+`katherine1.h` aliases the 1.x spelling, and `test_compat1.c` checks both
+that the alias exists and that it is still six.
+
 ### Two error codes, and a reserved word that must be zero
 
 `KATHERINE_E_BAD_RESERVED` and `KATHERINE_E_BUSY` join the error domain.

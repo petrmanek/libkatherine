@@ -35,14 +35,14 @@
 #define MD_PIXEL_CHIP_0   0x0
 
 #define CONFIG_SIZE       (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
-#define MD_BUFFER_SIZE    (KATHERINE_MD_SIZE * 4096)
+#define MD_BUFFER_SIZE    (KATHERINE_TPX3_MD_SIZE * 4096)
 #define PIXEL_BUFFER      4096
 #define REPORT_TIMEOUT_MS 50
 #define FAIL_TIMEOUT_MS   150
 
 static katherine_device_t g_device;
 static kemu_transport_t g_link;
-static uint8_t g_stream[8 * KATHERINE_MD_SIZE];
+static uint8_t g_stream[8 * KATHERINE_TPX3_MD_SIZE];
 static int g_started;
 static int g_ended;
 static int g_ended_complete;
@@ -50,8 +50,8 @@ static int g_ended_complete;
 static void
 md(size_t index, uint8_t header)
 {
-    memset(g_stream + index * KATHERINE_MD_SIZE, 0, KATHERINE_MD_SIZE);
-    g_stream[index * KATHERINE_MD_SIZE + KATHERINE_MD_SIZE - 1] = (uint8_t) (header << 4);
+    memset(g_stream + index * KATHERINE_TPX3_MD_SIZE, 0, KATHERINE_TPX3_MD_SIZE);
+    g_stream[index * KATHERINE_TPX3_MD_SIZE + KATHERINE_TPX3_MD_SIZE - 1] = (uint8_t) (header << 4);
 }
 
 static void
@@ -111,7 +111,7 @@ read_stream(size_t n_md, kemu_data_t *data)
 
     memset(data, 0, sizeof(*data));
     data->md  = g_stream;
-    data->len = n_md * KATHERINE_MD_SIZE;
+    data->len = n_md * KATHERINE_TPX3_MD_SIZE;
     kemu_data_attach(&acq, data);
 
     acq.handlers.frame_started = on_started;

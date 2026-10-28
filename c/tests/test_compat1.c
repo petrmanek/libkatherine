@@ -214,6 +214,20 @@ test_udp_calls_decline(void)
 }
 
 // ------------------------------------------------------------------
+// The measurement-word size under its 1.x spelling. 2.0 prefixed it because
+// it branches on the ASIC -- a Timepix4 readout sends eight bytes where this
+// family sends six -- and an unprefixed constant cannot carry two values.
+//
+// A compile-time alias can only be wrong by being absent or by resolving to
+// something else, so both are checked: the name must exist, and it must
+// still be six.
+static void
+test_md_size_keeps_its_1x_spelling(void)
+{
+    KT_CHECK_EQ(KATHERINE_MD_SIZE, KATHERINE_TPX3_MD_SIZE);
+    KT_CHECK_EQ(KATHERINE_MD_SIZE, 6);
+}
+
 // The pixel coordinate under its 1.x spellings, which 2.0 namespaced to
 // katherine_tpx3_coord_t because a byte per axis is Timepix3's matrix and not
 // Timepix4's.
@@ -658,6 +672,7 @@ main(void)
     KT_RUN(test_px_config_missing_file_maps_to_eio);
     KT_RUN(test_dacs_validate_success);
     KT_RUN(test_udp_calls_decline);
+    KT_RUN(test_md_size_keeps_its_1x_spelling);
     KT_RUN(test_coord_keeps_its_1x_spellings);
     KT_RUN(test_hit_layouts_keep_their_1x_spellings);
     KT_RUN(test_acquisition_setup_puts_the_delayed_start_on_the_wire);

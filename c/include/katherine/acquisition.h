@@ -33,8 +33,16 @@
  * \{
  */
 
-/// Bytes in one measurement datum on the wire.
-#define KATHERINE_MD_SIZE 6
+/**
+ * Bytes in one measurement datum on the wire, for a Timepix3 readout.
+ *
+ * Prefixed because it branches on the ASIC: a Timepix4 readout sends eight
+ * bytes, where this family sends six. The value is the readout's, not the
+ * chip's -- Timepix2 readouts send six as well -- and the prefix follows
+ * the library's convention rather than naming a family it has no other
+ * word for.
+ */
+#define KATHERINE_TPX3_MD_SIZE 6
 
 // Uncomment the following line to enable acquisition logging:
 // #define KATHERINE_DEBUG_ACQ 2

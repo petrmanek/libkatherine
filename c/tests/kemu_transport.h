@@ -207,7 +207,7 @@ kemu_device_fini(katherine_device_t *device, kemu_transport_t *t)
 /** One stream of measurement data, and what the loop did with it. */
 typedef struct kemu_data {
     const void *md; ///< Measurement data to serve, whole, once.
-    size_t len;     ///< Its length in bytes, a multiple of KATHERINE_MD_SIZE.
+    size_t len;     ///< Its length in bytes, a multiple of KATHERINE_TPX3_MD_SIZE.
     int served;     ///< Times the buffer has been handed over.
     int acquires;   ///< Buffers lent to the read loop.
     int releases;   ///< Buffers it gave back; equal to acquires on every path.

@@ -29,8 +29,12 @@ namespace katherine {
  * \{
  */
 
-/// Size of one measurement-data word, in bytes.
-constexpr std::size_t md_size = KATHERINE_MD_SIZE;
+namespace tpx3 {
+
+/// Size of one measurement-data word, in bytes. A Timepix4 readout sends eight.
+constexpr std::size_t md_size = KATHERINE_TPX3_MD_SIZE;
+
+} // namespace tpx3
 
 /// Where an acquisition has got to.
 enum class acq_state {

@@ -125,7 +125,7 @@ build_canned_buffer(uint8_t *buf, size_t words, bool gen2)
         md                = INSERT(md, pmd_toa_tot, toa, r >> 16);
         md                = INSERT(md, pmd_toa_tot, tot, r >> 30);
         md                = INSERT(md, pmd_toa_tot, hit_count, r >> 40);
-        memcpy(buf + i * KATHERINE_MD_SIZE, &md, KATHERINE_MD_SIZE);
+        memcpy(buf + i * KATHERINE_TPX3_MD_SIZE, &md, KATHERINE_TPX3_MD_SIZE);
     }
 }
 
@@ -152,7 +152,7 @@ build_canned_buffer(uint8_t *buf, size_t words, bool gen2)
         priv->last_toa_offset               = katherine_tpx3_toa_coarse_tick_to_fine_ticks(KATHERINE_TPX3_FREQ_40_MHZ); \
         uint64_t acc                        = 0; \
         const uint8_t *p                    = buf; \
-        for (size_t i = 0; i < words; ++i, p += KATHERINE_MD_SIZE) { \
+        for (size_t i = 0; i < words; ++i, p += KATHERINE_TPX3_MD_SIZE) { \
             uint64_t word; \
             /* A fixed-size memcpy is the strict-aliasing-safe spelling of \
                the same unaligned 8-byte load the library's read loop does \
@@ -218,7 +218,7 @@ static uint8_t *g_memcpy_scratch;
 static void
 bench_decode_memcpy(const uint8_t *buf, size_t words, uint64_t *out_checksum)
 {
-    size_t bytes = words * KATHERINE_MD_SIZE;
+    size_t bytes = words * KATHERINE_TPX3_MD_SIZE;
     uint64_t acc = 0;
 
     memcpy(g_memcpy_scratch, buf, bytes);
@@ -267,8 +267,8 @@ main(void)
         if (v > 0) g_min_seconds = v;
     }
 
-    size_t words = ((size_t) BENCH_BUFFER_MB << 20) / KATHERINE_MD_SIZE;
-    size_t bytes = words * KATHERINE_MD_SIZE;
+    size_t words = ((size_t) BENCH_BUFFER_MB << 20) / KATHERINE_TPX3_MD_SIZE;
+    size_t bytes = words * KATHERINE_TPX3_MD_SIZE;
 
     // One extra word past the last whole one: the loop above reads each word
     // through an 8-byte memcpy() (matching the unaligned uint64_t load the

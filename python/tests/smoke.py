@@ -333,7 +333,7 @@ def run_acquisition(katherine, device):
     # frame, so that the hits of the one frame under test reach the handler
     # in one call.
     acq = katherine.Acquisition(
-        device, katherine.MD_SIZE() * 4096, katherine.Tpx3PxFastToaTot.RAW_SIZE() * 1024, 500, 10000)
+        device, katherine.TPX3_MD_SIZE() * 4096, katherine.Tpx3PxFastToaTot.RAW_SIZE() * 1024, 500, 10000)
     probe = make_probe(katherine)
     acq.observer = probe
 
@@ -1022,7 +1022,7 @@ def check_io_contract(tap, katherine):
     # finalize one in that state and returns without freeing, so a close
     # that went ahead would free memory the library still holds.
     dev = katherine.Device(KSIM_DEVICE_ADDRESS)
-    acq = katherine.Acquisition(dev, katherine.MD_SIZE() * 128,
+    acq = katherine.Acquisition(dev, katherine.TPX3_MD_SIZE() * 128,
                                 katherine.Tpx3PxFastToaTot.RAW_SIZE() * 128, 100, 1000)
     try:
         dev.close()
@@ -1040,7 +1040,7 @@ def check_io_contract(tap, katherine):
     # has to come before the buffer exists. It used to arrive after, and
     # finalizing the uninitialized buffer segfaulted the interpreter.
     try:
-        katherine.Acquisition(dev, katherine.MD_SIZE() * 128,
+        katherine.Acquisition(dev, katherine.TPX3_MD_SIZE() * 128,
                               katherine.Tpx3PxFastToaTot.RAW_SIZE() * 128, 100, 1000)
         tap.check('an Acquisition on a closed Device raises ValueError', False, 'it did not raise')
     except ValueError:
@@ -1057,7 +1057,7 @@ def check_io_contract(tap, katherine):
     tap.check("a closed file still reprs", 'TextIOWrapper' in repr(closed_file))
 
     dev = katherine.Device(KSIM_DEVICE_ADDRESS)
-    acq = katherine.Acquisition(dev, katherine.MD_SIZE() * 128,
+    acq = katherine.Acquisition(dev, katherine.TPX3_MD_SIZE() * 128,
                                 katherine.Tpx3PxFastToaTot.RAW_SIZE() * 128, 100, 1000)
     acq.close()
     dev.close()

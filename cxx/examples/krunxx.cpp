@@ -221,7 +221,7 @@ run_acquisition(katherine::device& dev, const katherine::tpx3::config& c)
     using namespace std::chrono;
     using namespace std::literals::chrono_literals;
 
-    katherine::acquisition<mode> acq{dev, katherine::md_size * 34952533, sizeof(mode::pixel_type) * 65536, 500ms, 10s, true};
+    katherine::acquisition<mode> acq{dev, katherine::tpx3::md_size * 34952533, sizeof(mode::pixel_type) * 65536, 500ms, 10s, true};
 
     acq.set_frame_started_handler(frame_started);
     acq.set_frame_ended_handler(frame_ended);

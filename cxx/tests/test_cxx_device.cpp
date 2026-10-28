@@ -208,7 +208,7 @@ test_device_and_acquisition(void)
     // timeouts, touching no socket -- and reports the state of one that has
     // not begun.
     katherine::acquisition<katherine::tpx3::acq::f_toa_tot> acq{
-        dev, katherine::md_size * 128, sizeof(katherine_tpx3_px_f_toa_tot_t) * 128, std::chrono::milliseconds{10},
+        dev, katherine::tpx3::md_size * 128, sizeof(katherine_tpx3_px_f_toa_tot_t) * 128, std::chrono::milliseconds{10},
         std::chrono::milliseconds{50}, true};
 
     KT_CHECK(acq.state() == katherine::acq_state::not_started);

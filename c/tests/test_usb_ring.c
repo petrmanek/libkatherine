@@ -599,16 +599,16 @@ test_the_bridge_padding_and_filler_are_stripped(void)
     static uint8_t frame[KATHERINE_USB_DATA_FRAME_SIZE];
     unsigned real = 0;
     for (unsigned w = 0; w < 170; ++w) {
-        uint8_t *word = frame + w * KATHERINE_MD_SIZE;
+        uint8_t *word = frame + w * KATHERINE_TPX3_MD_SIZE;
         if (w % 3 == 2) {
-            memset(word, 0x55, KATHERINE_MD_SIZE);
+            memset(word, 0x55, KATHERINE_TPX3_MD_SIZE);
         } else {
-            memset(word, 0, KATHERINE_MD_SIZE);
+            memset(word, 0, KATHERINE_TPX3_MD_SIZE);
             word[5] = 0x10 | (uint8_t) (w & 0x0F); /* a chip-0 pixel header */
             ++real;
         }
     }
-    memset(frame + 170 * KATHERINE_MD_SIZE, 0, 4);
+    memset(frame + 170 * KATHERINE_TPX3_MD_SIZE, 0, 4);
 
     KT_REQUIRE(fake_usb_complete_oldest_with(LIBUSB_TRANSFER_COMPLETED, frame, (int) sizeof(frame)) == 0);
 
@@ -622,9 +622,9 @@ test_the_bridge_padding_and_filler_are_stripped(void)
         size_t len = 0;
         KT_REQUIRE(katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK);
         KT_REQUIRE(len > 0);
-        KT_CHECK_EQ(len % KATHERINE_MD_SIZE, (size_t) 0);
+        KT_CHECK_EQ(len % KATHERINE_TPX3_MD_SIZE, (size_t) 0);
 
-        for (size_t i = 0; i < len; i += KATHERINE_MD_SIZE) {
+        for (size_t i = 0; i < len; i += KATHERINE_TPX3_MD_SIZE) {
             const uint8_t *word = (const uint8_t *) buf + i;
             KT_CHECK((word[5] & 0xF0) == 0x10);
             ++seen;
@@ -659,8 +659,8 @@ test_a_short_read_does_not_shift_the_next(void)
     KT_REQUIRE(katherine_transport_init_usb(&t, &config) == KATHERINE_E_OK);
 
     static uint8_t read[600];
-    for (size_t i = 0; i + KATHERINE_MD_SIZE <= sizeof(read); i += KATHERINE_MD_SIZE) {
-        memset(read + i, 0, KATHERINE_MD_SIZE);
+    for (size_t i = 0; i + KATHERINE_TPX3_MD_SIZE <= sizeof(read); i += KATHERINE_TPX3_MD_SIZE) {
+        memset(read + i, 0, KATHERINE_TPX3_MD_SIZE);
         read[i + 5] = 0x10;
     }
 
@@ -698,18 +698,18 @@ test_padding_that_is_not_padding_is_counted(void)
 
     static uint8_t frame[KATHERINE_USB_DATA_FRAME_SIZE];
     for (unsigned w = 0; w < 170; ++w) {
-        uint8_t *word = frame + w * KATHERINE_MD_SIZE;
-        memset(word, 0, KATHERINE_MD_SIZE);
+        uint8_t *word = frame + w * KATHERINE_TPX3_MD_SIZE;
+        memset(word, 0, KATHERINE_TPX3_MD_SIZE);
         word[5] = 0x10;
     }
-    memset(frame + 170 * KATHERINE_MD_SIZE, 0xAB, 4); /* not zeros */
+    memset(frame + 170 * KATHERINE_TPX3_MD_SIZE, 0xAB, 4); /* not zeros */
 
     KT_REQUIRE(fake_usb_complete_oldest_with(LIBUSB_TRANSFER_COMPLETED, frame, (int) sizeof(frame)) == 0);
 
     void *buf  = NULL;
     size_t len = 0;
     KT_REQUIRE(katherine_transport_acquire_data_buf(&t, &buf, &len) == KATHERINE_E_OK);
-    KT_CHECK_EQ(len, (size_t) 170 * KATHERINE_MD_SIZE);
+    KT_CHECK_EQ(len, (size_t) 170 * KATHERINE_TPX3_MD_SIZE);
     KT_REQUIRE(katherine_transport_release_data_buf(&t, buf) == KATHERINE_E_OK);
 
     /* Reaching past the words is what inspects the padding. */

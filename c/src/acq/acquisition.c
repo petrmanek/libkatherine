@@ -613,7 +613,7 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
                 /* Whole data only: the trailing fragment of a datagram cut \
                    short is not a datum, and decoding it would decode the \
                    bytes that happen to follow it in the buffer. */ \
-                for (i = 0; i + KATHERINE_MD_SIZE <= received; i += KATHERINE_MD_SIZE, it += KATHERINE_MD_SIZE) { \
+                for (i = 0; i + KATHERINE_TPX3_MD_SIZE <= received; i += KATHERINE_TPX3_MD_SIZE, it += KATHERINE_TPX3_MD_SIZE) { \
                     /* Aligned copy replacing a misaligned cast: identical code on \
                        x86-64, AArch64 and PPC64; on ARMv7 two loads, not a faulting LDRD. */ \
                     uint64_t word; \

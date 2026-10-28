@@ -117,7 +117,7 @@
 #define SHORT_ACQ_TIME_NS   400000.0
 
 // Acquisition buffers and timeouts, as in test_e2e_acq.c.
-#define MD_BUFFER_SIZE      (KATHERINE_MD_SIZE * 4096)
+#define MD_BUFFER_SIZE      (KATHERINE_TPX3_MD_SIZE * 4096)
 #define PIXEL_BUFFER_HITS   1024
 #define REPORT_TIMEOUT_MS   500
 #define FAIL_TIMEOUT_MS     10000

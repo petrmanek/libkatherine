@@ -42,7 +42,7 @@
 #define OPCODE_ACQUISITION_START 0x03
 
 #define CONFIG_SIZE              (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
-#define MD_BUFFER_SIZE           (KATHERINE_MD_SIZE * 4096)
+#define MD_BUFFER_SIZE           (KATHERINE_TPX3_MD_SIZE * 4096)
 #define PIXEL_BUFFER_BYTES       (1024 * sizeof(katherine_tpx3_px_f_toa_tot_t))
 #define REPORT_TIMEOUT_MS        100
 #define FAIL_TIMEOUT_MS          1000
