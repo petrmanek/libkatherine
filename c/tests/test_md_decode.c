@@ -42,10 +42,22 @@
 #include "monoclock.h"
 
 // Measurement data headers, as dispatched by the read loop.
+#define MD_HDR_TRIGGER_INFO_A 0x2
+#define MD_HDR_TRIGGER_INFO_B 0x3
 #define MD_HDR_PIXEL          0x4
 #define MD_HDR_TIME_OFFSET    0x5
 #define MD_HDR_NEW_FRAME      0x7
+#define MD_HDR_START_TIME_LSB 0x8
+#define MD_HDR_START_TIME_MSB 0x9
+#define MD_HDR_END_TIME_LSB   0xA
+#define MD_HDR_END_TIME_MSB   0xB
 #define MD_HDR_FRAME_FINISHED 0xC
+#define MD_HDR_LOST_PIXELS    0xD
+#define MD_HDR_ABORTED        0xE
+
+// No generation's map names 0xF, so it is what an unrecognized header looks
+// like on the wire.
+#define MD_HDR_UNKNOWN        0xF
 
 // High, uncommon ports of their own, distinct from every other fixed pair
 // registered in this tree (test_cmd_encoders.c's 42600/42601,
@@ -119,6 +131,34 @@ make_pixel(uint8_t x, uint8_t y, uint16_t toa)
     return INSERT(md, pmd_toa_tot, tot, (uint64_t) 100);
 }
 
+static uint64_t
+make_time_lsb(uint8_t hdr, uint32_t lsb)
+{
+    uint64_t md = INSERT((uint64_t) 0, md, header, (uint64_t) hdr);
+    return INSERT(md, md_time_lsb, lsb, (uint64_t) lsb);
+}
+
+static uint64_t
+make_time_msb(uint8_t hdr, uint16_t msb)
+{
+    uint64_t md = INSERT((uint64_t) 0, md, header, (uint64_t) hdr);
+    return INSERT(md, md_time_msb, msb, (uint64_t) msb);
+}
+
+static uint64_t
+make_lost_pixels(uint64_t n_lost)
+{
+    uint64_t md = INSERT((uint64_t) 0, md, header, (uint64_t) MD_HDR_LOST_PIXELS);
+    return INSERT(md, md_lost_px, n_lost, n_lost);
+}
+
+// A header whose handler reads nothing else out of the word.
+static uint64_t
+make_bare(uint8_t hdr)
+{
+    return INSERT((uint64_t) 0, md, header, (uint64_t) hdr);
+}
+
 // Appends one datum in wire order (little endian) at the given index.
 static void
 store_md(unsigned char *stream, size_t index, uint64_t md)
@@ -138,6 +178,10 @@ typedef struct decode_probe {
 
     size_t hits; /* summed over every pixels_received call */
     uint64_t toa[PIXEL_BUFFER_HITS];
+
+    // Copied out of the last frame_ended call.
+    katherine_frame_info_t info;
+    bool frame_completed;
 
     // Copied out of the acquisition once the read loop has returned.
     char state;
@@ -161,8 +205,8 @@ on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_i
 {
     decode_probe_t *probe = (decode_probe_t *) ctx;
 
-    (void) completed;
-    (void) info;
+    probe->frame_completed = completed;
+    probe->info            = *info;
 
     KT_CHECK_EQ(frame_idx, probe->frames_ended);
     ++probe->frames_ended;
@@ -553,6 +597,73 @@ test_exact_fit_datagram_counts_as_maybe_truncated(void)
     KT_CHECK_EQ(probe.received, (uint64_t) ((MD_BUFFER_MDS - 1) * KATHERINE_TPX3_MD_SIZE));
 }
 
+// Every non-pixel header the first generation's map names, in one frame.
+// Three of them had a test before this one; the rest were reachable only
+// through a readout, which is to say not at all.
+static void
+test_every_non_pixel_header(void)
+{
+    uint8_t stream[16 * KATHERINE_TPX3_MD_SIZE];
+    size_t n = 0;
+
+    store_md(stream, n++, make_new_frame());
+    store_md(stream, n++, make_time_lsb(MD_HDR_START_TIME_LSB, 0x11223344u));
+    store_md(stream, n++, make_time_msb(MD_HDR_START_TIME_MSB, 0x5566u));
+    store_md(stream, n++, make_pixel(3, 4, 0x0040));
+    store_md(stream, n++, make_lost_pixels(7));
+    store_md(stream, n++, make_lost_pixels(5));
+    store_md(stream, n++, make_bare(MD_HDR_TRIGGER_INFO_A));
+    store_md(stream, n++, make_bare(MD_HDR_TRIGGER_INFO_B));
+    store_md(stream, n++, make_bare(MD_HDR_UNKNOWN));
+    store_md(stream, n++, make_time_lsb(MD_HDR_END_TIME_LSB, 0x778899aau));
+    store_md(stream, n++, make_time_msb(MD_HDR_END_TIME_MSB, 0xbbccu));
+    store_md(stream, n++, make_frame_finished(1));
+
+    decode_probe_t probe;
+    size_t lens[1] = {n * KATHERINE_TPX3_MD_SIZE};
+    KT_CHECK_EQ(run_stream(stream, lens, 1, 1, &probe), KATHERINE_E_OK);
+
+    KT_CHECK_EQ(probe.frames_ended, 1u);
+    KT_CHECK_EQ(probe.hits, 1u);
+    KT_CHECK(probe.frame_completed);
+
+    // Each timestamp arrives as two words and is read as one number, the
+    // high half shifted above the low.
+    KT_CHECK_EQ(probe.info.start_time.d, ((uint64_t) 0x5566u << 32) | 0x11223344u);
+    KT_CHECK_EQ(probe.info.end_time.d, ((uint64_t) 0xbbccu << 32) | 0x778899aau);
+
+    // The lost-pixel count accumulates over the frame rather than being
+    // replaced by the last word that carries one.
+    KT_CHECK_EQ(probe.info.lost_pixels, 12u);
+
+    // The two trigger-info headers are recognized and their contents
+    // discarded, so they are not losses; the header no map names is.
+    KT_CHECK_EQ(probe.dropped, 1u);
+}
+
+// The aborted-measurement datum ends the read the way
+// katherine_acquisition_abort() does, and the frame it interrupts is
+// reported as not completed.
+static void
+test_aborted_measurement_ends_the_read(void)
+{
+    uint8_t stream[4 * KATHERINE_TPX3_MD_SIZE];
+
+    store_md(stream, 0, make_new_frame());
+    store_md(stream, 1, make_pixel(1, 1, 0x0040));
+    store_md(stream, 2, make_bare(MD_HDR_ABORTED));
+
+    decode_probe_t probe;
+    size_t lens[1] = {3 * KATHERINE_TPX3_MD_SIZE};
+    KT_CHECK_EQ(run_stream(stream, lens, 1, 1, &probe), KATHERINE_E_OK);
+
+    KT_CHECK_EQ(probe.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
+    KT_CHECK_EQ(probe.frames_ended, 1u);
+    KT_CHECK(!probe.frame_completed);
+    KT_CHECK_EQ(probe.hits, 1u);
+    KT_CHECK_EQ(probe.dropped, 0u);
+}
+
 // ------------------------------------------------------------------
 
 int
@@ -565,5 +676,7 @@ main(void)
     KT_RUN(test_toa_offset_reset);
     KT_RUN(test_partial_datum_ignored);
     KT_RUN(test_exact_fit_datagram_counts_as_maybe_truncated);
+    KT_RUN(test_every_non_pixel_header);
+    KT_RUN(test_aborted_measurement_ends_the_read);
     return kt_summary();
 }
