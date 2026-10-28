@@ -125,7 +125,10 @@ main(int argc, char *argv[])
     }
 
     try {
-        katherine::device device{address};
+        // This combination of flags means that the readout will not be configured for extensive work, but it will also not overwrite any previous configuration.
+        const std::uint32_t flags = (KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS | KATHERINE_DEVICE_DONT_SELECT_INTERFACE);
+
+        katherine::device device{address, flags};
         return print_info(device) ? 0 : 1;
     } catch (const katherine::error& e) {
         report_failure("katherine_device_init", e.what());

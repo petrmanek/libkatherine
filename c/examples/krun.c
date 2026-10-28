@@ -84,76 +84,92 @@ paint_test_pixels(katherine_tpx3_px_config_t *px_config)
 }
 
 void
-configure(katherine_tpx3_config_t *config, uint8_t chip_count)
+configure(katherine_tpx3_config_t *config)
 {
     // For now, these constants are hard-coded.
-    // This configuration will produce meaningful results only for: K7-W0005
-    config->common.chip_type  = KATHERINE_CHIP_TPX3;
-    config->common.chip_count = chip_count;
+    // This configuration will produce meaningful results only for: I8-W0036
 
+    config->common.chip_type  = KATHERINE_CHIP_TPX3;
+    config->common.chip_count = 1;
+
+    // We will configure settings from the most general to the most specific.
+    // First we start with settings common to all chips.
     config->common.acq_time    = 10e9; // ns
     config->common.frame_count = 1;
-    // One entry per bias supply, addressed from 0. katherine_tpx3_configure()
-    // drives every supply the readout reports, so an entry left at zero
-    // drives that supply to zero rather than leaving it where it was.
-    config->common.bias[0] = 230; // V
+    config->common.bias[0]     = 150; // V
 
-    config->common.start_trigger.use_trigger = false;
-    config->common.start_trigger.channel     = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
-    config->common.start_trigger.edge        = KATHERINE_TRIGGER_EDGE_RISING;
-    config->common.stop_trigger.use_trigger  = false;
-    config->common.stop_trigger.channel      = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
-    config->common.stop_trigger.edge         = KATHERINE_TRIGGER_EDGE_RISING;
+    // The following structures can be used to delay the beginning or the end
+    // of an acquisition based on external signals, connected to GPIO ports.
+    // Here we just disable all, so that data collection starts immediately
+    // and stops after a set time elapses.
+    config->common.start_trigger.use_trigger   = false;
+    config->common.start_trigger.channel       = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
+    config->common.start_trigger.edge          = KATHERINE_TRIGGER_EDGE_RISING;
+    config->common.start_trigger.delayed       = false;
+    config->common.start_trigger.delay_seconds = 0.;
+    config->common.stop_trigger.use_trigger    = false;
+    config->common.stop_trigger.channel        = KATHERINE_TRIGGER_SOURCE_PULSE_INTERNAL;
+    config->common.stop_trigger.edge           = KATHERINE_TRIGGER_EDGE_RISING;
+    config->common.stop_trigger.delayed        = false;
+    config->common.stop_trigger.delay_seconds  = 0.;
 
+    // Next we proceed to settings that only apply to Timepix3 chips.
     config->readout_mode    = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
     config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
     config->fast_vco_enable = true;
 
-    katherine_tpx3_chip_config_t chip = {0};
-
-    chip.gray_disable = false;
-    chip.polarity     = KATHERINE_POLARITY_ELECTRONS;
-
+    config->clock_frequency     = KATHERINE_TPX3_FREQ_40_MHZ;
     config->clock_phase         = KATHERINE_TPX3_PHASE_1;
-    config->correct_clock_phase = false; // only makes sense to correct phase offset when we request more than 1 phase
+    config->correct_clock_phase = false; // only makes sense when we request more than 1 phase
 
-    config->clock_frequency = KATHERINE_TPX3_FREQ_40_MHZ;
+    // And now we configure the first Timepix3 chip specifically. If the
+    // readout carries more chips than one, the following block has to be
+    // repeated for each chip.
+    katherine_tpx3_chip_config_t *chip = &config->chips[0];
 
-    chip.dacs.named.Ibias_Preamp_ON   = 128;
-    chip.dacs.named.Ibias_Preamp_OFF  = 8;
-    chip.dacs.named.Vpreamp_NCAS      = 128;
-    chip.dacs.named.Ibias_Ikrum       = 15;
-    chip.dacs.named.Vfbk              = 164;
-    chip.dacs.named.Vthreshold_fine   = 476;
-    chip.dacs.named.Vthreshold_coarse = 8;
-    chip.dacs.named.Ibias_DiscS1_ON   = 100;
-    chip.dacs.named.Ibias_DiscS1_OFF  = 8;
-    chip.dacs.named.Ibias_DiscS2_ON   = 128;
-    chip.dacs.named.Ibias_DiscS2_OFF  = 8;
-    chip.dacs.named.Ibias_PixelDAC    = 128;
-    chip.dacs.named.Ibias_TPbufferIn  = 128;
-    chip.dacs.named.Ibias_TPbufferOut = 128;
-    chip.dacs.named.VTP_coarse        = 128;
-    chip.dacs.named.VTP_fine          = 256;
-    chip.dacs.named.Ibias_CP_PLL      = 128;
-    chip.dacs.named.PLL_Vcntrl        = 128;
+    chip->gray_disable = false;
+    chip->polarity     = KATHERINE_POLARITY_HOLES;
 
-    int res = katherine_tpx3_px_config_load_bmc_file(&chip.pixels, "chipconfig.bmc");
-    if (res != 0) {
+    // The DAC setpoints determine how signals are digitized in all pixels.
+    // For instance, Vthreshold_coarse and _fine sets the threshold voltage.
+    chip->dacs.named.Ibias_Preamp_ON   = 128;
+    chip->dacs.named.Ibias_Preamp_OFF  = 8;
+    chip->dacs.named.Vpreamp_NCAS      = 128;
+    chip->dacs.named.Ibias_Ikrum       = 15;
+    chip->dacs.named.Vfbk              = 164;
+    chip->dacs.named.Vthreshold_fine   = 367;
+    chip->dacs.named.Vthreshold_coarse = 7;
+    chip->dacs.named.Ibias_DiscS1_ON   = 100;
+    chip->dacs.named.Ibias_DiscS1_OFF  = 8;
+    chip->dacs.named.Ibias_DiscS2_ON   = 128;
+    chip->dacs.named.Ibias_DiscS2_OFF  = 8;
+    chip->dacs.named.Ibias_PixelDAC    = 128;
+    chip->dacs.named.Ibias_TPbufferIn  = 128;
+    chip->dacs.named.Ibias_TPbufferOut = 128;
+    chip->dacs.named.VTP_coarse        = 128;
+    chip->dacs.named.VTP_fine          = 256;
+    chip->dacs.named.Ibias_CP_PLL      = 128;
+    chip->dacs.named.PLL_Vcntrl        = 128;
+
+    // Now we load values that will be set into registers of individual pixels.
+    // These are typically kept in a binary file, which needs to be supplied
+    // for each chip individually after chips are equalized. Alternatively,
+    // libkatherine also provides a number of functions to create these values
+    // from scratch in memory, or manipulate individual pixels (e.g. for tests).
+    katherine_error_t res = katherine_tpx3_px_config_load_bmc_file(&chip->pixels, "chipconfig.bmc");
+    if (res != KATHERINE_E_OK) {
         printf("Cannot load pixel configuration. Does the file exist?\n");
         printf("Reason: %s\n", katherine_strerror(res));
         exit(1);
     }
 
-    // Test pulses are disabled unless requested above.
+    // Test pulses are disabled unless requested above. Even though these are
+    // zeroed by calloc earlier, it is a good practice not to rely on that.
     config->test_pulses = (katherine_tpx3_test_pulse_config_t) {0};
-
     if (test_pulse) {
-        // Pulse the analog front-end with amplitude given by the difference
-        // of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
-        chip.dacs.named.VTP_coarse = 128;
-        chip.dacs.named.VTP_fine   = 352;
-
+        // If enabled, they are generated in a common way for all chips. Below
+        // we will see, however, that each chip can define its own test-pulse
+        // voltage using the "VTP" DAC setting.
         config->test_pulses.enabled      = true;
         config->test_pulses.digital_only = false;
         config->test_pulses.external     = false;
@@ -161,14 +177,16 @@ configure(katherine_tpx3_config_t *config, uint8_t chip_count)
         config->test_pulses.period       = 6401; // clock cycles, ~160 us @ 40 MHz
         config->test_pulses.phase        = 0;
 
-        paint_test_pixels(&chip.pixels);
-    }
+        // Pulse the analog front-end with amplitude given by the difference
+        // of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
+        chip->dacs.named.VTP_coarse = 128;
+        chip->dacs.named.VTP_fine   = 352;
 
-    // One chip's settings for every chip: this example has only the one
-    // calibration to hand, and a readout with two chips still has to be told
-    // about both.
-    for (uint8_t i = 0; i < chip_count; ++i) {
-        config->chips[i] = chip;
+        // And of course, each pixel in the chip gets a "test" bit which determines
+        // whether test pulses are injected into it or not. We can demonstrate this
+        // by flipping this bit in a specific subset of pixels to paint a recognizable
+        // picture.
+        paint_test_pixels(&chip->pixels);
     }
 }
 
@@ -288,6 +306,7 @@ pixels_received_counters(void *user_ctx, const void *px, size_t count)
 void
 print_chip_id(katherine_device_t *device)
 {
+    // Expecting exactly 1 chip.
     char chip_id[KATHERINE_CHIP_ID_STR_SIZE];
     int res = katherine_get_chip_id(device, 0, chip_id);
     if (res != 0) {
@@ -394,20 +413,31 @@ main(int argc, char *argv[])
         exit(6);
     }
 
-    // The per-chip settings are a flexible array, so the configuration can
-    // only be sized once the readout has said how many chips it carries.
-    // calloc, not malloc: zero is a safe value for every field here.
-    katherine_tpx3_config_t *c = calloc(1, KATHERINE_TPX3_CONFIG_SIZE(device.info.chip_count));
-    if (c == NULL) {
-        printf("Cannot allocate a configuration for %u chips.\n", (unsigned) device.info.chip_count);
+    // The configuration structure includes a flexible array at the end, which
+    // holds per-chip settings, and must correspond in size to the number of
+    // detected chips. Here we assume exactly 1 chip for the sake of simplicity,
+    // however in other applications users may wish to retrieve the number of
+    // detected chips at runtime (see `device.info.chip_count`) or use an
+    // adequate upper bound.
+    const uint8_t expected_chip_count = 1;
+    if (device.info.chip_count != expected_chip_count) {
+        printf("Refusing to proceed due to chip count mismatch: expected %u, but got %u instead.\n",
+            (unsigned) expected_chip_count, (unsigned) device.info.chip_count);
         exit(6);
     }
-    configure(c, device.info.chip_count);
+
+    // Using calloc rather than malloc: 0 is a safe value for every field here.
+    katherine_tpx3_config_t *config = calloc(1, KATHERINE_TPX3_CONFIG_SIZE(expected_chip_count));
+    if (config == NULL) {
+        printf("Cannot allocate a configuration for %u chips.\n", (unsigned) expected_chip_count);
+        exit(6);
+    }
+    configure(config);
 
     print_chip_id(&device);
-    run_acquisition(&device, c);
+    run_acquisition(&device, config);
 
-    free(c);
+    free(config);
     katherine_device_fini(&device);
     return 0;
 }

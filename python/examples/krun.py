@@ -51,34 +51,43 @@ def paint_test_pixels(px_config):
     print('Test pulses enabled for %d pixels.' % n_painted)
 
 
-def configure(chip_count):
-    c = k.Tpx3Config(chip_count)
+def configure():
+    # For now, these constants are hard-coded.
+    # This configuration will produce meaningful results only for: I8-W0036
+
+    # We will configure settings from the most general to the most specific.
+    # First we start with settings common to all chips.
+    c = k.Tpx3Config(1)
 
     c.acq_time          = 10e9 # ns
-    c.frame_count         = 1
-    # One entry per bias supply, addressed from 0. Configuring drives every
-    # supply the readout reports, so a supply left unset is driven to zero
-    # rather than left where it was.
-    c.bias              = [230]  # V
+    c.frame_count       = 1
+    c.bias              = [150]  # V
 
+    # The trigger objects can be used to delay the beginning or the end of an
+    # acquisition based on external signals, connected to GPIO ports. Here we
+    # just disable all, so that data collection starts immediately and stops
+    # after a set time elapses.
     c.start_trigger     = k.Trigger(use_trigger=False)
     c.stop_trigger      = k.Trigger(use_trigger=False)
 
+    # Next we proceed to settings that only apply to Timepix3 chips.
     c.readout_mode      = k.Tpx3ReadoutMode.DATA_DRIVEN
     c.px_mode           = k.Tpx3PxMode.TOA_TOT
     c.fast_vco_enable   = True
 
-    c.clock_phase       = k.Tpx3Phase.PHASE_1
     c.clock_frequency   = k.Tpx3Freq.FREQ_40
+    c.clock_phase       = k.Tpx3Phase.PHASE_1
 
+    # The DAC setpoints determine how signals are digitized in all pixels.
+    # For instance, Vthreshold_coarse and _fine sets the threshold voltage.
     dacs = k.Tpx3Dacs()
     dacs.Ibias_Preamp_ON       = 128
     dacs.Ibias_Preamp_OFF      = 8
     dacs.Vpreamp_NCAS          = 128
     dacs.Ibias_Ikrum           = 15
     dacs.Vfbk                  = 164
-    dacs.Vthreshold_fine       = 476
-    dacs.Vthreshold_coarse     = 8
+    dacs.Vthreshold_fine       = 367
+    dacs.Vthreshold_coarse     = 7
     dacs.Ibias_DiscS1_ON       = 100
     dacs.Ibias_DiscS1_OFF      = 8
     dacs.Ibias_DiscS2_ON       = 128
@@ -91,6 +100,12 @@ def configure(chip_count):
     dacs.Ibias_CP_PLL          = 128
     dacs.PLL_Vcntrl            = 128
 
+    # Now we load values that will be set into registers of individual pixels.
+    # These are typically kept in a binary file, which needs to be supplied
+    # for each chip individually after chips are equalized. Alternatively,
+    # libkatherine also provides a number of functions to create these values
+    # from scratch in memory, or manipulate individual pixels (e.g. for tests).
+    #
     # Reported here rather than as a traceback, as krun.c reports it inline:
     # a missing calibration file is not a readout that would not answer.
     try:
@@ -100,26 +115,37 @@ def configure(chip_count):
         print('Reason: %s' % e)
         sys.exit(1)
 
-    # Test pulses are disabled unless requested above. (No explicit setup
-    # is needed: a new Config keeps them off.)
-    if TEST_PULSE:
-        # Pulse the analog front-end with amplitude given by the difference
-        # of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
-        dacs.VTP_coarse = 128
-        dacs.VTP_fine   = 352
+    # Test pulses are disabled unless requested above. Even though a new
+    # Tpx3Config keeps them off, it is a good practice not to rely on that.
+    c.test_pulses = k.Tpx3TestPulseConfig()
 
+    if TEST_PULSE:
+        # If enabled, they are generated in a common way for all chips. Below
+        # we will see, however, that each chip can define its own test-pulse
+        # voltage using the "VTP" DAC setting.
         c.test_pulses = k.Tpx3TestPulseConfig(
             enabled=True,
             count=100,
             period=6401)  # clock cycles, ~160 us @ 40 MHz
 
+        # Pulse the analog front-end with amplitude given by the difference
+        # of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
+        dacs.VTP_coarse = 128
+        dacs.VTP_fine   = 352
+
+        # And of course, each pixel in the chip gets a "test" bit which determines
+        # whether test pulses are injected into it or not. We can demonstrate this
+        # by flipping this bit in a specific subset of pixels to paint a recognizable
+        # picture.
         paint_test_pixels(px_config)
 
-    for i in range(c.chip_count):
-        c.set_gray_disable(i, False)
-        c.set_polarity(i, k.Polarity.ELECTRONS)
-        c.set_dacs(i, dacs)
-        c.set_pixels(i, px_config)
+    # And now we configure the first Timepix3 chip specifically. If the readout
+    # carries more chips than one, the following block has to be repeated for
+    # each chip.
+    c.set_gray_disable(0, False)
+    c.set_polarity(0, k.Polarity.HOLES)
+    c.set_dacs(0, dacs)
+    c.set_pixels(0, px_config)
 
     return c
 
@@ -205,9 +231,18 @@ if __name__ == '__main__':
         print('Reason: %s' % e)
         sys.exit(6)
 
-    # After the open, not before: the per-chip settings are sized at
-    # construction and the readout is what says how many chips there are.
-    config = configure(device.info.chip_count)
+    # The configuration holds per-chip settings, and must correspond in size to
+    # the number of detected chips. Here we assume exactly 1 chip for the sake
+    # of simplicity, however in other applications users may wish to retrieve
+    # the number of detected chips at runtime (see device.info.chip_count) or
+    # use an adequate upper bound.
+    expected_chip_count = 1
+    if device.info.chip_count != expected_chip_count:
+        print('Refusing to proceed due to chip count mismatch: expected %d, but got %d instead.'
+              % (expected_chip_count, device.info.chip_count))
+        sys.exit(6)
+
+    config = configure()
 
     print_chip_id(device)
     run_acquisition(device, config)

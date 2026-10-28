@@ -49,7 +49,10 @@ test_ip_address(void)
     int res;
     katherine_device_t device;
 
-    res = katherine_device_init(&device, address, 0);
+    // This combination of flags means that the readout will not be configured for extensive work, but it will also not overwrite any previous configuration.
+    const uint32_t flags = (KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS | KATHERINE_DEVICE_DONT_SELECT_INTERFACE);
+
+    res = katherine_device_init(&device, address, flags);
     if (res) {
         test_failed(address);
         katherine_device_fini(&device);

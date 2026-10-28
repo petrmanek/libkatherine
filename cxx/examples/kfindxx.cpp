@@ -10,6 +10,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <katherinexx/katherinexx.hpp>
@@ -41,7 +42,10 @@ test_ip_address(const std::string& address)
     ++n_attempted;
 
     try {
-        katherine::device device{address};
+        // This combination of flags means that the readout will not be configured for extensive work, but it will also not overwrite any previous configuration.
+        const std::uint32_t flags = (KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS | KATHERINE_DEVICE_DONT_SELECT_INTERFACE);
+
+        katherine::device device{address, flags};
 
         std::string chip_id = device.chip_id(0);
         test_succeeded(address, chip_id);

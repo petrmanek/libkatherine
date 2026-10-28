@@ -382,7 +382,10 @@ def main(argv):
         sys.stderr.write('{0} needs --address for this command\n'.format(argv[0]))
         return 2
 
-    device = katherine.Device(args.address)
+    # This combination of flags means that the readout will not be configured for extensive work, but it will also not overwrite any previous configuration.
+    flags = katherine.DeviceFlags.DONT_CHANGE_UDP_PORTS | katherine.DeviceFlags.DONT_SELECT_INTERFACE
+
+    device = katherine.Device(args.address, flags)
 
     # Opening succeeds whether or not the readout answered: the enumeration
     # inside it is best-effort. Saying so here beats letting the first

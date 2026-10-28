@@ -82,33 +82,40 @@ configure(katherine::tpx3::config& config)
     using namespace std::literals::chrono_literals;
 
     // For now, these constants are hard-coded.
-    // This configuration will produce meaningful results only for: M7-W0005
+    // This configuration will produce meaningful results only for: I8-W0036
+
+    // We will configure settings from the most general to the most specific.
+    // First we start with settings common to all chips.
     config.set_acq_time(10s);
     config.set_frame_count(1);
-    // One entry per bias supply, addressed from 0. Configuring drives every
-    // supply the readout reports, so a supply left unset is driven to zero
-    // rather than left where it was.
-    config.set_bias(0, 230); // V
+    config.set_bias(0, 150); // V
 
-
+    // The trigger structures can be used to delay the beginning or the end
+    // of an acquisition based on external signals, connected to GPIO ports.
+    // Here we just disable all, so that data collection starts immediately
+    // and stops after a set time elapses. katherine::no_trigger spells out
+    // every field of a disarmed trigger, including the delay.
     config.set_start_trigger(katherine::no_trigger);
     config.set_stop_trigger(katherine::no_trigger);
 
+    // Next we proceed to settings that only apply to Timepix3 chips.
     config.set_readout_mode(katherine::tpx3::readout_mode::data_driven);
     config.set_px_mode(katherine::tpx3::px_mode::toa_tot);
     config.set_fast_vco_enable(true);
 
-    config.set_clock_phase(katherine::tpx3::phase::p1);
     config.set_clock_frequency(katherine::tpx3::freq::f40);
+    config.set_clock_phase(katherine::tpx3::phase::p1);
 
+    // The DAC setpoints determine how signals are digitized in all pixels.
+    // For instance, Vthreshold_coarse and _fine sets the threshold voltage.
     katherine::tpx3::dacs dacs{};
     dacs.named.Ibias_Preamp_ON   = 128;
     dacs.named.Ibias_Preamp_OFF  = 8;
     dacs.named.Vpreamp_NCAS      = 128;
     dacs.named.Ibias_Ikrum       = 15;
     dacs.named.Vfbk              = 164;
-    dacs.named.Vthreshold_fine   = 476;
-    dacs.named.Vthreshold_coarse = 8;
+    dacs.named.Vthreshold_fine   = 367;
+    dacs.named.Vthreshold_coarse = 7;
     dacs.named.Ibias_DiscS1_ON   = 100;
     dacs.named.Ibias_DiscS1_OFF  = 8;
     dacs.named.Ibias_DiscS2_ON   = 128;
@@ -122,6 +129,12 @@ configure(katherine::tpx3::config& config)
     dacs.named.PLL_Vcntrl        = 128;
 
 
+    // Now we load values that will be set into registers of individual pixels.
+    // These are typically kept in a binary file, which needs to be supplied
+    // for each chip individually after chips are equalized. Alternatively,
+    // libkatherine also provides a number of functions to create these values
+    // from scratch in memory, or manipulate individual pixels (e.g. for tests).
+    //
     // Reported here rather than left to the handler around main's body, as
     // krun.c reports it inline: a missing calibration file is not a readout
     // that would not answer, and one message for both would name the wrong
@@ -135,26 +148,23 @@ configure(katherine::tpx3::config& config)
         std::exit(1);
     }
 
-    // One chip's settings for every chip: this example has only the one
-    // calibration to hand, and a readout with two chips still has to be
-    // told about both.
-    for (std::uint8_t i = 0; i < config.chip_count(); ++i) {
-        config.set_gray_disable(i, false);
-        config.set_polarity(i, katherine::polarity::electrons);
-        config.set_dacs(i, dacs);
-        config.set_pixels(i, px_config);
-    }
+    // And now we configure the first Timepix3 chip specifically. If the
+    // readout carries more chips than one, the following block has to be
+    // repeated for each chip.
+    config.set_gray_disable(0, false);
+    config.set_polarity(0, katherine::polarity::holes);
+    config.set_dacs(0, dacs);
+    config.set_pixels(0, px_config);
 
-    // Test pulses are disabled unless requested above. (No explicit setup
-    // is needed: a value-initialized config keeps them off.)
+    // Test pulses are disabled unless requested above. Even though a
+    // value-initialized config keeps them off, it is a good practice not to
+    // rely on that.
+    config.set_test_pulses(katherine::tpx3::test_pulse_config{});
+
     if (test_pulse) {
-        // Pulse the analog front-end with amplitude given by the difference
-        // of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
-        for (std::uint8_t i = 0; i < config.chip_count(); ++i) {
-            config.dacs(i).named.VTP_coarse = 128;
-            config.dacs(i).named.VTP_fine   = 352;
-        }
-
+        // If enabled, they are generated in a common way for all chips. Below
+        // we will see, however, that each chip can define its own test-pulse
+        // voltage using the "VTP" DAC setting.
         katherine::tpx3::test_pulse_config tp{};
         tp.enabled      = true;
         tp.digital_only = false;
@@ -164,7 +174,16 @@ configure(katherine::tpx3::config& config)
         tp.phase        = 0;
         config.set_test_pulses(std::move(tp));
 
-        for (std::uint8_t i = 0; i < config.chip_count(); ++i) paint_test_pixels(config.pixels(i));
+        // Pulse the analog front-end with amplitude given by the difference
+        // of the two DACs: |128 * 5 mV - 352 * 2.5 mV| = 240 mV.
+        config.dacs(0).named.VTP_coarse = 128;
+        config.dacs(0).named.VTP_fine   = 352;
+
+        // And of course, each pixel in the chip gets a "test" bit which determines
+        // whether test pulses are injected into it or not. We can demonstrate this
+        // by flipping this bit in a specific subset of pixels to paint a recognizable
+        // picture.
+        paint_test_pixels(config.pixels(0));
     }
 }
 
@@ -277,13 +296,24 @@ main(int argc, char *argv[])
     try {
         katherine::device device{remote_address};
 
-        // After the open, not before: the per-chip settings are sized at
-        // construction and the readout is what says how many chips there are.
-        katherine::tpx3::config c{device.info().chip_count};
-        configure(c);
+        // The configuration holds per-chip settings, and must correspond in
+        // size to the number of detected chips. Here we assume exactly 1 chip
+        // for the sake of simplicity, however in other applications users may
+        // wish to retrieve the number of detected chips at runtime (see
+        // device.info().chip_count) or use an adequate upper bound.
+        const std::uint8_t expected_chip_count = 1;
+        if (device.info().chip_count != expected_chip_count) {
+            std::cout << "Refusing to proceed due to chip count mismatch: expected "
+                      << unsigned{expected_chip_count} << ", but got " << unsigned{device.info().chip_count}
+                      << " instead.\n";
+            return 6;
+        }
+
+        katherine::tpx3::config config{expected_chip_count};
+        configure(config);
 
         print_chip_id(device);
-        run_acquisition(device, c);
+        run_acquisition(device, config);
     } catch (const katherine::error& e) {
         std::cout << "Cannot initialize device. Is the address correct?\n"
                   << "Reason: " << e.what() << '\n';

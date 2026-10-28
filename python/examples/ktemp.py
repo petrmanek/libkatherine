@@ -10,7 +10,7 @@ import sys
 
 from kargs import wants_help
 import time
-from katherine import Device, Error
+from katherine import Device, DeviceFlags, Error
 
 
 def parse_args(argv):
@@ -94,7 +94,10 @@ def main():
     show_readout, show_chip, period, address = args
 
     try:
-        device = Device(address)
+        # This combination of flags means that the readout will not be configured for extensive work, but it will also not overwrite any previous configuration.
+        flags = DeviceFlags.DONT_CHANGE_UDP_PORTS | DeviceFlags.DONT_SELECT_INTERFACE
+
+        device = Device(address, flags)
     except Error:
         print('ktemp: no response from %s' % address, file=sys.stderr)
         sys.exit(1)

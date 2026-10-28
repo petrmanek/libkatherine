@@ -156,8 +156,11 @@ main(int argc, char *argv[])
         return 1;
     }
 
+    // This combination of flags means that the readout will not be configured for extensive work, but it will also not overwrite any previous configuration.
+    const uint32_t flags = (KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS | KATHERINE_DEVICE_DONT_SELECT_INTERFACE);
+
     katherine_device_t device;
-    if (katherine_device_init(&device, args.address, 0) != 0) {
+    if (katherine_device_init(&device, args.address, flags) != 0) {
         fail(args.address);
     }
 

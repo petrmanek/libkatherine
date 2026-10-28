@@ -10,7 +10,7 @@ import sys
 
 from kargs import wants_help
 from functools import reduce
-from katherine import Device
+from katherine import Device, DeviceFlags
 
 def format_ip(a, b=None, c=None, d=None):        
     return '%d.%d.%d.%d' % (tuple(a) if isinstance(a, list) else (a, b, c, d))
@@ -21,7 +21,10 @@ def check_address(a0, a1, a2, a3):
     chip_id = None
 
     try:
-        dev = Device(address)
+        # This combination of flags means that the readout will not be configured for extensive work, but it will also not overwrite any previous configuration.
+        flags = DeviceFlags.DONT_CHANGE_UDP_PORTS | DeviceFlags.DONT_SELECT_INTERFACE
+
+        dev = Device(address, flags)
         chip_id = dev.get_chip_id(0)
     except:
         return False
