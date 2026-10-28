@@ -130,7 +130,10 @@ jobs:
   # sources. Windows is in the matrix for the one thing Linux cannot show:
   # ws2_32 is linked only where the UDP transport is built, so a USB-only
   # Windows build is the only configuration in which a stray winsock call
-  # fails to link.
+  # fails to link. macOS is in it for the other thing neither shows: its
+  # socket semantics differ from both -- SO_REUSEADDR alone does not let two
+  # sockets share a port there -- and a UDP-only build is the configuration
+  # in which that is all the suite is.
   #
   # The USB transport is auto-detected, so a leg that wants it off has to
   # say so; libusb is installed only where a leg wants it on.
@@ -158,14 +161,33 @@ jobs:
             name: USB only
             udp: 'OFF'
             usb: 'ON'
+          - os: macos-latest
+            name: UDP only
+            udp: 'ON'
+            usb: 'OFF'
+          - os: macos-latest
+            name: USB only
+            udp: 'OFF'
+            usb: 'ON'
     steps:
       - uses: actions/checkout@v4
+
+      # The same alias the build job makes, for the reason given there: the
+      # end-to-end tests host the emulated readout on 127.0.0.2, which macOS
+      # does not configure on its own.
+      - name: Alias the emulator loopback address
+        if: runner.os == 'macOS'
+        run: sudo ifconfig lo0 alias 127.0.0.2 up
 
       - name: Install libusb
         if: matrix.usb == 'ON' && runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libusb-1.0-0-dev
+
+      - name: Install libusb
+        if: matrix.usb == 'ON' && runner.os == 'macOS'
+        run: brew install libusb
 
       # The same unpack the build job does, for the reason given there.
       - name: Install libusb
