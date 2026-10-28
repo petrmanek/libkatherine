@@ -126,8 +126,10 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
 
 // The four timestamp words are a tail, and on the second generation the
 // readout sends one tail per chip: ARM_APP/main.c loops
-// `for (i = 0; i < chip_number; i++) sendFrameTail(i);` at both of its call
-// sites, and sendFrameTail() ORs (chip_index & 0xF) << 32 into the 0x8 word.
+// `for (i = 0; i < chip_number; i++) sendFrameTail(i);` in three of its four
+// measurement paths -- the fourth, data-driven over USB, has the loop
+// commented out and sends no tail at all -- and sendFrameTail() ORs
+// (chip_index & 0xF) << 32 into the 0x8 word.
 //
 // This library keeps neither. md_time_lsb is MASK(32), so the chip index is
 // discarded, and the four handlers assign unconditionally, so on a two-chip
