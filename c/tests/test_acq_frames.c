@@ -55,7 +55,7 @@ md(size_t index, uint8_t header)
 }
 
 static void
-on_started(void *ctx, int index)
+on_started(void *ctx, uint32_t index)
 {
     (void) ctx;
     (void) index;
@@ -63,7 +63,7 @@ on_started(void *ctx, int index)
 }
 
 static void
-on_ended(void *ctx, int index, bool complete, const katherine_frame_info_t *info)
+on_ended(void *ctx, uint32_t index, bool complete, const katherine_frame_info_t *info)
 {
     (void) ctx;
     (void) index;

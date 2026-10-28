@@ -199,7 +199,7 @@ static uint64_t n_hits;
 static uint8_t g_toa_shift;
 
 void
-frame_started(void *user_ctx, int frame_idx)
+frame_started(void *user_ctx, uint32_t frame_idx)
 {
     (void) user_ctx;
 
@@ -220,7 +220,7 @@ frame_started(void *user_ctx, int frame_idx)
 }
 
 void
-frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
+frame_ended(void *user_ctx, uint32_t frame_idx, bool completed, const katherine_frame_info_t *info)
 {
     (void) user_ctx;
 

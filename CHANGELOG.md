@@ -618,6 +618,25 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The frame handlers carry the counter's own type
+
+`frame_started` and `frame_ended` took an `int` frame index, and
+`katherine_acquisition_t::requested_frames` and `::completed_frames` were
+`int` too -- while the `frame_count` they are filled from has been a
+`uint32_t` since the configuration split. The narrowing was written out in
+`katherine_acquisition_begin()` as an explicit `(int)` cast, which is the
+sort of cast that stops looking like a question.
+
+All four are `uint32_t` now, and the cast is gone. The handler typedefs
+follow in both wrappers: C++'s `frame_started_handler` and
+`frame_ended_handler` take `std::uint32_t`, as do `requested_frames()` and
+`completed_frames()`.
+
+Nothing about the values changes -- a frame index was never negative and
+`requested_frames` was never more than a `uint32_t` could hold. What
+changes is that a caller writing a handler no longer has to guess which
+type the library will hand them.
+
 ### An acquisition's two timeouts carry their unit and refuse a negative
 
 `katherine_acquisition_init()`'s last two parameters were `int

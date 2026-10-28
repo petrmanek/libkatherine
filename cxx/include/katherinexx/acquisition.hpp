@@ -76,9 +76,9 @@ using frame_info = katherine_frame_info_t;
 class base_acquisition {
 public:
     /// Called as each frame's shutter opens, with the frame's index.
-    using frame_started_handler = std::function<void(int)>;
+    using frame_started_handler = std::function<void(std::uint32_t)>;
     /// Called as each frame ends, with whether it ended in order and what it reported.
-    using frame_ended_handler = std::function<void(int, bool, const katherine::frame_info&)>;
+    using frame_ended_handler = std::function<void(std::uint32_t, bool, const katherine::frame_info&)>;
     /// Called with measurement data as it arrives, undecoded.
     using data_received_handler = std::function<void(const char *, size_t)>;
 
@@ -96,14 +96,14 @@ private:
     data_received_handler data_received_handler_;
 
     static void
-    forward_frame_started(void *user_ctx, int frame_idx)
+    forward_frame_started(void *user_ctx, std::uint32_t frame_idx)
     {
         auto self = reinterpret_cast<base_acquisition *>(user_ctx);
         self->frame_started_handler_(frame_idx);
     }
 
     static void
-    forward_frame_ended(void *user_ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
+    forward_frame_ended(void *user_ctx, std::uint32_t frame_idx, bool completed, const katherine_frame_info_t *info)
     {
         auto self = reinterpret_cast<base_acquisition *>(user_ctx);
         self->frame_ended_handler_(frame_idx, completed, *info);
@@ -136,8 +136,8 @@ public:
           mode_{mode},
           fast_vco_enabled_{fast_vco_enabled},
           decode_data_{decode_data},
-          frame_started_handler_{[](int) { }},
-          frame_ended_handler_{[](int, bool, const katherine::frame_info&) { }},
+          frame_started_handler_{[](std::uint32_t) { }},
+          frame_ended_handler_{[](std::uint32_t, bool, const katherine::frame_info&) { }},
           data_received_handler_{[](const char *, size_t) { }}
     {
         using namespace std::chrono;
@@ -253,9 +253,9 @@ public:
     /// True once abort() has been called on this acquisition.
     bool aborted() const { return acq_.aborted; }
     /// Frames the configuration asked for.
-    int requested_frames() const { return acq_.requested_frames; }
+    std::uint32_t requested_frames() const { return acq_.requested_frames; }
     /// Frames that have ended so far.
-    int completed_frames() const { return acq_.completed_frames; }
+    std::uint32_t completed_frames() const { return acq_.completed_frames; }
     /// Measurement data the decoder could not keep up with; see dropped_input() for the kernel's own count.
     std::size_t dropped_measurement_data() const { return acq_.dropped_measurement_data; }
     /// Measurement data that arrived cut short of a whole word.

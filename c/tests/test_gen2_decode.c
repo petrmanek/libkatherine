@@ -70,7 +70,7 @@ pixels_received(void *ctx, const void *px, size_t count)
 }
 
 static void
-frame_started(void *ctx, int frame_idx)
+frame_started(void *ctx, uint32_t frame_idx)
 {
     struct stats *s = ctx;
     (void) frame_idx;
@@ -78,7 +78,7 @@ frame_started(void *ctx, int frame_idx)
 }
 
 static void
-frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
+frame_ended(void *ctx, uint32_t frame_idx, bool completed, const katherine_frame_info_t *info)
 {
     struct stats *s = ctx;
     (void) frame_idx;

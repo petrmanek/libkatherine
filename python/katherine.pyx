@@ -2406,10 +2406,10 @@ cdef class Acquisition:
        return cacquisition.katherine_tpx3_timestamp_phase_offset(self._acq(), Tpx3PxConfig._coord(x, y))
 
 
-cdef void _forward_frame_started(void *user_ctx, int frame_idx) noexcept:
+cdef void _forward_frame_started(void *user_ctx, uint32_t frame_idx) noexcept:
     (<Acquisition> user_ctx).observer.frame_started(frame_idx)
 
-cdef void _forward_frame_ended(void *user_ctx, int frame_idx, bool completed, const cacquisition.katherine_frame_info_t *info) noexcept:
+cdef void _forward_frame_ended(void *user_ctx, uint32_t frame_idx, bool completed, const cacquisition.katherine_frame_info_t *info) noexcept:
     py_info = FrameInfo()
     memcpy(&py_info._c_info, info, sizeof(py_info._c_info))
     (<Acquisition> user_ctx).observer.frame_ended(frame_idx, completed, py_info)

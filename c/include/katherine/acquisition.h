@@ -108,9 +108,9 @@ katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t
 typedef struct katherine_acquisition_handlers {
     // If katherine_acquisition_t::decode_data == true, you may register
     // handlers for the following callbacks:
-    void (*pixels_received)(void *, const void *, size_t);                  ///< Decoded pixels, in batches
-    void (*frame_started)(void *, int);                                     ///< New frame opened. The int is katherine_acquisition_t::completed_frames, a running count and not an identifier: a frame the readout abandons does not raise it, so the next frame is announced with the same number.
-    void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *); ///< Current frame closed, with its info. Raised for every frame frame_started() announced, the bool saying whether the readout finished it.
+    void (*pixels_received)(void *, const void *, size_t);                       ///< Decoded pixels, in batches
+    void (*frame_started)(void *, uint32_t);                                     ///< New frame opened. The count is katherine_acquisition_t::completed_frames, a running count and not an identifier: a frame the readout abandons does not raise it, so the next frame is announced with the same number.
+    void (*frame_ended)(void *, uint32_t, bool, const katherine_frame_info_t *); ///< Current frame closed, with its info. Raised for every frame frame_started() announced, the bool saying whether the readout finished it.
 
     // If katherine_acquisition_t::decode_data == false, you may register
     // handlers for the following callbacks:
@@ -224,9 +224,9 @@ typedef struct katherine_acquisition {
     size_t pixel_buffer_valid;     ///< Internal: hits currently in the buffer.
     size_t pixel_buffer_max_valid; ///< Internal: hits that fit, which is the batch size a handler is given.
 
-    int requested_frames;            ///< Frames asked for at katherine_acquisition_begin().
+    uint32_t requested_frames;       ///< Frames asked for at katherine_acquisition_begin().
     double requested_frame_duration; ///< Requested duration of a single frame, in seconds
-    int completed_frames;            ///< Frames finished so far.
+    uint32_t completed_frames;       ///< Frames finished so far.
     size_t dropped_measurement_data; ///< Number of MD words the decoder did not recognise since acquisition start.
 
     /**

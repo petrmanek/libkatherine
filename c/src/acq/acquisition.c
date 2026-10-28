@@ -1139,7 +1139,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     if (res) goto err;
 
     acq->completed_frames           = 0;
-    acq->requested_frames           = (int) config->common.frame_count;
+    acq->requested_frames           = config->common.frame_count;
     acq->requested_frame_duration   = config->common.frame_duration_seconds;
     acq->dropped_measurement_data   = 0;
     acq->truncated_measurement_data = 0;

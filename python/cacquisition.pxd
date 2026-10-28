@@ -39,8 +39,8 @@ cdef extern from 'katherine/acquisition.h':
 
     ctypedef struct katherine_acquisition_handlers_t:
         void (*pixels_received)(void *, const void *, size_t)
-        void (*frame_started)(void *, int)
-        void (*frame_ended)(void *, int, bool, const katherine_frame_info_t *)
+        void (*frame_started)(void *, uint32_t)
+        void (*frame_ended)(void *, uint32_t, bool, const katherine_frame_info_t *)
         void (*data_received)(void *, const char *, size_t)
 
     ctypedef enum katherine_tpx3_phase_correction_t:
@@ -69,9 +69,9 @@ cdef extern from 'katherine/acquisition.h':
         size_t pixel_buffer_valid
         size_t pixel_buffer_max_valid
 
-        int requested_frames
+        uint32_t requested_frames
         double requested_frame_duration
-        int completed_frames
+        uint32_t completed_frames
         size_t dropped_measurement_data
         uint64_t truncated_measurement_data
         uint64_t received_measurement_data

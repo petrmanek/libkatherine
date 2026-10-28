@@ -376,7 +376,7 @@ request_abort(acq_probe_t *probe)
 }
 
 static void
-on_frame_started(void *ctx, int frame_idx)
+on_frame_started(void *ctx, uint32_t frame_idx)
 {
     acq_probe_t *probe = (acq_probe_t *) ctx;
 
@@ -444,7 +444,7 @@ on_pixels_received(void *ctx, const void *px, size_t count)
 }
 
 static void
-on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
+on_frame_ended(void *ctx, uint32_t frame_idx, bool completed, const katherine_frame_info_t *info)
 {
     acq_probe_t *probe = (acq_probe_t *) ctx;
 

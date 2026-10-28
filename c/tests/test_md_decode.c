@@ -185,14 +185,14 @@ typedef struct decode_probe {
 
     // Copied out of the acquisition once the read loop has returned.
     char state;
-    int completed_frames;
+    uint32_t completed_frames;
     size_t dropped;
     uint64_t truncated;
     uint64_t received;
 } decode_probe_t;
 
 static void
-on_frame_started(void *ctx, int frame_idx)
+on_frame_started(void *ctx, uint32_t frame_idx)
 {
     decode_probe_t *probe = (decode_probe_t *) ctx;
 
@@ -201,7 +201,7 @@ on_frame_started(void *ctx, int frame_idx)
 }
 
 static void
-on_frame_ended(void *ctx, int frame_idx, bool completed, const katherine_frame_info_t *info)
+on_frame_ended(void *ctx, uint32_t frame_idx, bool completed, const katherine_frame_info_t *info)
 {
     decode_probe_t *probe = (decode_probe_t *) ctx;
 
