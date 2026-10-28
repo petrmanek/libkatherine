@@ -57,6 +57,15 @@ if(KATHERINE_BUILD_TESTS)
             LABELS "unit;tools"
             TIMEOUT 60)
 
+        # A 1.x name the shim keeps and the migration guide does not
+        # explain. check_prose_refs.py sweeps prose for names the code does
+        # not have; this sweeps the code for names the prose does not.
+        add_test(NAME test_migration_parity
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_migration_parity.py")
+        set_tests_properties(test_migration_parity PROPERTIES
+            LABELS "unit;tools"
+            TIMEOUT 60)
+
         # A public symbol that one ASIC owns and that carries no prefix
         # saying so. 2.0 is the last release that may rename one, and the
         # judgement behind WP19 is a reading no pattern reproduces, so the

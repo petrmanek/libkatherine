@@ -75,8 +75,16 @@ registers, its clock model, its hit formats -- moved under
 | `katherine_perform_digital_test` | `katherine_tpx3_perform_digital_test` |
 | `katherine_px_config_load_b{m,p}c_{file,data}` | `katherine_tpx3_px_config_load_...` |
 | `katherine_dacs_t`, `katherine_coord_t`, `katherine_px_*_t` | `katherine_tpx3_...` |
+| `katherine_px_event_itot` | `katherine_tpx3_px_event_count_itot` |
+| `katherine_px_event_itot_t` | `katherine_tpx3_px_event_count_itot_t` |
+| `katherine_px_f_event_itot` | `katherine_tpx3_px_f_event_count_itot` |
+| `katherine_px_f_event_itot_t` | `katherine_tpx3_px_f_event_count_itot_t` |
 | `katherine_readout_type_t`, `katherine_acquisition_mode_t` | `katherine_tpx3_readout_mode_t`, `katherine_tpx3_px_mode_t` |
 | `katherine_phase_t`, `katherine_freq_t` | `katherine_tpx3_phase_t`, `katherine_tpx3_freq_t` |
+
+The four `event_itot` rows are spelled out because the `katherine_px_*_t`
+row does not produce them. Those names gained `count` as well as the
+prefix, so applying the pattern gives a spelling that does not exist.
 
 One rename is not a stem change: `katherine_acquisition_setup()` is
 `katherine_set_acquisition_triggers()`, which is what it always did.
@@ -494,7 +502,7 @@ names from inside a package of its own will not see the warning without
 | `katherine.ReadoutType` | `katherine.Tpx3ReadoutMode` |
 | `katherine.Udp` | nothing -- the session type went private, as above |
 
-`katherine.Udp` is the fourteenth and the only one with no replacement, so
+`katherine.Udp` is the fifteenth and the only one with no replacement, so
 it raises rather than resolving, naming `katherine.Device('udp://...')` as
 what to open a readout with instead. A name that never existed in either
 version raises the ordinary `AttributeError`.
