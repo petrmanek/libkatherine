@@ -138,6 +138,18 @@ if(KATHERINE_BUILD_TESTS AND KATHERINE_BUILD_KSIM)
         SKIP_RETURN_CODE 77)
 endif()
 
+# The whole binding surface, listed by the module's own introspection rather
+# than by hand. Needs no daemon and no readout -- the two types that cannot
+# be built without one are smoke.py's -- so it is neither serial nor slow.
+if(KATHERINE_BUILD_TESTS)
+    add_test(NAME test_python_sweep
+             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/sweep.py"
+                     "$<TARGET_FILE_DIR:pykatherine>")
+    set_tests_properties(test_python_sweep PROPERTIES
+        LABELS "unit;python"
+        TIMEOUT 60)
+endif()
+
 # The three kdac implementations against one another, which is the first real
 # test the bindings have: a wrapper converting a value wrongly, or an
 # enumeration whose order drifted, shows up as a diff. Needs all three built,
