@@ -940,14 +940,21 @@ err_lock:
 }
 
 /**
- * Signal start of sequential readout.
+ * Start of the readout chain the argument names.
  *
  * The readout applies this command in silence, so nothing is waited for and
  * none of the acknowledgement codes can arise: success means the command was
  * handed to the link, not that the readout acted on it.
  *
+ * \note The name is narrower than the call. The second generation's firmware
+ *   reads bit 0 of the command's first byte and starts the sequential chain
+ *   on zero, the data-driven one on one -- which is how
+ *   katherine_tpx3_readout_mode_t numbers them, and what
+ *   katherine_acquisition_begin() already passes.
+ *
  * \param device Katherine device
- * \param arg Implementation-defined argument
+ * \param arg Readout chain to start, valued as katherine_tpx3_readout_mode_t.
+ *   An int because 1.x declared one, not because the values are open.
  *
  * \retval KATHERINE_E_OK on success, once the command has been handed to the
  *   socket.
