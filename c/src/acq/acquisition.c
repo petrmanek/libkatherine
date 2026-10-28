@@ -1199,8 +1199,7 @@ err:
  *
  * Sends the same command as katherine_acquisition_abort(), so the two are one
  * command as far as the readout is concerned; what differs is local, and is
- * described there -- including that a first-generation readout ignores the
- * command, which leaves this call with no local half to fall back on.
+ * described there -- including which readouts act on it and when.
  *
  * \see katherine_acquisition_abort
  *
@@ -1325,15 +1324,20 @@ err_device:
  * caller cannot read KATHERINE_E_OK as meaning the measurement has ended --
  * only that the command left the host.
  *
- * \note **On a first-generation readout the command does nothing.** Read out
- *   of both firmware binaries in misc/fw, by two routes that do not depend on
- *   each other: opcode 0x06's entry in the dispatcher's branch table is the
- *   default arm, the same halfword as opcodes nobody implemented; and the
- *   named handler, `acqStop`, is a bare `bx lr` that nothing in the image
- *   references. Either way the readout keeps measuring until its own
- *   acquisition time or frame count runs out. The local half still works --
- *   the flag goes up, the read loop ends on it -- so a Gen1 abort returns the
- *   host to the caller and leaves the readout running.
+ * \note The readout acts on this command only **while an acquisition is
+ *   running**, on both generations, and the firmware reads commands twice to
+ *   do it: a main dispatcher when idle, and a second reader polled from
+ *   inside the acquisition loop. The stop belongs to the second. Gen2 sets
+ *   stopCMDflag there, which writes the acquisition control unit and closes
+ *   the shutter; Gen1's udpStopCommandReader has a jump table of its own in
+ *   which 0x06 reaches code that sets the equivalent flag, in both firmware
+ *   binaries. The idle handlers do nothing on purpose -- Gen2's acqStop() is
+ *   an empty function and Gen1's 0x06 is absent from the idle dispatcher's
+ *   table -- because an idle readout has nothing to stop.
+ *
+ *   What the Gen1 flag then drives has been read only as far as the flag.
+ *   Gen2's 9 ms shutter close is measured; the Gen1 equivalent is WP18
+ *   scenario S8 and has not been run.
  */
 katherine_error_t
 katherine_acquisition_abort(katherine_acquisition_t *acq)
