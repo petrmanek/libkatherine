@@ -40,6 +40,7 @@ jobs:
             python: true
           - os: ubuntu-latest
             compiler: clang
+            python: true
           - os: macos-latest
           - os: windows-latest
     steps:
