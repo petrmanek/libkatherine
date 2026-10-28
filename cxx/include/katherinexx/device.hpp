@@ -536,10 +536,10 @@ public:
     /// How long one frame's shutter stays open.
     template<typename Rep, typename Period>
     void
-    set_acq_time(std::chrono::duration<Rep, Period> val)
+    set_frame_duration(std::chrono::duration<Rep, Period> val)
     {
         using namespace std::chrono;
-        katherine::detail::check(katherine_set_acq_time(&dev_, (double) duration_cast<nanoseconds>(val).count()));
+        katherine::detail::check(katherine_set_frame_duration(&dev_, duration_cast<duration<double>>(val).count()));
     }
 
     /// What a pixel measures, and whether the fine oscillator runs.

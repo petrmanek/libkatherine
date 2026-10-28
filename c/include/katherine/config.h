@@ -355,8 +355,8 @@ typedef struct katherine_config {
     /** Reserved, so that a later version can add a field without moving the flexible array that follows the enclosing ASIC configuration. Zero. */
     uint32_t reserved[6];
 
-    double acq_time;      ///< Shutter time per frame, in nanoseconds.
-    uint32_t frame_count; ///< Frames to measure; data-driven readout accepts only one.
+    double frame_duration_seconds; ///< Shutter time per frame, in seconds.
+    uint32_t frame_count;          ///< Frames to measure; data-driven readout accepts only one.
 
     /**
      * Sensor bias voltage per supply, in volts, addressed from 0 as
@@ -493,7 +493,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_px_config_t *px_config);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_set_acq_time(katherine_device_t *device, double ns);
+katherine_set_frame_duration(katherine_device_t *device, double frame_duration_seconds);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled);

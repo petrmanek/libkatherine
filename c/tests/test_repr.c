@@ -494,7 +494,7 @@ test_str_enums(void)
 // string, with the pixel matrix rendered as the words/xor64 digest.
 
 static const char *CONFIG_GOLDEN = "tpx3_config{common: config{chip_type: Timepix3, chip_count: 1, "
-                                   "acq_time: 400000, frame_count: 1, bias0: 230, bias1: 12.5, "
+                                   "frame_duration_seconds: 0.0004, frame_count: 1, bias0: 230, bias1: 12.5, "
                                    "bias2: 0, bias3: 0, "
                                    "start_trigger: trigger{use_trigger: true, channel: 3, edge: rising, delayed: false, delay_seconds: 0}, "
                                    "stop_trigger: trigger{use_trigger: false, channel: 0, edge: falling, delayed: false, delay_seconds: 0}}, "
@@ -527,14 +527,14 @@ build_config(katherine_tpx3_config_t *c)
 {
     memset(c, 0, CONFIG_SIZE_1);
 
-    c->common.chip_type     = KATHERINE_CHIP_TPX3;
-    c->common.chip_count    = 1;
-    c->common.acq_time      = 400000.0;
-    c->common.frame_count   = 1;
-    c->common.bias[0]       = 230.0f;
-    c->common.bias[1]       = 12.5f;
-    c->common.start_trigger = g_start_trigger;
-    c->common.stop_trigger  = g_stop_trigger;
+    c->common.chip_type              = KATHERINE_CHIP_TPX3;
+    c->common.chip_count             = 1;
+    c->common.frame_duration_seconds = 0.0004;
+    c->common.frame_count            = 1;
+    c->common.bias[0]                = 230.0f;
+    c->common.bias[1]                = 12.5f;
+    c->common.start_trigger          = g_start_trigger;
+    c->common.stop_trigger           = g_stop_trigger;
 
     c->readout_mode    = KATHERINE_TPX3_READOUT_DATA_DRIVEN;
     c->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;

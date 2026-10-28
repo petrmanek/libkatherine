@@ -259,17 +259,17 @@ public:
     // The trailing return type (rather than a C++14 deduced one) is what
     // keeps this header valid C++11.
     /// How long one frame's shutter stays open.
-    auto acq_time() const -> std::chrono::duration<decltype(conf_->common.acq_time), std::nano>
+    auto frame_duration() const -> std::chrono::duration<decltype(conf_->common.frame_duration_seconds)>
     {
-        return std::chrono::duration<decltype(conf_->common.acq_time), std::nano>{conf_->common.acq_time};
+        return std::chrono::duration<decltype(conf_->common.frame_duration_seconds)>{conf_->common.frame_duration_seconds};
     }
 
-    /** \copydoc acq_time() */
+    /** \copydoc frame_duration() */
     template<typename Rep, typename Period>
-    void set_acq_time(std::chrono::duration<Rep, Period> val)
+    void set_frame_duration(std::chrono::duration<Rep, Period> val)
     {
         using namespace std::chrono;
-        conf_->common.acq_time = static_cast<double>(duration_cast<nanoseconds>(val).count());
+        conf_->common.frame_duration_seconds = duration_cast<duration<double>>(val).count();
     }
 
     /// How many frames the acquisition runs for.
@@ -292,13 +292,13 @@ public:
     void set_start_trigger(trigger&& t) { conf_->common.start_trigger = t; }
 
 
-    /// What closes it, where the shutter is not closed by acq_time() alone.
+    /// What closes it, where the shutter is not closed by frame_duration() alone.
     const trigger& stop_trigger() const { return conf_->common.stop_trigger; }
-    /// What closes it, where the shutter is not closed by acq_time() alone.
+    /// What closes it, where the shutter is not closed by frame_duration() alone.
     trigger& stop_trigger() { return conf_->common.stop_trigger; }
-    /// What closes it, where the shutter is not closed by acq_time() alone.
+    /// What closes it, where the shutter is not closed by frame_duration() alone.
     void set_stop_trigger(const trigger& t) { conf_->common.stop_trigger = t; }
-    /// What closes it, where the shutter is not closed by acq_time() alone.
+    /// What closes it, where the shutter is not closed by frame_duration() alone.
     void set_stop_trigger(trigger&& t) { conf_->common.stop_trigger = t; }
 
     /// True to leave one chip's timestamps in its Gray code rather than decoding them.

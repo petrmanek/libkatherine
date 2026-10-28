@@ -59,7 +59,7 @@ def configure():
     # First we start with settings common to all chips.
     c = k.Tpx3Config(1)
 
-    c.acq_time          = 10e9 # ns
+    c.frame_duration_seconds = 10.0
     c.frame_count       = 1
     c.bias              = [150]  # V
 

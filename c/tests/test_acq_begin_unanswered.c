@@ -48,32 +48,32 @@
 #include "ktest.h"
 #include "msleep.h"
 
-#define KSR_STR_(x)         #x
-#define KSR_STR(x)          KSR_STR_(x)
+#define KSR_STR_(x)                  #x
+#define KSR_STR(x)                   KSR_STR_(x)
 
-#define KSIM_LISTEN_ADDRESS "127.0.0.2"
-#define KSIM_DEVICE_ADDRESS "udp://" KSIM_LISTEN_ADDRESS
-#define EXPECTED_CHIP_ID    "A1-W0001"
+#define KSIM_LISTEN_ADDRESS          "127.0.0.2"
+#define KSIM_DEVICE_ADDRESS          "udp://" KSIM_LISTEN_ADDRESS
+#define EXPECTED_CHIP_ID             "A1-W0001"
 
 // The bias-settings operation code, as tools/ksim/main.c takes it.
-#define MUTE_BIAS           "0x02"
+#define MUTE_BIAS                    "0x02"
 
 // As in test_px_recovery.c: the device's control timeout is 100 ms, so 80
 // attempts bound the wait at roughly ten seconds.
-#define READY_ATTEMPTS      80
-#define READY_SLEEP_MS      25
+#define READY_ATTEMPTS               80
+#define READY_SLEEP_MS               25
 
-#define SHORT_ACQ_TIME_NS   400000.0
-#define MD_BUFFER_SIZE      (KATHERINE_TPX3_MD_SIZE * 4096)
-#define PIXEL_BUFFER_HITS   1024
-#define REPORT_TIMEOUT_MS   500
+#define SHORT_FRAME_DURATION_SECONDS 0.0004
+#define MD_BUFFER_SIZE               (KATHERINE_TPX3_MD_SIZE * 4096)
+#define PIXEL_BUFFER_HITS            1024
+#define REPORT_TIMEOUT_MS            500
 
 // Short, because the point of the muted case is that it fails promptly: a
 // command that goes unanswered must be reported by begin() and not waited
 // out by the read loop.
-#define FAIL_TIMEOUT_MS     2000
+#define FAIL_TIMEOUT_MS              2000
 
-#define CONFIG_SIZE_1       (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
+#define CONFIG_SIZE_1                (sizeof(katherine_tpx3_config_t) + sizeof(katherine_tpx3_chip_config_t))
 
 static kspawn_proc_t g_ksim = {0};
 static katherine_device_t g_device;
@@ -166,11 +166,11 @@ configure(katherine_tpx3_config_t *config)
 {
     memset(config, 0, CONFIG_SIZE_1);
 
-    config->common.chip_type   = KATHERINE_CHIP_TPX3;
-    config->common.chip_count  = 1;
-    config->common.acq_time    = SHORT_ACQ_TIME_NS;
-    config->common.frame_count = 1;
-    config->common.bias[0]     = 230;
+    config->common.chip_type              = KATHERINE_CHIP_TPX3;
+    config->common.chip_count             = 1;
+    config->common.frame_duration_seconds = SHORT_FRAME_DURATION_SECONDS;
+    config->common.frame_count            = 1;
+    config->common.bias[0]                = 230;
 
     config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
     config->fast_vco_enable = true;

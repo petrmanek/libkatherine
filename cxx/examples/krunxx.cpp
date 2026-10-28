@@ -86,7 +86,7 @@ configure(katherine::tpx3::config& config)
 
     // We will configure settings from the most general to the most specific.
     // First we start with settings common to all chips.
-    config.set_acq_time(10s);
+    config.set_frame_duration(10s);
     config.set_frame_count(1);
     config.set_bias(0, 150); // V
 

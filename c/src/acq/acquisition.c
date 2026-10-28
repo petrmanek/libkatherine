@@ -221,7 +221,7 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
     printf("Fast VCO:               %s\n",      acq->fast_vco_enabled ? "enabled" : "disabled");
     printf("\n");
 
-    printf("Acquisition Time:       %0.3f s\n", config->common.acq_time / 1e9);
+    printf("Acquisition Time:       %0.3f s\n", config->common.frame_duration_seconds);
     printf("Frame Count:            %u\n",      config->common.frame_count);
     for (uint8_t i = 0; i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
         printf("Bias %u:                 %0.3f V\n", (unsigned) i, (double) config->common.bias[i]);
@@ -1140,7 +1140,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
 
     acq->completed_frames           = 0;
     acq->requested_frames           = (int) config->common.frame_count;
-    acq->requested_frame_duration   = config->common.acq_time / 1e9;
+    acq->requested_frame_duration   = config->common.frame_duration_seconds;
     acq->dropped_measurement_data   = 0;
     acq->truncated_measurement_data = 0;
     acq->received_measurement_data  = 0;

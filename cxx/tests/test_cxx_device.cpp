@@ -235,7 +235,7 @@ test_device_and_acquisition(void)
     // template argument.
     katherine::tpx3::config c;
     c.set_frame_count(1);
-    c.set_acq_time(std::chrono::milliseconds{1});
+    c.set_frame_duration(std::chrono::milliseconds{1});
     c.set_px_mode(katherine::tpx3::acq::f_toa_tot::mode);
     c.set_fast_vco_enable(katherine::tpx3::acq::f_toa_tot::fast_vco_enabled);
 
@@ -253,7 +253,7 @@ test_device_and_acquisition(void)
     // into the wrong struct.
     katherine::tpx3::config wrong;
     wrong.set_frame_count(1);
-    wrong.set_acq_time(std::chrono::milliseconds{1});
+    wrong.set_frame_duration(std::chrono::milliseconds{1});
     wrong.set_px_mode(katherine::tpx3::px_mode::event_count_itot);
     wrong.set_fast_vco_enable(katherine::tpx3::acq::f_toa_tot::fast_vco_enabled);
 

@@ -61,10 +61,10 @@ make_config(void)
     katherine_tpx3_config_t *config = (katherine_tpx3_config_t *) calloc(1, CONFIG_SIZE);
     if (config == NULL) return NULL;
 
-    config->common.chip_type   = KATHERINE_CHIP_TPX3;
-    config->common.chip_count  = CHIP_COUNT;
-    config->common.acq_time    = 400000.0;
-    config->common.frame_count = 1;
+    config->common.chip_type              = KATHERINE_CHIP_TPX3;
+    config->common.chip_count             = CHIP_COUNT;
+    config->common.frame_duration_seconds = 0.0004;
+    config->common.frame_count            = 1;
 
     config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
     config->fast_vco_enable = true;

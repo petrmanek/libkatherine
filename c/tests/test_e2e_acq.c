@@ -73,75 +73,75 @@
 // daemon's command line) and as integers (for the expectations), so they are
 // spelled once and stringified where a string is wanted.
 
-#define E2E_STR_(x)             #x
-#define E2E_STR(x)              E2E_STR_(x)
+#define E2E_STR_(x)                  #x
+#define E2E_STR(x)                   E2E_STR_(x)
 
-#define KSIM_LISTEN_ADDRESS     "127.0.0.2"
+#define KSIM_LISTEN_ADDRESS          "127.0.0.2"
 /* The same readout as a device address, which is what the public API takes. */
-#define KSIM_DEVICE_ADDRESS     "udp://" KSIM_LISTEN_ADDRESS
-#define KSIM_SEED               12345
-#define HITS_PER_FRAME          40
-#define LOST_PER_FRAME          3
+#define KSIM_DEVICE_ADDRESS          "udp://" KSIM_LISTEN_ADDRESS
+#define KSIM_SEED                    12345
+#define HITS_PER_FRAME               40
+#define LOST_PER_FRAME               3
 
 // Readiness polling: the device's control timeout is 100 ms, so one failed
 // attempt costs that much plus the sleep below -- 80 attempts bound the wait
 // at roughly ten seconds.
-#define READY_ATTEMPTS          80
-#define READY_SLEEP_MS          25
+#define READY_ATTEMPTS               80
+#define READY_SLEEP_MS               25
 
 // Emulated readout profile defaults, from katherine_emu_profile_defaults()
 // in c/src/emu/emulator.c.
-#define EXPECTED_CHIP_ID        "A1-W0001"
-#define EXPECTED_HW_TYPE        0x01
-#define EXPECTED_HW_REVISION    0x01
-#define EXPECTED_SERIAL         1
-#define EXPECTED_FW_VERSION     1
-#define EXPECTED_READOUT_T      30.0f
-#define EXPECTED_SENSOR_T       40.0f
+#define EXPECTED_CHIP_ID             "A1-W0001"
+#define EXPECTED_HW_TYPE             0x01
+#define EXPECTED_HW_REVISION         0x01
+#define EXPECTED_SERIAL              1
+#define EXPECTED_FW_VERSION          1
+#define EXPECTED_READOUT_T           30.0f
+#define EXPECTED_SENSOR_T            40.0f
 
 // Communication status of the emulated readout: all eight data lines up, one
 // chip attached, and a reported data rate of zero because the daemon
 // is started without --rate and therefore does not shape its stream
 // (queue_comm_status() in c/src/emu/emulator.c).
-#define EXPECTED_COMM_LINES     0xFF
-#define EXPECTED_DATA_RATE      0
+#define EXPECTED_COMM_LINES          0xFF
+#define EXPECTED_DATA_RATE           0
 
 // The ADC channels answer a synthetic ramp of 0.125 V per channel, so a
 // caller can tell them apart (CMD_TYPE_GET_ADC_VOLTAGE in emulator.c).
-#define ADC_CHANNEL             3
-#define EXPECTED_ADC_VOLTAGE    0.5f
+#define ADC_CHANNEL                  3
+#define EXPECTED_ADC_VOLTAGE         0.5f
 
 // Period of the emulated readout timer, i.e. the unit of every timestamp in
 // the measurement data stream (KATHERINE_EMU_TICK_NS in c/src/emu/emu.h).
-#define TICK_NS                 25
+#define TICK_NS                      25
 
 // Width of the coarse time-of-arrival field, in the emulator and in the
 // pixel layouts of c/src/md.h alike.
-#define TOA_LIMIT               (1u << 14)
+#define TOA_LIMIT                    (1u << 14)
 
 // Timestamps arrive in fine-oscillator ticks, so the chip's coarse field maps
 // onto TOA_LIMIT * FINE_TICKS of them. Pinned rather than derived per hit; the
 // test asserts it against the library's own ratio before relying on it.
-#define FINE_TICKS              16u
+#define FINE_TICKS                   16u
 
 // Shutter short enough that the coarse ToA cannot wrap within a frame: 0.4 ms
 // is 16000 readout ticks, just inside the 16384 the field holds. That keeps
 // the arrival times of a frame strictly increasing and leaves the timestamp
 // offset the data-driven chain interleaves at zero, so the two chains under
 // test below deliver the same ToA values.
-#define SHORT_ACQ_TIME_NS       400000.0
+#define SHORT_FRAME_DURATION_SECONDS 0.0004
 
 // Long enough that the daemon keeps trickling hits out while the abort is
 // issued and takes effect.
-#define LONG_ACQ_TIME_NS        200000000.0
+#define LONG_ACQ_TIME_NS             200000000.0
 
 // Frames requested by the sequential-readout case. Data-driven acquisitions
 // are limited to one frame by katherine_acquisition_begin() itself.
 // Chips a second-generation readout can address, and so the width of the
 // per-chip counters below. From the table in c/src/device/device.c.
-#define KATHERINE_E2E_MAX_CHIPS 8
+#define KATHERINE_E2E_MAX_CHIPS      8
 
-#define SEQ_FRAMES              3
+#define SEQ_FRAMES                   3
 
 // Deliberately not a local address: it must black-hole the datagram rather
 // than have it delivered back to the sender. Every 127.0.0.0/8 address is
@@ -149,27 +149,27 @@
 // the library's own wildcard-bound control socket and read back as if it
 // were the readout's acknowledgement. 192.0.2.1 is TEST-NET-1 (RFC 5737),
 // reserved for documentation and never assigned, so nothing answers.
-#define DEAD_ADDRESS            "udp://192.0.2.1"
+#define DEAD_ADDRESS                 "udp://192.0.2.1"
 
 // Deliberately the opposite of DEAD_ADDRESS: a local address nobody is bound
 // to, so that a command sent there comes straight back to the sender (all
 // of 127.0.0.0/8 is local) and exercises the faux-echo rejection.
-#define SILENT_LOOPBACK_ADDRESS "udp://127.0.0.9"
+#define SILENT_LOOPBACK_ADDRESS      "udp://127.0.0.9"
 
 // Bounds the timeout case: the control timeout is 100 ms, and time(NULL) has
 // one-second granularity, so anything at or under two seconds of difference
 // proves the call did not hang.
-#define TIMEOUT_BUDGET_S        2.0
+#define TIMEOUT_BUDGET_S             2.0
 
 // Acquisition buffers. ksim's own datagrams are far smaller than this (at
 // most 226 data at a time), but katherine_acquisition_init() documents 65536
 // bytes as the minimum for real hardware -- the readout sends one datagram
 // per SDRAM slot, up to about 65 kB -- so the test models that contract
 // instead of the daemon's actual traffic.
-#define MD_BUFFER_SIZE          65536
-#define PIXEL_BUFFER_HITS       1024
-#define REPORT_TIMEOUT_MS       500
-#define FAIL_TIMEOUT_MS         10000
+#define MD_BUFFER_SIZE               65536
+#define PIXEL_BUFFER_HITS            1024
+#define REPORT_TIMEOUT_MS            500
+#define FAIL_TIMEOUT_MS              10000
 
 // The acquisition mode under test, and the pixel layout it delivers.
 typedef katherine_tpx3_px_f_toa_tot_t px_t;
@@ -509,15 +509,15 @@ alloc_config_1(void)
 // the matrix contents, so the zeroed matrix left by the memset below is
 // uploaded and accepted like any other.
 static void
-configure(katherine_tpx3_config_t *config, double acq_time_ns, uint32_t frame_count)
+configure(katherine_tpx3_config_t *config, double frame_duration_seconds, uint32_t frame_count)
 {
     memset(config, 0, CONFIG_SIZE_1);
 
-    config->common.chip_type   = KATHERINE_CHIP_TPX3;
-    config->common.chip_count  = 1;
-    config->common.acq_time    = acq_time_ns;
-    config->common.frame_count = frame_count;
-    config->common.bias[0]     = 230;
+    config->common.chip_type              = KATHERINE_CHIP_TPX3;
+    config->common.chip_count             = 1;
+    config->common.frame_duration_seconds = frame_duration_seconds;
+    config->common.frame_count            = frame_count;
+    config->common.bias[0]                = 230;
 
     config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
     config->fast_vco_enable = true;
@@ -555,7 +555,7 @@ configure(katherine_tpx3_config_t *config, double acq_time_ns, uint32_t frame_co
 // the run is instead cut short from inside the read loop, by the first
 // handler of the selected chain that reports the shutter open.
 static int
-acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, double acq_time_ns, uint32_t frame_count,
+acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, double frame_duration_seconds, uint32_t frame_count,
     bool decode_data, bool abort_enabled)
 {
     katherine_tpx3_config_t *storage = alloc_config_1();
@@ -565,10 +565,10 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     memset(acq, 0, sizeof(*acq));
     memset(probe, 0, sizeof(*probe));
     probe->acq           = acq;
-    probe->frame_ticks   = (uint32_t) (acq_time_ns / TICK_NS);
+    probe->frame_ticks   = (uint32_t) (frame_duration_seconds * 1e9 / TICK_NS);
     probe->abort_enabled = abort_enabled;
 
-    configure(storage, acq_time_ns, frame_count);
+    configure(storage, frame_duration_seconds, frame_count);
 
     res = katherine_acquisition_init(
         acq, &g_device, probe, MD_BUFFER_SIZE, PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS);
@@ -615,7 +615,7 @@ test_data_driven_frame(void)
     // One frame only: katherine_acquisition_begin() rejects a data-driven
     // acquisition of more than one frame outright (KATHERINE_E_INVAL), which
     // is what bounds this case.
-    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_FRAME_DURATION_SECONDS, 1, true, false), 0);
 
     KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, 1);
@@ -649,7 +649,7 @@ test_sequential_frames(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_SEQUENTIAL, SHORT_ACQ_TIME_NS, SEQ_FRAMES, true, false), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_SEQUENTIAL, SHORT_FRAME_DURATION_SECONDS, SEQ_FRAMES, true, false), 0);
 
     KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(acq.completed_frames, SEQ_FRAMES);
@@ -889,7 +889,7 @@ check_resolution(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase, bool 
 
     const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(&acq);
 
-    configure(storage, SHORT_ACQ_TIME_NS, 1);
+    configure(storage, SHORT_FRAME_DURATION_SECONDS, 1);
     storage->clock_frequency     = freq;
     storage->clock_phase         = phase;
     storage->correct_clock_phase = request;
@@ -996,7 +996,7 @@ test_hits_carry_their_chip(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_FRAME_DURATION_SECONDS, 1, true, false), 0);
 
     KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(probe.hits_delivered, HITS_PER_FRAME);
@@ -1022,7 +1022,7 @@ test_one_header_means_one_chip(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_ACQ_TIME_NS, 1, true, false), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, SHORT_FRAME_DURATION_SECONDS, 1, true, false), 0);
 
     KT_CHECK_EQ(acq.state, KATHERINE_ACQUISITION_STATE_SUCCEEDED);
     KT_CHECK_EQ(probe.hits_delivered, HITS_PER_FRAME);

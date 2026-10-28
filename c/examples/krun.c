@@ -94,9 +94,9 @@ configure(katherine_tpx3_config_t *config)
 
     // We will configure settings from the most general to the most specific.
     // First we start with settings common to all chips.
-    config->common.acq_time    = 10e9; // ns
-    config->common.frame_count = 1;
-    config->common.bias[0]     = 150; // V
+    config->common.frame_duration_seconds = 10.0;
+    config->common.frame_count            = 1;
+    config->common.bias[0]                = 150; // V
 
     // The following structures can be used to delay the beginning or the end
     // of an acquisition based on external signals, connected to GPIO ports.

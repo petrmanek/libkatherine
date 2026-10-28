@@ -59,7 +59,7 @@ every_call_refuses(void)
     KT_CHECK(katherine_tpx3_configure(&device, &tpx3_config) != KATHERINE_E_OK);
     KT_CHECK(katherine_tpx3_verify_config(&device, 0, &tpx3_config_check) != KATHERINE_E_OK);
     KT_CHECK(katherine_tpx3_set_all_pixel_config(&device, 0, &tpx3_px_config) != KATHERINE_E_OK);
-    KT_CHECK(katherine_set_acq_time(&device, 0.0f) != KATHERINE_E_OK);
+    KT_CHECK(katherine_set_frame_duration(&device, 0.0f) != KATHERINE_E_OK);
     KT_CHECK(katherine_tpx3_set_acq_mode(&device, (katherine_tpx3_px_mode_t) 0, false) != KATHERINE_E_OK);
     KT_CHECK(katherine_set_frame_count(&device, 0) != KATHERINE_E_OK);
     KT_CHECK(katherine_tpx3_set_token_count(&device, 0) != KATHERINE_E_OK);

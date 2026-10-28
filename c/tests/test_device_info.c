@@ -185,20 +185,20 @@ test_generation_dependent_calls_refuse_an_undeclared_device(void)
     // Nothing has enumerated or declared it. No socket is opened, which is
     // deliberate: the guard has to come before anything touches the wire, or a
     // caller learns about it from a timeout instead of an error.
-    KT_CHECK_EQ(katherine_set_acq_time(&dev, 1e8), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_set_frame_duration(&dev, 0.1), KATHERINE_E_STATE);
 
     // Declaring a readout this version cannot drive is refused on the same
     // test, without a second flag to keep in step.
     const katherine_device_info_t tpx2 = {.hw_type = 0x02};
     KT_CHECK_EQ(katherine_device_declare(&dev, &tpx2), KATHERINE_E_OK);
     KT_CHECK(!dev.derived_info.supported);
-    KT_CHECK_EQ(katherine_set_acq_time(&dev, 1e8), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_set_frame_duration(&dev, 0.1), KATHERINE_E_STATE);
 
     // A hardware type from no table row behaves the same way.
     const katherine_device_info_t unknown = {.hw_type = 0xFF};
     KT_CHECK_EQ(katherine_device_declare(&dev, &unknown), KATHERINE_E_OK);
     KT_CHECK(!dev.derived_info.supported);
-    KT_CHECK_EQ(katherine_set_acq_time(&dev, 1e8), KATHERINE_E_STATE);
+    KT_CHECK_EQ(katherine_set_frame_duration(&dev, 0.1), KATHERINE_E_STATE);
 
     KT_CHECK_EQ(katherine_device_declare(&dev, NULL), KATHERINE_E_INVAL);
 }

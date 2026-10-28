@@ -141,6 +141,42 @@ through it keeps the fixed ports it may rely on and behaves as it did.
 An address now carries a scheme: `udp://192.168.1.142`, `usb://auto`. A
 bare address is still read as UDP.
 
+## 4a. The shutter time is in seconds, and the shim still takes nanoseconds
+
+This is the one change that is silent if you stay on the shim and loud if
+you leave it, so it is worth reading even if nothing else here applies.
+
+`katherine_config_t::acq_time`, a `double` in **nanoseconds**, is
+`katherine_config_t::frame_duration_seconds`, a `double` in **seconds** --
+named to pair with `frame_count`, which sits beside it.
+`katherine_set_acq_time()` is `katherine_set_frame_duration()`.
+
+The rename is the safety. Changing the unit alone would have compiled
+everywhere and quietly asked for a shutter a billion times too long; now
+every call site stops the compiler and has to be read.
+
+**Through `katherine/katherine1.h` nothing changes**, because
+`katherine_set_acq_time()` still takes nanoseconds and the shim converts.
+That is the only place in the shim that converts rather than forwards. So
+a 1.x program keeps working unmodified -- and the day you drop the shim,
+every one of those call sites is in the wrong unit with nothing to say so.
+If you are migrating off the shim, this is the line to grep for first.
+
+```c
+/* 1.x, and still correct through the shim */
+katherine_set_acq_time(&dev, 10e9);          /* ns */
+
+/* 2.0 */
+katherine_set_frame_duration(&dev, 10.0);
+```
+
+C++ and Python follow. `katherine::tpx3::config::acq_time()` and
+`set_acq_time()` are `frame_duration()` and `set_frame_duration()`, still
+taking and returning a `std::chrono::duration`, so C++ callers never see a
+unit at all. Python's `Config.acq_time` property is
+`frame_duration_seconds`, and `Device.set_acq_time()` is
+`set_frame_duration()`.
+
 ## 5. The changes with no shim
 
 ### `polarity_holes` is gone, and its replacement means the opposite

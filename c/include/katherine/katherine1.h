@@ -233,9 +233,9 @@ katherine1_config_translate(const katherine1_config_t *config)
     katherine_tpx3_config_t *c2 = (katherine_tpx3_config_t *) calloc(1, sizeof(*c2) + sizeof(c2->chips[0]));
     if (c2 == NULL) return NULL;
 
-    c2->common.chip_type  = KATHERINE_CHIP_TPX3;
-    c2->common.chip_count = 1;
-    c2->common.acq_time   = config->acq_time;
+    c2->common.chip_type              = KATHERINE_CHIP_TPX3;
+    c2->common.chip_count             = 1;
+    c2->common.frame_duration_seconds = config->acq_time * 1e-9;
 
     c2->common.frame_count = (uint32_t) config->frame_count;
 
@@ -288,7 +288,9 @@ KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_acq_time(katherine_device_t *device, double ns)
 {
-    return katherine1_map_result(katherine_set_acq_time(device, ns));
+    // 1.x took nanoseconds; 2.0 takes seconds. The only place in this
+    // shim that converts rather than forwards.
+    return katherine1_map_result(katherine_set_frame_duration(device, ns * 1e-9));
 }
 
 /** \legacy1{katherine_tpx3_set_acq_mode} */

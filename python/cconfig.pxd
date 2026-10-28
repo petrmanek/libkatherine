@@ -155,7 +155,7 @@ cdef extern from 'katherine/config.h':
         katherine_chip_type_t chip_type
         uint8_t chip_count
 
-        double acq_time
+        double frame_duration_seconds
         uint32_t frame_count
 
         float bias[4]  # KATHERINE_CONFIG_MAX_BIAS_SUPPLIES
@@ -204,7 +204,7 @@ cdef extern from 'katherine/config.h':
 
     int katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config_t *config)
     int katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_px_config_t *px_config)
-    int katherine_set_acq_time(katherine_device_t *device, double ns)
+    int katherine_set_frame_duration(katherine_device_t *device, double frame_duration_seconds)
     int katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
     uint8_t katherine_tpx3_actual_phases(katherine_tpx3_freq_t freq, katherine_tpx3_phase_t phase)
     bint katherine_tpx3_freq_is_fast_vco_supported(katherine_tpx3_freq_t freq)

@@ -486,8 +486,8 @@ katherine_config_snprint(char *buf, size_t cap, const katherine_config_t *v)
 {
     size_t off = 0;
 
-    REPR_APPENDF(buf, cap, off, "config{chip_type: %s, chip_count: %u, acq_time: %g, frame_count: %u",
-        katherine_str_chip_type(v->chip_type), (unsigned) v->chip_count, v->acq_time, (unsigned) v->frame_count);
+    REPR_APPENDF(buf, cap, off, "config{chip_type: %s, chip_count: %u, frame_duration_seconds: %g, frame_count: %u",
+        katherine_str_chip_type(v->chip_type), (unsigned) v->chip_count, v->frame_duration_seconds, (unsigned) v->frame_count);
     for (uint8_t i = 0; i < KATHERINE_CONFIG_MAX_BIAS_SUPPLIES; ++i) {
         REPR_APPENDF(buf, cap, off, ", bias%u: %g", (unsigned) i, (double) v->bias[i]);
     }

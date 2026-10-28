@@ -618,6 +618,33 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The shutter time is named for what it is, and measured in seconds
+
+`katherine_config_t::acq_time` was the only duration in the public surface
+carried in nanoseconds. Every other one -- `delay_seconds`,
+`length_seconds`, `low_seconds`, `high_seconds` -- is in seconds, and two
+of those are reachable through the same configuration object, one level
+down in the embedded triggers. `acq_time = 1.0` and
+`start_trigger.delay_seconds = 1.0` were both legal `double`s meaning
+durations a billion apart.
+
+It is now `frame_duration_seconds`, which says the unit and pairs with
+`frame_count` beside it. `katherine_set_acq_time()` is
+`katherine_set_frame_duration()`.
+
+**The rename is what makes the unit change safe.** Changing the unit alone
+would have compiled everywhere and silently asked for a shutter a billion
+times too long. Renaming alone would have left the odd unit. Doing both at
+once stops the compiler at every call site, and 2.0 is the only release
+that can.
+
+The wrappers follow: C++ has `frame_duration()` and `set_frame_duration()`
+on a `std::chrono::duration`, so its callers never see a unit; Python has
+`frame_duration_seconds`. Through the 1.x shim nothing changes at all --
+`katherine_set_acq_time()` still takes nanoseconds, and that one call is
+the only place in `katherine/katherine1.h` that converts rather than
+forwards.
+
 ### A pulse channel is numbered as the array that configures it
 
 `KATHERINE_GPIO_PULSE_CHANNEL_0` was the output of

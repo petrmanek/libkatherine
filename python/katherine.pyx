@@ -935,8 +935,8 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_all_pixel_config(self._dev(), chip_index, &px_config._c_px_config)
          check_return_code(res)
 
-    def set_acq_time(self, double ns):
-         res = cconfig.katherine_set_acq_time(self._dev(), ns)
+    def set_frame_duration(self, double frame_duration_seconds):
+         res = cconfig.katherine_set_frame_duration(self._dev(), frame_duration_seconds)
          check_return_code(res)
 
     def verify_config(self, uint8_t chip_index):
@@ -1715,12 +1715,12 @@ cdef class Tpx3Config:
              raise IndexError('chip %d of %d' % (chip_index, self.chip_count))
 
     @property
-    def acq_time(self):
-       return self._c_config.common.acq_time
+    def frame_duration_seconds(self):
+       return self._c_config.common.frame_duration_seconds
 
-    @acq_time.setter
-    def acq_time(self, val):
-       self._c_config.common.acq_time = val
+    @frame_duration_seconds.setter
+    def frame_duration_seconds(self, val):
+       self._c_config.common.frame_duration_seconds = val
 
     @property
     def frame_count(self):

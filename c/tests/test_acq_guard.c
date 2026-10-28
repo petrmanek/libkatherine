@@ -117,7 +117,7 @@ test_an_impossible_shutter_time_is_refused(void)
 
     const double bad[] = {NAN, INFINITY, -INFINITY, -1.0, -1e9, 1e30};
     for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); ++i) {
-        KT_CHECK_EQ(katherine_set_acq_time(&device, bad[i]), KATHERINE_E_INVAL);
+        KT_CHECK_EQ(katherine_set_frame_duration(&device, bad[i]), KATHERINE_E_INVAL);
     }
 
     // A value that passes is deliberately not exercised: it would go on to

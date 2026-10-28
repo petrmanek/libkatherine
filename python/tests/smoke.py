@@ -261,7 +261,7 @@ def build_config(katherine):
     uploaded and accepted like any other."""
     c = katherine.Tpx3Config()
 
-    c.acq_time = SHORT_ACQ_TIME_NS
+    c.frame_duration_seconds = SHORT_ACQ_TIME_NS * 1e-9
     c.frame_count = 1
     c.bias = [230]
 

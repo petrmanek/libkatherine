@@ -66,15 +66,15 @@
 // expectations), so they are spelled once and stringified where a string is
 // wanted.
 
-#define KPX_STR_(x)         #x
-#define KPX_STR(x)          KPX_STR_(x)
+#define KPX_STR_(x)                  #x
+#define KPX_STR(x)                   KPX_STR_(x)
 
-#define KSIM_LISTEN_ADDRESS "127.0.0.2"
+#define KSIM_LISTEN_ADDRESS          "127.0.0.2"
 /* The same readout as a device address, which is what the public API takes. */
-#define KSIM_DEVICE_ADDRESS "udp://" KSIM_LISTEN_ADDRESS
-#define KSIM_SEED           12345
-#define HITS_PER_FRAME      40
-#define LOST_PER_FRAME      3
+#define KSIM_DEVICE_ADDRESS          "udp://" KSIM_LISTEN_ADDRESS
+#define KSIM_SEED                    12345
+#define HITS_PER_FRAME               40
+#define LOST_PER_FRAME               3
 
 // Response datagram the daemon drops, counted from the first
 // pixel-configuration upload command (--drop-crd in tools/ksim/main.c). The
@@ -86,7 +86,7 @@
 // count begins. Confirmed against the daemon's --log output, where the drop
 // is reported between the last chunk of the upload and the matrix reset
 // command that follows it.
-#define DROP_DONE_ACK_CRD   1
+#define DROP_DONE_ACK_CRD            1
 
 // Chunk the daemon drops in the second case, counted over every 1024-byte
 // datagram it receives (--drop-px-chunk): the 64 chunks of the first upload
@@ -96,31 +96,31 @@
 // retry's 64 chunks would do, so the fourth is picked with room on either
 // side: filler datagrams lost on the way (the flood is sent unpaced) shift
 // the ordinal deeper into the retry, never out of it.
-#define UPLOAD_CHUNKS       64
-#define FLOOD_CHUNKS        (3 * UPLOAD_CHUNKS)
-#define DROP_RETRY_CHUNK    (UPLOAD_CHUNKS + FLOOD_CHUNKS + 4)
+#define UPLOAD_CHUNKS                64
+#define FLOOD_CHUNKS                 (3 * UPLOAD_CHUNKS)
+#define DROP_RETRY_CHUNK             (UPLOAD_CHUNKS + FLOOD_CHUNKS + 4)
 
 // Readiness polling: the device's control timeout is 100 ms, so one failed
 // attempt costs that much plus the sleep below -- 80 attempts bound the wait
 // at roughly ten seconds.
-#define READY_ATTEMPTS      80
-#define READY_SLEEP_MS      25
+#define READY_ATTEMPTS               80
+#define READY_SLEEP_MS               25
 
 // Chip identifier of the emulated readout, from
 // katherine_emu_profile_defaults() in c/src/emu/emulator.c. A response
 // belonging to another command decodes to something else, which is what
 // makes this inquiry a test of the session rather than of the readout.
-#define EXPECTED_CHIP_ID    "A1-W0001"
+#define EXPECTED_CHIP_ID             "A1-W0001"
 
 // Shutter short enough that the coarse time of arrival cannot wrap within a
 // frame, as in test_e2e_acq.c.
-#define SHORT_ACQ_TIME_NS   400000.0
+#define SHORT_FRAME_DURATION_SECONDS 0.0004
 
 // Acquisition buffers and timeouts, as in test_e2e_acq.c.
-#define MD_BUFFER_SIZE      (KATHERINE_TPX3_MD_SIZE * 4096)
-#define PIXEL_BUFFER_HITS   1024
-#define REPORT_TIMEOUT_MS   500
-#define FAIL_TIMEOUT_MS     10000
+#define MD_BUFFER_SIZE               (KATHERINE_TPX3_MD_SIZE * 4096)
+#define PIXEL_BUFFER_HITS            1024
+#define REPORT_TIMEOUT_MS            500
+#define FAIL_TIMEOUT_MS              10000
 
 // The acquisition mode under test, and the pixel layout it delivers.
 typedef katherine_tpx3_px_f_toa_tot_t px_t;
@@ -306,15 +306,15 @@ alloc_config_1(void)
 // uploaded and accepted like any other. Mirrors configure() in
 // test_e2e_acq.c, whose acquisitions these have to compare against.
 static void
-configure(katherine_tpx3_config_t *config, double acq_time_ns, uint32_t frame_count)
+configure(katherine_tpx3_config_t *config, double frame_duration_seconds, uint32_t frame_count)
 {
     memset(config, 0, CONFIG_SIZE_1);
 
-    config->common.chip_type   = KATHERINE_CHIP_TPX3;
-    config->common.chip_count  = 1;
-    config->common.acq_time    = acq_time_ns;
-    config->common.frame_count = frame_count;
-    config->common.bias[0]     = 230;
+    config->common.chip_type              = KATHERINE_CHIP_TPX3;
+    config->common.chip_count             = 1;
+    config->common.frame_duration_seconds = frame_duration_seconds;
+    config->common.frame_count            = frame_count;
+    config->common.bias[0]                = 230;
 
     config->px_mode         = KATHERINE_TPX3_PX_TOA_TOT;
     config->fast_vco_enable = true;
@@ -361,7 +361,7 @@ check_one_frame(void)
     memset(&acq, 0, sizeof(acq));
     memset(&probe, 0, sizeof(probe));
 
-    configure(storage, SHORT_ACQ_TIME_NS, 1);
+    configure(storage, SHORT_FRAME_DURATION_SECONDS, 1);
 
     KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE, PIXEL_BUFFER_HITS * sizeof(px_t),
                    REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)

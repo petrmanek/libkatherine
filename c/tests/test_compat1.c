@@ -509,7 +509,7 @@ test_function_aliases(void)
         (void) katherine_px_config_load_bpc_data(&px, &bpc);
         (void) katherine_px_config_load_bpc_file(&px, "x");
         (void) katherine_set_acq_mode(&dev, KATHERINE_TPX3_PX_TOA_TOT, false);
-        (void) katherine_set_acq_time(&dev, 0.0);
+        (void) katherine_set_acq_time(&dev, 0.0); // the 1.x name, still in nanoseconds
         (void) katherine_set_all_pixel_config(&dev, &px);
         (void) katherine_set_bias(&dev, 0, 0.0f);
         (void) katherine_set_dacs(&dev, &dacs);

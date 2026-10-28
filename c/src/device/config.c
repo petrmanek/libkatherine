@@ -78,7 +78,7 @@ reserved_is_clear(const uint32_t *reserved, size_t count)
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, or is one this version cannot drive: nothing below can be
  *   addressed to a chip, and the acquisition time's encoding depends on the
- *   readout generation. See katherine_set_acq_time().
+ *   readout generation. See katherine_set_frame_duration().
  * \retval KATHERINE_E_BAD_CHIP if the device reports no chips at all, chip 0
  *   included; see katherine_device_info_t::chip_count.
  * \retval KATHERINE_E_BAD_RESERVED if a reserved word of either structure is
@@ -121,7 +121,7 @@ katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config
         goto err;
     }
 
-    res = katherine_set_acq_time(device, config->common.acq_time);
+    res = katherine_set_frame_duration(device, config->common.frame_duration_seconds);
     if (res) goto err;
 
     res = katherine_set_frame_count(device, config->common.frame_count);
@@ -426,7 +426,7 @@ err_chip:
  * and the new acquisition time.
  *
  * \param device Katherine device
- * \param ns Acquisition time in nanoseconds
+ * \param frame_duration_seconds Shutter time per frame, in seconds
  *
  * \retval KATHERINE_E_OK on success, once both halves have been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge one of the
@@ -451,7 +451,7 @@ err_chip:
  *   see katherine_transport_get_last_os_error().
  */
 static katherine_error_t
-katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
+katherine_set_frame_duration_gen1(katherine_device_t *device, double frame_duration_seconds)
 {
     katherine_error_t res;
 
@@ -460,7 +460,7 @@ katherine_set_acq_time_gen1(katherine_device_t *device, double ns)
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    int64_t acqt = (int64_t) (ns / 10.);
+    int64_t acqt = (int64_t) (frame_duration_seconds * 1e8);
     int64_t lsb  = (acqt & 0x00000000FFFFFFFF);
     int64_t msb  = (acqt & 0xFFFFFFFF00000000) >> 32;
 
@@ -500,7 +500,7 @@ err_lock:
  * acknowledgement that can never arrive.
  *
  * \param device Katherine device
- * \param ns Acquisition time in nanoseconds
+ * \param frame_duration_seconds Shutter time per frame, in seconds
  *
  * \retval KATHERINE_E_OK on success, once the command has been acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge the command
@@ -525,7 +525,7 @@ err_lock:
  *   see katherine_transport_get_last_os_error().
  */
 static katherine_error_t
-katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
+katherine_set_frame_duration_gen2(katherine_device_t *device, double frame_duration_seconds)
 {
     katherine_error_t res;
 
@@ -534,7 +534,7 @@ katherine_set_acq_time_gen2(katherine_device_t *device, double ns)
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_acqtime_seconds(&device->control_transport, (float) (ns / 1e9));
+    res = katherine_cmd_set_acqtime_seconds(&device->control_transport, (float) frame_duration_seconds);
     if (res) goto err_send;
 
     res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_ACQUISITION_TIME_SETTINGS_LSB);
@@ -564,7 +564,7 @@ err_lock:
  * readout this library drove before Gen2 was recognized.
  *
  * \param device Katherine device
- * \param ns Acquisition time in nanoseconds
+ * \param frame_duration_seconds Shutter time per frame, in seconds
  *
  * \retval KATHERINE_E_OK on success, once the readout has acknowledged.
  * \retval KATHERINE_E_TIMEOUT if the readout did not acknowledge within the
@@ -593,16 +593,16 @@ err_lock:
  *   readout generation, which is then not known.
  */
 katherine_error_t
-katherine_set_acq_time(katherine_device_t *device, double ns)
+katherine_set_frame_duration(katherine_device_t *device, double frame_duration_seconds)
 {
     katherine_error_t res;
 
-    // The Gen1 encoding is (int64_t) (ns / 10), and converting a double that
-    // does not fit int64 -- a NaN among them -- is undefined rather than
-    // merely wrong. Gen2 would take the NaN as far as the readout. Neither
-    // is a value a shutter can have, so both are refused here, once, rather
-    // than in each generation's encoder.
-    if (!isfinite(ns) || ns < 0.0 || ns / 10.0 > 9.2e18) {
+    // The Gen1 encoding is (int64_t) (frame_duration_seconds * 1e8), and converting a
+    // double that does not fit int64 -- a NaN among them -- is undefined
+    // rather than merely wrong. Gen2 would take the NaN as far as the
+    // readout. Neither is a value a shutter can have, so both are refused
+    // here, once, rather than in each generation's encoder.
+    if (!isfinite(frame_duration_seconds) || frame_duration_seconds < 0.0 || frame_duration_seconds * 1e8 > 9.2e18) {
         res = KATHERINE_E_INVAL;
         goto err_range;
     }
@@ -619,18 +619,18 @@ katherine_set_acq_time(katherine_device_t *device, double ns)
     }
 
     if (katherine_device_gen(device) >= 2) {
-        res = katherine_set_acq_time_gen2(device, ns);
+        res = katherine_set_frame_duration_gen2(device, frame_duration_seconds);
     } else {
-        res = katherine_set_acq_time_gen1(device, ns);
+        res = katherine_set_frame_duration_gen1(device, frame_duration_seconds);
     }
 
     if (res) {
-        goto err_set_acq_time;
+        goto err_set_frame_duration;
     }
 
     return KATHERINE_E_OK;
 
-err_set_acq_time:
+err_set_frame_duration:
 err_unsupported:
 err_range:
     return res;

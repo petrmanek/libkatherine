@@ -155,8 +155,8 @@ test_config_round_trip(void)
     c.set_clock_frequency(katherine::tpx3::freq::f80);
     KT_CHECK(c.clock_frequency() == katherine::tpx3::freq::f80);
 
-    c.set_acq_time(std::chrono::milliseconds{250});
-    KT_CHECK(c.acq_time() == std::chrono::milliseconds{250});
+    c.set_frame_duration(std::chrono::milliseconds{250});
+    KT_CHECK(c.frame_duration() == std::chrono::milliseconds{250});
 
     katherine::trigger start{};
     start.use_trigger = true;
