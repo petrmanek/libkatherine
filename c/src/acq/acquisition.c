@@ -1132,7 +1132,7 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     res = katherine_tpx3_configure(acq->device, config);
     if (res) goto err;
 
-    res = katherine_tpx3_set_seq_readout_start(acq->device, config->readout_mode);
+    res = katherine_tpx3_start_readout(acq->device, config->readout_mode);
     if (res) goto err;
 
     res = katherine_tpx3_set_acq_mode(acq->device, config->px_mode, config->fast_vco_enable);

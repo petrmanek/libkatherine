@@ -317,12 +317,13 @@ katherine1_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_v
     return katherine1_map_result(katherine_set_bias(device, bias_index, bias_value));
 }
 
-/** \legacy1{katherine_tpx3_set_seq_readout_start} */
+/** \legacy1{katherine_tpx3_start_readout} */
 KATHERINE1_DEPRECATED
 static inline int
 katherine1_set_seq_readout_start(katherine_device_t *device, int arg)
 {
-    return katherine1_map_result(katherine_tpx3_set_seq_readout_start(device, arg));
+    // 1.x passed an int; the values were always this enumeration's.
+    return katherine1_map_result(katherine_tpx3_start_readout(device, (katherine_tpx3_readout_mode_t) arg));
 }
 
 /** \legacy1{katherine_set_acquisition_triggers} */

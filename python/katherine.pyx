@@ -968,8 +968,8 @@ cdef class Device:
          res = cconfig.katherine_set_bias(self._dev(), bias_index, bias_value)
          check_return_code(res)
 
-    def set_seq_readout_start(self, int arg):
-         res = cconfig.katherine_tpx3_set_seq_readout_start(self._dev(), arg)
+    def start_readout(self, readout_mode):
+         res = cconfig.katherine_tpx3_start_readout(self._dev(), readout_mode)
          check_return_code(res)
 
     def set_acquisition_triggers(self, Trigger start_trigger, Trigger stop_trigger):

@@ -65,7 +65,7 @@ registers, its clock model, its hit formats -- moved under
 |---|---|
 | `katherine_set_all_pixel_config` | `katherine_tpx3_set_all_pixel_config` |
 | `katherine_set_acq_mode` | `katherine_tpx3_set_acq_mode` |
-| `katherine_set_seq_readout_start` | `katherine_tpx3_set_seq_readout_start` |
+| `katherine_set_seq_readout_start` | `katherine_tpx3_start_readout`, taking `katherine_tpx3_readout_mode_t` |
 | `katherine_set_sensor_register` | `katherine_tpx3_set_sensor_register` |
 | `katherine_update_sensor_registers` | `katherine_tpx3_update_sensor_registers` |
 | `katherine_output_block_config_update` | `katherine_tpx3_output_block_config_update` |

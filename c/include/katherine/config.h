@@ -508,7 +508,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_set_bias(katherine_device_t *device, uint8_t bias_index, float bias_value);
 
 KATHERINE_EXPORTED katherine_error_t
-katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg);
+katherine_tpx3_start_readout(katherine_device_t *device, katherine_tpx3_readout_mode_t readout_mode);
 
 // Declared here, with the rest of the configuration calls, but documented
 // with the acquisition it sets up. The enclosing group has to be closed and

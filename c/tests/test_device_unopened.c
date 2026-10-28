@@ -64,7 +64,7 @@ every_call_refuses(void)
     KT_CHECK(katherine_set_frame_count(&device, 0) != KATHERINE_E_OK);
     KT_CHECK(katherine_tpx3_set_token_count(&device, 0) != KATHERINE_E_OK);
     KT_CHECK(katherine_set_bias(&device, 0, 0.0f) != KATHERINE_E_OK);
-    KT_CHECK(katherine_tpx3_set_seq_readout_start(&device, 0) != KATHERINE_E_OK);
+    KT_CHECK(katherine_tpx3_start_readout(&device, KATHERINE_TPX3_READOUT_SEQUENTIAL) != KATHERINE_E_OK);
     KT_CHECK(katherine_set_acquisition_triggers(&device, &trigger, &trigger) != KATHERINE_E_OK);
     KT_CHECK(katherine_tpx3_set_sensor_register(&device, 0, (katherine_tpx3_reg_t) 0, 0) != KATHERINE_E_OK);
     KT_CHECK(katherine_tpx3_update_sensor_registers(&device, 0) != KATHERINE_E_OK);

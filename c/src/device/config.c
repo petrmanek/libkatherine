@@ -953,8 +953,7 @@ err_lock:
  *   katherine_acquisition_begin() already passes.
  *
  * \param device Katherine device
- * \param arg Readout chain to start, valued as katherine_tpx3_readout_mode_t.
- *   An int because 1.x declared one, not because the values are open.
+ * \param readout_mode Readout chain to start.
  *
  * \retval KATHERINE_E_OK on success, once the command has been handed to the
  *   socket.
@@ -976,7 +975,7 @@ err_lock:
  *   any other reason; see katherine_transport_get_last_os_error().
  */
 katherine_error_t
-katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
+katherine_tpx3_start_readout(katherine_device_t *device, katherine_tpx3_readout_mode_t readout_mode)
 {
     katherine_error_t res;
 
@@ -985,7 +984,7 @@ katherine_tpx3_set_seq_readout_start(katherine_device_t *device, int arg)
 
     katherine_transport_flush_incoming(&device->control_transport);
 
-    res = katherine_cmd_set_seq_readout_start(&device->control_transport, arg);
+    res = katherine_cmd_set_seq_readout_start(&device->control_transport, (int64_t) readout_mode);
     if (res) goto err_send;
 
     // Note: this command does _not_ produce an acknowledgement.

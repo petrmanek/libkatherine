@@ -166,7 +166,7 @@ Two neighbours deliberately keep no index, both confirmed against the readout
 firmware. `katherine_tpx3_set_acq_mode()` sends an opcode with no chip-index
 slot at all, and the readout's own decoder takes its mode from chip 0's
 GeneralConfig for the whole data path, so readout-wide is the faithful model
-rather than a gap. `katherine_tpx3_set_seq_readout_start()` sends a command
+rather than a gap. `katherine_tpx3_start_readout()` sends a command
 the firmware broadcasts by construction: it spends its first byte on the
 readout type and writes the chip-select register's broadcast value
 unconditionally, so a sequential readout cannot be started on one chip of
@@ -617,6 +617,29 @@ NaN and refuses nothing. **This is a supply capability and not an assembly's
 safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
+
+### Starting the readout names the chain it starts
+
+`katherine_tpx3_set_seq_readout_start(device, int arg)` is
+`katherine_tpx3_start_readout(device, katherine_tpx3_readout_mode_t)`.
+
+Its doc block called the argument "implementation-defined", which the
+firmware contradicts. `cmdID_branching()` routes opcode `0x0005` to
+`ReadoutStart()`, whose body is three lines: it reads **bit 0** of the
+command's first byte and starts the sequential chain on zero, the
+data-driven one on one. That is exactly how `katherine_tpx3_readout_mode_t`
+numbers them, and exactly what `katherine_acquisition_begin()` has always
+passed -- the `int` was that enumeration everywhere except in the
+declaration.
+
+**Renamed as well as retyped**, because the old name was narrower than the
+call: it does not start a *sequential* readout, it starts whichever chain
+the argument names, and `ReadoutStart()` is what the firmware calls it.
+
+C++ is `start_readout(katherine::tpx3::readout_mode)` and Python is
+`start_readout(readout_mode)`. The 1.x spelling still takes an `int`
+through the shim and casts, since the values were always this
+enumeration's.
 
 ### The shutter time is named for what it is, and measured in seconds
 

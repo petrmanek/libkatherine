@@ -563,11 +563,11 @@ public:
         katherine::detail::check(katherine_set_bias(&dev_, bias_index, bias_value));
     }
 
-    /// Which readout mode the chip uses to deliver hits.
+    /// Starts the readout chain the argument names.
     void
-    set_seq_readout_start(int arg)
+    start_readout(katherine::tpx3::readout_mode readout_mode)
     {
-        katherine::detail::check(katherine_tpx3_set_seq_readout_start(&dev_, arg));
+        katherine::detail::check(katherine_tpx3_start_readout(&dev_, (katherine_tpx3_readout_mode_t) readout_mode));
     }
 
     /// What opens and closes the shutter.
