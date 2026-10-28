@@ -586,9 +586,14 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     acq->handlers.pixels_received = on_pixels_received;
     acq->handlers.data_received   = on_data_received;
 
-    // Idle before we start: after katherine_device_init() because it says so,
-    // and after any earlier acquisition because read() cleared it.
-    KT_CHECK(g_device.acquisition == NULL);
+    // Held from the init above, the data link being open from there, and any
+    // earlier acquisition having given the device back at its fini.
+    KT_CHECK(g_device.acquisition == acq);
+
+    // Holding it is not measuring, though, and the chip inquiries are open
+    // until the shutter is.
+    float temperature = 0.0f;
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, 0, &temperature), KATHERINE_E_OK);
 
     storage->readout_mode = readout_mode;
     res                   = katherine_acquisition_begin(acq, storage, decode_data);
@@ -599,13 +604,14 @@ acq_run(katherine_acquisition_t *acq, acq_probe_t *probe, char readout_mode, dou
     // between. Asserted around a real acquisition because the guard's unit
     // test can only reach the refusal itself, not the bookkeeping that arms
     // it.
-    KT_CHECK(g_device.acquisition == acq);
     float refused = 0.0f;
     KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, 0, &refused), KATHERINE_E_STATE);
 
     res = katherine_acquisition_read(acq);
 
-    KT_CHECK(g_device.acquisition == NULL);
+    // The run is over and the inquiries are open again, while the link this
+    // acquisition holds is still its own until it is finalized.
+    KT_CHECK(g_device.acquisition == acq);
     free(storage);
     return res;
 }

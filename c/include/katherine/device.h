@@ -216,7 +216,7 @@ typedef struct katherine_device {
      */
     katherine_device_priv_t priv;
 
-    void *acquisition; ///< The acquisition measuring on this device, or NULL when none is. Opaque by design. It points into this device's transports while it lives, so katherine_acquisition_fini() must run before katherine_device_fini().
+    void *acquisition; ///< The acquisition this device holds, from katherine_acquisition_init() to katherine_acquisition_fini(), or NULL between them. Opaque by design, and one at a time. It points into this device's transports while it lives, so katherine_acquisition_fini() must run before katherine_device_fini().
 
     katherine_device_info_t info;                 ///< Self-reported information about the device, or what a caller declared. Zeroed until katherine_device_enumerate() or katherine_device_declare() has run.
     katherine_device_derived_info_t derived_info; ///< More useful attributes, automatically derived from \p info. \see katherine_device_declare

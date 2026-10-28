@@ -310,6 +310,10 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  * session reads into one buffer of that size, while a USB ring divides it
  * across the reads it keeps outstanding, each rounded down to a whole frame.
  *
+ * The device holds the acquisition from here until
+ * katherine_acquisition_fini(), and holds one at a time: a second
+ * acquisition on the same device is refused until the first is finalized.
+ *
  * \param acq Acquisition to initialize
  * \param device Katherine device
  * \param ctx User context (may be used to convey useful info)
@@ -327,6 +331,9 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
  * \retval KATHERINE_E_OK on success, with
  *   katherine_acquisition_t::md_buffer_size holding the size the link
  *   settled on rather than the one asked for.
+ * \retval KATHERINE_E_STATE if the device already holds an acquisition.
+ *   Alone among the codes here, it leaves \p acq exactly as it was, the
+ *   one already registered being what the refusal protects.
  * \retval KATHERINE_E_NOMEM if the data link's buffer or the pixel buffer
  *   could not be allocated; see malloc(3). The device is not contacted
  *   either way. A USB ring is held by the kernel while its reads are
@@ -366,6 +373,17 @@ dump_config(const katherine_acquisition_t *acq, const katherine_tpx3_config_t *c
 katherine_error_t
 katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *device, void *ctx, size_t md_buffer_size, size_t pixel_buffer_size, uint32_t report_timeout_ms, uint32_t fail_timeout_ms)
 {
+    katherine_error_t res;
+
+    // Before the memset, and the one failure here that leaves the caller's
+    // acquisition untouched: zeroing it first would drop the data link of
+    // whichever acquisition the device already holds, which is the object
+    // this refusal exists to protect.
+    if (device->acquisition != NULL) {
+        res = KATHERINE_E_STATE;
+        goto err_device_taken;
+    }
+
     // Before the first thing that can fail, and before anything is read back.
     // Three things turn on it: the phase state has to be defined before
     // begin() runs, since the offset accessor is readable on an initialized
@@ -376,8 +394,6 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     // transport failure below returns before assigning -- finalising then
     // used to free whatever the caller's object happened to hold.
     memset(acq, 0, sizeof(*acq));
-
-    katherine_error_t res;
 
     acq->device   = device;
     acq->user_ctx = ctx;
@@ -416,11 +432,17 @@ katherine_acquisition_init(katherine_acquisition_t *acq, katherine_device_t *dev
     acq->report_timeout_ms = report_timeout_ms;
     acq->fail_timeout_ms   = fail_timeout_ms;
 
+    // From here, not from katherine_acquisition_begin(): the data link is
+    // open and points into the device's transports, so this is where
+    // katherine_device_fini() has to start seeing it.
+    device->acquisition = acq;
+
     return KATHERINE_E_OK;
 
 err_pixel_buffer:
     katherine_transport_fini(&acq->data_transport);
 err_no_transport:
+err_device_taken:
     return res;
 }
 
@@ -429,10 +451,11 @@ err_no_transport:
  * \param acq Acquisition to finalize
  *
  * Runs before katherine_device_fini() on the device this was initialized
- * against. An acquisition points into that device's transports while it
- * lives, so the device cannot be finalized under it; katherine_device_fini()
- * asserts on a device still holding one, and leaks its link rather than
- * tearing it down.
+ * against, and gives the device back: until it does, the device holds this
+ * acquisition and refuses to initialize another. An acquisition points into
+ * that device's transports while it lives, so the device cannot be finalized
+ * under it; katherine_device_fini() asserts on a device still holding one,
+ * and leaks its link rather than tearing it down.
  *
  * \note The acquisition is spent afterwards, not reset: it releases its
  *   device and every later call refuses with KATHERINE_E_STATE. Reuse means
@@ -994,7 +1017,6 @@ katherine_acquisition_read(katherine_acquisition_t *acq)
 #undef ACQ_DISPATCH
 
 err_unsupported:
-    if (acq->device->acquisition == acq) acq->device->acquisition = NULL;
 err_device:
     return res;
 }
@@ -1083,7 +1105,8 @@ acquisition_pixel_size(katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
  *   see katherine_transport_get_last_os_error().
  * \retval KATHERINE_E_UNSUPPORTED if the end trigger's delay is armed on a
  *   readout of the first generation; see katherine_set_acquisition_triggers().
- * \retval KATHERINE_E_STATE if the acquisition holds no device, or if that
+ * \retval KATHERINE_E_STATE if the acquisition is already running, or holds
+ *   no device, or if that
  *   device has been neither enumerated nor declared, or is one this version
  *   cannot drive. Refused here rather than at
  *   the first katherine_acquisition_read(), so a caller learns before the
@@ -1110,6 +1133,13 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     // An acquisition katherine_acquisition_init() never filled, or that
     // katherine_acquisition_fini() has since released, holds no device.
     if (acq->device == NULL) {
+        res = KATHERINE_E_STATE;
+        goto err;
+    }
+
+    // Starting a run that is already running would reconfigure the readout
+    // mid-measurement and reset the counters its data is being read into.
+    if (acq->state == KATHERINE_ACQUISITION_STATE_RUNNING) {
         res = KATHERINE_E_STATE;
         goto err;
     }
@@ -1219,7 +1249,6 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     acq->state = KATHERINE_ACQUISITION_STATE_RUNNING;
 
     // This creates user obligation to either stop or read the data.
-    acq->device->acquisition = acq;
     return KATHERINE_E_OK;
 
 err_cmd:

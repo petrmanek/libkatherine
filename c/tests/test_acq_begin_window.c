@@ -1,6 +1,6 @@
 /**
  * \file
- * \brief The window katherine_acquisition_begin() sets its state in.
+ * \brief The windows katherine_acquisition_begin() opens and closes.
  *
  * begin() used to mark the acquisition RUNNING after
  * katherine_tpx3_set_acq_mode() returned, with the control lock, a flush
@@ -214,6 +214,58 @@ test_a_pixel_buffer_under_one_hit_is_refused(void)
     fixture_stop();
 }
 
+// The device holds its acquisition from katherine_acquisition_init(), where
+// the data link is opened, and not from begin(), which is where the
+// registration used to be written. Between the two calls an acquisition held
+// an open link that katherine_device_fini()'s guard could not see.
+static void
+test_the_device_holds_the_acquisition_from_init(void)
+{
+    KT_REQUIRE(fixture_start());
+
+    katherine_acquisition_t acq;
+    KT_REQUIRE(katherine_acquisition_init(
+                   &acq, &g_device, NULL, MD_BUFFER_SIZE, PIXEL_BUFFER_BYTES, REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
+        == KATHERINE_E_OK);
+
+    // Nothing has begun, and the device already knows about it.
+    KT_CHECK(g_device.acquisition == &acq);
+    KT_CHECK_EQ((int) acq.state, (int) KATHERINE_ACQUISITION_STATE_NOT_STARTED);
+
+    katherine_acquisition_fini(&acq);
+    KT_CHECK(g_device.acquisition == NULL);
+
+    fixture_stop();
+}
+
+// Holding the acquisition is not the same as measuring. The chip inquiries
+// are refused while the lanes carry a measurement and not a moment longer,
+// so the registration moving earlier must not close them earlier.
+static void
+test_only_a_running_acquisition_closes_the_chip_inquiries(void)
+{
+    KT_REQUIRE(fixture_start());
+
+    katherine_tpx3_config_t *config = make_config();
+    KT_REQUIRE(config != NULL);
+
+    katherine_acquisition_t acq;
+    KT_REQUIRE(katherine_acquisition_init(
+                   &acq, &g_device, NULL, MD_BUFFER_SIZE, PIXEL_BUFFER_BYTES, REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
+        == KATHERINE_E_OK);
+
+    float temperature = 0.0f;
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, 0, &temperature), KATHERINE_E_OK);
+
+    KT_REQUIRE(katherine_acquisition_begin(&acq, config, true) == KATHERINE_E_OK);
+    KT_CHECK_EQ(katherine_get_sensor_temperature(&g_device, 0, &temperature), KATHERINE_E_STATE);
+
+    (void) katherine_acquisition_abort(&acq);
+    katherine_acquisition_fini(&acq);
+    free(config);
+    fixture_stop();
+}
+
 int
 main(void)
 {
@@ -221,5 +273,7 @@ main(void)
     KT_RUN(test_a_start_the_link_refuses_leaves_it_not_running);
     KT_RUN(test_the_retry_after_a_refused_start_succeeds);
     KT_RUN(test_a_pixel_buffer_under_one_hit_is_refused);
+    KT_RUN(test_the_device_holds_the_acquisition_from_init);
+    KT_RUN(test_only_a_running_acquisition_closes_the_chip_inquiries);
     return kt_summary();
 }

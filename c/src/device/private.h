@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <katherine/acquisition.h>
 #include <katherine/device.h>
 #include <katherine/transport.h>
 
@@ -50,6 +51,23 @@ static inline const katherine_device_state_t *
 katherine_device_state_const(const katherine_device_t *device)
 {
     return (const katherine_device_state_t *) &device->priv;
+}
+
+/**
+ * True while a measurement is running on this device.
+ *
+ * The device holds its acquisition from katherine_acquisition_init() to
+ * katherine_acquisition_fini(), which is the window where finalizing the
+ * device would tear transports out from under it. The chip's slow-control
+ * lanes are busy for a shorter window than that -- only while the readout
+ * is sending -- so the guards that protect them ask this rather than
+ * reading the pointer.
+ */
+static inline bool
+katherine_device_is_measuring(const katherine_device_t *device)
+{
+    const katherine_acquisition_t *acq = (const katherine_acquisition_t *) device->acquisition;
+    return acq != NULL && acq->state == KATHERINE_ACQUISITION_STATE_RUNNING;
 }
 
 /**

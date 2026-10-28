@@ -64,6 +64,7 @@ test_sensor_temperature_refused_while_running(void)
     // behaviour under test.
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
+    acq.state          = KATHERINE_ACQUISITION_STATE_RUNNING;
     device.acquisition = &acq;
     KT_CHECK_EQ(katherine_get_sensor_temperature(&device, 0, &temperature), KATHERINE_E_STATE);
 
@@ -89,6 +90,7 @@ test_dac_monitor_refused_while_running(void)
 
     katherine_acquisition_t acq;
     memset(&acq, 0, sizeof(acq));
+    acq.state          = KATHERINE_ACQUISITION_STATE_RUNNING;
     device.acquisition = &acq;
 
     float voltage = 0.0f;
@@ -136,6 +138,7 @@ test_guard_is_the_first_thing_the_call_does(void)
     katherine_acquisition_t acq;
     memset(&device, 0, sizeof(device));
     memset(&acq, 0, sizeof(acq));
+    acq.state          = KATHERINE_ACQUISITION_STATE_RUNNING;
     device.acquisition = &acq;
 
     float first = 0.0f, second = 0.0f;
@@ -144,13 +147,12 @@ test_guard_is_the_first_thing_the_call_does(void)
 }
 
 // A begin that fails must not leave the device claiming a measurement. The
-// flag is set on the success path only, after the start command is away, so
-// every early return out of katherine_acquisition_begin() -- the argument
-// check here, and equally the session lock and the start command further down,
-// which this test cannot provoke without a readout -- leaves the device idle.
-// Were it set before those, a caller whose begin failed would be refused
-// inquiries indefinitely: it has no reason to call read(), and read() is what
-// clears the flag.
+// running state is entered on the success path only, after the start command
+// is away, so every early return out of katherine_acquisition_begin() -- the
+// argument check here, and equally the session lock and the start command
+// further down, which this test cannot provoke without a readout -- leaves
+// the device idle. Were it entered before those, a caller whose begin failed
+// would be refused inquiries for as long as the acquisition lived.
 static void
 test_failed_begin_leaves_the_device_idle(void)
 {
@@ -184,7 +186,7 @@ test_failed_begin_leaves_the_device_idle(void)
     config_p->fast_vco_enable   = false;
 
     KT_CHECK_EQ(katherine_acquisition_begin(&acq, config_p, true), KATHERINE_E_INVAL);
-    KT_CHECK(device.acquisition == NULL);
+    KT_CHECK(acq.state == KATHERINE_ACQUISITION_STATE_NOT_STARTED);
     free(config_p);
 }
 
@@ -228,7 +230,7 @@ test_fast_vco_refused_where_incoherent(void)
         config_p->fast_vco_enable   = true;
 
         KT_CHECK_EQ(katherine_acquisition_begin(&acq, config_p, true), KATHERINE_E_INVAL);
-        KT_CHECK(device.acquisition == NULL);
+        KT_CHECK(acq.state == KATHERINE_ACQUISITION_STATE_NOT_STARTED);
         ++refused;
     }
 
@@ -387,6 +389,7 @@ test_fini_leaves_another_acquisitions_registration_alone(void)
     memset(&other, 0, sizeof(other));
 
     running.device     = &device;
+    running.state      = KATHERINE_ACQUISITION_STATE_RUNNING;
     other.device       = &device;
     device.acquisition = &running;
 
@@ -449,7 +452,9 @@ test_a_device_knows_which_acquisition_is_live(void)
     memset(&acq, 0, sizeof(acq));
     acq.device = &device;
 
-    // Registered the way katherine_acquisition_begin() leaves it.
+    // Registered the way katherine_acquisition_init() leaves it, and
+    // measuring, which is what the inquiry guards read.
+    acq.state          = KATHERINE_ACQUISITION_STATE_RUNNING;
     device.acquisition = &acq;
     KT_CHECK(device.acquisition == &acq);
 
@@ -464,6 +469,65 @@ test_a_device_knows_which_acquisition_is_live(void)
 }
 
 
+// One acquisition at a time. The second one would open a second data link
+// against the same readout and overwrite the registration that is the first
+// one's only protection against katherine_device_fini(). Reachable without a
+// readout: the refusal is the first statement of the call, so no address is
+// resolved and no socket is opened.
+static void
+test_a_second_acquisition_on_one_device_is_refused(void)
+{
+    katherine_device_t device;
+    katherine_acquisition_t first;
+
+    memset(&device, 0, sizeof(device));
+    memset(&first, 0, sizeof(first));
+    device.acquisition = &first;
+
+    // Filled with a pattern rather than zeroed, so that the refusal leaving
+    // it alone is visible. Every other failure of init() hands back a zeroed
+    // acquisition; this one must not, the zeroing being what would drop the
+    // first acquisition's link.
+    katherine_acquisition_t second;
+    unsigned char before[sizeof(second)];
+    memset(&second, 0xA5, sizeof(second));
+    memcpy(before, &second, sizeof(before));
+
+    KT_CHECK_EQ(katherine_acquisition_init(&second, &device, NULL, 65536, 4096, 10, 10), KATHERINE_E_STATE);
+    KT_CHECK(memcmp(before, &second, sizeof(before)) == 0);
+    KT_CHECK(device.acquisition == &first);
+}
+
+// And a measurement is begun once. A second begin would reconfigure the
+// readout and zero the counters the first run's data is being decoded into,
+// which is a corrupted measurement rather than a failed one.
+static void
+test_beginning_a_running_acquisition_is_refused(void)
+{
+    katherine_device_t device;
+    katherine_acquisition_t acq;
+    katherine_tpx3_config_t *const config = alloc_config_1();
+    KT_REQUIRE(config != NULL);
+
+    memset(&device, 0, sizeof(device));
+    memset(&acq, 0, sizeof(acq));
+    memset(config, 0, CONFIG_SIZE_1);
+    config->common.chip_type  = KATHERINE_CHIP_TPX3;
+    config->common.chip_count = 1;
+
+    acq.device = &device;
+    acq.state  = KATHERINE_ACQUISITION_STATE_RUNNING;
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, config, true), KATHERINE_E_STATE);
+
+    // And before the rest of the call, so that a caller who begins twice is
+    // told that and not something further down. A reserved handler slot is
+    // the next refusal there is, and it does not win.
+    acq.handlers.reserved[0] = (void (*)(void)) test_beginning_a_running_acquisition_is_refused;
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, config, true), KATHERINE_E_STATE);
+
+    free(config);
+}
+
 int
 main(void)
 {
@@ -477,6 +541,8 @@ main(void)
     KT_RUN(test_a_failed_link_ends_the_read_instead_of_being_retried);
     KT_RUN(test_a_reserved_handler_slot_is_refused);
     KT_RUN(test_a_device_knows_which_acquisition_is_live);
+    KT_RUN(test_a_second_acquisition_on_one_device_is_refused);
+    KT_RUN(test_beginning_a_running_acquisition_is_refused);
 
     KT_RUN(test_fini_leaves_another_acquisitions_registration_alone);
     return kt_summary();

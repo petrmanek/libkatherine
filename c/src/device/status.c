@@ -421,7 +421,7 @@ katherine_get_sensor_temperature(katherine_device_t *device, uint8_t chip_index,
 
     // Asking for temperature during an ongoing acquisition crashes the super-pixel
     // oscillator, which freezes fToA of hits to a constant value. Guard against that.
-    if (device->acquisition != NULL) {
+    if (katherine_device_is_measuring(device)) {
         res = KATHERINE_E_STATE;
         goto err_busy;
     }
@@ -849,7 +849,7 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
     // The same hazard katherine_get_sensor_temperature() guards, and for the
     // same reason: the chip's slow-control lanes are carrying the
     // measurement.
-    if (device->acquisition != NULL) {
+    if (katherine_device_is_measuring(device)) {
         res = KATHERINE_E_STATE;
         goto err_busy;
     }
@@ -954,7 +954,7 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
     // The same hazard katherine_get_sensor_temperature() guards, and for the
     // same reason: the chip's slow-control lanes are carrying the
     // measurement.
-    if (device->acquisition != NULL) {
+    if (katherine_device_is_measuring(device)) {
         res = KATHERINE_E_STATE;
         goto err_busy;
     }

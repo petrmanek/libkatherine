@@ -618,6 +618,47 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### A device holds its acquisition from `init()`, not from `begin()`
+
+`katherine_acquisition_init()` is where the data link is opened, so it is
+now where the device starts holding the acquisition --
+`katherine_acquisition_begin()` used to write that registration, leaving a
+window in which an acquisition held an open link that
+`katherine_device_fini()`'s guard could not see:
+
+```c
+katherine_acquisition_init(&acq, &dev, ...);   /* opens the data link */
+katherine_device_fini(&dev);                   /* the guard passed */
+katherine_acquisition_fini(&acq);              /* finalises that link */
+```
+
+On UDP the data link owns its socket and the order does not matter. On USB
+it owns nothing: the context and handle belong to the control transport, so
+the device's close ran `libusb_exit()` and the acquisition's close then
+drove `libusb_free_transfer()` against a freed context.
+
+`katherine_device_fini()`'s own documentation invited the sequence, saying
+every acquisition *started* on the device had to be finalized first. An
+acquisition that `init()` returned was never started.
+
+Two consequences a caller can see:
+
+- **One acquisition per device.** A second `katherine_acquisition_init()`
+  against a device that already holds one returns `KATHERINE_E_STATE`.
+  Alone among that call's failures it leaves the caller's acquisition
+  untouched rather than zeroed -- zeroing it is what would drop the first
+  acquisition's link.
+- **`katherine_acquisition_begin()` refuses an acquisition that is already
+  running**, with `KATHERINE_E_STATE`, before it reconfigures anything.
+
+The chip inquiries that the measurement blocks -- the sensor temperature
+and the two DAC monitors -- are **unchanged**: they ask whether a
+measurement is running, not whether the device holds an acquisition, so
+they stay open between `init()` and `begin()` and open again once the run
+ends. Python's `Device` drops the acquisition counter it kept to cover this
+window itself; `Device.close()` reads the C registration and raises the
+same `ValueError` it did.
+
 ### The readout's identity is one structure, held once
 
 `katherine_readout_status_t` and `katherine_device_info_t` carried the same

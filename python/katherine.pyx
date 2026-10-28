@@ -718,13 +718,6 @@ cdef class Device:
     releases the readout however the block is left."""
 
     cdef cdevice.katherine_device_t* _c_device
-    # Acquisitions still alive on this device. The C library registers one
-    # only at begin(), but katherine_acquisition_init() already stores the
-    # device pointer and katherine_acquisition_fini() dereferences it, so
-    # closing underneath an acquisition that has merely been initialized
-    # would leave that pointer dangling. Counted here because the C guard
-    # does not cover it.
-    cdef int _acquisitions
 
     def __cinit__(self, address, uint32_t flags=0):
          # Encode before allocating, for the reason Acquisition.__cinit__
@@ -770,7 +763,7 @@ cdef class Device:
          still holds. Close the acquisition first; nothing cascades."""
          if self._c_device is NULL:
              return
-         if self._acquisitions > 0 or self._c_device.acquisition is not NULL:
+         if self._c_device.acquisition is not NULL:
              raise ValueError('cannot close a Device while an Acquisition is open on it')
          cdevice.katherine_device_fini(self._c_device)
          PyMem_Free(self._c_device)
@@ -2237,7 +2230,6 @@ cdef class Acquisition:
       self._c_acq.handlers.data_received = _forward_data_received
       self.observer = AcquisitionObserver()
       self._device = dev
-      dev._acquisitions += 1
 
     # As Device._dev(): one check in one place, so a method added later
     # cannot reach a freed acquisition.
@@ -2260,9 +2252,7 @@ cdef class Acquisition:
       cacquisition.katherine_acquisition_fini(self._c_acq)
       PyMem_Free(self._c_acq)
       self._c_acq = NULL
-      if self._device is not None:
-          self._device._acquisitions -= 1
-          self._device = None
+      self._device = None
 
     def __enter__(self):
       self._acq()
@@ -2283,9 +2273,7 @@ cdef class Acquisition:
          cacquisition.katherine_acquisition_fini(self._c_acq)
          PyMem_Free(self._c_acq)
          self._c_acq = NULL
-         if self._device is not None:
-             self._device._acquisitions -= 1
-             self._device = None
+         self._device = None
 
     def __repr__(self):
       # As Device.__repr__: the one method that answers after close.

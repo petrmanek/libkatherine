@@ -531,7 +531,9 @@ park_bias_supplies(katherine_device_t *device)
  * Finalize Katherine device.
  * \param device Device to finalize.
  *
- * Every acquisition started on this device must be finalized first. An
+ * Every acquisition initialized on this device must be finalized first --
+ * initialized, not started: katherine_acquisition_init() is where the data
+ * link is opened, and so where the device starts holding it. An
  * acquisition points into the device's transports for as long as it lives:
  * on USB its data transport drives the libusb handle this one owns, and on
  * UDP its operations table is this one's. Tearing those down underneath it
