@@ -313,6 +313,11 @@ C++ has one exception type again. `katherine::error` carries `code()`;
 `katherine::system_error` is a deprecated alias of it. Catching the base
 and reading its code is what a reader writes, and it used not to compile.
 
+`katherine.Config` becomes `katherine.Tpx3Config`, the last binding class
+whose C type is `katherine_tpx3_config_t` and whose C++ twin is
+`katherine::tpx3::config` to keep a bare name. The old spelling resolves
+with a `DeprecationWarning` like every other 1.x name.
+
 Python's `Device` and `Acquisition` follow the contract `io.IOBase`
 sets — `close()`, `closed`, `with`, `ValueError` on use after close, and
 a `ResourceWarning` when collected unclosed. `Acquisition.__dealloc__`

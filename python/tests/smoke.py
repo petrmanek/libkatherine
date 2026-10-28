@@ -259,7 +259,7 @@ def build_config(katherine):
     the 16384 configuration words and acknowledges them) but not the matrix
     contents, so the all-zero matrix a fresh Tpx3PxConfig starts out with is
     uploaded and accepted like any other."""
-    c = katherine.Config()
+    c = katherine.Tpx3Config()
 
     c.acq_time = SHORT_ACQ_TIME_NS
     c.frame_count = 1

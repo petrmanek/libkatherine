@@ -478,6 +478,7 @@ names from inside a package of its own will not see the warning without
 
 | 1.x | 2.0 |
 |---|---|
+| `katherine.Config` | `katherine.Tpx3Config` |
 | `katherine.Dacs` | `katherine.Tpx3Dacs` |
 | `katherine.PxConfig` | `katherine.Tpx3PxConfig` |
 | `katherine.TestPulseConfig` | `katherine.Tpx3TestPulseConfig` |

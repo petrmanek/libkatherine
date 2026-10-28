@@ -923,7 +923,7 @@ cdef class Device:
          res = cconfig.katherine_tpx3_set_test_pulses(self._dev(), &test_pulse_config._c_test_pulse_config)
          check_return_code(res)
 
-    def configure(self, Config config):
+    def configure(self, Tpx3Config config):
          res = cconfig.katherine_tpx3_configure(self._dev(), config._c_config)
          check_return_code(res)
 
@@ -1685,7 +1685,7 @@ class Tpx3Reg(_Enum):
     EXT_DAC_SELECTOR      = cconfig.katherine_tpx3_reg_t.KATHERINE_TPX3_REG_EXT_DAC_SELECTOR
 
 
-cdef class Config:
+cdef class Tpx3Config:
     cdef cconfig.katherine_tpx3_config_t *_c_config
     cdef readonly uint8_t chip_count
 
@@ -2271,7 +2271,7 @@ cdef class Acquisition:
           return '<katherine.Acquisition [closed]>'
       return _snprint_repr(<snprint_fn_t> cacquisition.katherine_acquisition_snprint, self._c_acq)
 
-    def begin(self, Config config, bool decode_data=True):
+    def begin(self, Tpx3Config config, bool decode_data=True):
       """Configures the readout and opens the shutter. The readout mode, the
       pixel mode and the oscillator setting come from the configuration,
       where they used to be arguments here."""
@@ -2454,6 +2454,7 @@ def TPX3_MD_SIZE():
 
 #: What each 1.x class is called now, or None where 2.0 has no equivalent.
 _RENAMED_IN_2_0 = {
+    'Config':           'Tpx3Config',
     'Dacs':             'Tpx3Dacs',
     'PxConfig':         'Tpx3PxConfig',
     'TestPulseConfig':  'Tpx3TestPulseConfig',

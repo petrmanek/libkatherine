@@ -52,7 +52,7 @@ def paint_test_pixels(px_config):
 
 
 def configure(chip_count):
-    c = k.Config(chip_count)
+    c = k.Tpx3Config(chip_count)
 
     c.acq_time          = 10e9 # ns
     c.frame_count         = 1
