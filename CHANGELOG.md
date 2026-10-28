@@ -394,6 +394,37 @@ every pointer it reads from does not; the one in-out pointer, the count
 the discovery calls take, refuses `NULL` with `KATHERINE_E_INVAL`
 because it carries the buffer's capacity in.
 
+### A readout can be found rather than typed in
+
+`katherine_device_discover_udp()` sweeps an address range and
+`katherine_device_discover_usb()` walks the bus; both fill an array of
+`katherine_discovered_t` and write back how many answered. What each one
+carries is the address the readout answered from, **spelled with its
+transport** -- `udp://192.168.1.42`, `usb://4-1` -- and so ready to hand
+to `katherine_device_init()` without assembling anything.
+
+The structure is common to both links, because what differs is how a
+transport goes looking and not what it finds. Its other field is `legacy`,
+true where the firmware ignored the reply port and answered on the
+standard one, which is a property of the firmware rather than of the
+generation.
+
+`KATHERINE_DISCOVER_MIN_PORT` is the floor on that reply port. The
+firmware reads it out of the request's first two bytes and falls back to
+its own default below this, which would send every answer to the port a
+running session is already using.
+
+The two links differ in one way worth knowing: the USB walk opens
+nothing. It reads descriptors and topology only, so it answers before a
+udev rule has granted access to the device, where the UDP sweep has to put
+a datagram on the wire and wait.
+
+`kfind` is the example: with no argument it scans `192.168.1.100-200`, and
+each of the four octets may be a number or a `lo-hi` range. C++ has
+`katherine::discover()` and `katherine::discover_usb()` returning a
+`std::vector<katherine::discovered>`; Python has `discover_udp()` and
+`discover_usb()` returning `(address, legacy)` pairs.
+
 ### The examples name the chip they are talking to
 
 `kinfo`, `ktemp`, `krun` and `kdac` address every chip a readout
