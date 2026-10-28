@@ -141,6 +141,17 @@ typedef struct katherine_acquisition_handlers {
     // If katherine_acquisition_t::decode_data == false, you may register
     // handlers for the following callbacks:
     void (*data_received)(void *, const char *, size_t); ///< Raw, undecoded measurement data as received
+
+    /**
+     * Room for handlers a later version adds, so that adding one does not
+     * move katherine_acquisition_t::priv and everything behind it.
+     *
+     * Leave these NULL. katherine_acquisition_begin() refuses a table that
+     * does not, because a caller who put something here would be silently
+     * reinterpreted the moment a slot is given a meaning -- the same
+     * contract the configuration's reserved words carry.
+     */
+    void (*reserved[4])(void);
 } katherine_acquisition_handlers_t;
 
 /** Bytes katherine_acquisition_t reserves for the decoder's private state. */

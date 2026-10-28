@@ -618,6 +618,24 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The handler table has room for a handler 2.1 adds
+
+`katherine_acquisition_handlers_t` had four function pointers and nothing
+after them, so adding a fifth would move `katherine_acquisition_t::priv`
+and everything behind it -- an ABI break for a change that ought to be
+additive.
+
+It gains `void (*reserved[4])(void)`, which takes the table to a round 64
+bytes. Leave the slots NULL: `katherine_acquisition_begin()` answers
+`KATHERINE_E_BAD_RESERVED` if any holds a handler, which is the same
+contract the configuration's reserved words already carry and for the same
+reason -- a caller who put something there would be silently reinterpreted
+the moment a slot is given a meaning.
+
+Four rather than three because four is where the table lands on 64 bytes,
+for eight bytes more than three. Two is the one not to take: the first
+addition after it leaves the same awkward remainder this exists to avoid.
+
 ### A frame's timestamps are per chip, because the readout sends them per chip
 
 Measured on the two-chip readout on 2026-10-28, not inferred: every frame

@@ -1094,8 +1094,12 @@ acquisition_pixel_size(katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
  *   configuration carries, so a device enumerated as carrying nothing fails
  *   at the first of them; see katherine_device_info_t::chip_count.
  * \retval KATHERINE_E_BAD_RESERVED if a reserved word of the configuration
- *   is not zero; this call configures the readout, see
- *   katherine_tpx3_configure().
+ *   is not zero -- this call configures the readout, see
+ *   katherine_tpx3_configure() -- or if a reserved slot of
+ *   katherine_acquisition_handlers_t holds a handler. Zero the handler
+ *   table before filling it rather than clearing the fields this version
+ *   names, because a later version may give a slot meaning and will call
+ *   what is there.
  */
 katherine_error_t
 katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_config_t *config, bool decode_data)
@@ -1108,6 +1112,15 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
     if (acq->device == NULL) {
         res = KATHERINE_E_STATE;
         goto err;
+    }
+
+    // A handler in a reserved slot is a handler this version will not call
+    // and a later one will, so it is refused rather than ignored.
+    for (size_t i = 0; i < sizeof(acq->handlers.reserved) / sizeof(acq->handlers.reserved[0]); ++i) {
+        if (acq->handlers.reserved[i] != NULL) {
+            res = KATHERINE_E_BAD_RESERVED;
+            goto err;
+        }
     }
 
     acq->px_mode          = config->px_mode;

@@ -150,6 +150,10 @@ public:
             /* .frame_started = */ base_acquisition::forward_frame_started,
             /* .frame_ended = */ base_acquisition::forward_frame_ended,
             /* .data_received = */ base_acquisition::forward_data_received,
+            // Named rather than left to the aggregate's trailing zeroes, so
+            // that adding a handler here is a compiler error rather than a
+            // slot that quietly stays NULL.
+            /* .reserved = */ {nullptr, nullptr, nullptr, nullptr},
         };
     }
 

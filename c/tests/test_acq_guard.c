@@ -402,6 +402,37 @@ test_fini_leaves_another_acquisitions_registration_alone(void)
     KT_CHECK(device.acquisition == NULL);
 }
 
+// A handler in a reserved slot is refused, not ignored: this version will
+// not call it and a later one will, so the caller finds out now.
+static void
+test_a_reserved_handler_slot_is_refused(void)
+{
+    katherine_device_t device;
+    katherine_acquisition_t acq;
+
+    memset(&device, 0, sizeof(device));
+    memset(&acq, 0, sizeof(acq));
+    acq.device = &device;
+
+    // Zeroed, so the configuration's own reserved words are clean and the
+    // only thing under test is the handler table.
+    katherine_tpx3_config_t *config = calloc(1, KATHERINE_TPX3_CONFIG_SIZE(1));
+    KT_REQUIRE(config != NULL);
+    config->common.chip_type  = KATHERINE_CHIP_TPX3;
+    config->common.chip_count = 1;
+
+    // Reached before anything touches a link, so a hand-built device is
+    // enough and no readout is needed.
+    acq.handlers.reserved[2] = (void (*)(void)) test_a_reserved_handler_slot_is_refused;
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, config, true), KATHERINE_E_BAD_RESERVED);
+
+    // And a zeroed table gets past it, to fail later for its own reasons.
+    acq.handlers.reserved[2] = NULL;
+    KT_CHECK(katherine_acquisition_begin(&acq, config, true) != KATHERINE_E_BAD_RESERVED);
+
+    free(config);
+}
+
 // The device holds exactly one acquisition pointer, and that pointer is what
 // katherine_device_fini() refuses to tear down under. Asserting the
 // invariant rather than the refusal: the refusal behaves differently by
@@ -444,6 +475,7 @@ main(void)
     KT_RUN(test_fast_vco_refused_where_incoherent);
     KT_RUN(test_aborting_an_unreachable_readout_still_ends_the_run);
     KT_RUN(test_a_failed_link_ends_the_read_instead_of_being_retried);
+    KT_RUN(test_a_reserved_handler_slot_is_refused);
     KT_RUN(test_a_device_knows_which_acquisition_is_live);
 
     KT_RUN(test_fini_leaves_another_acquisitions_registration_alone);
