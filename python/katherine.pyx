@@ -836,7 +836,7 @@ cdef class Device:
          return _snprint_repr(<snprint_fn_t> cdevice.katherine_device_snprint, self._c_device)
 
     def can_correct_timestamp_phase(self):
-         return cdevice.katherine_device_can_correct_timestamp_phase(self._dev())
+         return cdevice.katherine_tpx3_can_correct_timestamp_phase(self._dev())
 
     def get_readout_status(self):
          cdef ReadoutStatus status = ReadoutStatus()
@@ -2403,7 +2403,7 @@ cdef class Acquisition:
        return Tpx3PhaseCorrection(self._acq().phase_correction)
 
     def timestamp_phase_offset(self, int x, int y):
-       return cacquisition.katherine_acquisition_timestamp_phase_offset(self._acq(), Tpx3PxConfig._coord(x, y))
+       return cacquisition.katherine_tpx3_timestamp_phase_offset(self._acq(), Tpx3PxConfig._coord(x, y))
 
 
 cdef void _forward_frame_started(void *user_ctx, int frame_idx) noexcept:

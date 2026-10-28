@@ -49,7 +49,7 @@ typedef struct katherine_acquisition_tpx3_priv {
      * Per-column phase offsets in fine-oscillator ticks, added by the decoder.
      * Filled only when phase_correction is SOFTWARE; all zeroes otherwise, so
      * the decoder needs no test for whether correction is in effect. Read it
-     * through katherine_acquisition_timestamp_phase_offset().
+     * through katherine_tpx3_timestamp_phase_offset().
      */
     uint8_t phase_offsets[KATHERINE_TPX3_MATRIX_WIDTH];
 } katherine_acquisition_tpx3_priv_t;

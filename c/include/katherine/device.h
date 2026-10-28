@@ -240,7 +240,7 @@ KATHERINE_EXPORTED katherine_error_t
 katherine_device_select_interface(katherine_device_t *device);
 
 KATHERINE_EXPORTED bool
-katherine_device_can_correct_timestamp_phase(const katherine_device_t *device);
+katherine_tpx3_can_correct_timestamp_phase(const katherine_device_t *device);
 
 KATHERINE_EXPORTED katherine_error_t
 katherine_device_enumerate(katherine_device_t *device);

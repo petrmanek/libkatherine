@@ -727,7 +727,7 @@ DEFINE_ACQ_IMPL_EVERY_GEN(DEFINE_ACQ_IMPL_UNSHIFTED, event_count_itot)
  * of a fine tick.
  *
  * Internal on purpose: the offsets reach callers through
- * katherine_acquisition_timestamp_phase_offset(), not as a table of their
+ * katherine_tpx3_timestamp_phase_offset(), not as a table of their
  * own.
  *
  * \param coarse_tick_to_fine_shift Bitshift needed to calculate the number of
@@ -771,7 +771,7 @@ resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_tpx
     if (priv->phase_count <= 1) return KATHERINE_TPX3_PHASE_CORRECTION_NONE;
 
     // Offloaded to hardware if supported.
-    if (katherine_device_can_correct_timestamp_phase(acq->device))
+    if (katherine_tpx3_can_correct_timestamp_phase(acq->device))
         return KATHERINE_TPX3_PHASE_CORRECTION_HARDWARE;
 
     // Otherwise: there are at least two phases, correction was requested, and hardware does not support offloading
@@ -800,7 +800,7 @@ resolve_phase_correction(const katherine_acquisition_t *acq, const katherine_tpx
  * \return Offset applied to this pixel's column, in fine-oscillator ticks.
  */
 uint8_t
-katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord)
+katherine_tpx3_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord)
 {
     const katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv_const(acq);
 

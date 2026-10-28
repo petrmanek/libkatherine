@@ -41,7 +41,7 @@ static void
 every_call_refuses(void)
 {
     KT_CHECK(katherine_acquisition_snprint(scratch, sizeof(scratch), &acq) > 0);
-    (void) katherine_acquisition_timestamp_phase_offset(&acq, (katherine_tpx3_coord_t) {0, 0});
+    (void) katherine_tpx3_timestamp_phase_offset(&acq, (katherine_tpx3_coord_t) {0, 0});
 
     KT_CHECK(katherine_acquisition_begin(&acq, &config, true) == KATHERINE_E_STATE);
     KT_CHECK(katherine_acquisition_abort(&acq) == KATHERINE_E_STATE);

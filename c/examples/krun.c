@@ -293,7 +293,7 @@ pixels_received_counters(void *user_ctx, const void *px, size_t count)
 
     const px_t *dpx = (const px_t *) px;
     for (size_t i = 0; i < count; ++i) {
-        const uint8_t phase = katherine_acquisition_timestamp_phase_offset(acq, dpx[i].coord);
+        const uint8_t phase = katherine_tpx3_timestamp_phase_offset(acq, dpx[i].coord);
 
         uint64_t toa = 0;
         uint8_t ftoa = 0;

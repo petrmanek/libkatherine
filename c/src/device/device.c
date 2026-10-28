@@ -488,13 +488,13 @@ err_address:
  * firmware version identified, and the version retained at open, where it is
  * currently read and discarded.
  *
- * \see katherine_acquisition_timestamp_phase_offset
+ * \see katherine_tpx3_timestamp_phase_offset
  *
  * \param device Device to ask.
  * \return true if the readout corrects the phase stagger itself.
  */
 bool
-katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)
+katherine_tpx3_can_correct_timestamp_phase(const katherine_device_t *device)
 {
     (void) device;
 

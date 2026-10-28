@@ -117,7 +117,7 @@ test_accessor_reports_the_applied_offset(void)
 
             for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
                 const katherine_tpx3_coord_t co = {(uint8_t) x, 128};
-                KT_CHECK_EQ(katherine_acquisition_timestamp_phase_offset(&acq, co),
+                KT_CHECK_EQ(katherine_tpx3_timestamp_phase_offset(&acq, co),
                     expected_offset(FREQS[f], PHASES[p], (uint8_t) x));
             }
         }
@@ -136,8 +136,8 @@ test_double_column_halves_share_a_phase(void)
     for (unsigned dc = 0; dc < KATHERINE_TPX3_MATRIX_WIDTH / 2; ++dc) {
         const katherine_tpx3_coord_t even = {(uint8_t) (2 * dc), 0};
         const katherine_tpx3_coord_t odd  = {(uint8_t) (2 * dc + 1), 0};
-        KT_CHECK_EQ(katherine_acquisition_timestamp_phase_offset(&acq, even),
-            katherine_acquisition_timestamp_phase_offset(&acq, odd));
+        KT_CHECK_EQ(katherine_tpx3_timestamp_phase_offset(&acq, even),
+            katherine_tpx3_timestamp_phase_offset(&acq, odd));
     }
 }
 
@@ -152,7 +152,7 @@ test_no_offset_without_correction(void)
 
         for (unsigned x = 0; x < KATHERINE_TPX3_MATRIX_WIDTH; ++x) {
             const katherine_tpx3_coord_t co = {(uint8_t) x, 0};
-            KT_CHECK_EQ(katherine_acquisition_timestamp_phase_offset(&acq, co), 0u);
+            KT_CHECK_EQ(katherine_tpx3_timestamp_phase_offset(&acq, co), 0u);
         }
     }
 }
@@ -255,7 +255,7 @@ test_recovery_undoes_correction(void)
         const uint8_t x                 = (uint8_t) (2 * dc);
         const katherine_tpx3_coord_t co = {x, 128};
         const uint64_t t                = decode_one(&on, x, 4321, 9);
-        const uint8_t phi               = katherine_acquisition_timestamp_phase_offset(&on, co);
+        const uint8_t phi               = katherine_tpx3_timestamp_phase_offset(&on, co);
 
         uint64_t toa = 0;
         uint8_t ftoa = 0;

@@ -324,7 +324,7 @@ What such a caller usually wanted is available without them:
 |---|---|
 | `acq.toa_coarse_tick_to_fine_shift` | `katherine_tpx3_toa_coarse_tick_to_fine_shift(freq)`, with the frequency you configured |
 | `acq.phase_count` | `katherine_tpx3_actual_phases(freq, phase)` |
-| `acq.phase_offsets[x]` | `katherine_acquisition_timestamp_phase_offset(&acq, coord)` |
+| `acq.phase_offsets[x]` | `katherine_tpx3_timestamp_phase_offset(&acq, coord)` |
 | `dev.udp_data_port` | nothing public. It was never a setting, only a record of one. |
 
 The reserve is why 2.1 can add Timepix4 without another SONAME: a new

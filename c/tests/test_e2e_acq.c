@@ -966,9 +966,9 @@ test_phase_request_resolution(void)
     check_resolution(KATHERINE_TPX3_FREQ_160_MHZ, KATHERINE_TPX3_PHASE_2, true, KATHERINE_TPX3_PHASE_CORRECTION_NONE);
 
     // HARDWARE is unreachable until a readout reports the capability, so it is
-    // not exercised here; katherine_device_can_correct_timestamp_phase()
+    // not exercised here; katherine_tpx3_can_correct_timestamp_phase()
     // answers false throughout.
-    KT_CHECK(!katherine_device_can_correct_timestamp_phase(&g_device));
+    KT_CHECK(!katherine_tpx3_can_correct_timestamp_phase(&g_device));
 }
 
 // ------------------------------------------------------------------

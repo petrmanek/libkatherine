@@ -64,7 +64,7 @@ extern "C" {
 // carries the same constant offset. Two consequences worth knowing:
 // katherine_tpx3_timestamp_to_toa_ftoa() removes the bias, so the chip's own
 // counters come back exactly -- provided it is also given the phase offset
-// applied to the pixel, from katherine_acquisition_timestamp_phase_offset().
+// applied to the pixel, from katherine_tpx3_timestamp_phase_offset().
 // Passing zero where an offset was applied returns a wrong answer silently,
 // since a phase offset is not a whole coarse tick and corrupts the residue the
 // fine term is read from; and a timestamp converted to seconds sits one

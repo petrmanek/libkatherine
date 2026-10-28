@@ -89,7 +89,7 @@ cdef extern from 'katherine/acquisition.h':
 
     int katherine_acquisition_snprint(char *buf, size_t cap, const katherine_acquisition_t *v)
 
-    uint8_t katherine_acquisition_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord)
+    uint8_t katherine_tpx3_timestamp_phase_offset(const katherine_acquisition_t *acq, katherine_tpx3_coord_t coord)
 
     ctypedef enum katherine_tpx3_readout_mode_t:
         KATHERINE_TPX3_READOUT_SEQUENTIAL

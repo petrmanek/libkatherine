@@ -296,7 +296,7 @@ public:
     bool
     can_correct_timestamp_phase() const
     {
-        return katherine_device_can_correct_timestamp_phase(&dev_);
+        return katherine_tpx3_can_correct_timestamp_phase(&dev_);
     }
 
     /// What the readout answers when asked to identify itself.

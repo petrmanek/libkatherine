@@ -287,6 +287,25 @@ three fewer. Unmodified 1.x source does not have to move: `katherine1.h`
 declares `katherine1_config_t` with the whole 1.x layout, shadows the
 name, and translates. `polarity_holes` stays deliberately absent from it.
 
+### The phase correction is Timepix3's, and now says so
+
+`katherine_acquisition_timestamp_phase_offset()` becomes
+`katherine_tpx3_timestamp_phase_offset()`, and
+`katherine_device_can_correct_timestamp_phase()` becomes
+`katherine_tpx3_can_correct_timestamp_phase()`.
+
+Both were the last bare links in a chain that is otherwise entirely
+prefixed: the first takes a `katherine_tpx3_coord_t`, returns the offset of
+a **Timepix3 double column**, and feeds `katherine_tpx3_timestamp_to_toa_ftoa()`
+-- and every other name in `toa.h` already carried the stem. Neither
+Timepix2 nor Timepix4 staggers its clock phases, so neither will have an
+equivalent to be confused with.
+
+Found by `tools/check_asic_prefix.py` on its first run, which is what that
+check exists for. No shim alias: both are 2.0's own, 1.x having exposed a
+`phase_offsets[]` array rather than a call, and the migration guide's row
+for that array names the new spelling.
+
 ### Smaller renames in the same sweep
 
 `no_frames` is `frame_count`, and `uint32_t` where 1.x declared `int`;

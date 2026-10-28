@@ -71,4 +71,4 @@ cdef extern from 'katherine/device.h':
     int katherine_device_enumerate(katherine_device_t *device)
     int katherine_device_declare(katherine_device_t *device, const katherine_device_info_t *info)
     int katherine_device_select_interface(katherine_device_t *device)
-    bool katherine_device_can_correct_timestamp_phase(const katherine_device_t *device)
+    bool katherine_tpx3_can_correct_timestamp_phase(const katherine_device_t *device)

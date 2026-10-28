@@ -301,7 +301,7 @@ public:
     }
 
     /// The fine-tick offset this pixel's double column needs, which the decoder has already applied.
-    std::uint8_t timestamp_phase_offset(tpx3::coord coord) const { return katherine_acquisition_timestamp_phase_offset(&acq_, coord); }
+    std::uint8_t timestamp_phase_offset(tpx3::coord coord) const { return katherine_tpx3_timestamp_phase_offset(&acq_, coord); }
 
     /// What katherine::tpx3::config::correct_clock_phase() actually resolved to for this acquisition.
     tpx3::phase_correction phase_correction() const { return (tpx3::phase_correction) acq_.phase_correction; }
