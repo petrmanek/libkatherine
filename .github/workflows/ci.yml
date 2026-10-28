@@ -324,6 +324,15 @@ jobs:
       # warning count moves with the doxygen version, so a number calibrated
       # on one machine would fail here for a reason that is not a regression.
       # Printed so a ceiling can be set from real runner data.
+      # Only what a push to master produces is published, so a pull
+      # request builds the documentation and gates on it without uploading
+      # anything.
+      - name: Upload the HTML for publication
+        if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/docs/html
+
       - name: Warning count (observation)
         shell: bash
         run: |
@@ -336,6 +345,30 @@ jobs:
   # bracket the whole range: the strict oldest dialect catches code leaning
   # on GNU extensions or newer-standard features, the newest catches
   # constructs the later standards deprecate or repurpose.
+  # Serves what the docs job just gated. Separate from it because deploying
+  # needs permissions the rest of the workflow should not have, and because
+  # a job that publishes must not run on a pull request from a fork.
+  #
+  # This needs the repository's Pages source set to "GitHub Actions"; until
+  # it is, the job fails with a message saying so and nothing else breaks.
+  pages:
+    name: publish the documentation
+    needs: docs
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
+
   standards:
     name: standards (${{ matrix.name }})
     runs-on: ubuntu-latest
