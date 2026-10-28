@@ -618,6 +618,39 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### A frame's timestamps are per chip, because the readout sends them per chip
+
+Measured on the two-chip readout on 2026-10-28, not inferred: every frame
+carries **one tail per chip**, four words each, and the first of the four
+names its chip in bits [35:32]. The two chips' timers do not agree. They
+sat a **constant 2 214 636 ticks apart -- 55.4 ms** -- in all four frames
+of the run, for both the start and the end.
+
+`katherine_frame_info_t::start_time` and `::end_time` were single values,
+so the second chip's tail overwrote the first's and a caller referencing a
+chip-0 hit against the reported frame start was out by that much. They are
+now arrays indexed by chip, with `reporting_chips` saying how many entries
+are filled.
+
+`KATHERINE_MAX_CHIP_COUNT` is 16, sized by **what the measurement word can
+say** -- the chip field is four bits -- rather than by what today's
+hardware carries. An index off the wire therefore cannot reach the end of
+either array, which is why neither needs a bounds check.
+
+The callback signature is unchanged: only two of the record's fields were
+ever per chip, and making the record itself per chip would have duplicated
+the six that are not. `received_pixels`, `sent_pixels` and `lost_pixels`
+stay per frame, which is what the firmware sends -- one `0xD` and one `0xC`
+after the tails, both totals.
+
+**The first generation is untouched.** Its tail keeps going to chip 0,
+because no first-generation firmware is on this machine to say whether it
+fills that field at all. Only the second generation's header map reads it.
+
+C++ sees the change through its `frame_info` alias. Python keeps
+`start_time` and `end_time` as the first reporting chip and gains
+`start_times`, `end_times` and `reporting_chips`.
+
 ### The frame handlers carry the counter's own type
 
 `frame_started` and `frame_ended` took an `int` frame index, and

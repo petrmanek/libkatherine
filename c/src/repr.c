@@ -556,11 +556,26 @@ katherine_frame_info_snprint(char *buf, size_t cap, const katherine_frame_info_t
 {
     size_t off = 0;
 
-    REPR_APPENDF(buf, cap, off, "frame_info{received_pixels: %llu, sent_pixels: %llu, lost_pixels: %llu, start_time: ",
-        (unsigned long long) v->received_pixels, (unsigned long long) v->sent_pixels, (unsigned long long) v->lost_pixels);
-    REPR_NEST(buf, cap, off, katherine_frame_info_time_snprint, &v->start_time);
-    REPR_APPENDF(buf, cap, off, ", end_time: ");
-    REPR_NEST(buf, cap, off, katherine_frame_info_time_snprint, &v->end_time);
+    REPR_APPENDF(buf, cap, off,
+        "frame_info{received_pixels: %llu, sent_pixels: %llu, lost_pixels: %llu, reporting_chips: %u, start_time: [",
+        (unsigned long long) v->received_pixels, (unsigned long long) v->sent_pixels, (unsigned long long) v->lost_pixels,
+        (unsigned) v->reporting_chips);
+
+    // Only the chips that reported one: the arrays are sized by what the
+    // measurement word can say, not by what answered.
+    for (uint8_t i = 0; i < v->reporting_chips && i < KATHERINE_MAX_CHIP_COUNT; ++i) {
+        if (i > 0) REPR_APPENDF(buf, cap, off, ", ");
+        REPR_NEST(buf, cap, off, katherine_frame_info_time_snprint, &v->start_time[i]);
+    }
+
+    REPR_APPENDF(buf, cap, off, "], end_time: [");
+
+    for (uint8_t i = 0; i < v->reporting_chips && i < KATHERINE_MAX_CHIP_COUNT; ++i) {
+        if (i > 0) REPR_APPENDF(buf, cap, off, ", ");
+        REPR_NEST(buf, cap, off, katherine_frame_info_time_snprint, &v->end_time[i]);
+    }
+
+    REPR_APPENDF(buf, cap, off, "]");
     REPR_APPENDF(buf, cap, off, ", start_time_observed: %lld, end_time_observed: %lld, completed: %s}",
         (long long) v->start_time_observed, (long long) v->end_time_observed, katherine_str_bool(v->completed));
 

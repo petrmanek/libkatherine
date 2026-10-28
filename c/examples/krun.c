@@ -230,8 +230,16 @@ frame_ended(void *user_ctx, uint32_t frame_idx, bool completed, const katherine_
     printf(" - katherine->pc sent %" PRIu64 " pixels\n", info->sent_pixels);
     printf(" - katherine->pc received %" PRIu64 " pixels\n", info->received_pixels);
     printf(" - state: %s\n", (completed ? "completed" : "not completed"));
-    printf(" - start time: %" PRIu64 "\n", info->start_time.d);
-    printf(" - end time: %" PRIu64 "\n", info->end_time.d);
+    printf(" - frame %u started at: %" PRIu64 "\n", frame_idx, info->start_time[0].d);
+    printf(" - frame %u ended at: %" PRIu64 "\n", frame_idx, info->end_time[0].d);
+
+    // One tail per chip, and the chips' timers need not agree: on the
+    // two-chip readout they sit a constant 55.4 ms apart. This example
+    // configures a single chip, so there is only ever [0] to read; a
+    // multi-chip program walks info->reporting_chips.
+    if (info->reporting_chips > 1) {
+        printf(" - note: %u chips reported, only the first is shown\n", info->reporting_chips);
+    }
 }
 
 // The timestamp as the decoder produced it: fine-oscillator ticks, already

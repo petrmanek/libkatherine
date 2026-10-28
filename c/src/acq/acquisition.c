@@ -142,27 +142,36 @@ handle_current_frame_finished(katherine_acquisition_t *acq, const uint64_t *data
 // whatever chip_count says, so nothing in the suite can see the difference
 // yet. Whether the two chips' timers agree at all is unmeasured.
 static inline void
-handle_frame_start_timestamp_lsb(katherine_acquisition_t *acq, const uint64_t *data)
+handle_frame_start_timestamp_lsb(katherine_acquisition_t *acq, const uint64_t *data, uint8_t chip)
 {
-    acq->current_frame_info.start_time.b.lsb = EXTRACT(*data, md_time_lsb, lsb);
+    katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
+
+    // The tail's first word is the only one that names its chip, so the
+    // three that follow are attributed to whatever this one said. Bounded by
+    // the field's own width, which is why the arrays cannot be overrun.
+    priv->tail_chip = chip;
+
+    if (chip >= acq->current_frame_info.reporting_chips) acq->current_frame_info.reporting_chips = (uint8_t) (chip + 1);
+
+    acq->current_frame_info.start_time[chip].b.lsb = EXTRACT(*data, md_time_lsb, lsb);
 }
 
 static inline void
 handle_frame_start_timestamp_msb(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    acq->current_frame_info.start_time.b.msb = EXTRACT(*data, md_time_msb, msb);
+    acq->current_frame_info.start_time[katherine_acquisition_tpx3_priv(acq)->tail_chip].b.msb = EXTRACT(*data, md_time_msb, msb);
 }
 
 static inline void
 handle_frame_end_timestamp_lsb(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    acq->current_frame_info.end_time.b.lsb = EXTRACT(*data, md_time_lsb, lsb);
+    acq->current_frame_info.end_time[katherine_acquisition_tpx3_priv(acq)->tail_chip].b.lsb = EXTRACT(*data, md_time_lsb, lsb);
 }
 
 static inline void
 handle_frame_end_timestamp_msb(katherine_acquisition_t *acq, const uint64_t *data)
 {
-    acq->current_frame_info.end_time.b.msb = EXTRACT(*data, md_time_msb, msb);
+    acq->current_frame_info.end_time[katherine_acquisition_tpx3_priv(acq)->tail_chip].b.msb = EXTRACT(*data, md_time_msb, msb);
 }
 
 static inline void
@@ -459,7 +468,6 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
 #define KATHERINE_MD_HEADER_CASES_COMMON(acq, md) \
     case 0x5: handle_timestamp_offset_driven_mode(acq, md); break; \
     case 0x7: handle_new_frame(acq, md); break; \
-    case 0x8: handle_frame_start_timestamp_lsb(acq, md); break; \
     case 0x9: handle_frame_start_timestamp_msb(acq, md); break; \
     case 0xA: handle_frame_end_timestamp_lsb(acq, md); break; \
     case 0xB: handle_frame_end_timestamp_msb(acq, md); break; \
@@ -468,8 +476,11 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     case 0xE: handle_aborted_measurement(acq, md); break
 
 /**
- * Gen1's non-pixel headers: the trigger info under 0x2 and 0x3, plus the
- * common cases.
+ * Gen1's non-pixel headers: the trigger info under 0x2 and 0x3, the frame
+ * start under 0x8, and the common cases.
+ *
+ * 0x8 is here rather than in the common map because only the second
+ * generation names a chip in it; this one always reports chip 0.
  * \param acq Acquisition the handlers act on
  * \param md Measurement-data word being dispatched
  */
@@ -478,11 +489,18 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     case 0x3: \
         handle_trigger_info(acq, md); \
         break; \
+    case 0x8: \
+        handle_frame_start_timestamp_lsb(acq, md, 0); \
+        break; \
         KATHERINE_MD_HEADER_CASES_COMMON(acq, md)
 
 /**
- * Gen2's non-pixel headers: the trigger event's two halves under 0x4 and 0x6,
- * plus the common cases. 0x2 and 0x3 are absent because Gen2 spends them on
+ * Gen2's non-pixel headers: the trigger event's two halves under 0x4 and
+ * 0x6, the frame start under 0x8, and the common cases.
+ *
+ * 0x8 is here rather than in the common map because this generation names
+ * the chip in it, and the three words after it belong to whichever chip it
+ * named. 0x2 and 0x3 are absent because Gen2 spends them on
  * chips 2 and 3.
  * \param acq Acquisition the handlers act on
  * \param md Measurement-data word being dispatched
@@ -491,6 +509,9 @@ katherine_acquisition_fini(katherine_acquisition_t *acq)
     case 0x4: \
     case 0x6: \
         handle_trigger_event(acq, md); \
+        break; \
+    case 0x8: \
+        handle_frame_start_timestamp_lsb(acq, md, (uint8_t) EXTRACT(*md, md_time_lsb, chip)); \
         break; \
         KATHERINE_MD_HEADER_CASES_COMMON(acq, md)
 

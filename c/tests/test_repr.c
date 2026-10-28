@@ -296,8 +296,9 @@ test_frame_info(void)
     v.received_pixels     = 40;
     v.sent_pixels         = 40;
     v.lost_pixels         = 3;
-    v.start_time.b.lsb    = 1000;
-    v.end_time.b.lsb      = 17000;
+    v.reporting_chips     = 1;
+    v.start_time[0].b.lsb = 1000;
+    v.end_time[0].b.lsb   = 17000;
     v.start_time_observed = (time_t) 1700000000;
     v.end_time_observed   = (time_t) 1700000001;
     v.completed           = true;
@@ -305,9 +306,9 @@ test_frame_info(void)
     char buf[512];
     int n = katherine_frame_info_snprint(buf, sizeof(buf), &v);
     CHECK_GOLDEN(n, buf,
-        "frame_info{received_pixels: 40, sent_pixels: 40, lost_pixels: 3, "
-        "start_time: frame_info_time{d: 1000, msb: 0, lsb: 1000}, "
-        "end_time: frame_info_time{d: 17000, msb: 0, lsb: 17000}, "
+        "frame_info{received_pixels: 40, sent_pixels: 40, lost_pixels: 3, reporting_chips: 1, "
+        "start_time: [frame_info_time{d: 1000, msb: 0, lsb: 1000}], "
+        "end_time: [frame_info_time{d: 17000, msb: 0, lsb: 17000}], "
         "start_time_observed: 1700000000, end_time_observed: 1700000001, completed: true}");
 }
 

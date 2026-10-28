@@ -70,14 +70,40 @@ typedef union katherine_frame_info_time {
 KATHERINE_EXPORTED int
 katherine_frame_info_time_snprint(char *buf, size_t cap, const katherine_frame_info_time_t *v);
 
+/**
+ * Chips a frame's timestamps can be reported for.
+ *
+ * The measurement word names its chip in four bits, so no index off the
+ * wire can reach this, whatever a later readout carries. Sized by what the
+ * protocol can say rather than by what today's hardware does, which is what
+ * makes the arrays below impossible to overrun.
+ */
+#define KATHERINE_MAX_CHIP_COUNT 16
+
 /** What the readout reported about one frame, and what libkatherine saw of it. */
 typedef struct katherine_frame_info {
     uint64_t received_pixels; ///< The number of hit pixels actually received by libkatherine
     uint64_t sent_pixels;     ///< The number of hit pixels reported sent by Katherine device
     uint64_t lost_pixels;     ///< The number of hit pixels reported lost by Katherine device
 
-    katherine_frame_info_time_t start_time; ///< Timestamp of frame start reported by Katherine device
-    katherine_frame_info_time_t end_time;   ///< Timestamp of frame end, only valid after the frame has ended
+    /**
+     * Timestamp of frame start, per chip, as that chip reported it.
+     *
+     * A second-generation readout sends one frame tail per chip and names
+     * the chip in the first of that tail's four words, so these are the
+     * chips' own timers and they need not agree: measured 55.4 ms apart on
+     * the two-chip readout. Index by chip; a one-chip readout fills [0].
+     */
+    katherine_frame_info_time_t start_time[KATHERINE_MAX_CHIP_COUNT];
+
+    /** Timestamp of frame end, per chip, only valid after the frame has ended. */
+    katherine_frame_info_time_t end_time[KATHERINE_MAX_CHIP_COUNT];
+
+    /**
+     * Chips that reported a tail for this frame, and so how many entries
+     * of the two arrays above are filled. One on a single-chip readout.
+     */
+    uint8_t reporting_chips;
 
     time_t start_time_observed; ///< Timestamp of when libkatherine received 'frame started' event, in local time reference
     time_t end_time_observed;   ///< Timestamp of when libkatherine received 'frame ended' event, only valid after the frame has ended

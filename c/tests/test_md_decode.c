@@ -629,8 +629,9 @@ test_every_non_pixel_header(void)
 
     // Each timestamp arrives as two words and is read as one number, the
     // high half shifted above the low.
-    KT_CHECK_EQ(probe.info.start_time.d, ((uint64_t) 0x5566u << 32) | 0x11223344u);
-    KT_CHECK_EQ(probe.info.end_time.d, ((uint64_t) 0xbbccu << 32) | 0x778899aau);
+    KT_CHECK_EQ(probe.info.reporting_chips, 1u);
+    KT_CHECK_EQ(probe.info.start_time[0].d, ((uint64_t) 0x5566u << 32) | 0x11223344u);
+    KT_CHECK_EQ(probe.info.end_time[0].d, ((uint64_t) 0xbbccu << 32) | 0x778899aau);
 
     // The lost-pixel count accumulates over the frame rather than being
     // replaced by the last word that carries one.

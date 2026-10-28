@@ -471,9 +471,16 @@ on_frame_ended(void *ctx, uint32_t frame_idx, bool completed, const katherine_fr
     // ever again disagrees with little-endian composition, the defect that
     // once made .d read as (lsb << 32) | msb. The halves are also checked
     // to agree with the composite by name.
-    KT_CHECK_EQ(info->end_time.d - info->start_time.d, probe->frame_ticks);
-    KT_CHECK_EQ(info->start_time.d, ((uint64_t) info->start_time.b.msb << 32) | info->start_time.b.lsb);
-    KT_CHECK_EQ(info->end_time.b.msb, 0);
+    // Every chip that reported a tail, not just the first: this handler is
+    // shared by runs of one chip and of four, and the per-chip timestamps
+    // are the whole point of the array.
+    KT_CHECK(info->reporting_chips >= 1 && info->reporting_chips <= KATHERINE_MAX_CHIP_COUNT);
+    for (uint8_t chip = 0; chip < info->reporting_chips; ++chip) {
+        KT_CHECK_EQ(info->end_time[chip].d - info->start_time[chip].d, probe->frame_ticks);
+        KT_CHECK_EQ(info->start_time[chip].d,
+            ((uint64_t) info->start_time[chip].b.msb << 32) | info->start_time[chip].b.lsb);
+        KT_CHECK_EQ(info->end_time[chip].b.msb, 0);
+    }
 }
 
 static void

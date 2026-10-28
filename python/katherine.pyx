@@ -1945,12 +1945,34 @@ cdef class FrameInfo:
        return self._c_info.lost_pixels
 
     @property
+    def reporting_chips(self):
+       """Chips that reported a tail for this frame, and so how many entries
+       start_times and end_times carry. One on a single-chip readout."""
+       return self._c_info.reporting_chips
+
+    @property
+    def start_times(self):
+       """Frame start as each chip's own timer reported it, one per chip.
+
+       A second-generation readout sends one frame tail per chip and the
+       chips' timers need not agree -- measured 55.4 ms apart on the
+       two-chip readout."""
+       return [self._c_info.start_time[i].d for i in range(self._c_info.reporting_chips)]
+
+    @property
+    def end_times(self):
+       """Frame end as each chip's own timer reported it, one per chip."""
+       return [self._c_info.end_time[i].d for i in range(self._c_info.reporting_chips)]
+
+    @property
     def start_time(self):
-       return self._c_info.start_time.d
+       """The first reporting chip's frame start. See start_times for the rest."""
+       return self._c_info.start_time[0].d
 
     @property
     def end_time(self):
-       return self._c_info.end_time.d
+       """The first reporting chip's frame end. See end_times for the rest."""
+       return self._c_info.end_time[0].d
 
     @property
     def start_time_observed(self):

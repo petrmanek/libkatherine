@@ -210,8 +210,17 @@ frame_ended(int frame_idx, bool completed, const katherine_frame_info_t& info)
               << " - katherine->pc sent " << info.sent_pixels << " pixels" << std::endl
               << " - katherine->pc received " << info.received_pixels << " pixels (" << recv_perc << " %)" << std::endl
               << " - state: " << (completed ? "completed" : "not completed") << std::endl
-              << " - start time: " << info.start_time.d << std::endl
-              << " - end time: " << info.end_time.d << std::endl;
+              << " - start time: " << info.start_time[0].d << std::endl
+              << " - end time: " << info.end_time[0].d << std::endl;
+
+    // One tail per chip, and the chips' timers need not agree: on the
+    // two-chip readout they sit a constant 55.4 ms apart. This example
+    // configures a single chip, so there is only ever [0] to read; a
+    // multi-chip program walks info.reporting_chips.
+    if (info.reporting_chips > 1) {
+        std::cout << " - note: " << unsigned{info.reporting_chips} << " chips reported, only the first is shown"
+                  << std::endl;
+    }
 }
 
 void

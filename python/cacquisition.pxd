@@ -29,8 +29,9 @@ cdef extern from 'katherine/acquisition.h':
         uint64_t received_pixels
         uint64_t sent_pixels
         uint64_t lost_pixels
-        katherine_frame_info_time_t start_time
-        katherine_frame_info_time_t end_time
+        katherine_frame_info_time_t start_time[16]
+        katherine_frame_info_time_t end_time[16]
+        uint8_t reporting_chips
         time_t start_time_observed
         time_t end_time_observed
         bool completed

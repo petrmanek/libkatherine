@@ -46,6 +46,13 @@ typedef struct katherine_acquisition_tpx3_priv {
     uint8_t phase_count;
 
     /**
+     * Chip whose frame tail is being read. The index rides in the tail's
+     * first word only, so the three that follow are attributed by position.
+     */
+    uint8_t tail_chip;
+
+
+    /**
      * Per-column phase offsets in fine-oscillator ticks, added by the decoder.
      * Filled only when phase_correction is SOFTWARE; all zeroes otherwise, so
      * the decoder needs no test for whether correction is in effect. Read it
