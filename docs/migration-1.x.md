@@ -107,8 +107,9 @@ been neither enumerated nor declared, which carries no chips at all.
 
 The shim passes 0, which is what 1.x always addressed.
 
-`katherine_configure()` still configures chip 0, and says so. Configuring a
-multi-chip readout is a call per chip for now.
+`katherine_tpx3_configure()` sends every chip the configuration carries; the
+three-struct split gave it a chip array to loop. The 1.x shim still addresses
+chip 0, which is what 1.x always did.
 
 ## 4. Opening a device
 

@@ -159,9 +159,8 @@ digital test now take the index as their second argument, and refuse a chip
 the readout does not report before anything is sent. Where the index goes in
 the datagram is the firmware's answer rather than a guess: byte 5 for the
 register write, byte 1 for the hardware-command dispatch, byte 0 for the chip
-reads. `katherine_configure()` still addresses chip 0, which is what a
-single-chip caller had before; what a multi-chip configuration should look
-like is the restructure that follows this release.
+reads. `katherine_tpx3_configure()` sends every chip the configuration
+carries, looping the chip array the three-struct split gave it.
 
 Two neighbours deliberately keep no index, both confirmed against the readout
 firmware. `katherine_tpx3_set_acq_mode()` sends an opcode with no chip-index
@@ -251,8 +250,9 @@ return convention, the `tpx3_` stem, per-chip calls, opening a device, the
 changes that have no shim, and linking. Some of those could not have one,
 `polarity_holes` foremost: an alias there would compile and bias the sensor
 for the carrier it does not collect. The guide also names the fourteen Python
-classes a 1.x script loses, each otherwise an `AttributeError` with nothing
-pointing at the replacement.
+classes a 1.x script meets under new spellings; thirteen resolve through the
+module's own fallback with a `DeprecationWarning` naming the replacement, and
+the fourteenth is gone with the type it wrapped.
 
 ### The configuration is three structs, and a readout's chips are an array
 
@@ -502,9 +502,46 @@ mean.
 The second distinguishes a port another process is holding from an address
 this library cannot parse, both of which used to be
 `KATHERINE_E_ADDRESS`. What counts as "held" is not the same on both
-platforms, and the header says so: POSIX sets `SO_REUSEADDR` and two
-libkatherine sessions therefore share a port, while Windows does not and
-refuses the second session outright.
+platforms, and the header says so. **Linux** sets `SO_REUSEADDR` and two
+libkatherine sessions therefore share a port; Windows does not set it and
+refuses the second session outright; and macOS refuses it too, `SO_REUSEADDR`
+not covering an exact unicast duplicate on the BSDs, which want
+`SO_REUSEPORT`. Linux is the permissive one, not POSIX -- measured on all
+three.
+
+### Closing a device parks its bias supplies
+
+`katherine_device_fini()` drives every bias supply the readout has to a
+small positive value before it lets go of the link. A session that ends --
+or crashes out of a `with` block, or returns early on an error -- no longer
+leaves a sensor biased.
+
+**There is no opt-out flag.** A caller who wants the bias left standing has
+to keep the device open.
+
+The value requested is `KATHERINE_BIAS_PARK_VOLTS`, 0.001 V, and not zero,
+because the readout's firmware reads the **sign** of the requested float as
+a polarity request: `biasSetting()` divides by `ADC_COMP` and tests `> 0`,
+so 0 V takes the negative arm. 0.001 V takes the positive arm and lands
+below the supply's 0.1953 V step, so the supply reads zero with its
+polarity undisturbed.
+
+Measured on a two-chip second-generation readout, two runs from a power
+cycle: both supplies fall from 300 V to their own off-state readings in
+about three seconds, the leakage falls with them, and no polarity moves.
+The second run opens on the state the first run's park left behind and
+reaches the rail in three seconds rather than four -- which is the test for
+a relay that flipped and stuck.
+
+### A first-generation readout refuses the timing counters
+
+`katherine_get_tdc_counts()` returns `KATHERINE_E_UNSUPPORTED` on a
+first-generation readout instead of sending the command. Opcode `0x33`'s
+entry in both Gen1 dispatchers is the default arm, so the command used to
+go out and the call then waited for one answer per channel, each of which
+could only time out. The channels themselves exist there and
+`katherine_tpx3_set_tdc_config()` reaches them; it is reading their
+counters that the firmware never implemented.
 
 ### A capability count of zero means none of that hardware
 

@@ -68,10 +68,12 @@ typedef struct {
  * because the generation is what selects a measurement-data header map: a
  * HardPix2 decoded as generation 1 would lose every pixel.
  *
- * The capability counts are filled only where they have been checked, and are
- * 0 otherwise. Zero reads as unknown rather than as none, which is why
- * `bias_supply_count` should not be used to decide whether a readout has a
- * bias supply at all.
+ * The capability counts are filled only where they have been checked. **Zero
+ * means none**, not unknown: katherine_set_gpio_config() and
+ * katherine_get_tdc_counts() refuse on a row that reports no such hardware,
+ * and the pulse generator gates on its own count. A row nobody has filled in
+ * is distinguished by `supported` being false, which every
+ * generation-dependent call tests first.
  *
  * `supported` is the flag the generation-dependent calls test before they
  * run, so a row claiming it enables the acquisition-time encoding and the
