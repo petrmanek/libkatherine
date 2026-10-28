@@ -599,6 +599,22 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The emulator sends a frame tail per chip
+
+A frame's start and end timestamps are four measurement-data words, and a
+second-generation readout sends the whole set **once per chip**, after the
+hits, naming the chip in the first of the four. The emulator sent one set
+whatever `chip_count` asked for, so no test and no consumer of
+`katherine/emulator.h` could see the stream a two-chip readout produces.
+
+It now follows the firmware for that generation. The first generation's
+order is unchanged: one chip, no chip index, and the start timestamps
+before the hits. `katherine_emu_stream_t` gains an internal field.
+
+The library's decoder is unchanged: it keeps one `katherine_frame_info_t`
+and the last chip's tail wins, which is a decision rather than an
+oversight and is recorded where the timestamps are handled.
+
 ### Smaller additions a consumer can test for
 
 `KATHERINE_TPX3_CONFIG_SIZE(chip_count)` gives the byte size of a

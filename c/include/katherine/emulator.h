@@ -258,6 +258,7 @@ typedef struct katherine_emu_stream {
     uint8_t pixel_header;  ///< Internal: the header a pixel carries
     bool per_chip_headers; ///< Internal: whether that header carries the chip index
     uint8_t chip_count;    ///< Internal: chips the stream draws hits from
+    uint8_t tail_chip;     ///< Internal: chip whose frame tail is being sent, where a generation sends one per chip
 
     uint32_t frames_total;  ///< Internal
     uint32_t frame_index;   ///< Internal

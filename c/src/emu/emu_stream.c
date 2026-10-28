@@ -209,13 +209,28 @@ pump(katherine_emu_t *emu)
             md = EMU_MD_NEW(KATHERINE_EMU_MD_NEW_FRAME);
             md = INSERT(md, md_new_frame, offset, (uint64_t) 0);
             emit(stream, md);
-            stream->stage = KATHERINE_EMU_STAGE_START_LSB;
+
+            // The second generation sends the whole tail -- both timestamps,
+            // both halves -- once per chip after the hits, which is what
+            // sendFrameTail() does in its firmware. The first generation's is
+            // unsourced, so its order is left as it was: start, hits, end.
+            stream->tail_chip = 0;
+            stream->stage     = stream->per_chip_headers ? KATHERINE_EMU_STAGE_PIXELS : KATHERINE_EMU_STAGE_START_LSB;
             break;
 
         case KATHERINE_EMU_STAGE_START_LSB:
+            // Where the tail follows the hits, nothing in it may leave before
+            // the shutter has closed.
+            if (stream->per_chip_headers && frame_close_ns(stream) > emu->now_ns) return;
+
             ticks = stream->frame_open_ns / KATHERINE_EMU_TICK_NS;
             md    = EMU_MD_NEW(KATHERINE_EMU_MD_START_TIME_LSB);
             md    = INSERT(md, md_time_lsb, lsb, ticks);
+
+            // This word, and only this word, names the chip the three after
+            // it belong to.
+            if (stream->per_chip_headers) md = INSERT(md, md_time_lsb, chip, (uint64_t) stream->tail_chip);
+
             emit(stream, md);
             stream->stage = KATHERINE_EMU_STAGE_START_MSB;
             break;
@@ -225,7 +240,7 @@ pump(katherine_emu_t *emu)
             md    = EMU_MD_NEW(KATHERINE_EMU_MD_START_TIME_MSB);
             md    = INSERT(md, md_time_msb, msb, ticks);
             emit(stream, md);
-            stream->stage = KATHERINE_EMU_STAGE_PIXELS;
+            stream->stage = stream->per_chip_headers ? KATHERINE_EMU_STAGE_END_LSB : KATHERINE_EMU_STAGE_PIXELS;
             break;
 
         case KATHERINE_EMU_STAGE_PIXELS: {
@@ -233,7 +248,7 @@ pump(katherine_emu_t *emu)
             uint64_t due;
 
             if (stream->px_index >= stream->hits) {
-                stream->stage = KATHERINE_EMU_STAGE_END_LSB;
+                stream->stage = stream->per_chip_headers ? KATHERINE_EMU_STAGE_START_LSB : KATHERINE_EMU_STAGE_END_LSB;
                 break;
             }
 
@@ -275,7 +290,15 @@ pump(katherine_emu_t *emu)
             md    = EMU_MD_NEW(KATHERINE_EMU_MD_END_TIME_MSB);
             md    = INSERT(md, md_time_msb, msb, ticks);
             emit(stream, md);
-            stream->stage = KATHERINE_EMU_STAGE_LOST;
+
+            // One tail per chip, so the last stage of one loops back to the
+            // first until every chip has sent its own.
+            if (stream->per_chip_headers && (uint8_t) (stream->tail_chip + 1) < stream->chip_count) {
+                ++stream->tail_chip;
+                stream->stage = KATHERINE_EMU_STAGE_START_LSB;
+            } else {
+                stream->stage = KATHERINE_EMU_STAGE_LOST;
+            }
             break;
 
         case KATHERINE_EMU_STAGE_LOST:

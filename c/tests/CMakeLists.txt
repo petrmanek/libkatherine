@@ -117,6 +117,11 @@ katherine_add_test(NAME test_discover SOURCES test_discover.c LABELS unit
 # build, so it is compiled in only when the feature is on -- the rest of the
 # file needs nothing but sockets and is registered unconditionally.
 if(KATHERINE_BUILD_EMULATOR)
+    # The measurement-data generator on its own: no transport, no ports, and
+    # a clock this advances by hand. It is the only test that sees a frame
+    # from a readout carrying more than one chip.
+    katherine_add_test(NAME test_emu_frame_tail SOURCES test_emu_frame_tail.c LABELS unit)
+
     # if(TARGET): all three also need the UDP transport, so a build without
     # it has no target here to define anything on.
     foreach(target test_cmd_transact test_acq_unit test_tdc)

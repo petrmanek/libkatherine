@@ -57,6 +57,15 @@ extern "C" {
 #define _BITS_md_time_lsb_lsb_mask           MASK(32)
 #define _BITS_md_time_lsb_lsb_type           uint32_t
 
+// Which chip's frame tail this is. The second generation's firmware ORs
+// (chip_index & 0xF) << 32 into this word and into no other, so the three
+// words after it belong to whichever chip this one names. The decode path
+// does not read it yet; see the note above the timestamp handlers in
+// c/src/acq/acquisition.c.
+#define _BITS_md_time_lsb_chip_start         32
+#define _BITS_md_time_lsb_chip_mask          MASK(4)
+#define _BITS_md_time_lsb_chip_type          uint8_t
+
 #define _BITS_md_time_msb_msb_start          0
 #define _BITS_md_time_msb_msb_mask           MASK(16)
 #define _BITS_md_time_msb_msb_type           uint16_t
