@@ -11,6 +11,17 @@
  * planning-phase toy model (misc/bench-seeds/toy_dispatch_bench.c), by simply
  * rewinding the slot index, since there is no handler to flush to.
  *
+ * It is a **model of that loop, not the loop**: the decode functions are
+ * static in c/src/acq/acquisition.c and nothing outside that file can call
+ * them, so what runs here is the copy below. Two consequences, both of
+ * which have been read the wrong way round once. A change to
+ * acquisition.c does not move these numbers, and an A/B of this benchmark
+ * across one measures the machine. The per-variant checksums fold over
+ * this copy's output, so they agree across two trees whatever the library
+ * says, and they are a reproducibility check on a run rather than a
+ * correctness check on the decoder. bench_udp.c and bench_usb.c are not
+ * models -- they call the library's own transport.
+ *
  * This file reaches into the library's private headers ("md.h" and
  * friends) through the katherine_private interface target. That is
  * deliberate: a benchmark is in-tree tooling built against the library's
