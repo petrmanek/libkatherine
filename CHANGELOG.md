@@ -618,6 +618,18 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The emulated readout can fail its digital test
+
+`katherine_emu_profile_t` gains `digital_test_ok`, true by default. False
+makes the emulated sensor report a pattern count the caller did not ask
+for, which is what `katherine_tpx3_perform_digital_test()` answers
+`KATHERINE_E_HW_UNKNOWN` to.
+
+That code was the last of the seventeen in `katherine_error_t` that no test
+reached, and the emulator was the reason: it hard-coded the self-test to
+pass, so the failure could not be produced on a machine without a bad
+sensor.
+
 ### The 1.x shim reports a held port as 1.x did
 
 `katherine1_map_result()` maps `KATHERINE_E_BUSY` to `EADDRINUSE`. It used

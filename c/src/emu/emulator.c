@@ -510,7 +510,12 @@ handle_cmd(katherine_emu_t *emu, const uint8_t *cmd)
         break;
 
     case CMD_TYPE_DIGITAL_TEST:
-        queue_word(emu, (uint8_t) opcode, 0, KATHERINE_EMU_DIGITAL_TEST_PASSES);
+        // One short of the full walk when the profile says the sensor is
+        // bad. The library tests for the exact count and has no enumerator
+        // for which pattern failed, so any other number is the same answer
+        // to it; one short is the smallest lie that is still a lie.
+        queue_word(emu, (uint8_t) opcode, 0,
+            emu->profile.digital_test_ok ? KATHERINE_EMU_DIGITAL_TEST_PASSES : KATHERINE_EMU_DIGITAL_TEST_PASSES - 1);
         break;
 
     case CMD_TYPE_ACQUISITION_SETUP:
@@ -631,6 +636,7 @@ katherine_emu_profile_defaults(katherine_emu_profile_t *profile)
 
     profile->chip_count          = 1;
     profile->matrix_ok           = true;
+    profile->digital_test_ok     = true;
     profile->dacs_ok             = true;
     profile->bias_sense_zero     = 2.024f;
     profile->readout_temperature = 30.0f;

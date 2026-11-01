@@ -148,6 +148,10 @@ if(KATHERINE_BUILD_EMULATOR)
 
     katherine_add_test(NAME test_capability_zero SOURCES test_capability_zero.c LABELS unit)
 
+    # The sensor self-test's failure answer, which needs a readout willing
+    # to fail it. Control plane only, so no ports and no serial slot.
+    katherine_add_test(NAME test_digital_test SOURCES test_digital_test.c LABELS unit)
+
     # The bias failsafe on close. Needs a readout that answers the bias
     # command and a device that holds an acquisition, so: the emulator on
     # the control plane and a real UDP data session of its own.
@@ -311,4 +315,4 @@ endif()
 # like omissions.
 katherine_check_tests_registered(CONDITIONAL test_acq_begin_window.c test_acq_frames.c test_config_reserved.c test_capability_zero.c test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
     test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c test_emu_frame_tail.c
-    test_bias_park.c)
+    test_bias_park.c test_digital_test.c)

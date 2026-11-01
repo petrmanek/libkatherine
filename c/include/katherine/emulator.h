@@ -101,8 +101,9 @@ typedef struct katherine_emu_profile {
 
     uint8_t chip_count; ///< Chips the emulated readout reports hits from, bounded by what its hardware type can address. Zero means one.
 
-    bool matrix_ok; ///< True to answer katherine_tpx3_verify_config() that the pixel matrix read back cleanly.
-    bool dacs_ok;   ///< True to answer it that every DAC read back as written.
+    bool matrix_ok;       ///< True to answer katherine_tpx3_verify_config() that the pixel matrix read back cleanly.
+    bool digital_test_ok; ///< True to answer katherine_tpx3_perform_digital_test() that every pattern came back. False answers a count the caller did not ask for, which is the only route to KATHERINE_E_HW_UNKNOWN.
+    bool dacs_ok;         ///< True to answer it that every DAC read back as written.
 
     float bias_sense_zero;     ///< Sense voltage the bias supply reads at no current; see katherine_get_bias_leakage()
     float readout_temperature; ///< Temperature reported for the readout board, in Celsius
