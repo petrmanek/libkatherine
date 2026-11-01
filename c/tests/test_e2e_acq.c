@@ -132,8 +132,11 @@
 #define SHORT_FRAME_DURATION_SECONDS 0.0004
 
 // Long enough that the daemon keeps trickling hits out while the abort is
-// issued and takes effect.
-#define LONG_ACQ_TIME_NS             200000000.0
+// issued and takes effect. Seconds, like every other duration here: the
+// nanoseconds this used to hold went on being passed after the unit of
+// katherine_config_t::frame_duration_seconds changed, which asked the
+// readout for six years of frame and overflowed the tick count below.
+#define LONG_FRAME_DURATION_SECONDS  0.2
 
 // Frames requested by the sequential-readout case. Data-driven acquisitions
 // are limited to one frame by katherine_acquisition_begin() itself.
@@ -696,7 +699,7 @@ test_abort_undecoded(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, false, true), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, LONG_FRAME_DURATION_SECONDS, 1, false, true), 0);
 
     KT_CHECK(probe.data_callbacks > 0);
     KT_CHECK(probe.abort_requested);
@@ -721,7 +724,7 @@ test_abort_decoded(void)
     katherine_acquisition_t acq;
     acq_probe_t probe;
 
-    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, LONG_ACQ_TIME_NS, 1, true, true), 0);
+    KT_CHECK_EQ(acq_run(&acq, &probe, KATHERINE_TPX3_READOUT_DATA_DRIVEN, LONG_FRAME_DURATION_SECONDS, 1, true, true), 0);
 
     // The undecoded chain is not consulted at all here: the abort came from
     // the frame-started handler instead.
@@ -772,9 +775,9 @@ test_abort_from_another_thread(void)
     memset(&acq, 0, sizeof(acq));
     memset(&probe, 0, sizeof(probe));
     probe.acq         = &acq;
-    probe.frame_ticks = (uint32_t) (LONG_ACQ_TIME_NS / TICK_NS);
+    probe.frame_ticks = (uint32_t) (LONG_FRAME_DURATION_SECONDS * 1e9 / TICK_NS);
 
-    configure(storage, LONG_ACQ_TIME_NS, 1);
+    configure(storage, LONG_FRAME_DURATION_SECONDS, 1);
 
     KT_REQUIRE(katherine_acquisition_init(&acq, &g_device, &probe, MD_BUFFER_SIZE,
                    PIXEL_BUFFER_HITS * sizeof(px_t), REPORT_TIMEOUT_MS, FAIL_TIMEOUT_MS)
