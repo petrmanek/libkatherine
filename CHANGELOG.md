@@ -618,6 +618,32 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### Timepix3 commands are refused on a readout that carries another ASIC
+
+Every `katherine_tpx3_*` entry point answers `KATHERINE_E_UNSUPPORTED` when
+the device table has recognised the readout as carrying something other than
+a Timepix3. Fifteen calls were affected; only `katherine_tpx3_configure()`
+had asked before.
+
+The table has listed `0x0A`, a Katherine for Timepix4, since the hardware
+rows were written, and nothing read that field. The opcodes do not line up:
+that firmware reads `0x05` as *write one DAC to the chip* where this library
+means *start the readout*, and waits for 229376 bytes of pixel matrix where
+this one sends 65536. Neither fails -- the first misconfigures a chip, the
+second leaves the readout waiting -- so the commands went out and nothing
+reported anything.
+
+The check sits in the control lock each of those calls already takes, which
+is why it cost no new branch in fourteen of them. Two asked about
+`katherine_device_derived_info_t::supported` first and so answered
+`KATHERINE_E_STATE`; they now report the ASIC, because "this readout carries
+a chip I cannot drive" and "nobody has enumerated this readout" are
+different conditions with different remedies.
+
+**A device nobody has enumerated is unaffected.** Its chip type is
+`KATHERINE_CHIP_UNKNOWN`, and what the guard refuses is a positive
+identification of something else, not an absence of one.
+
 ### The acquisition mode reaches every chip, not only the first
 
 `katherine_tpx3_set_acq_mode()` sends one register flush per chip the

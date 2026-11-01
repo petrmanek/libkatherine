@@ -307,6 +307,9 @@ recover_from_incomplete_set_all_pixel_config(katherine_device_t *device)
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_px_config_t *px_config)
@@ -318,7 +321,7 @@ katherine_tpx3_set_all_pixel_config(katherine_device_t *device, uint8_t chip_ind
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     // This upload is the one exchange whose data travels between the command
@@ -684,13 +687,16 @@ err_range:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_set_token_count(katherine_device_t *device, uint8_t token_count)
 {
     katherine_error_t res;
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -743,6 +749,9 @@ err_lock:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
@@ -757,7 +766,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
         goto err_mode;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1005,13 +1014,16 @@ err_lock:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken for
  *   any other reason; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_start_readout(katherine_device_t *device, katherine_tpx3_readout_mode_t readout_mode)
 {
     katherine_error_t res;
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1225,6 +1237,9 @@ err_enumerated:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  *
  * \note A second-generation readout running firmware 5 acknowledges this
  *   command and does nothing with it: its dispatcher has the handler
@@ -1263,7 +1278,7 @@ katherine_tpx3_set_test_pulses(katherine_device_t *device, const katherine_tpx3_
         cmd[4] |= 1 << 2;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     // Sent and awaited by hand rather than through katherine_cmd_transact(),
@@ -1339,6 +1354,9 @@ err_check:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  *
  * \see katherine_tpx3_update_sensor_registers
  */
@@ -1352,7 +1370,7 @@ katherine_tpx3_set_sensor_register(katherine_device_t *device, uint8_t chip_inde
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1413,6 +1431,9 @@ err_chip:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  *
  * \see katherine_tpx3_set_sensor_register
  */
@@ -1426,7 +1447,7 @@ katherine_tpx3_update_sensor_registers(katherine_device_t *device, uint8_t chip_
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1480,6 +1501,9 @@ err_chip:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_output_block_config_update(katherine_device_t *device, uint8_t chip_index)
@@ -1491,7 +1515,7 @@ katherine_tpx3_output_block_config_update(katherine_device_t *device, uint8_t ch
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1545,6 +1569,9 @@ err_chip:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_timer_set(katherine_device_t *device, uint8_t chip_index)
@@ -1556,7 +1583,7 @@ katherine_tpx3_timer_set(katherine_device_t *device, uint8_t chip_index)
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -1623,6 +1650,9 @@ err_chip:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_set_dacs(katherine_device_t *device, uint8_t chip_index, const katherine_tpx3_dacs_t *dacs)
@@ -1634,7 +1664,7 @@ katherine_tpx3_set_dacs(katherine_device_t *device, uint8_t chip_index, const ka
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     // Nineteen exchanges under one lock, flushed once: each of them
@@ -1722,6 +1752,9 @@ err_chip:
  * \retval KATHERINE_E_SYSTEM if the control session's lock could not be
  *   taken; see pthread_mutex_lock(3) and
  *   katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_set_dac(katherine_device_t *device, uint8_t chip_index, katherine_tpx3_dac_t dac, uint16_t value)
@@ -1738,7 +1771,7 @@ katherine_tpx3_set_dac(katherine_device_t *device, uint8_t chip_index, katherine
         goto err_dac;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -2032,8 +2065,10 @@ katherine_tpx3_dac_monitor_name(katherine_tpx3_dac_monitor_t monitor)
  * \param check Destination for the two flags, or NULL to discard them
  *
  * \retval KATHERINE_E_OK on success.
- * \retval KATHERINE_E_UNSUPPORTED if the readout is of the first generation,
- *   whose firmware has no such operation.
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for -- see
+ *   katherine_device_derived_info_t::chip_type -- or if it is of the first
+ *   generation, whose firmware has no such operation.
  * \retval KATHERINE_E_STATE if the device has been neither enumerated nor
  *   declared, so how many chips it can address is unknown.
  * \retval KATHERINE_E_BAD_CHIP if the readout carries no such chip; see
@@ -2060,6 +2095,15 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
 {
     katherine_error_t res;
 
+    // Before the supported flag, so that a readout this library recognises
+    // as carrying another ASIC says which one rather than reporting the
+    // generic "nobody enumerated this". The two are different conditions
+    // with different remedies.
+    if (!katherine_device_may_drive_tpx3(device)) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_asic;
+    }
+
     if (!device->derived_info.supported) {
         res = KATHERINE_E_STATE;
         goto err_enumerated;
@@ -2073,7 +2117,7 @@ katherine_tpx3_verify_config(katherine_device_t *device, uint8_t chip_index, kat
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -2099,6 +2143,7 @@ err_send:
 err_lock:
 err_chip:
 err_generation:
+err_asic:
 err_enumerated:
     return res;
 }

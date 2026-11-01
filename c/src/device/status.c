@@ -502,6 +502,9 @@ err_busy:
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  */
 katherine_error_t
 katherine_tpx3_perform_digital_test(katherine_device_t *device, uint8_t chip_index)
@@ -513,7 +516,7 @@ katherine_tpx3_perform_digital_test(katherine_device_t *device, uint8_t chip_ind
         goto err_chip;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -834,6 +837,9 @@ err_enumerated:
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  * \see katherine_tpx3_dac_to_si
  */
 katherine_error_t
@@ -854,6 +860,15 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
         goto err_busy;
     }
 
+    // Before the supported flag, so that a readout this library recognises
+    // as carrying another ASIC says which one rather than reporting the
+    // generic "nobody enumerated this". The two are different conditions
+    // with different remedies.
+    if (!katherine_device_may_drive_tpx3(device)) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_asic;
+    }
+
     if (!device->derived_info.supported) {
         res = KATHERINE_E_STATE;
         goto err_unsupported;
@@ -870,7 +885,7 @@ katherine_tpx3_get_dac_monitor_voltage(katherine_device_t *device, uint8_t chip_
         goto err_monitor;
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -893,6 +908,7 @@ err_send:
 err_lock:
 err_monitor:
 err_chip_index:
+err_asic:
 err_unsupported:
 err_busy:
     return res;
@@ -944,6 +960,9 @@ err_busy:
  * \retval KATHERINE_E_NOMEM if a send or receive ran out of memory.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
  *   see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_UNSUPPORTED if the readout carries an ASIC other than
+ *   Timepix3, which this command is not defined for; see
+ *   katherine_device_derived_info_t::chip_type.
  * \see katherine_tpx3_get_dac_monitor_voltage
  */
 katherine_error_t
@@ -957,6 +976,15 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
     if (katherine_device_is_measuring(device)) {
         res = KATHERINE_E_STATE;
         goto err_busy;
+    }
+
+    // Before the supported flag, so that a readout this library recognises
+    // as carrying another ASIC says which one rather than reporting the
+    // generic "nobody enumerated this". The two are different conditions
+    // with different remedies.
+    if (!katherine_device_may_drive_tpx3(device)) {
+        res = KATHERINE_E_UNSUPPORTED;
+        goto err_asic;
     }
 
     if (!device->derived_info.supported) {
@@ -975,7 +1003,7 @@ katherine_tpx3_get_dac_monitor_voltages(katherine_device_t *device, uint8_t chip
         }
     }
 
-    res = katherine_device_control_lock(device);
+    res = katherine_tpx3_control_lock(device);
     if (res) goto err_lock;
 
     katherine_transport_flush_incoming(&device->control_transport);
@@ -999,6 +1027,7 @@ err_send:
     (void) katherine_device_control_unlock(device);
 err_lock:
 err_chip_index:
+err_asic:
 err_unsupported:
 err_busy:
     return res;
