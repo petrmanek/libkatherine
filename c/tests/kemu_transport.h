@@ -30,6 +30,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <katherine/emulator.h>
@@ -140,6 +141,18 @@ kemu_last_os_error(void *ctx)
     return 0;
 }
 
+// Present so that a test may finalize an emulator-backed device through
+// katherine_device_fini() like any other, and releasing nothing because
+// there is nothing here the link owns: a real transport owns its socket,
+// this one borrows the emulator that the test declared. The emulator
+// therefore outlives the link, which is what lets a test read what the
+// close sent to it. kemu_device_fini() ends its life.
+static inline void
+kemu_fini(void *ctx)
+{
+    (void) ctx;
+}
+
 static const katherine_transport_ops_t KEMU_OPS = {
     .send_cmd          = kemu_send_cmd,
     .recv_crd          = kemu_recv_crd,
@@ -149,6 +162,7 @@ static const katherine_transport_ops_t KEMU_OPS = {
     .mutex_lock        = kemu_lock,
     .mutex_unlock      = kemu_lock,
     .get_last_os_error = kemu_last_os_error,
+    .fini              = kemu_fini,
 };
 
 /**
@@ -169,7 +183,11 @@ kemu_device(katherine_device_t *device, kemu_transport_t *t, const katherine_emu
     const katherine_error_t res = katherine_emu_init(&t->emu, profile);
     if (res != KATHERINE_E_OK) return res;
 
-    strcpy(device->address, "udp://127.0.0.1");
+    // snprintf rather than strcpy: MSVC deprecates the latter and emits a
+    // warning per translation unit that includes this header, so the
+    // readout's warning count would creep upward with every emulator test
+    // added -- and that count is how a Windows regression is noticed.
+    (void) snprintf(device->address, sizeof(device->address), "udp://127.0.0.1");
     device->control_transport.ops  = &KEMU_OPS;
     device->control_transport.ctx  = t;
     device->control_transport.kind = KATHERINE_TRANSPORT_UDP;
@@ -243,6 +261,15 @@ kemu_data_dropped(void *ctx, uint64_t *count)
     return KATHERINE_E_OK;
 }
 
+// Nothing to release: the stream is the caller's buffer and the counters are
+// the caller's struct. Present so that katherine_acquisition_fini() has
+// something to call, as it does on a real link.
+static inline void
+kemu_data_fini(void *ctx)
+{
+    (void) ctx;
+}
+
 static const katherine_transport_ops_t KEMU_DATA_OPS = {
     .acquire_data_buf  = kemu_data_acquire,
     .release_data_buf  = kemu_data_release,
@@ -251,6 +278,7 @@ static const katherine_transport_ops_t KEMU_DATA_OPS = {
     .mutex_lock        = kemu_lock,
     .mutex_unlock      = kemu_lock,
     .get_last_os_error = kemu_last_os_error,
+    .fini              = kemu_data_fini,
 };
 
 /**

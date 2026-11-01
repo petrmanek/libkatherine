@@ -11,6 +11,7 @@
  */
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
@@ -292,6 +293,40 @@ restore_standard_ports(katherine_device_t *device)
 #endif /* KATHERINE_FEATURE_UDP */
 
 /**
+ * Bias every supply down without asking for a polarity change.
+ *
+ * E13 asks for the supplies to be parked on close. It cannot be done with
+ * 0.0f: the Gen2 firmware chooses a supply's polarity from the sign of the
+ * request, testing `if (bias_voltage > 0)` on the float as sent, so zero
+ * falls in the negative arm and parking would request a polarity flip.
+ * Track Lab sends 1 V for this reason.
+ *
+ * KATHERINE_BIAS_PARK_VOLTS is smaller and still positive. The firmware
+ * divides by ADC_COMP (0.935) before the test, which preserves the sign,
+ * and quantises at BIAS_Q (0.1953 V) after it -- so the request takes the
+ * positive arm and lands below one step: the supply reads zero and its
+ * polarity never moves.
+ *
+ * Errors are swallowed. A readout that cannot be parked is not a reason to
+ * abandon a close that has other work to finish.
+ *
+ * The opt-out is read here rather than at the two call sites, so that both
+ * of them obey it by construction. The count comes from the hardware row, so
+ * a device that was never enumerated parks nothing: it does not know how
+ * many supplies there are to park, and guessing an index would mean sending
+ * a bias command to a supply that may not exist.
+ */
+static void
+park_bias_supplies(katherine_device_t *device)
+{
+    if (katherine_device_state(device)->flags & KATHERINE_DEVICE_DANGER_KEEP_BIAS) return;
+
+    for (uint8_t i = 0; i < device->derived_info.bias_supply_count; ++i) {
+        (void) katherine_set_bias(device, i, KATHERINE_BIAS_PARK_VOLTS);
+    }
+}
+
+/**
  * Initialize Katherine device.
  * \param device Katherine device
  * \param address Address of the readout, naming the link as well as the readout
@@ -356,6 +391,10 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
     // field still holding the caller's stack, and finalising afterwards
     // dereferenced it.
     memset(device, 0, sizeof(*device));
+
+    // Kept because the close honours them too, and because park_bias_supplies()
+    // below reads the opt-out from here rather than from an argument.
+    katherine_device_state(device)->flags = flags;
 
 #ifdef KATHERINE_FEATURE_UDP
     // Not zero, so it survives the clear above.
@@ -467,6 +506,14 @@ katherine_device_init(katherine_device_t *device, const char *address, uint32_t 
 
 err_enumerate:
 err_select:
+    // An open that reached the readout and then gave up closes the way
+    // katherine_device_fini() does, failsafe included. Dormant as the
+    // cascade stands: the supply count arrives with the enumeration, which
+    // is the last step, so every label here is reached with none known and
+    // the park is a loop over zero supplies. It is written at the cascade
+    // rather than at a reachable label so that a step added after the
+    // enumeration inherits it.
+    park_bias_supplies(device);
     restore_standard_ports(device);
 err_ports:
     katherine_transport_fini(&device->control_transport);
@@ -502,32 +549,6 @@ katherine_tpx3_can_correct_timestamp_phase(const katherine_device_t *device)
 }
 
 /**
- * Bias every supply down without asking for a polarity change.
- *
- * E13 asks for the supplies to be parked on close. It cannot be done with
- * 0.0f: the Gen2 firmware chooses a supply's polarity from the sign of the
- * request, testing `if (bias_voltage > 0)` on the float as sent, so zero
- * falls in the negative arm and parking would request a polarity flip.
- * Track Lab sends 1 V for this reason.
- *
- * KATHERINE_BIAS_PARK_VOLTS is smaller and still positive. The firmware
- * divides by ADC_COMP (0.935) before the test, which preserves the sign,
- * and quantises at BIAS_Q (0.1953 V) after it -- so the request takes the
- * positive arm and lands below one step: the supply reads zero and its
- * polarity never moves.
- *
- * Errors are swallowed. A readout that cannot be parked is not a reason to
- * abandon a close that has other work to finish.
- */
-static void
-park_bias_supplies(katherine_device_t *device)
-{
-    for (uint8_t i = 0; i < device->derived_info.bias_supply_count; ++i) {
-        (void) katherine_set_bias(device, i, KATHERINE_BIAS_PARK_VOLTS);
-    }
-}
-
-/**
  * Finalize Katherine device.
  * \param device Device to finalize.
  *
@@ -539,21 +560,34 @@ park_bias_supplies(katherine_device_t *device)
  * UDP its operations table is this one's. Tearing those down underneath it
  * is a use-after-free in the first case and a null dereference in the
  * second, so a device still holding an acquisition is left standing
- * instead, leaking its link rather than corrupting it. Debug builds fail
- * the assertion; release builds return, and the readout stays open until
- * the process ends.
+ * instead: the refusal is reported on stderr and the readout's link is
+ * leaked, staying open until the process ends.
+ *
+ * The bias supplies are parked before that refusal is considered, so an
+ * assembly is never left biased by a close that went wrong. Pass
+ * KATHERINE_DEVICE_DANGER_KEEP_BIAS to katherine_device_init() to suppress
+ * it.
+ *
+ * Returns nothing and can be called twice, like every finalizer here.
  */
 void
 katherine_device_fini(katherine_device_t *device)
 {
-    // The order is the caller's to get right and cannot be rescued here: an
-    // abort would still leave the acquisition pointing at transports this
-    // call is about to free. Leaking the link is the one outcome that is
-    // defined in both builds.
-    assert(device->acquisition == NULL);
-    if (device->acquisition != NULL) return;
-
+    // First, and before the refusal below: a sensor left biased outlives the
+    // process, where a leaked socket does not, so the failsafe is the one
+    // thing this call does unconditionally.
     if (device->control_transport.ops != NULL) park_bias_supplies(device);
+
+    // The order is the caller's to get right and cannot be rescued here --
+    // tearing the transports down would leave the acquisition pointing into
+    // freed memory -- so the link is leaked instead, and said out loud,
+    // because a silent return is indistinguishable from a close that worked.
+    if (device->acquisition != NULL) {
+        fprintf(stderr,
+            "libkatherine: katherine_device_fini() called with an acquisition still live; "
+            "leaking the readout's link. Finalize the acquisition first.\n");
+        return;
+    }
 
     // Put the readout back on the standard pair, or the next client finds it
     // apparently dead.

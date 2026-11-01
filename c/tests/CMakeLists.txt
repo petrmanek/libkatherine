@@ -147,6 +147,11 @@ if(KATHERINE_BUILD_EMULATOR)
     katherine_add_test(NAME test_config_reserved SOURCES test_config_reserved.c LABELS unit)
 
     katherine_add_test(NAME test_capability_zero SOURCES test_capability_zero.c LABELS unit)
+
+    # The bias failsafe on close. Needs a readout that answers the bias
+    # command and a device that holds an acquisition, so: the emulator on
+    # the control plane and a real UDP data session of its own.
+    katherine_add_test(NAME test_bias_park SOURCES test_bias_park.c LABELS unit NEEDS TRANSPORT_UDP)
 endif()
 
 # Sockets, not an emulator: this one holds a port with a plain socket and
@@ -305,4 +310,5 @@ endif()
 # only where libusb was found, so they are named as such rather than looking
 # like omissions.
 katherine_check_tests_registered(CONDITIONAL test_acq_begin_window.c test_acq_frames.c test_config_reserved.c test_capability_zero.c test_e2e_acq.c test_px_recovery.c test_acq_begin_unanswered.c test_bias.c
-    test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c test_emu_frame_tail.c)
+    test_chip_readback.c test_interface_select.c test_usb_ring.c test_usb_address.c test_emu_frame_tail.c
+    test_bias_park.c)

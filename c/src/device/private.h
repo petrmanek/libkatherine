@@ -30,6 +30,7 @@
  * a different size in a build without UDP.
  */
 typedef struct katherine_device_state {
+    uint32_t flags;         ///< The katherine_device_flags_t this device was opened with, kept because the close has to honour them too.
     uint16_t udp_data_port; ///< Port the readout was told to send measurement data to, which an acquisition binds. Meaningless on a link that is not udp://.
     bool udp_ports_changed; ///< True if this device moved the readout off the standard UDP ports, which is how katherine_device_fini() knows to put it back. Meaningless on a link that is not udp://.
 } katherine_device_state_t;

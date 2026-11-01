@@ -142,7 +142,9 @@ public:
      * class, which would need operators invented for it.
      *
      * \param address The readout's address, e.g. "udp://192.168.1.142" or "usb://auto".
-     * \param flags katherine_device_flags_t, each suppressing one thing the open does.
+     * \param flags katherine_device_flags_t, each suppressing one thing the
+     *   session would otherwise do -- three of them at open, and
+     *   KATHERINE_DEVICE_DANGER_KEEP_BIAS at close.
      */
     device(std::string address, uint32_t flags = 0)
     {

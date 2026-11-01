@@ -42,6 +42,7 @@ cdef extern from 'katherine/device.h':
         KATHERINE_DEVICE_DONT_ENUMERATE
         KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS
         KATHERINE_DEVICE_DONT_SELECT_INTERFACE
+        KATHERINE_DEVICE_DANGER_KEEP_BIAS
 
     ctypedef struct katherine_device_derived_info_t:
         const char *name

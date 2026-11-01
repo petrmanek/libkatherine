@@ -572,11 +572,17 @@ class ChipType(_Enum):
 
 
 class DeviceFlags:
-    """What opening a readout may be told not to do.
+    """What opening a readout may be told not to do, and one thing it may be
+    told not to undo.
 
-    Combined with |. An open with all three sets up the two sockets and
-    nothing else, sending no command and waiting for no acknowledgement, so
-    it succeeds whether or not a readout is there.
+    Combined with |. An open with the three DONT_ flags sets up the two
+    sockets and nothing else, sending no command and waiting for no
+    acknowledgement, so it succeeds whether or not a readout is there.
+
+    DANGER_KEEP_BIAS is the odd one and is named for what it risks: it
+    leaves the sensor biased after close() and after the interpreter exits.
+    It is for an assembly whose bias must not be cycled, a CdTe sensor
+    among them, and for nothing else.
 
     A plain class rather than an enum.Flag: these are passed to C as a bare
     uint32_t, and a caller writing DONT_ENUMERATE | DONT_SELECT_INTERFACE
@@ -584,6 +590,7 @@ class DeviceFlags:
     DONT_ENUMERATE        = cdevice.katherine_device_flags_t.KATHERINE_DEVICE_DONT_ENUMERATE
     DONT_CHANGE_UDP_PORTS = cdevice.katherine_device_flags_t.KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS
     DONT_SELECT_INTERFACE = cdevice.katherine_device_flags_t.KATHERINE_DEVICE_DONT_SELECT_INTERFACE
+    DANGER_KEEP_BIAS      = cdevice.katherine_device_flags_t.KATHERINE_DEVICE_DANGER_KEEP_BIAS
 
 
 cdef class DeviceInfo:

@@ -571,8 +571,8 @@ small positive value before it lets go of the link. A session that ends --
 or crashes out of a `with` block, or returns early on an error -- no longer
 leaves a sensor biased.
 
-**There is no opt-out flag.** A caller who wants the bias left standing has
-to keep the device open.
+**The opt-out is `KATHERINE_DEVICE_DANGER_KEEP_BIAS`**, given to
+`katherine_device_init()`; see below.
 
 The value requested is `KATHERINE_BIAS_PARK_VOLTS`, 0.001 V, and not zero,
 because the readout's firmware reads the **sign** of the requested float as
@@ -617,6 +617,53 @@ NaN and refuses nothing. **This is a supply capability and not an assembly's
 safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
+
+### The bias failsafe fires before the close decides whether it may proceed
+
+`katherine_device_fini()` parked the bias supplies *after* its guard, and
+that guard returns early when an acquisition is still live. So the one close
+most likely to be a mistake -- the one that forgot to finalize an
+acquisition -- was also the one that left the sensor biased, and it returned
+silently while doing it.
+
+The park now runs first, unconditionally. The refusal that follows says so
+on stderr rather than returning in silence:
+
+```
+libkatherine: katherine_device_fini() called with an acquisition still live;
+leaking the readout's link. Finalize the acquisition first.
+```
+
+The link is still leaked, which is the defined outcome: tearing the
+transports down would leave the acquisition pointing into freed memory, and
+no return code can rescue an order the caller already got wrong.
+`katherine_device_fini()` returns `void` and may be called twice, like every
+finalizer here.
+
+The `assert()` that used to guard this is gone. It made a debug build abort
+where a release build leaked, so the behaviour under test depended on the
+build, and the leak path could not be tested at all where the assertions
+were live. One behaviour now, in both builds, with a test on it.
+
+**`KATHERINE_DEVICE_DANGER_KEEP_BIAS`** is the opt-out, and the name carries
+the danger because the consequence outlives the process: the sensor stays
+biased after the program that asked for it has gone. It is for an assembly
+whose bias must not be cycled -- a CdTe sensor, whose polarization recovers
+over hours -- and for nothing else. Mirrored in Python as
+`DeviceFlags.DANGER_KEEP_BIAS`.
+
+An open that reaches the readout and then fails parks on its way out too,
+by the same rule and the same flag. That path is **dormant as the cascade
+stands**: the supply count arrives with the enumeration, which is the last
+step of the open, so every failure label is reached with no count known and
+the park is a loop over zero supplies. It is written at the cascade rather
+than at a reachable label so that a step added after the enumeration
+inherits it.
+
+None of this had a test before. The park was measured on a readout and
+asserted nowhere, which is what let the ordering defect sit in it;
+`test_bias_park.c` now covers the ordinary close, the close that refuses,
+and the waiver.
 
 ### A device holds its acquisition from `init()`, not from `begin()`
 

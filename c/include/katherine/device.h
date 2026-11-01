@@ -229,17 +229,21 @@ katherine_device_snprint(char *buf, size_t cap, const katherine_device_t *v);
  * Optional behaviour of katherine_device_init(), as a bitmap.
  *
  * Zero asks for everything, which is the useful default: the readout is
- * enumerated, moved to a private pair of UDP ports, and told which interface
- * it is talking over. Each flag suppresses one of those.
+ * enumerated, moved to a private pair of UDP ports, told which interface it
+ * is talking over, and left with its bias supplies parked when the session
+ * ends. Each flag suppresses one of those.
  *
- * All of them together open the two sockets and nothing else, sending no
- * command and waiting for no acknowledgement, so the call succeeds whether or
- * not a readout is there.
+ * The three DONT_ flags together open the two sockets and nothing else,
+ * sending no command and waiting for no acknowledgement, so the call
+ * succeeds whether or not a readout is there. The fourth is not of that
+ * kind: it changes what the close does rather than the open, and leaves a
+ * sensor biased, which is why it is named for the danger.
  */
 typedef enum katherine_device_flags {
     KATHERINE_DEVICE_DONT_ENUMERATE        = 1u << 0, ///< Do not ask the readout what it is. Every generation-dependent call then fails with KATHERINE_E_STATE until katherine_device_enumerate() or katherine_device_declare() has run. Without this flag, a readout that does not answer fails the open.
     KATHERINE_DEVICE_DONT_CHANGE_UDP_PORTS = 1u << 1, ///< Do not move this session to a private pair of local UDP ports. Moving them is what lets one host drive several readouts, so suppress it only where something else owns the port assignment. Not attempted on a firmware that ignores the reply port, which cannot be moved; see katherine_device_info_t::legacy.
     KATHERINE_DEVICE_DONT_SELECT_INTERFACE = 1u << 2, ///< Do not tell the readout which interface drives it. On a readout that wants it, every later command answers orders of magnitude more slowly, and an acquisition over UDP does not start at all: katherine_acquisition_begin() times out. Over USB the selection changes nothing but that latency. See katherine_device_select_interface().
+    KATHERINE_DEVICE_DANGER_KEEP_BIAS      = 1u << 3, ///< Leave the bias supplies standing when this session lets go of the readout. Without it, katherine_device_fini() parks every supply at KATHERINE_BIAS_PARK_VOLTS, and so does an open that reached the readout and then failed. The sensor stays biased after the program that asked for it has gone, which is why the name says danger: it is for an assembly whose bias must not be cycled -- a CdTe sensor, whose polarization recovers over hours -- and for nothing else.
 } katherine_device_flags_t;
 
 KATHERINE_EXPORTED katherine_error_t
