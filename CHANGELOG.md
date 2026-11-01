@@ -618,6 +618,29 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The acquisition mode reaches every chip, not only the first
+
+`katherine_tpx3_set_acq_mode()` sends one register flush per chip the
+readout reports, each routed to its chip, where it used to send a single
+unrouted flush.
+
+The two halves of this command are not addressed alike. The readout merges
+the mode into **every** chip's register image -- its `setAcqMode()` loops
+over the chip count -- while the flush that pushes an image to a sensor
+takes its chip from payload byte 1, loads that chip's image and addresses
+that chip alone. Sent unrouted, byte 1 is zero, so on a readout carrying
+more than one chip every chip above the first kept whatever
+`katherine_tpx3_configure()` last pushed: Op\_mode 0 with the fast
+oscillator on, which is ToA+ToT regardless of the mode asked for.
+
+A readout reporting no chips at all is now refused with
+`KATHERINE_E_BAD_CHIP` rather than answering success after flushing
+nothing. The refusal is below the control lock, so a device with no link
+still reports `KATHERINE_E_STATE`.
+
+Single-chip traffic is unchanged to the byte: chip 0 puts a zero in byte 1,
+which is what the datagram already carried.
+
 ### The emulated readout can fail its digital test
 
 `katherine_emu_profile_t` gains `digital_test_ok`, true by default. False

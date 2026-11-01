@@ -736,6 +736,9 @@ err_lock:
  * \retval KATHERINE_E_INVAL if \a px_mode is not one of the chip's modes, or
  *   if the control link rejected an argument of the
  *   exchange; see katherine_transport_get_last_os_error().
+ * \retval KATHERINE_E_BAD_CHIP if the device reports no chips at all. The
+ *   mode is flushed once per chip, so there would be nowhere to put it; see
+ *   katherine_device_info_t::chip_count.
  * \retval KATHERINE_E_STATE if the device has no control link, which is one
  *   katherine_device_init() was never called on or whose call failed.
  * \retval KATHERINE_E_SYSTEM if the control link's lock could not be taken;
@@ -759,6 +762,15 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
 
     katherine_transport_flush_incoming(&device->control_transport);
 
+    // After the lock, so that a device with no link reports that rather than
+    // its chip count -- the order katherine_tpx3_configure() uses. The flush
+    // below runs once per chip, so a readout reporting none would run it
+    // zero times and set the mode nowhere while answering OK.
+    if (device->info.chip_count == 0) {
+        res = KATHERINE_E_BAD_CHIP;
+        goto err_chip_count;
+    }
+
     char cmd[8] = {0};
     cmd[6]      = CMD_TYPE_ACQUISITION_MODE_SETTING;
 
@@ -778,11 +790,22 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
     // state katherine_tpx3_configure() last pushed -- Op_mode 0 with the fast
     // oscillator on -- so every acquisition silently yielded ToA+ToT data
     // regardless of the mode asked for.
-    res = katherine_cmd_hw_sensor_config_registers_update(&device->control_transport);
-    if (res) goto err_update_send;
+    //
+    // Once per chip, because the two halves are not addressed alike: the
+    // merge reaches every chip's image, the flush reaches one chip's. The
+    // firmware is explicit -- setAcqMode() loops over chip_number writing
+    // chip_internal_reg[i][4], while fpgaCmdStart() reads its chip from
+    // payload byte 1, loads that chip's image and addresses that chip alone.
+    // Sent unrouted, as it was, byte 1 is zero and every chip above the
+    // first kept the mode configuration last pushed.
+    for (uint8_t chip = 0; chip < device->info.chip_count; ++chip) {
+        res = katherine_cmd_send60_chip(
+            &device->control_transport, CMD_TYPE_HW_COMMAND_START, CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE, chip);
+        if (res) goto err_update_send;
 
-    res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
-    if (res) goto err_update_recv;
+        res = katherine_cmd_wait_ack(&device->control_transport, CMD_TYPE_HW_COMMAND_START);
+        if (res) goto err_update_recv;
+    }
 
     (void) katherine_device_control_unlock(device);
     return KATHERINE_E_OK;
@@ -790,6 +813,7 @@ katherine_tpx3_set_acq_mode(katherine_device_t *device, katherine_tpx3_px_mode_t
 err_update_recv:
 err_update_send:
 err_registers:
+err_chip_count:
     (void) katherine_device_control_unlock(device);
 err_lock:
 err_mode:

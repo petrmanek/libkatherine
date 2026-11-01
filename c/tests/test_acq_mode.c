@@ -51,21 +51,26 @@
 
 // Pure headroom against scheduling jitter, as in test_tp.c: on the happy path
 // each command reaches the mock within microseconds.
-#define MOCK_TIMEOUT_MS    5000
+#define MOCK_TIMEOUT_MS 5000
 
-/** Number of datagrams one katherine_tpx3_set_acq_mode() call is expected to send. */
-#define EXPECTED_DATAGRAMS 2
+/**
+ * Datagrams one katherine_tpx3_set_acq_mode() call sends: the mode, then one
+ * register flush per chip. Two chips is what a second-generation readout
+ * carries here, so three is the most any case below expects.
+ */
+#define MAX_DATAGRAMS   3
 
 static katherine_udp_t mock_endpoint;
-static unsigned char mock_captured[EXPECTED_DATAGRAMS][8];
+static unsigned char mock_captured[MAX_DATAGRAMS][8];
 static size_t mock_count;
+static size_t mock_expected;
 
 static void *
 mock_readout(void *arg)
 {
     (void) arg;
 
-    for (mock_count = 0; mock_count < EXPECTED_DATAGRAMS; ++mock_count) {
+    for (mock_count = 0; mock_count < mock_expected; ++mock_count) {
         size_t n = sizeof(mock_captured[mock_count]);
         int res  = katherine_udp_recv(&mock_endpoint, mock_captured[mock_count], &n);
         if (res != 0 || n != 8) {
@@ -88,22 +93,30 @@ static void
 set_and_capture(katherine_device_t *device, katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled,
     const unsigned char expected_mode[8])
 {
-    // The flush carries the sub-command number in byte 0, and
-    // CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE is 0, so the whole datagram is
-    // zero but for the opcode.
-    static const unsigned char expected_flush[8] = {0, 0, 0, 0, 0, 0, 0x07, 0};
+    const uint8_t chips = device->info.chip_count;
+    KT_REQUIRE(chips >= 1 && (size_t) chips + 1 <= MAX_DATAGRAMS);
 
     kthread_t thread;
     memset(mock_captured, 0xAA, sizeof(mock_captured));
-    mock_count = 0;
+    mock_count    = 0;
+    mock_expected = (size_t) chips + 1;
     KT_REQUIRE(kthread_start(&thread, mock_readout, NULL) == 0);
 
     KT_CHECK(katherine_tpx3_set_acq_mode(device, px_mode, fast_vco_enabled) == 0);
     KT_CHECK(kthread_join(&thread) == 0);
 
-    KT_CHECK(mock_count == EXPECTED_DATAGRAMS);
+    KT_CHECK(mock_count == mock_expected);
     KT_CHECK_MEM_EQ(mock_captured[0], expected_mode, 8);
-    KT_CHECK_MEM_EQ(mock_captured[1], expected_flush, 8);
+
+    // One flush per chip, carrying the sub-command number in byte 0 --
+    // CMD_START_SENSOR_CONFIG_REGISTERS_UPDATE is 0 -- and the chip in byte
+    // 1, which is where opcode 0x07 keeps it and where the readout's
+    // firmware reads it. For one chip that is the all-zero datagram the
+    // vendor captures show, unchanged.
+    for (uint8_t chip = 0; chip < chips; ++chip) {
+        const unsigned char expected_flush[8] = {0, chip, 0, 0, 0, 0, 0x07, 0};
+        KT_CHECK_MEM_EQ(mock_captured[1 + chip], expected_flush, 8);
+    }
 }
 
 static void
@@ -135,6 +148,9 @@ test_datagrams(void)
     };
     KT_REQUIRE(katherine_transport_init_udp(&device.control_transport, &config) == 0);
 
+    // One chip, which is what the captured datagrams below were taken from.
+    device.info.chip_count = 1;
+
     // Mode in byte 0, oscillator flag in byte 1. The three mode vectors are
     // the ones whose register readbacks were 0x58, 0x5a and 0x5c.
     set_and_capture(&device, KATHERINE_TPX3_PX_TOA_TOT, true, (const unsigned char[8]) {0x00, 0x01, 0, 0, 0, 0, 0x09, 0});
@@ -149,6 +165,13 @@ test_datagrams(void)
         &device, KATHERINE_TPX3_PX_TOA_TOT, false, (const unsigned char[8]) {0x00, 0x00, 0, 0, 0, 0, 0x09, 0});
     set_and_capture(
         &device, KATHERINE_TPX3_PX_EVENT_COUNT_ITOT, false, (const unsigned char[8]) {0x02, 0x00, 0, 0, 0, 0, 0x09, 0});
+
+    // And a second-generation readout carrying two chips flushes both. The
+    // merge the readout performs reaches every chip's register image; the
+    // flush reaches one chip's, so sending it once left every chip above the
+    // first in the mode the preceding configuration had pushed.
+    device.info.chip_count = 2;
+    set_and_capture(&device, KATHERINE_TPX3_PX_ONLY_TOA, true, (const unsigned char[8]) {0x01, 0x01, 0, 0, 0, 0, 0x09, 0});
 
     katherine_transport_fini(&device.control_transport);
     katherine_udp_fini(&mock_endpoint);
