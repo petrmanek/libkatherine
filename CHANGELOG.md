@@ -618,6 +618,20 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### The 1.x shim reports a held port as 1.x did
+
+`katherine1_map_result()` maps `KATHERINE_E_BUSY` to `EADDRINUSE`. It used
+to fall to the `EIO` group with everything the table does not name, so a
+program compiled against `katherine/katherine1.h` lost the one distinction
+1.x made here: 1.x returned `bind()`'s own errno, and a caller opening a
+second readout on the same host could branch on it and pick another port.
+That branch silently stopped firing.
+
+`KATHERINE_E_BUSY` covers `EADDRINUSE` and `EACCES` both -- 2.0 merged them,
+either meaning try another port -- so the shim restores the one that occurs.
+`EACCES` needs a port below 1024, which this library never binds of its own
+accord.
+
 ### A configuration pointer is read rather than assumed
 
 `katherine_acquisition_begin()` and `katherine_tpx3_configure()` return

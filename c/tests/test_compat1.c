@@ -20,6 +20,11 @@
  *                remote address (KATHERINE_E_ADDRESS, see katherine1.h for
  *                where that is attested against the 1.1.0 sources).
  *   - ENOMEM:    an acquisition buffer too large for any allocator to satisfy.
+ *   - EADDRINUSE: a local port held by a socket that did not ask to share
+ *                it (KATHERINE_E_BUSY). 1.x returned bind()'s own errno
+ *                here, so a caller's port-retry loop branched on this. The
+ *                one case asserted on the mapping function rather than
+ *                driven, for the reason given where it is written.
  *   - EIO:       every katherine_error_t enumerator this shim does not name
  *                explicitly, reached here via a missing pixel-configuration
  *                file (fopen() failure not otherwise recognized).
@@ -93,6 +98,28 @@ test_recv_timeout_maps_to_etimedout(void)
 {
     katherine_device_t dev;
     KT_CHECK_EQ(katherine_device_init(&dev, "udp://192.0.2.1"), ETIMEDOUT);
+}
+
+// ------------------------------------------------------------------
+// EADDRINUSE: a local port held by a socket that did not ask to share it.
+//
+// Asserted on the mapping function rather than end to end, which is this
+// file's habit everywhere else. The 1.x UDP surface cannot reach it -- every
+// katherine_udp_* entry point declines with ENOTSUP, see
+// test_udp_calls_decline below -- and the two shim calls that can,
+// katherine_device_init() and katherine_acquisition_init(), bind the
+// readout's own control and data ports. Holding 1555 or 1556 to provoke it
+// would make this file compete for the global resource that test_discover
+// takes a serial slot for.
+
+static void
+test_a_held_port_maps_to_eaddrinuse(void)
+{
+    KT_CHECK_EQ(katherine1_map_result(KATHERINE_E_BUSY), EADDRINUSE);
+
+    // And it is not the group everything unnamed falls into, which is what
+    // the case exists to stop.
+    KT_CHECK(katherine1_map_result(KATHERINE_E_BUSY) != katherine1_map_result(KATHERINE_E_PROTO));
 }
 
 // ------------------------------------------------------------------
@@ -666,6 +693,7 @@ main(void)
     KT_RUN(test_dacs_validate_out_of_range_maps_to_einval);
     KT_RUN(test_udp_bad_remote_address_maps_to_einval);
     KT_RUN(test_acquisition_init_huge_buffer_maps_to_enomem);
+    KT_RUN(test_a_held_port_maps_to_eaddrinuse);
     KT_RUN(test_px_config_missing_file_maps_to_eio);
     KT_RUN(test_dacs_validate_success);
     KT_RUN(test_udp_calls_decline);

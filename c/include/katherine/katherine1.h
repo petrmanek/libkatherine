@@ -126,6 +126,14 @@ extern "C" {
 // failure. KATHERINE_E_ADDRESS is the 2.0 enumerator that condition now maps
 // to, hence the explicit case below rather than letting it fall to EIO.
 //
+// A held local port is the other condition 1.x reported precisely, and for
+// the same reason: bind() set errno and 1.x returned it, so a caller trying
+// to open a second readout on this host saw EADDRINUSE and could pick
+// another port. KATHERINE_E_BUSY covers EADDRINUSE and EACCES both -- 2.0
+// merged them, on the grounds that either means try another port -- so this
+// case restores the one that actually occurs. EACCES needs a port under
+// 1024, which this library never binds of its own accord.
+//
 // Every other katherine_error_t enumerator collapses onto EIO: 1.x had no
 // single code for "malformed command response" or "unsupported by this
 // device" either, since it had no error domain of its own to begin with,
@@ -142,6 +150,7 @@ katherine1_map_result(int result)
     case KATHERINE_E_NOMEM:   return ENOMEM;
     case KATHERINE_E_INVAL:   return EINVAL;
     case KATHERINE_E_ADDRESS: return EINVAL;
+    case KATHERINE_E_BUSY:    return EADDRINUSE;
     // What the session calls below answer, 1.x having had no such code.
     case KATHERINE_E_UNSUPPORTED: return ENOTSUP;
     default:                      return EIO;
