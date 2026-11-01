@@ -1074,7 +1074,8 @@ acquisition_pixel_size(katherine_tpx3_px_mode_t px_mode, bool fast_vco_enabled)
  *
  * \retval KATHERINE_E_OK on success, with the readout armed and the
  *   acquisition running.
- * \retval KATHERINE_E_INVAL if the combination asked for is refused: a data-
+ * \retval KATHERINE_E_INVAL if \p config is NULL, or if the combination asked
+ *   for is refused: a data-
  *   driven readout of more than one frame, fast VCO at a frequency where fine
  *   time stamping is not coherent, a pixel buffer smaller than one hit of the
  *   mode and oscillator asked for -- which the decode loop would write past
@@ -1129,6 +1130,15 @@ katherine_acquisition_begin(katherine_acquisition_t *acq, const katherine_tpx3_c
 {
     katherine_acquisition_tpx3_priv_t *priv = katherine_acquisition_tpx3_priv(acq);
     katherine_error_t res                   = 0;
+
+    // Before the state questions below, because an argument that cannot be
+    // read at all is not a question about state. This call reads the
+    // configuration four statements further down and used to do so without
+    // asking, so a NULL arrived as a segmentation fault.
+    if (config == NULL) {
+        res = KATHERINE_E_INVAL;
+        goto err;
+    }
 
     // An acquisition katherine_acquisition_init() never filled, or that
     // katherine_acquisition_fini() has since released, holds no device.

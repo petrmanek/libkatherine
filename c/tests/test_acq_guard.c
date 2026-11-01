@@ -528,6 +528,31 @@ test_beginning_a_running_acquisition_is_refused(void)
     free(config);
 }
 
+// A configuration pointer is read, not assumed. Both of these used to
+// dereference it before any check -- begin() four statements in, configure()
+// at its second -- so a caller who passed NULL got a segmentation fault
+// where every other bad argument gets a return code. Found by a test of this
+// file that passed NULL for an unrelated reason.
+static void
+test_a_null_configuration_is_refused_not_dereferenced(void)
+{
+    katherine_device_t device;
+    katherine_acquisition_t acq;
+
+    memset(&device, 0, sizeof(device));
+    memset(&acq, 0, sizeof(acq));
+    acq.device = &device;
+
+    KT_CHECK_EQ(katherine_acquisition_begin(&acq, NULL, true), KATHERINE_E_INVAL);
+    KT_CHECK_EQ(katherine_tpx3_configure(&device, NULL), KATHERINE_E_INVAL);
+
+    // Before the state checks, so a device that is not ready reports the
+    // argument it cannot read rather than the state it is in.
+    katherine_acquisition_t orphan;
+    memset(&orphan, 0, sizeof(orphan));
+    KT_CHECK_EQ(katherine_acquisition_begin(&orphan, NULL, true), KATHERINE_E_INVAL);
+}
+
 int
 main(void)
 {
@@ -543,6 +568,7 @@ main(void)
     KT_RUN(test_a_device_knows_which_acquisition_is_live);
     KT_RUN(test_a_second_acquisition_on_one_device_is_refused);
     KT_RUN(test_beginning_a_running_acquisition_is_refused);
+    KT_RUN(test_a_null_configuration_is_refused_not_dereferenced);
 
     KT_RUN(test_fini_leaves_another_acquisitions_registration_alone);
     return kt_summary();

@@ -618,6 +618,18 @@ safe range** -- a readout able to produce ±1000 V is routinely wired to a
 sensor that must never see more than 300 V, and nothing in this library
 knows which assembly is attached.
 
+### A configuration pointer is read rather than assumed
+
+`katherine_acquisition_begin()` and `katherine_tpx3_configure()` return
+`KATHERINE_E_INVAL` for a NULL configuration. Both used to dereference it
+before any check -- `begin()` four statements in, `configure()` at its
+second -- so the one argument error that every caller can make by forgetting
+a return value arrived as a segmentation fault, where every other bad
+argument gets a code.
+
+The check is first in both, ahead of the state questions: an argument that
+cannot be read at all is not a question about the device.
+
 ### The bias failsafe fires before the close decides whether it may proceed
 
 `katherine_device_fini()` parked the bias supplies *after* its guard, and

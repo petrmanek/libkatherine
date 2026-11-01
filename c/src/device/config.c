@@ -62,7 +62,8 @@ reserved_is_clear(const uint32_t *reserved, size_t count)
  *   of a command response.
  * \retval KATHERINE_E_STRAY if an acknowledgement never arrived while the
  *   session kept delivering responses belonging to other commands.
- * \retval KATHERINE_E_INVAL if the test-pulse settings are out of range --
+ * \retval KATHERINE_E_INVAL if \p config is NULL, if the test-pulse settings
+ *   are out of range --
  *   which is checked only when test pulses are enabled, see
  *   katherine_tpx3_set_test_pulses() -- or if the control link rejected an
  *   argument of the exchange.
@@ -91,6 +92,13 @@ katherine_error_t
 katherine_tpx3_configure(katherine_device_t *device, const katherine_tpx3_config_t *config)
 {
     katherine_error_t res;
+
+    // Before the state question below: an argument that cannot be read is
+    // not a question about the device. Every check that follows reads it.
+    if (config == NULL) {
+        res = KATHERINE_E_INVAL;
+        goto err;
+    }
 
     // Checked here rather than left to the first step that needs it, so that
     // a device nobody has enumerated is told so instead of being told it
